@@ -1,6 +1,6 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
-using PyPlot, Printf, Random, LinearAlgebra
+using Plots, Printf, Random, LinearAlgebra
 include("DescentMethods.jl")
 # include("ProxProj.jl")
 
@@ -10,7 +10,7 @@ include("DescentMethods.jl")
 # min_x 1/2||Ax - b||^2 + λ||x||_1
 
 
-m,n = 200,2000; # this is a under determine system
+n,m = 200,2000; # this is a under determine system
 A = rand(m,n)
 xt  = zeros(n);
 k   = 10;     # nonzeros in xt
@@ -46,10 +46,6 @@ hispg = proxgrad!(x1, L, funcF!, proxG!, tol, print_freq=1000)
 x2 = rand(n); 
 hisf = FISTA!(x2, L, funcF!, proxG!, tol, print_freq=1000)
 
-semilogy(hispg ,"b")
-semilogy(hisf,"g")
-xlabel("Iteration")
-ylabel("Descent")
-title("Descent Comparison")
-# legend("ProxGrad", "FISTA")
+plot(hispg[1:end-1], yaxis=:log, xlabel="Iteration", ylabel="Descent", title="Descent Comparison", label="ProxGrad")
+plot!(hisf[1:end-1], yaxis=:log, label="FISTA")
 savefig("temp.pdf")
