@@ -22,7 +22,6 @@ function proxgrad!(x, β, Fcn!, proxG!, ε; max_iter = 10000, print_freq=100)
 	gradF = zeros(m)
 	y = copy(x)
 	η = 1.0/β
-
 	# Iteration set up 
 	k = 1
 	err = 100
@@ -76,33 +75,39 @@ function FISTA!(x, β, Fcn!, proxG!, ε; max_iter = 10000, print_freq=100)
 	#Problem Initialize
 	m = length(x)
 	gradF = zeros(m)
-	xm = copy(x)
+	xs = copy(x)
 	y = copy(x)
-	η = 1.0/β
-	t = 1.0
+	#initialize parameters
+	η = β^(-1)
+	λ = 0.0
+	λs = copy(λ)
 	# Iteration set up 
 	k = 1
-	err = 100
+	err = 100.0
 	f = Fcn!(y, gradF)
 	his = zeros(max_iter)
 	#do iterations
 	while err ≥ ε
 		his[k] = f
 		#take a step in x
-		# proxG!(BLAS.axpy!(-η, gradF, y), η) #should reassign x, check to make sure this input or just y
+		BLAS.axpy!(-η, gradF, y)
+		#update y
 		x = copy(y)
-		proxG!(x, η)
-		tm = copy(t)
-		t = (1.0+sqrt(1.0+4.0*tm^2))/2.0
-		#prox step
-		y = x + ((tm-1.0)/t)*(x-xm)
+		proxG!(x, η) #updates x
+		#update x
+		λ = (1.0+sqrt(1.0+4.0*λs^2))/2.0
+		y = x + (λs - 1.0)/λ*(x-xs)
 		# update function info
-		f = Fcn!(y, gradF)
-		err = norm(y-x)
-		xm = copy(x)
-		k+=1
+		f = Fcn!(x, gradF)
+		err = norm(xs - x)
 		#sheet on which to freq 
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
+		
+		#update parameters
+		xs = copy(x)
+		λs = copy(λ)
+		f = Fcn!(y, gradF)
+		k+=1
 
 		if k ≥ max_iter
 			@printf("Maximum Iterations Reached!\n")

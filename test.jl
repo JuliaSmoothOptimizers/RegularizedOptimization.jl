@@ -20,7 +20,7 @@ for i = 1:k
 end
 b   = A*xt;
 λ   = norm(A'*b, Inf)/10.0;
-L   = norm(A)^2.0;
+L   = norm(A)^(2.0);
 tol = 1e-20;
 
 function funcF!(x,g)
@@ -41,12 +41,12 @@ end
 
 
 
-x1 = zeros(n);
-# hispg = proxgrad!(x1, L, funcF!, proxG!, tol)
-x2 = zeros(n); 
-hisf = FISTA!(x2, L, funcF!, proxG!, tol, print_freq=1)
+x1 = rand(n);
+hispg = proxgrad!(x1, L, funcF!, proxG!, tol, print_freq=1000)
+x2 = rand(n); 
+hisf = FISTA!(x2, L, funcF!, proxG!, tol, print_freq=1000)
 
-# semilogy(hispg ,"b")
+semilogy(hispg ,"b")
 semilogy(hisf,"g")
 xlabel("Iteration")
 ylabel("Descent")
