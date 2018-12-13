@@ -10,7 +10,7 @@ include("DescentMethods.jl")
 # min_x 1/2||Ax - b||^2 + λ||x||_1
 
 
-n,m = 200,2000; # this is a under determine system
+m,n = 200,2000; # this is a under determine system
 A = rand(m,n)
 xt  = zeros(n);
 k   = 10;     # nonzeros in xt
@@ -21,7 +21,7 @@ end
 b   = A*xt;
 λ   = norm(A'*b, Inf)/10.0;
 L   = norm(A)^(2.0);
-tol = 1e-20;
+tol = 1e-10;
 
 function funcF!(x,g)
     r = copy(b)
@@ -43,8 +43,8 @@ end
 
 x1 = rand(n);
 hispg = proxgrad!(x1, L, funcF!, proxG!, tol, print_freq=1000)
-x2 = rand(n); 
-hisf = FISTA!(x2, L, funcF!, proxG!, tol, print_freq=1000)
+x2 = rand(n);
+hisf = FISTA!(x2, L, funcF!, proxG!, tol, print_freq=1)
 
 plot(hispg[1:end-1], yaxis=:log, xlabel="Iteration", ylabel="Descent", title="Descent Comparison", label="ProxGrad")
 plot!(hisf[1:end-1], yaxis=:log, label="FISTA")

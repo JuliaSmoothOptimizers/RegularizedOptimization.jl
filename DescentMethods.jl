@@ -1,8 +1,8 @@
 #===========================================================================
-	Proximal Gradient Descent for 
+	Proximal Gradient Descent for
 	min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
 
-	Input: 
+	Input:
 		x: initial point
 		β: Lipschitz constant for F
 		Fcn!: function handle that returns f(x) and ∇f(x)
@@ -22,7 +22,7 @@ function proxgrad!(x, β, Fcn!, proxG!, ε; max_iter = 10000, print_freq=100)
 	gradF = zeros(m)
 	y = copy(x)
 	η = 1.0/β
-	# Iteration set up 
+	# Iteration set up
 	k = 1
 	err = 100
 	f = Fcn!(x, gradF)
@@ -39,7 +39,7 @@ function proxgrad!(x, β, Fcn!, proxG!, ε; max_iter = 10000, print_freq=100)
 		err = norm(x-y)
 		y = copy(x)
 		k+=1
-		#sheet on which to freq 
+		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 
 		if k ≥ max_iter
@@ -56,10 +56,10 @@ end
 
 
 #===========================================================================
-	FISTA for 
+	FISTA for
 	min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
 
-	Input: 
+	Input:
 		x: initial point
 		β: Lipschitz constant for F
 		Fcn!: function handle that returns f(x) and ∇f(x)
@@ -81,7 +81,7 @@ function FISTA!(x, β, Fcn!, proxG!, ε; max_iter = 10000, print_freq=100)
 	η = β^(-1)
 	λ = 0.0
 	λs = copy(λ)
-	# Iteration set up 
+	# Iteration set up
 	k = 1
 	err = 100.0
 	f = Fcn!(y, gradF)
@@ -100,9 +100,9 @@ function FISTA!(x, β, Fcn!, proxG!, ε; max_iter = 10000, print_freq=100)
 		# update function info
 		f = Fcn!(x, gradF)
 		err = norm(xs - x)
-		#sheet on which to freq 
+		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
-		
+
 		#update parameters
 		xs = copy(x)
 		λs = copy(λ)
@@ -117,6 +117,3 @@ function FISTA!(x, β, Fcn!, proxG!, ε; max_iter = 10000, print_freq=100)
 	@printf("Error Criteria Reached! -> Obj Val %1.5e, ε = ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", f, err)
 	return his[1:k]
 end
-
-
-
