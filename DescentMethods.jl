@@ -71,7 +71,7 @@ end
 		x: x update
 ===========================================================================#
 
-function FISTA!(x, β, Fcn!, proxG!, ε; max_iter = 10000, print_freq=100)
+function FISTA!(x, β, Fcn!, proxG!, ε; max_iter = 10000, print_freq=100, restart = 100)
 	#Problem Initialize
 	m = length(x)
 	gradF = zeros(m)
@@ -79,33 +79,45 @@ function FISTA!(x, β, Fcn!, proxG!, ε; max_iter = 10000, print_freq=100)
 	y = copy(x)
 	#initialize parameters
 	η = β^(-1)
-	λ = 0.0
+	λ = 1.0
 	λs = copy(λ)
 	# Iteration set up
 	k = 1
 	err = 100.0
-	f = Fcn!(y, gradF)
 	his = zeros(max_iter)
+	converged = false
 	#do iterations
-	while err ≥ ε
+	f = Fcn!(y, gradF)
+
+	while ~converged
+		if (mod(k, restart) == 1)
+				λ = 1;
+		end
+
 		his[k] = f
-		#take a step in x
-		BLAS.axpy!(-η, gradF, y)
-		#update y
-		x = copy(y)
-		proxG!(x, η) #updates x
+		xs = copy(x)
+
 		#update x
-		λ = (1.0+sqrt(1.0+4.0*λs^2))/2.0
-		y = x + (λs - 1.0)/λ*(x-xs)
-		# update function info
-		f = Fcn!(x, gradF)
-		err = norm(xs - x)
+		#		x = y - η*gradF;
+		x = copy(y)
+		BLAS.axpy!(-η, gradF, x)
+		proxG!(x, η)
+
+		#update step
+		λs = copy(λ)
+		λ = 0.5*(1 + sqrt(1+4*λs^2));
+
+		#update y
+		y = x + ((λs - 1.0)/λ)*(x-xs)
+
+		#check convergence
+		err = norm(x - xs);
+		converged = err <= ε
+
 		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
+		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, λ %1.5e\n", k, f, err, λ)
 
 		#update parameters
-		xs = copy(x)
-		λs = copy(λ)
 		f = Fcn!(y, gradF)
 		k+=1
 
