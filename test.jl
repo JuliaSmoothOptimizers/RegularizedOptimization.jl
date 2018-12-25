@@ -23,18 +23,19 @@ b   = A*xt;
 L   = norm(A)^(2.0);
 tol = 1e-10;
 
-function funcF!(x,g)
+function funcF(x,g)
     r = copy(b)
     BLAS.gemv!('N',1.0,A,x,-1.0,r)
     BLAS.gemv!('T',1.0,A,r,0.0,g)
-    return norm(r)
+    return norm(r), g
 end
-function proxG!(x,α)
-    n = length(x);
+function proxG(x,α)
+    # n = length(x)
     for i = 1:n
         x[i] > α*λ ? x[i] -= α*λ :
         x[i] <-α*λ ? x[i] += α*λ : x[i] = 0.0;
     end
+    return x
 end
 
 
@@ -42,9 +43,9 @@ end
 
 
 x1 = rand(n);
-hispg = proxgrad!(x1, L, funcF!, proxG!, tol, print_freq=1000)
+hispg = proxgrad(x1, L, funcF, proxG, tol, print_freq=1000)
 x2 = rand(n);
-hisf = FISTA!(x2, L, funcF!, proxG!, tol, print_freq=1)
+hisf = FISTA(x2, L, funcF, proxG, tol, print_freq=1000)
 
 plot(hispg[1:end-1], yaxis=:log, xlabel="Iteration", ylabel="Descent", title="Descent Comparison", label="ProxGrad")
 plot!(hisf[1:end-1], yaxis=:log, label="FISTA")
