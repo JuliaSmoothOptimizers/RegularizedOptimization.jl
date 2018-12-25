@@ -45,7 +45,9 @@ end
 x1 = rand(n);
 hispg = proxgrad(x1, L, funcF, proxG, tol, print_freq=1000)
 x2 = rand(n);
+<<<<<<< HEAD
 hisf = FISTA(x2, L, funcF, proxG, tol, print_freq=1000)
+
 
 plot(hispg[1:end-1], yaxis=:log, xlabel="Iteration", ylabel="Descent", title="Descent Comparison", label="ProxGrad")
 plot!(hisf[1:end-1], yaxis=:log, label="FISTA")

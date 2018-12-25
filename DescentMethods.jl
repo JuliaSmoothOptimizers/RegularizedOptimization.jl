@@ -69,53 +69,60 @@ end
 		* print_freq: # of freq's in the sheets
 	Output:
 		x: x update
-===========================================================================#
+===========================================================================# 
 
-function FISTA(x0, β, Fcn, proxG, ε; max_iter = 10000, print_freq=1000)
-
-	#function parameters
-	restart = 100
-	η = 1/β
-	m = length(x0)
-	gradF = zeros(m)
-	his = zeros(max_iter)
-	#initialize function
-	critin = test_conv(x0, Fcn, proxG, η)
-	crit = copy(critin)
+function FISTA(x, β, Fcn, proxG, ε; max_iter = 10000, print_freq=100, restart = 100)
 	#Problem Initialize
-	k = 0
-	fstep = 1.0
-	x = copy(x0)
-	y = copy(x0)
-	converged=false
-	while (~converged && k <max_iter)
-		k +=1
-		if k % restart ==1
-			fstep = 1.0
+	m = length(x)
+	gradF = zeros(m)
+	xs = copy(x)
+	y = copy(x)
+	#initialize parameters
+	η = β^(-1)
+	λ = 1.0
+	λs = copy(λ)
+	# Iteration set up
+	k = 1
+	err = 100.0
+	his = zeros(max_iter)
+	converged = false
+	#do iterations
+	f, gradF = Fcn(y, gradF)
+
+	while ~converged && k<max_iter
+		if (mod(k, restart) == 1)
+				λ = 1;
 		end
 
-		f, gradF = Fcn(y, gradF)
-		his[k]=f
-		# x⁺=copy(y)
-		#x⁺ -= η*∇f
-		# BLAS.axpy!(-η, gradF, x⁺) 
+		his[k] = f
+		xs = copy(x)
 
-		x⁺ = proxG(BLAS.axpy!(-η, gradF, y), η)
-		stepNew = 0.5*(1.0+sqrt(1.0+4.0*fstep^2))
-		y = x + ((fstep -1.0)/stepNew)*(x⁺ - x)
-		fstep = copy(stepNew)
-		x = copy(x⁺)
+		#update x
+		#		x = y - η*gradF;
+		x = copy(y)
+		BLAS.axpy!(-η, gradF, x)
+		x = proxG(x, η)
 
+		#update step
+		λs = copy(λ)
+		λ = 0.5*(1 + sqrt(1+4*λs^2));
 
-		#test to see if you've converged
-		crit = test_conv(x, Fcn, proxG, η, critin)
-		converged = (crit < ε)
+		#update y
+		y = x + ((λs - 1.0)/λ)*(x-xs)
+
+		#check convergence
+		err = norm(x - xs);
+		converged = err <= ε
 
 		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, crit)
+		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
+
+		#update parameters
+		f, gradF = Fcn(y, gradF)
+		k+=1
 	end
 	f, _ = Fcn(y, gradF)
-	@printf("Error Criteria Reached! -> Obj Val %1.5e, ε = ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", f, crit)
+	# @printf("Error Criteria Reached! -> Obj Val %1.5e, ε = ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", f, crit)
 	return his[1:k]
 end
 
