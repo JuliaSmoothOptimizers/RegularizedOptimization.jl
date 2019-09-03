@@ -2,7 +2,8 @@
 # Generate Compressive Sensing Data
 using Plots, Printf, Random, LinearAlgebra
 include("DescentMethods.jl")
-# include("ProxProj.jl")
+include("ProxProj.jl")
+include("IP_alg.jl")
 
 
 #Here we just try to solve the Lasso Problem
@@ -10,10 +11,15 @@ include("DescentMethods.jl")
 # min_x 1/2||Ax - b||^2 + λ||x||_1
 
 
-m,n = 200,2000; # this is a under determine system
+m,n = 100,100; # this is a under determine system
 A = rand(m,n)
-xt  = zeros(n);
-k   = 10;     # nonzeros in xt
+x0  = rand(n,1);
+b0 = A*x0;
+b = b0 + 0.5*rand(m,1);
+cutoff = 0.0;
+l = zeros(n,1)+cutoff*ones(n,1);
+u = zeros(n,1)+cutoff*ones(n,1); 
+
 p   = randperm(n)[1:k];
 for i = 1:k
     xt[p[i]] = (5.0+randn())*sign(rand()-0.5);
@@ -45,7 +51,6 @@ end
 x1 = rand(n);
 hispg = proxgrad(x1, L, funcF, proxG, tol, print_freq=1000)
 x2 = rand(n);
-<<<<<<< HEAD
 hisf = FISTA(x2, L, funcF, proxG, tol, print_freq=1000)
 
 

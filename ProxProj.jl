@@ -39,7 +39,7 @@ function prox_l2(y::Vector{Float64}, γ::Float64)
 end
 
 # projection onto lower/upper bounds
-function proj_bounds(y::Vector{Float64}, l::Vector{float64}, u::Vector{float64}, γ::Float64)
+function proj_bounds(y::Vector{Float64}, l::Vector{Float64}, u::Vector{Float64}, γ::Float64)
   return max.(min.(y, u), l)
 end
 
