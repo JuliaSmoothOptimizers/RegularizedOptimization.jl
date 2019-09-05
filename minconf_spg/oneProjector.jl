@@ -4,47 +4,52 @@ using LinearAlgebra
 
 function oneProjector(b,d,tau)
 # % ----------------------------------------------------------------------
+#there is a non-scalar version of d too, but for now we just take the scalar value 
+   if isa(d, Float64) && d==0
+      x = b; 
+      itn = 0.0;
+      return x
+   end
 
+   #get signs of all elements in b
+   s=sign.(b);
+   b = abs.(b);
     # Initialization
    n = length(b);
    x = zeros(n,);
 
     # Check for quick exit.
-   if (tau >= norm(d.*b,1))
+   if (tau >= norm(b,1))
       x = b; itn = 0; 
-      return x, itn 
+      return x.*s 
    end
    # if (tau <  eps)
    if (tau < 2.2204e-16)
       itn = 0; 
-      return x, itn 
+      return x.*s 
    end
 
-    # Preprocessing (b is assumed to be >= 0)
-   bd = b ./ d;
-   idx = sortperm(bd, rev=true); # Descending.
-   bd = bd[idx];
+    # Preprocessing (b is assumed to be >= 0), taken care of with abs
+   idx = sortperm(b, rev=true); # Descending.
    b  = b[idx];
-   d  = d[idx];
     # Optimize
-   csdb = 0; csd2 = 0;
-   soft = 0; alpha1 = 0; i = 1;
+   csb = -tau; 
+   alphaPrev = 0;  
+   i = 1;
    while (i <= n)
-      csdb = csdb + d[i].*b[i];
-      csd2 = csd2 + d[i].*d[i];
+      csb = csb + b[i];
   
-      alpha1 = (csdb - tau) / csd2;
-      alpha2 = bd[i];
+      alpha = csb + b[i];
 
-      if alpha1 >= alpha2
+      if alpha >= b[i]
          break;
       end
     
-      soft = alpha1;  i = i + 1;
+      alphaPrev = alpha;  i = i + 1;
    end
-   x[idx[1:i-1]] = b[1:i-1] - d[1:i-1] * max(0,soft);
+   x[idx] = max.(0, b - alphaPrev*ones(size(b)))
 
     # Set number of iterations
    itn = i;
-   return x, itn
+   return x.*s
 end

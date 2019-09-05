@@ -187,9 +187,9 @@ function minConf_SPG(funObj, x, funProj, options)
         lineSearchIters = 1
         while f_new > funRef + options.suffDec*dot(g,(x_new-x)) || ~isLegal(f_new) || ~isLegal(g_new)
             temp = t
-            if lineSearchIters == 1
-                @printf("Unit step length not feasible, starting line search\n")
-            end
+            # if lineSearchIters == 1
+            #     @printf("Unit step length not feasible, starting line search\n")
+            # end
             # @printf("%10d %15.5e %15.5e %15.5e %15.5e\n",lineSearchIters,t, f_new,funRef,funRef + options.suffDec*dot(g,(x_new-x)))
             if options.interp == 0 || ~isLegal(f_new)
                 if options.verbose == 3

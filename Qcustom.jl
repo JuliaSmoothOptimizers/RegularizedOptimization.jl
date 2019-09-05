@@ -1,38 +1,41 @@
-using LinearAlgebra
+using LinearAlgebra, Printf
 
 export Q_params, QCustom
 
 mutable struct params
+	obj
 	grad
 	Hess
 end
 
-function Q_params(; grad = Array{Float64,1}(undef,0), Hess = Array{Float64,2}(undef,0,0))
-	return params(grad, Hess)
+function Q_params(;obj=Float64, grad = Array{Float64,1}(undef,0), Hess = Array{Float64,2}(undef,0,0))
+	return params(obj, grad, Hess)
 end
 
 
 
 
-function QCustom(x, par)
+function QCustom(s, par)
+	r"""
+	QCustom is the quadratic approximation for the smooth part of the function f(x)
 
-	f = 0.5*x'*par.Hess*x + x'*par.grad;
-    g = par.Hess*x +par.grad;
-    h = par.Hess;
-
+	Parameters
+    ----------
+    s : Array{Float64,1}
+        Search direction computed by the TR method
+    par.obj : Float64
+    	objective value of ϕ at x 
+    par.grad : Array{Float64,1}
+        gradient of ϕ at x
+    par.Hess : Array{Float64,2}
+        Hessian (or Hessian approximation) of TR method 
+	"""
+	
+	obj = par.obj; 
+	Hess = par.Hess;
+	grad = par.grad;
+	f = 0.5*(s'*(Hess*s)) + grad'*s; #technically don't need obj but for completeness sake
+    g = Hess*s +grad;
+    h = Hess;
 	return f, g, h
 end
-
-# function LScustom(x, grad, Hess)
-# 	f = 0.5*norm(A*x-b)^2;
-
-# 	if(nargout > 1)
-#     	g = A'*(A*x - b);
-# 	end
-
-# 	if(nargout > 2)
-#     	h = A'*A;
-# 	end
-
-# 	return f, g, H
-# end
