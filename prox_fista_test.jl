@@ -8,46 +8,52 @@ include("DescentMethods.jl")
 #Here we just try to solve the Lasso Problem
 #######
 # min_x 1/2||Ax - b||^2 + λ||x||_1
+# srand(123)
+m,n = 200,512 # this is a under determine system
 
-
-m,n = 200,2000; # this is a under determine system
 A = rand(m,n)
-xt  = zeros(n);
+xt  = zeros(n)
 k   = 10;     # nonzeros in xt
-p   = randperm(n)[1:k];
+p   = randperm(n)[1:k]
 for i = 1:k
     xt[p[i]] = (5.0+randn())*sign(rand()-0.5);
 end
 b   = A*xt;
-λ   = norm(A'*b, Inf)/10.0;
+λ   = norm(A'*b, Inf)/50.0;
 L   = norm(A)^(2.0);
-tol = 1e-10;
 
-function funcF(x,g)
-    r = copy(b)
-    BLAS.gemv!('N',1.0,A,x,-1.0,r)
-    BLAS.gemv!('T',1.0,A,r,0.0,g)
+function funcF(x)
+    r = A*x - b
+    # BLAS.gemv!('N',1.0,A,x,-1.0,r)
+    # g = BLAS.gemv('T',1.0,A,r)
+    g = A'*r
     return norm(r), g
 end
 function proxG(x,α)
-    # n = length(x)
+    n = length(x)
     for i = 1:n
         x[i] > α*λ ? x[i] -= α*λ :
         x[i] <-α*λ ? x[i] += α*λ : x[i] = 0.0;
     end
     return x
+    # return sign.(x).*max(abs.(x).-(λ*α)*ones(size(x)), zeros(size(x)))
 end
 
+options = s_options(L;optTol = 1e-10, verbose=1)
 
 
 
+x1 = rand(n)
+xp, hispg = PG(funcF, x1, proxG,options)
+x2 = rand(n)
+xf, hisf = FISTA(funcF, x2, proxG, options)
 
-x1 = rand(n);
-hispg = proxgrad(x1, L, funcF, proxG, tol, print_freq=1000)
-x2 = rand(n);
-hisf = FISTA(x2, L, funcF, proxG, tol, print_freq=1000)
+@printf("l2-norm| PG: %5.5e | FISTA: %5.5e\n", norm(xp - xt), norm(xf-xt))
+plot(hispg, xscale=:log10, yscale=:log10, xlabel="Iteration", ylabel="Descent", title="Descent Comparison", label="ProxGrad", marker=1)
+plot!(hisf, label="FISTA", marker=1)
+savefig("hist_prox_test.pdf")
+plot(xp, xlabel="ith position", ylabel="x value", title="x minimized", label="ProxGrad",marker=1)
+plot!(xf, label="FISTA",marker=1)
+plot!(xt, label="True",marker=1)
+savefig("x_prox_test.pdf")
 
-
-plot(hispg[1:end-1], yaxis=:log, xlabel="Iteration", ylabel="Descent", title="Descent Comparison", label="ProxGrad")
-plot!(hisf[1:end-1], yaxis=:log, label="FISTA")
-savefig("temp.pdf")

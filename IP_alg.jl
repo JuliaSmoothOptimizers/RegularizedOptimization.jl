@@ -2,33 +2,47 @@
 #Note that some of the file inclusions are for testing purposes (ie minconf_spg)
 
 using LinearAlgebra, Printf #include necessary packages
+# include("minconf_spg/SPGSlim.jl")
 include("minconf_spg/oneProjector.jl")
 include("Qcustom.jl") #make sure this is here, defines quadratic model for some function; must yield function value, gradient, and hessian
-export IP_options, IntPt_TR #export necessary values to file that calls these functions
+export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
 
 
 mutable struct IP_params
-    l #lower bound 
-    u #upper bound
-    mu #barrier parameter 
     epsD #ε bound for 13a, alg 4.3
     epsC #ε bound for 13b, alg 4.2
     trrad #trust region radius
-    minconf_options #options for minConf_SPG, can change later 
     ptf #print every so often 
 end
 
-function IP_options(;
-                     l=Array{Float64,1}(undef,0), u=Array{Float64,1}(undef,0), mu = 1e-3, epsD=1e-2,
-                     epsC = 1e-2, trrad=1.0, minconf_options = spg_options(), ptf = 100
-                      ) #default values for trust region parameters in algorithm 4.2
-    return IP_params(l, u, mu, epsD, epsC, trrad, minconf_options, ptf)
+mutable struct IP_methods
+    l #lower bound 
+    u #upper bound 
+    tr_options #options for minConf_SPG
+    tr_projector_alg #algorithm passed that determines
+    projector # norm ball that you project onto 
+    objfun #objective function  
 end
 
-function IntPt_TR(x, zl, zu,objfun, options)
-    r"""Return the gradient of the variational penalty objective functional
+function IP_options(;
+                      epsD=1.0e-2,
+                     epsC = 1.0e-2, trrad=1.0,  ptf = 100
+                      ) #default values for trust region parameters in algorithm 4.2
+    return IP_params(epsD, epsC, trrad, ptf)
+end
 
-    Parameters
+function IP_struct(objfun; l=Vector{Float64}, u=Vector{Float64}, tr_options = spg_options(),tr_projector_alg = minConf_SPG,projector=oneProjector
+    )
+    return IP_methods(l, u, tr_options, tr_projector_alg, projector, objfun)
+end
+
+
+
+
+function IntPt_TR(x, zl, zu,mu,params, options)
+    """Return the gradient of the variational penalty objective functional
+        IntPt_TR(x, zl, zu,objfun, options)
+    Arguments
     ----------
     x : Array{Float64,1}
         Initial guess for the x value used in the trust region
@@ -43,7 +57,7 @@ function IntPt_TR(x, zl, zu,objfun, options)
         -epsD Float64, bound for 13a
         -epsC Float64, bound for 13b
         -trrad Float64, trust region radius
-        -minconf_options, options for minConf_SPG
+        -options, options for trust region method 
         -ptf Int, print output 
 
 
@@ -62,15 +76,19 @@ function IntPt_TR(x, zl, zu,objfun, options)
     #note - objfun is just l2 norm for the first example, takes in nothing except x. Will generalize later
 
     #initialize passed options 
-    debug = false; #turn this on to see debugging information 
-    l = options.l;
-    u = options.u;
-    mu = options.mu;
-    epsD = options.epsD;
-    epsC = options.epsC; 
-    trrad = options.trrad;
-    minconf_options = options.minconf_options; 
-    ptf = options.ptf; 
+    debug = false #turn this on to see debugging information 
+    epsD = options.epsD
+    epsC = options.epsC 
+    trrad = options.trrad
+    ptf = options.ptf
+
+    #other parameters 
+    l = params.l
+    u = params.u
+    tr_options = params.tr_options 
+    tr_projector_alg = params.tr_projector_alg
+    projector = params.projector 
+    objfun = params.objfun
 
 
     #internal variabes
@@ -84,42 +102,35 @@ function IntPt_TR(x, zl, zu,objfun, options)
 
 
     #make sure you only take the first output of the objective value of the true function you are minimizing
-    meritFun(x) = objfun(x)[1] - mu*sum(log.(x-l)) - mu*sum(log.(u-x));
-
-
+    meritFun(x) = objfun(x)[1] - mu*sum(log.(x-l)) - mu*sum(log.(u-x))
+    
     #main algorithm initialization 
     (fj, gj, Hj) = objfun(x)
+    kktNorm = [norm(gj - zjl + zju);norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu) ]
+
     j = 0
     ρj = -1
     α = 1
-    while(norm(gj - zjl + zju) > epsD || norm(zjl.*(x-l) .- mu)>epsC || norm(zju.*(u-x).-mu)>epsC)
+    while(kktNorm[1] > epsD || kktNorm[2] >epsC || kktNorm[3]>epsC)
         #update count
         j = j+1
-
-        #look at kkt norm
-        kktNorm = norm(gj - zjl + zju) + norm(zjl.*(x-l) .- mu) + norm(zju.*(u-x) .- mu)
-
-       
-
-        #Print values 
-        j % ptf ==0 && @printf("Iter %4d, Norm(kkt) %1.5e, ρj %1.5e, trustR %1.5e, mu %1.5e, α %1.5e\n", j, kktNorm, ρj, trrad, mu, α)
-
-
+        TR_stat = ""
+        x_stat = ""
 
         #compute hessian and gradient for the problem 
         ∇Phi = gj - mu./(x-l) + mu./(u-x);
         ∇²Phi = Hj + Diagonal(zjl./(x-l)) + Diagonal(zju./(u-x));
 
-        par = Q_params(obj=fj, grad =∇Phi, Hess=∇²Phi)
+        par = Q_params(grad =∇Phi, Hess=∇²Phi)
         # par.Hess = ∇²Phi
         # par.grad = ∇Phi
 
         #define custom inner objective to find search direction and solve
         
         objInner(s) = QCustom(s, par) #this can probably be sped up since we declare new function every time 
-        funProj(x) = oneProjector(x, 1.0, trrad)
+        funProj(x) = projector(x, 1.0, trrad)
         
-        (s, fsave, funEvals)= minConf_SPG(objInner, zeros(size(x)), funProj, minconf_options)
+        (s, fsave, funEvals)= tr_projector_alg(objInner, zeros(size(x)), funProj, tr_options)
 
         
         # gradient for z
@@ -146,33 +157,28 @@ function IntPt_TR(x, zl, zu,objfun, options)
 
         #update ρ
         ρj = (meritFun(x + s) - meritFun(x))/(objInner(s)[1]) #test this to make sure it's right (a little variable relative to matlab code)
-        if(debug)
-            @printf("rhoj is %1.5e\n", ρj)
-        end
         
         if(ρj > eta2)
-            if(debug)
-                @printf("increase\n")
-            end
+            TR_stat = "increase" 
             trrad = max(trrad, gamma*norm(s, 1)) #for safety
+        else
+            TR_stat = "kept"
         end
         
-        if(ρj >= eta1)
-            if(debug)
-                @printf("update\n")
-            end
-            x = x + s;
-            zjl = zjl + dzl;
-            zju = zju + dzu;
+        if(ρj >= eta1)    
+            x_stat = "update"
+            x = x + s
+            zjl = zjl + dzl
+            zju = zju + dzu
         end
         
         if(ρj < eta1)
-            if(debug)
-                @printf("shrink\n")
-            end
+
+            x_stat = "shrink"
+            
             α = 1.0;
             while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s)
-                alpha = α*mult;
+                α = α*mult;
             end
             x = x + α*s;
             zjl = zjl + α*dzl;
@@ -180,10 +186,12 @@ function IntPt_TR(x, zl, zu,objfun, options)
             trrad = α*norm(s, 1);
         end
         
-        if(debug)
-            @printf("trrad is : %5.2e\n", trrad);
-        end
+
         (fj, gj, Hj) = objfun(x);
+        kktNorm = [norm(gj - zjl + zju);norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu) ]
+                #Print values 
+        j % ptf ==0 && @printf("Iter %4d, Norm(kkt) %1.5e, ρj %1.5e/%s, trustR %1.5e/%s, mu %1.5e, α %1.5e\n", j, sum(kktNorm), ρj,x_stat, trrad,TR_stat, mu, α)
+
 
     end
     return x, zjl, zju, j
