@@ -19,7 +19,6 @@ for i = 1:k
     xt[p[i]] = (5.0+randn())*sign(rand()-0.5);
 end
 b   = A*xt;
-λ   = norm(A'*b, Inf)/50.0;
 L   = norm(A)^(2.0);
 
 function funcF(x)
@@ -29,7 +28,7 @@ function funcF(x)
     g = A'*r
     return norm(r), g
 end
-function proxG(x,α)
+function proxG(x,λ, α)
     n = length(x)
     for i = 1:n
         x[i] > α*λ ? x[i] -= α*λ :
@@ -39,14 +38,15 @@ function proxG(x,α)
     # return sign.(x).*max(abs.(x).-(λ*α)*ones(size(x)), zeros(size(x)))
 end
 
-options = s_options(L;optTol = 1e-10, verbose=1)
-
+#input β, λ
+options = s_options(L; optTol = 1e-10, verbose=1)
+funProj(x) = proxG(x, norm(A'*b, Inf)/50.0, L^(-1))
 
 
 x1 = rand(n)
-xp, hispg = PG(funcF, x1, proxG,options)
+xp, hispg, fevalpg = PG(funcF, x1, funProj,options)
 x2 = rand(n)
-xf, hisf = FISTA(funcF, x2, proxG, options)
+xf, hisf, fevalf = FISTA(funcF, x2, funProj, options)
 
 @printf("l2-norm| PG: %5.5e | FISTA: %5.5e\n", norm(xp - xt), norm(xf-xt))
 plot(hispg, xscale=:log10, yscale=:log10, xlabel="Iteration", ylabel="Descent", title="Descent Comparison", label="ProxGrad", marker=1)

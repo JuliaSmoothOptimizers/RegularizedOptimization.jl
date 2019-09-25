@@ -18,7 +18,7 @@ function QCustom(s, par)
 	"""
 	QCustom is the quadratic approximation for the smooth part of the function f(x)
 
-	Parameters
+	Arguments
     ----------
     s : Array{Float64,1}
         Search direction computed by the TR method

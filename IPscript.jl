@@ -6,7 +6,7 @@ include("ProxProj.jl")
 include("IP_alg.jl")
 include("barrier.jl")
 include("minconf_spg/SLIM_optim.jl")
-# include("minconf_spg/oneProjector.jl")
+include("minconf_spg/oneProjector.jl")
 using .SLIM_optim
 
 #Here we just try to solve the l2-norm Problem over the l1 trust region 
@@ -14,7 +14,8 @@ using .SLIM_optim
 # min_x 1/2||Ax - b||^2
 
 
-m,n = 100,100; # this is a under determined system
+m,n = 200,100; # this is a under determined system
+# m, n = 10, 2
 A = rand(m,n);
 x0  = rand(n,);
 b0 = A*x0;
@@ -24,9 +25,7 @@ l = zeros(n,)+cutoff*ones(n,);
 u = ones(n,)+cutoff*ones(n,); 
 
 
-#set all options
-minconf_options = spg_options(;optTol=1.0e-8, progTol=1.0e-10, verbose=0, feasibleInit=true, curvilinear=true, bbType=true, memory=1)
-options = IP_options()
+
 
 
 #define your objective function 
@@ -36,7 +35,23 @@ function LScustom(x)
     h = A'*A; 
     return f, g, h
 end
-parameters = IP_struct(LScustom; l=l, u=u, tr_options = minconf_options) #tr_projector_alg = minConf_SPG, projector=oneProjector)
+
+function proxG(x,λ,α)
+    n = length(x)
+    for i = 1:n
+        x[i] > α*λ ? x[i] -= α*λ :
+        x[i] <-α*λ ? x[i] += α*λ : x[i] = 0.0;
+    end
+    return x
+    # return sign.(x).*max(abs.(x).-(α)*ones(size(x)), zeros(size(x)))
+end
+#set all options
+first_order_options = spg_options(;optTol=1.0e-8, progTol=1.0e-10, verbose=0, feasibleInit=true, curvilinear=true, bbType=true, memory=1)
+parameters = IP_struct(LScustom; l=l, u=u, tr_options = first_order_options,tr_projector_alg = minConf_SPG, projector=oneProjector)
+#uncomment for FISTA test
+# first_order_options = s_options(norm(A)^(2.0) ;optTol=1.0e-3, verbose=0)
+# parameters = IP_struct(LScustom; l=l, u=u, tr_options = first_order_options, tr_projector_alg=FISTA, projector=proxG)
+options = IP_options()
 #put in your initial guesses 
 x = (l+u)/2;
 zl = ones(n,);
@@ -55,6 +70,7 @@ x, zl, zu = barrier_alg(x,zl, zu, parameters, options)
 #print out l2 norm difference and plot the two x values 
 @printf("l2-norm TR: %5.5e\n", norm(x - x0))
 @printf("l2-norm CVX: %5.5e\n", norm(X.value - x0))
+@printf("TR vs CVX relative error: %5.5e\n", norm(X.value - x)/norm(X.value))
 plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
 plot!(x, label="tr")
 plot!(X.value, label="cvx")

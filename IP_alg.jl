@@ -3,7 +3,7 @@
 
 using LinearAlgebra, Printf #include necessary packages
 # include("minconf_spg/SPGSlim.jl")
-include("minconf_spg/oneProjector.jl")
+include("DescentMethods.jl")
 include("Qcustom.jl") #make sure this is here, defines quadratic model for some function; must yield function value, gradient, and hessian
 export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
 
@@ -128,7 +128,8 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         #define custom inner objective to find search direction and solve
         
         objInner(s) = QCustom(s, par) #this can probably be sped up since we declare new function every time 
-        funProj(x) = projector(x, 1.0, trrad)
+        funProj(x) = projector(x, 1.0, trrad) #projects onto ball of radius trrad, weights of 1.0
+        # funProj(s) = projector(s, trrad, tr_options.β^(-1))
         
         (s, fsave, funEvals)= tr_projector_alg(objInner, zeros(size(x)), funProj, tr_options)
 
@@ -141,15 +142,11 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         mult = 0.9
         
         #linesearch to adjust parameter
-        while( 
-            any(x + α*s - l .< (1-tau)*(x-l)) || 
-            any(u - x - α*s .< (1-tau)*(u-x)) ||
-            any(zjl + α*dzl .< (1-tau)*zjl) || 
-            any(zju + α*dzu .< (1-tau)*zju)
-            )
-            α = α*mult
-        end
+        # α = linesearch(x, zjl, zju, s, dzl, dzu; mult=mult, tau = tau)
         
+        α = directsearch(x, zjl, zju, s, dzl, dzu)  
+        # @printf("%1.5e | %1.5e \n", α1, α)
+
         #update search direction for 
         s = s*α
         dzl = dzl*α
