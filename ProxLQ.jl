@@ -3,10 +3,10 @@
 ===========================================================================#
 
 function e_lp_scalar(x, z, a, p)
-	assert(p ≥ 0.0);
-	assert(a > 0.0);
-	assert(size(x) == size(z));
-	assert(ndims(z) == 0);
+	@assert(p ≥ 0.0);
+	@assert(a > 0.0);
+	@assert(size(x) == size(z));
+	@assert(ndims(z) == 0);
 
 	T = typeof(x);
 	val = 0.5*(x - z)^2/a;
@@ -15,13 +15,13 @@ function e_lp_scalar(x, z, a, p)
 end
 
 function e_lp(x, z, a, p)
-	assert(p ≥ 0.0);
-	assert(a > 0.0);
-	assert(size(x) == size(z));
+	@assert(p ≥ 0.0);
+	@assert(a > 0.0);
+	@assert(size(x) == size(z));
 
 	if ndims(x) == 0
 		println("scalar detected, calling e_lp_scalar instead.");
-		return ex_lp_scalar(x, z, a::Float64, p)
+		return e_lp_scalar(x, z, a::Float64, p)
 	else
 		T = eltype(x);
 		n = length(x);
@@ -36,9 +36,9 @@ function e_lp(x, z, a, p)
 end
 
 function prox_lp_scalar(z, a, p)
-	assert(p ≥ 0.0);
-	assert(a ≥ 0.0);
-	assert(ndims(z) == 0);
+	@assert(p ≥ 0.0);
+	@assert(a ≥ 0.0);
+	@assert(ndims(z) == 0);
 
 	x = z;
 	p ≡ 0.0 ? x = prox_l0_scalar(z, a, p) :
@@ -48,18 +48,20 @@ function prox_lp_scalar(z, a, p)
 	return x
 end
 
-function prox_lp(x, z, a, p)
-	assert(p ≥ 0.0);
-	# assert(a ≥ 0.0);
-	assert(size(x) == size(z));
+function prox_lp(z, a, p)
+	x = 0.0*z 
+	@assert(p ≥ 0.0);
+	# @assert(a ≥ 0.0);
+	@assert(size(x) == size(z));
 	if ndims(x) == 0
 		println("scalar detected, calling prox_lp_scalar instead.");
 		return prox_lp_scalar(z, a, p)
 	else
-		p ≡ 0.0 ? prox_l0(x, z, a, p) :
-		p < 1.0 ? prox_ll(x, z, a, p) :
-		p ≡ 1.0 ? prox_l1(x, z, a, p) : prox_lr(x, z, a::Float64, p);
+		p ≡ 0.0 ? x=prox_l0(z, a, p) :
+		p < 1.0 ? x=prox_ll(z, a, p) :
+		p ≡ 1.0 ? x=prox_l1(z, a, p) : x=prox_lr(z, a::Float64, p);
 	end
+	return x
 end
 
 
@@ -110,6 +112,7 @@ function prox_l1_scalar(z, a, ρ)
 	ρ = abs(z);
 	s = sign(z);
 	x = s*max(0.0, ρ - a);
+	return x
 end
 
 function prox_lr_scalar(z, a, ρ; itm=10, tol=1e-6)
@@ -140,51 +143,68 @@ function prox_lr_scalar(z, a, ρ; itm=10, tol=1e-6)
 end
 
 ##### scalar a #####
-function prox_l0(x, z, a::Float64, p)
+#note all of these have been changed to produce an output variable instead of modifying in place
+function prox_l0(z, a::Float64, p)
+	x = 0.0*z
 	for i in eachindex(x)
 		x[i] = prox_l0_scalar(z[i], a, p);
 	end
+	return x
 end
 
-function prox_ll(x, z, a::Float64, p; itm=10, tol=1e-6)
+function prox_ll(z, a::Float64, p; itm=10, tol=1e-6)
+	x = 0.0*z
 	for i in eachindex(x)
 		x[i] = prox_ll_scalar(z[i], a, p, itm=itm, tol=tol);
 	end
+	return x
 end
 
-function prox_l1(x, z, a::Float64, p)
+function prox_l1(z, a::Float64, p)
+	x = 0.0*z
 	for i in eachindex(x)
 		x[i] = prox_l1_scalar(z[i], a, p);
 	end
+	return x
 end
 
-function prox_lr(x, z, a::Float64, p; itm=10, tol=1e-6)
+function prox_lr(z, a::Float64, p; itm=10, tol=1e-6)
+	x = 0.0*z
 	for i in eachindex(x)
 		x[i] = prox_l0_scalar(z[i], a, p, itm=itm, tol=tol);
 	end
+	return x
 end
 
 ##### vector a #####
-function prox_l0(x, z, a::Vector{Float64}, p)
+function prox_l0(z, a::Vector{Float64}, p)
+	x = 0.0*z
 	for i in eachindex(x)
 		x[i] = prox_l0_scalar(z[i], a[i], p);
 	end
+	return x
 end
 
-function prox_ll(x, z, a::Vector{Float64}, p; itm=10, tol=1e-6)
+function prox_ll(z, a::Vector{Float64}, p; itm=10, tol=1e-6)
+	x = 0.0*z
 	for i in eachindex(x)
 		x[i] = prox_ll_scalar(z[i], a[i], p, itm=itm, tol=tol);
 	end
+	return x
 end
 
-function prox_l1(x, z, a::Vector{Float64}, p)
+function prox_l1(z, a::Vector{Float64}, p)
+	x = 0.0*z
 	for i in eachindex(x)
 		x[i] = prox_l1_scalar(z[i], a[i], p);
 	end
+	return x
 end
 
-function prox_lr(x, z, a::Vector{Float64}, p; itm=10, tol=1e-6)
+function prox_lr(z, a::Vector{Float64}, p; itm=10, tol=1e-6)
+	x = 0.0*z
 	for i in eachindex(x)
 		x[i] = prox_l0_scalar(z[i], a[i], p, itm=itm, tol=tol);
 	end
+	return x
 end

@@ -25,8 +25,8 @@ mutable struct IP_methods
 end
 
 function IP_options(;
-                      epsD=1.0e-2,
-                     epsC = 1.0e-2, trrad=1.0,  ptf = 100
+                      epsD=1.0e-3,
+                     epsC = 1.0e-3, trrad=1.0,  ptf = 100
                       ) #default values for trust region parameters in algorithm 4.2
     return IP_params(epsD, epsC, trrad, ptf)
 end
@@ -92,17 +92,17 @@ function IntPt_TR(x, zl, zu,mu,params, options)
 
 
     #internal variabes
-    eta1 = 1.0e-4 #ρ lower bound
+    eta1 = 1.0e-3 #ρ lower bound
     eta2 = 0.9  #ρ upper bound 
     tau = 0.01 #linesearch buffer parameter 
-    sigma = 1.0e-4 # quadratic model linesearch buffer parameter 
+    sigma = 1.0e-3 # quadratic model linesearch buffer parameter 
     gamma = 3.0 #trust region buffer 
     zjl = copy(zl)
     zju = copy(zu)
 
 
     #make sure you only take the first output of the objective value of the true function you are minimizing
-    meritFun(x) = objfun(x)[1] - mu*sum(log.(x-l)) - mu*sum(log.(u-x))
+    meritFun(x) = objfun(x)[1] - mu*sum(log.((x-l).*(u-x))) #mu*sum(log.(x-l)) - mu*sum(log.(u-x))
     
     #main algorithm initialization 
     (fj, gj, Hj) = objfun(x)
@@ -144,7 +144,8 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         #linesearch to adjust parameter
         # α = linesearch(x, zjl, zju, s, dzl, dzu; mult=mult, tau = tau)
         
-        α = directsearch(x, zjl, zju, s, dzl, dzu)  
+        # α = directsearch(x, zjl, zju, s, dzl, dzu) 
+        directsearch!(α,zjl, zju, s, dzl, dzu) 
         # @printf("%1.5e | %1.5e \n", α1, α)
 
         #update search direction for 

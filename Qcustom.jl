@@ -35,3 +35,24 @@ function QCustom(s, par)
     h = Hess;
 	return f, g, h
 end
+
+#next function is already in ProxProj.jl
+# function prox_dual(x, step, prox_primal)
+# 	"""
+# 	Function for easily computing proximal operator of conjugate based on the Moreau decomposition
+
+# 	Arguments
+# 	----------
+
+# 	x: Array{float64,1}
+# 		input for which you are evaluating the prox 
+# 	η: float64
+# 		step size of the prox 
+# 	prox_primal: Function 
+# 		primal proximal operator of function whose conjugate you are trying to evaluate 
+# 		form - TO ADD 
+
+# 	"""
+#     out = x - η*prox_primal((1/η)*x, 1/η)
+#     return out 
+# end

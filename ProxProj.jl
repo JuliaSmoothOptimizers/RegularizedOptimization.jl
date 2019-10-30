@@ -1,3 +1,4 @@
+using Roots
 
 # getting prox for dual given prox for primal
 function prox_dual(z, σ, prox_primal)
@@ -7,10 +8,11 @@ end
 
 
 # getting projection for a function given its prox
-function proj_prox(y, τ, prox, a, b)
-  f(λ) = norm(prox(y,λ)) - τ
+function proj_prox(y, τ, q, prox; a=0.0, b=1.0)
+  #prox takes arguments vector, step, normtype
+  f(λ) = norm(prox(y,λ,q)) - τ
   λ_opt = fzero(f, [a, b])
-  return prox(y, λ_opt)
+  return prox(y, λ_opt,q)
 end
 
 

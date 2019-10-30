@@ -181,8 +181,8 @@ function linesearch(x, zjl, zju, s, dzl, dzu ;mult=.9, tau = .01)
         return α
 end
 
-function directsearch(x, zjl, zju, s, dzl, dzu; tau = .01)
-	temp = [((1-tau)*(x-l) + l -x)./s; ((1-tau)*(u-x) -u + x)./-s; ((1-tau)*zjl-zjl)./dzl; ((1-tau)*zju - zju)./dzu]
+function directsearch(x, zjl, zju, s, dzl, dzu; tau = .01) #used to be .01
+	temp = [(-tau *(x-l))./s; (-tau*(u-x))./-s; (-tau*zjl)./dzl; (-tau*zju)./dzu]
     temp=filter((a) -> 1>=a>0, temp)
     # @printf("%1.5e | %1.5e | %1.5e | %1.5e \n", maximum(abs.((u - x)./s)), maximum(abs.((x-l)./s)), maximum(abs.(-zjl./dzl)), maximum(abs.(-zju./dzu)))
     temp = minimum(vcat(temp, 1.0))
@@ -191,7 +191,11 @@ function directsearch(x, zjl, zju, s, dzl, dzu; tau = .01)
 
 
 end
-
+function directsearch!(α, zjl, zju, s, dzl, dzu; tau = .01) #used to be .01
+	temp = [(-tau *(x-l))./s; (-tau*(u-x))./-s; (-tau*zjl)./dzl; (-tau*zju)./dzu]
+    temp=filter((a) -> 1>=a>0, temp)
+    α = minimum(vcat(temp, 1.0))
+end
 
 function test_conv(x, Fcn, proxG,η, critin=1.0)
 	m = length(x)

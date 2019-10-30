@@ -46,7 +46,7 @@ function proxG(x,λ,α)
     # return sign.(x).*max(abs.(x).-(α)*ones(size(x)), zeros(size(x)))
 end
 #set all options
-first_order_options = spg_options(;optTol=1.0e-8, progTol=1.0e-10, verbose=0, feasibleInit=true, curvilinear=true, bbType=true, memory=1)
+first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0, feasibleInit=true, curvilinear=true, bbType=true, memory=1)
 parameters = IP_struct(LScustom; l=l, u=u, tr_options = first_order_options,tr_projector_alg = minConf_SPG, projector=oneProjector)
 #uncomment for FISTA test
 # first_order_options = s_options(norm(A)^(2.0) ;optTol=1.0e-3, verbose=0)
@@ -72,12 +72,12 @@ x, zl, zu = barrier_alg(x,zl, zu, parameters, options)
 @printf("l2-norm CVX: %5.5e\n", norm(X.value - x0))
 @printf("TR vs CVX relative error: %5.5e\n", norm(X.value - x)/norm(X.value))
 plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
-plot!(x, label="tr")
+plot!(x, label="tr", marker=2)
 plot!(X.value, label="cvx")
 savefig("xcomp.pdf")
 
 plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
 plot!(b, label="Observed")
-plot!(A*x, label="A*x: TR")
+plot!(A*x, label="A*x: TR", marker=2)
 plot!(A*X.value, label="A*x: CVX")
 savefig("bcomp.pdf")
