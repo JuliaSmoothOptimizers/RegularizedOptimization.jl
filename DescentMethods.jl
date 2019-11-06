@@ -7,13 +7,20 @@ mutable struct s_params
 	verbose
 	restart
 	β 
+	η
+    η_factor
+    mod_η 
+    WoptTol
+    gk 
+    Bk 
 	
 end
 
 
-function s_options(β ;optTol=1f-5, maxIter=10000, verbose=2, restart=100)
+function s_options(β ;optTol=1f-5, maxIter=10000, verbose=2, restart=100,η =1.0, η_factor=.9, 
+    mod_η = 10, WoptTol=1f-5, gk = Vector{Float64}(undef,0), Bk = Array{Float64}(undef, 0,0))
 
-	return s_params(optTol, maxIter, verbose, restart, β )
+	return s_params(optTol, maxIter, verbose, restart, β, η, η_factor, mod_η, WoptTol, gk, Bk)
 
 end
 
@@ -35,7 +42,7 @@ end
 		flag 0: exit normal
 		flag 1: max iter exit
 ===========================================================================#
-function PG(Fcn, x,  projG, options)
+function PG(Fcn, x,  proxG, options)
 	ε=options.optTol
 	max_iter=options.maxIter
 	
@@ -66,7 +73,7 @@ function PG(Fcn, x,  projG, options)
 		#take a gradient step: x-=η*∇f
 		# BLAS.axpy!(-η, gradF, x1)
 		#prox step
-		xp = projG(x - η*gradF)
+		xp = proxG(x - η*gradF)
 		# update function info
 		f, gradF = Fcn(xp)
 		feval+=1
@@ -96,7 +103,7 @@ end
 		x: x update
 ===========================================================================# 
 
-function FISTA(Fcn, x,  projG, options)
+function FISTA(Fcn, x,  proxG, options)
 	ε=options.optTol
 	max_iter=options.maxIter
 	restart = options.restart 
@@ -135,7 +142,7 @@ function FISTA(Fcn, x,  projG, options)
 
 		his[k] = f
 		xk = copy(x)
-		x = projG(y - η*gradF)
+		x = proxG(y - η*gradF)
 
 		#update x
 		#		x = y - η*gradF;

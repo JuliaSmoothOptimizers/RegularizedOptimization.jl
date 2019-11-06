@@ -13,6 +13,7 @@ mutable struct IP_params
     epsC #ε bound for 13b, alg 4.2
     trrad #trust region radius
     ptf #print every so often 
+    simple #if you can use spg_minconf with simple projection
 end
 
 mutable struct IP_methods
@@ -26,7 +27,7 @@ end
 
 function IP_options(;
                       epsD=1.0e-3,
-                     epsC = 1.0e-3, trrad=1.0,  ptf = 100
+                     epsC = 1.0e-3, trrad=1.0,  ptf = 100, simple=1
                       ) #default values for trust region parameters in algorithm 4.2
     return IP_params(epsD, epsC, trrad, ptf)
 end
@@ -81,6 +82,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
     epsC = options.epsC 
     trrad = options.trrad
     ptf = options.ptf
+    simple = options.simple 
 
     #other parameters 
     l = params.l
@@ -121,14 +123,21 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         ∇Phi = gj - mu./(x-l) + mu./(u-x);
         ∇²Phi = Hj + Diagonal(zjl./(x-l)) + Diagonal(zju./(u-x));
 
-        par = Q_params(grad =∇Phi, Hess=∇²Phi)
-        # par.Hess = ∇²Phi
-        # par.grad = ∇Phi
 
         #define custom inner objective to find search direction and solve
         
-        objInner(s) = QCustom(s, par) #this can probably be sped up since we declare new function every time 
-        funProj(x) = projector(x, 1.0, trrad) #projects onto ball of radius trrad, weights of 1.0
+        if simple==1
+            par = qk_params(grad =∇Phi, Hess=∇²Phi)
+            # par.Hess = ∇²Phi
+            # par.grad = ∇Phi
+            objInner(s) = qk(s, par) #this can probably be sped up since we declare new function every time 
+            funProj(x) = projector(x, 1.0, trrad) #projects onto ball of radius trrad, weights of 1.0
+        else 
+            tr_options.Bk = ∇²Phi
+            tr_options.gk = ∇Phi
+            objInner(u)=
+            funProj(x)=
+        end
         # funProj(s) = projector(s, trrad, tr_options.β^(-1))
         
         (s, fsave, funEvals)= tr_projector_alg(objInner, zeros(size(x)), funProj, tr_options)

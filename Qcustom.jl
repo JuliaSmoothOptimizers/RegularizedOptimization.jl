@@ -1,22 +1,22 @@
 using LinearAlgebra, Printf
 
-export Q_params, QCustom
+export qk_params, qk
 
 mutable struct params
 	grad
 	Hess
 end
 
-function Q_params(; grad = Vector{Float64}(undef,0), Hess = Array{Float64,2}(undef,0,0))
+function qk_params(; grad = Vector{Float64}(undef,0), Hess = Array{Float64,2}(undef,0,0))
 	return params( grad, Hess)
 end
 
 
 
 
-function QCustom(s, par)
+function qk(s, par)
 	"""
-	QCustom is the quadratic approximation for the smooth part of the function f(x)
+	qk is the quadratic approximation for the smooth part of the function f(x)
 
 	Arguments
     ----------
