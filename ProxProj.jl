@@ -29,7 +29,13 @@ function proj_l1!(y, τ)
      λ_opt = fzero(f, [a, b])
      copy!(y, max(abs.(y) .- λ_opt, 0).*sign.(y))
  end
-
+function proj_l1(y, τ)
+     a = 0
+     b = maximum(abs.(y))
+     f(λ) = norm(max.(abs.(y) .- λ, 0).*sign.(y)) - τ
+     λ_opt = fzero(f, 0.0)
+     return max.(abs.(y) .- λ_opt, 0).*sign.(y)
+ end
 # prox of the quadratic
 function prox_l2s(y::Vector{Float64}, γ::Float64)
   return (1.0/(1.0+γ)) * y

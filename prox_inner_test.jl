@@ -23,15 +23,16 @@ problem = minimize(g'*S + sumsquares(B*S)+λ*norm(vec(S+x), 1), norm(vec(S),1)<=
 solve!(problem, SCSSolver())
 
 function proxp(z, α)
-    return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(x)))
+    return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
-projq(z) = oneProjector(z, 1.0, 1.0)
+projq(z, σ) = oneProjector(z, 1.0, σ)
+# projq(y,τ) = proj_l1(y, τ)
 #input β, λ
 w1_options=s_options(norm(Bk)^2;maxIter=100, verbose=3, restart=10, λ=λ, η =.1, η_factor=.9, 
     gk = g, Bk = Bk, xk=x)
 s,w = prox_split_1w(proxp, zeros(size(x)), projq, w1_options)
 
-w2_options=s_options(norm(Bk)^2;maxIter=10, verbose=3, restart=200, λ=λ, η =.1, η_factor=.9, 
+w2_options=s_options(norm(Bk)^2;maxIter=100, verbose=3, restart=500, λ=λ, η =.1, η_factor=.9, 
     gk = g, Bk = Bk, xk=x)
 s2,w12,w22 = prox_split_2w(proxp, zeros(size(x)), projq, w2_options)
 
