@@ -1,6 +1,6 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
-using Plots, Printf, Random, LinearAlgebra, Convex, SCS
+using Plots, Printf, Random, LinearAlgebra, Convex, SCS IterativeSolvers
 include("DescentMethods.jl")
 include("ProxProj.jl")
 include("IP_alg.jl")

@@ -27,9 +27,9 @@ end
 
 function IP_options(;
                       epsD=1.0e-3,
-                     epsC = 1.0e-3, trrad=1.0,  ptf = 100, simple=1
+                     epsC = 1.0e-3, trrad=1.0,  ptf = 100, simple=1 
                       ) #default values for trust region parameters in algorithm 4.2
-    return IP_params(epsD, epsC, trrad, ptf)
+    return IP_params(epsD, epsC, trrad, ptf, simple)
 end
 
 function IP_struct(objfun; l=Vector{Float64}, u=Vector{Float64}, tr_options = spg_options(),tr_projector_alg = minConf_SPG,projector=oneProjector
@@ -135,8 +135,8 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         else 
             tr_options.Bk = ∇²Phi
             tr_options.gk = ∇Phi
-            objInner(u)=
-            funProj(x)=
+            objInner(u,ν)= prox_lp(u, ν, p)
+            funProj(z)= proj_lq(z, trrad)
         end
         # funProj(s) = projector(s, trrad, tr_options.β^(-1))
         
@@ -152,10 +152,8 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         
         #linesearch to adjust parameter
         # α = linesearch(x, zjl, zju, s, dzl, dzu; mult=mult, tau = tau)
-        
         # α = directsearch(x, zjl, zju, s, dzl, dzu) 
         directsearch!(α,zjl, zju, s, dzl, dzu) 
-        # @printf("%1.5e | %1.5e \n", α1, α)
 
         #update search direction for 
         s = s*α

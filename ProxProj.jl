@@ -24,10 +24,10 @@ end
 # projection onto l1
 function proj_l1!(y, τ)
      a = 0
-     b = maximum(abs(y))
-     f(λ) = norm(max(abs(y) - λ, 0).*sign(y)) - τ
+     b = maximum(abs.(y))
+     f(λ) = norm(max.(abs.(y) .- λ, 0).*sign.(y)) - τ
      λ_opt = fzero(f, [a, b])
-     copy!(y, max(abs(y) - λ_opt, 0).*sign(y))
+     copy!(y, max(abs.(y) .- λ_opt, 0).*sign.(y))
  end
 
 # prox of the quadratic
