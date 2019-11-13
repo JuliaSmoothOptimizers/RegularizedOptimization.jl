@@ -1,4 +1,4 @@
-using Roots
+
 
 # getting prox for dual given prox for primal
 function prox_dual(z, σ, prox_primal)
