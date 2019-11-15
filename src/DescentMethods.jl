@@ -347,6 +347,7 @@ function  prox_split_2w(proxp, s0, projq, options;maxiter=10000)
     err=100
     w1_err = norm(w1 - u)^2
     w2_err = norm(w2 - u + xk)^2
+	s_feas = norm(s0,1)-σ_TR
     k = 1
     b_pt1 = Bk*xk - gk
 

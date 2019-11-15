@@ -50,7 +50,7 @@ end
 #uncomment for OTHER test
 first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-4, verbose=0, maxIter=10, restart=100)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
-parameters = IP_struct(LS; l=l, u=u, FO_options = first_order_options, ϕk=prox_split_2w, χ_projector=projq)
+parameters = IP_struct(LS; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, ϕk=proxG, χ_projector=projq)
 options = IP_options(;simple=0)
 #put in your initial guesses
 x = (l+u)/2
