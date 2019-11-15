@@ -1,5 +1,5 @@
 # Julia Testing function
-using TRNC#, TRNC.SLIM_optim
+using TRNC
 using Plots, Convex, SCS, Printf
 
 #Here we just try to solve the l2-norm Problem over the l1 trust region
@@ -29,9 +29,9 @@ function LScustom(x)
     return f, g, h
 end
 #set all options
-# first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0,
-    # feasibleInit=true, curvilinear=true, bbType=true, memory=1)
-parameters = IP_struct(LScustom; l=l, u=u)#, tr_options = first_order_options)
+first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0,
+    feasibleInit=true, curvilinear=true, bbType=true, memory=1)
+parameters = IP_struct(LScustom; l=l, u=u, tr_options = first_order_options)
 options = IP_options()
 #put in your initial guesses
 x = (l+u)/2

@@ -1,5 +1,11 @@
 export boundproject, isLegal, minConf_SPG, polyinterp, polyval, spg_options
 
+
+function isLegal(v)
+    return sum(isnan.(v))==0 & sum(isinf.(v))==0
+end
+
+
 mutable struct SPG_params
     verbose
     optTol
