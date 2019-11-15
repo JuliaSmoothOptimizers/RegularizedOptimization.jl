@@ -206,7 +206,7 @@ function directsearch!(xsl, usx,α, zjl, zju, s, dzl, dzu; tau = .01) #used to b
     α = minimum(vcat(temp, 1.0))
 end
 
-function  prox_split_1w(proxp, s0, projq, options;maxiter=10000)
+function  prox_split_1w(proxp, s0, projq, options)
     """Solves descent direction s for some objective function with the structure
         min_s q_k(s) + ψ(x+s) s.t. ||s||_q⩽ σ_TR
         for some σ_TR provided
@@ -294,7 +294,7 @@ function  prox_split_1w(proxp, s0, projq, options;maxiter=10000)
 end
 
 
-function  prox_split_2w(proxp, s0, projq, options;maxiter=10000)
+function  prox_split_2w(proxp, s0, projq, options)
     """Solves descent direction s for some objective function with the structure
         min_s q_k(s) + ψ(x+s) s.t. ||s||_q⩽ σ_TR
         for some σ_TR provided

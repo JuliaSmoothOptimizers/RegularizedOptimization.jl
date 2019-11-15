@@ -18,7 +18,7 @@ function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0)
 		if(mu < 1e-6)
 			break
 		end
-		IPparams.tr_options.optTol = .1*IPparams.tr_options.optTol
+		IPparams.FO_options.optTol = .1*IPparams.FO_options.optTol
 	end
 
 	return x, zl, zu
