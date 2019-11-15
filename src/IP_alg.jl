@@ -22,7 +22,7 @@ mutable struct IP_methods
     FO_options #options for minConf_SPG/minimization routine you use for s
     s_alg #algorithm passed that determines descent direction
     χ_projector # Δ - norm ball that you project onto
-    ϕk #part of ϕk that you are trying to solve - for ψ=0, this is just qk. Otherwise,
+    ψk #part of ϕk that you are trying to solve - for ψ=0, this is just qk. Otherwise,
                 #it's the prox_{ξ*λ*ψ}(s - ν*∇q(s))
     objfun #objective function (unaltered) that you want to minimize
 end
@@ -36,9 +36,9 @@ end
 
 function IP_struct(objfun; l=Vector{Float64}, u=Vector{Float64},
     FO_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
-    ϕk = qk
+    ψk(s) = zeros(size(s))
     )
-    return IP_methods(l, u, FO_options, s_alg, χ_projector, ϕk, objfun)
+    return IP_methods(l, u, FO_options, s_alg, χ_projector, ψk objfun)
 end
 
 
@@ -132,16 +132,15 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         #define custom inner objective to find search direction and solve
 
         if simple==1
-            objInner(s) = ϕk(s, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
+            objInner(s) = qk(s, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, trrad) #projects onto ball of radius trrad, weights of 1.0
         else
-            @printf("should %4d\n", simple)
             FO_options.Bk = ∇²Phi
             FO_options.gk = ∇Phi
             FO_options.xk = x
             FO_options.σ_TR = trrad
             funProj = χ_projector
-            objInner= ϕk
+            objInner= ψk
         end
         # funProj(s) = projector(s, trrad, tr_options.β^(-1))
 
@@ -166,7 +165,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         dzu = dzu*α
 
         #update ρ
-        ρj = (meritFun(x + s) - meritFun(x))/(objInner(s)[1]) #test this to make sure it's right (a little variable relative to matlab code)
+        ρj = (meritFun(x + s) - meritFun(x))/(qk(s, ∇Phi,∇²Phi)[1]) #test this to make sure it's right (a little variable relative to matlab code)
 
         if(ρj > eta2)
             TR_stat = "increase"
