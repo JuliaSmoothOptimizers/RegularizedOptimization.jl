@@ -7,8 +7,7 @@ module SLIM_optim
 
 using PolynomialRoots, Printf, Statistics, LinearAlgebra, Random
 
-export SLIMPATH
-SLIMPATH=dirname(@__DIR__)
+import TRNC
 
 #############################################################################
 # Optimization algorithms
