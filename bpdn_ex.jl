@@ -1,7 +1,6 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
-using TRNC, Plots, Convex,SCS, Random, LinearAlgebra
-
+using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra
 
 #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with 0≦x≦1
 #######
@@ -17,11 +16,11 @@ x0 = zeros(n,)
 x0[p[1:k]]=sign.(randn(k))
 
 A = randn(m,n)
-(Q,_) = qr(A')
-A = Q'
+# (Q,_) = qr(A')
+# A = Q'
 
 b0 = A*x0
-b = b0 + 0.5*rand(n,)
+b = b0 + 0.5*rand(m,)
 cutoff = 0.0;
 l = -1*ones(n,)+cutoff*ones(n,)
 u = ones(n,)+cutoff*ones(n,)
@@ -32,9 +31,11 @@ u = ones(n,)+cutoff*ones(n,)
 
 #define your smooth objective function
 function LS(x)
-    f = .5*norm(A*x-b)^2;
-    g = A'*(A*x - b);
-    h = A'*A;
+    r = b
+    BLAS.gemv!('N',1.0, A, x, -1.0, r)
+    f = .5*norm(r)^2
+    g = BLAS.gemv('T',A,r)
+    h = BLAS.gemm('T', 'N', 1.0, A, A)
     return f, g, h
 end
 

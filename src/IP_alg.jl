@@ -135,6 +135,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
             objInner(s) = ϕk(s, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, trrad) #projects onto ball of radius trrad, weights of 1.0
         else
+            @printf("should %4d\n", simple)
             FO_options.Bk = ∇²Phi
             FO_options.gk = ∇Phi
             FO_options.xk = x
