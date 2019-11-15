@@ -1,9 +1,5 @@
 # Julia Testing function
-# include("./src/TRNC.jl")
-# include("./src/minconf_spg/oneProjector.jl")
-# using .TRNC
-# using .TRNC.SLIM_optim
-using TRNC
+using TRNC, TRNC.SLIM_optim
 using Plots, Convex, SCS, Printf
 
 #Here we just try to solve the l2-norm Problem over the l1 trust region

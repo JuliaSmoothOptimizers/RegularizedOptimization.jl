@@ -1,7 +1,8 @@
 #Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 #Note that some of the file inclusions are for testing purposes (ie minconf_spg)
 
-# include("minconf_spg/SPGSlim.jl")
+include("minconf_spg/SPGSlim.jl")
+include("minconf_spg/oneProjector.jl")
 # include("DescentMethods.jl")
 # include("Qcustom.jl") #make sure this is here, defines quadratic model for some function; must yield function value, gradient, and hessian
 export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
