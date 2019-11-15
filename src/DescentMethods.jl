@@ -387,7 +387,7 @@ function  prox_split_2w(proxp, s0, projq, options;maxiter=10000)
     end
 
 
-    return u - xk , w1, w2
+    return u - xk ,s_feas, err
 
 end
 
