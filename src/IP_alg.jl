@@ -38,7 +38,7 @@ function IP_struct(objfun; l=Vector{Float64}, u=Vector{Float64},
     FO_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
     ψk = qk
     )
-    return IP_methods(l, u, FO_options, s_alg, χ_projector, ψk objfun)
+    return IP_methods(l, u, FO_options, s_alg, χ_projector, ψk, objfun)
 end
 
 
