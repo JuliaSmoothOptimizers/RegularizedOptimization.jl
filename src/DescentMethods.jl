@@ -345,7 +345,7 @@ function  prox_split_2w(proxp, s0, projq, options)
 
     for i=1:restart
     	A = Bk + (2/η)*I(size(Bk,1))
-    while err>ε && k<max_iter && (w1_err+w2_err)>ε_w
+    while err>ε && k<max_iter #&& (w1_err+w2_err)>ε_w
         #store previous values
         u_ = u
         w1_ = w1
