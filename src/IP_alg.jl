@@ -19,12 +19,12 @@ end
 mutable struct IP_methods
     l #lower bound
     u #upper bound
-    tr_options #options for minConf_SPG/minimization routine you use for s
+    FO_options #options for minConf_SPG/minimization routine you use for s
     s_alg #algorithm passed that determines descent direction
     χ_projector # Δ - norm ball that you project onto
     ϕk #part of ϕk that you are trying to solve - for ψ=0, this is just qk. Otherwise,
                 #it's the prox_{ξ*λ*ψ}(s - ν*∇q(s))
-    objfun
+    objfun #objective function (unaltered) that you want to minimize
 end
 
 function IP_options(;
@@ -35,10 +35,10 @@ function IP_options(;
 end
 
 function IP_struct(objfun; l=Vector{Float64}, u=Vector{Float64},
-    tr_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
+    FO_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
     ϕk = qk
     )
-    return IP_methods(l, u, tr_options, s_alg, χ_projector, ϕk, objfun)
+    return IP_methods(l, u, FO_options, s_alg, χ_projector, ϕk, objfun)
 end
 
 
@@ -91,7 +91,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
     #other parameters
     l = params.l
     u = params.u
-    tr_options = params.tr_options
+    FO_options = params.FO_options
     s_alg = params.s_alg
     χ_projector = params.χ_projector
     ϕk = params.ϕk
@@ -135,15 +135,15 @@ function IntPt_TR(x, zl, zu,mu,params, options)
             objInner(s) = ϕk(s, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, trrad) #projects onto ball of radius trrad, weights of 1.0
         else
-            tr_options.Bk = ∇²Phi
-            tr_options.gk = ∇Phi
-            tr_options.xk = x
+            FO_options.Bk = ∇²Phi
+            FO_options.gk = ∇Phi
+            FO_options.xk = x
             # objInner(u,ν)= prox_lp(u, ν, p)
             # funProj(z)= proj_lq(z, trrad)
         end
         # funProj(s) = projector(s, trrad, tr_options.β^(-1))
 
-        (s, fsave, funEvals)= s_alg(objInner, zeros(size(x)), funProj, tr_options)
+        (s, fsave, funEvals)= s_alg(objInner, zeros(size(x)), funProj, FO_options)
 
 
         # gradient for z

@@ -26,7 +26,7 @@ function e_lp(x, z, a, p)
 		T = eltype(x);
 		n = length(x);
 		f(x) = abs(x)^p;
-		p == 0.0 && (f(x) = T(iszero(x)));
+		p == 0.0 && (f(x) == T(iszero(x)));
 		val = 0.0;
 		for i = 1:n
 			val += 0.5*(x[i] - z[i])^2/a + f(x[i]);
@@ -49,7 +49,7 @@ function prox_lp_scalar(z, a, p)
 end
 
 function prox_lp(z, a, p)
-	x = 0.0*z 
+	x = 0.0*z
 	@assert(p ≥ 0.0);
 	# @assert(a ≥ 0.0);
 	@assert(size(x) == size(z));
@@ -78,7 +78,7 @@ function prox_ll_scalar(z, a, p; itm=10, tol=1e-6)
 
 	x̃ = (a*p*(1.0-p))^(1.0/(2.0-p));
 	g = (x̃ - ρ)/a + p*x̃^(p-1.0);
-	
+
 	g ≥ 0.0 && (return 0.0);
 
 	x̄ = ρ;

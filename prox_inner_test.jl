@@ -1,9 +1,10 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
-include("./src/TRNC.jl")
-include("./src/minconf_spg/oneProjector.jl")
-using .TRNC
-using .TRNC.SLIM_optim
+# include("./src/TRNC.jl")
+# include("./src/minconf_spg/oneProjector.jl")
+# using .TRNC
+# using .TRNC.SLIM_optim
+using TRNC
 using Printf, Convex, SCS, IterativeSolvers
 
 
