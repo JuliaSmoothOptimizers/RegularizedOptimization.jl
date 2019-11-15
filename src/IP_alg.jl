@@ -3,7 +3,7 @@
 
 include("minconf_spg/SPGSlim.jl")
 include("minconf_spg/oneProjector.jl")
-include("Qcustom.jl") #make sure this is here, defines quadratic model for some function; must yield function value, gradient, and hessian
+# include("Qcustom.jl") #make sure this is here, defines quadratic model for some function; must yield function value, gradient, and hessian
 # include("DescentMethods.jl")
 export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
 
@@ -36,7 +36,7 @@ end
 
 function IP_struct(objfun; l=Vector{Float64}, u=Vector{Float64},
     tr_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
-    ϕk = qk()
+    ϕk = qk
     )
     return IP_methods(l, u, tr_options, s_alg, χ_projector, ϕk, objfun)
 end
