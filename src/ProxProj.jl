@@ -40,7 +40,9 @@ function proj_l1(y, τ)
 function prox_l2s(y::Vector{Float64}, γ::Float64)
   return (1.0/(1.0+γ)) * y
 end
-
+function proj_l2(y::Vector{Float64}, γ::Float64)
+    return y/max(1, norm(y, 2)/γ)
+end
 # prox of the 2-norm
 function prox_l2(y::Vector{Float64}, γ::Float64)
   return max(1.0 - γ/norm(y), 0) * y

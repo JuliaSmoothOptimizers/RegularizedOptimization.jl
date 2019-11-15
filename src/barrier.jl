@@ -1,4 +1,4 @@
-using LinearAlgebra, Printf #include necessary packages
+export barrier_alg
 
 
 
@@ -6,9 +6,9 @@ function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0)
 	mu = 1.0
 
 	for iter=1:10000
-		x, zl, zu, j = IntPt_TR(x, zl, zu,mu, parameters, options) #changed zl and zu to be inputs
+		x, zl, zu, j = IntPt_TR(x, zl, zu,mu, IPparams, IPoptions) #changed zl and zu to be inputs
 		if (is_cvx==1)
-			#pretty much the same deal as below 
+			#pretty much the same deal as below
 			# mu = norm(zjl.*(x-l)) + norm(zju.*(u-x))
 			mu = sum(-zjl.*(x-l) + zju.*(u-x))
 		else

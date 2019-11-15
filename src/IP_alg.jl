@@ -18,10 +18,12 @@ end
 mutable struct IP_methods
     l #lower bound
     u #upper bound
-    tr_options #options for minConf_SPG
-    tr_projector_alg #algorithm passed that determines
-    projector # norm ball that you project onto
-    objfun #objective function
+    tr_options #options for minConf_SPG/minimization routine you use for s
+    s_alg #algorithm passed that determines descent direction
+    χ_projector # Δ - norm ball that you project onto
+    ϕk #part of ϕk that you are trying to solve - for ψ=0, this is just qk. Otherwise,
+                #it's the prox_{ξ*λ*ψ}(s - ν*∇q(s))
+    objfun
 end
 
 function IP_options(;
@@ -31,9 +33,11 @@ function IP_options(;
     return IP_params(epsD, epsC, trrad, ptf, simple)
 end
 
-function IP_struct(objfun; l=Vector{Float64}, u=Vector{Float64}, tr_options = spg_options(),tr_projector_alg = minConf_SPG,projector=oneProjector
+function IP_struct(objfun; l=Vector{Float64}, u=Vector{Float64},
+    tr_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
+    ϕk = qk()
     )
-    return IP_methods(l, u, tr_options, tr_projector_alg, projector, objfun)
+    return IP_methods(l, u, tr_options, s_alg, χ_projector, ϕk, objfun)
 end
 
 
@@ -87,9 +91,9 @@ function IntPt_TR(x, zl, zu,mu,params, options)
     l = params.l
     u = params.u
     tr_options = params.tr_options
-    tr_projector_alg = params.tr_projector_alg
-    projector = params.projector
-    objfun = params.objfun
+    s_alg = params.s_alg
+    χ_projector = params.χ_projector
+    ϕk = params.ϕk
 
 
     #internal variabes
@@ -126,20 +130,18 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         #define custom inner objective to find search direction and solve
 
         if simple==1
-            par = qk_params(grad =∇Phi, Hess=∇²Phi)
-            # par.Hess = ∇²Phi
-            # par.grad = ∇Phi
-            objInner(s) = qk(s, par) #this can probably be sped up since we declare new function every time
-            funProj(x) = projector(x, 1.0, trrad) #projects onto ball of radius trrad, weights of 1.0
+            objInner(s) = ϕk(s, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
+            funProj(x) = χ_projector(x, 1.0, trrad) #projects onto ball of radius trrad, weights of 1.0
         else
             tr_options.Bk = ∇²Phi
             tr_options.gk = ∇Phi
-            objInner(u,ν)= prox_lp(u, ν, p)
-            funProj(z)= proj_lq(z, trrad)
+            tr_options.xk = x
+            # objInner(u,ν)= prox_lp(u, ν, p)
+            # funProj(z)= proj_lq(z, trrad)
         end
         # funProj(s) = projector(s, trrad, tr_options.β^(-1))
 
-        (s, fsave, funEvals)= tr_projector_alg(objInner, zeros(size(x)), funProj, tr_options)
+        (s, fsave, funEvals)= s_alg(objInner, zeros(size(x)), funProj, tr_options)
 
 
         # gradient for z
@@ -152,7 +154,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         #linesearch to adjust parameter
         # α = linesearch(x, zjl, zju, s, dzl, dzu; mult=mult, tau = tau)
         # α = directsearch(x, zjl, zju, s, dzl, dzu)
-        directsearch!(α,zjl, zju, s, dzl, dzu)
+        directsearch!(x-l, u-x, α,zjl, zju, s, dzl, dzu)
 
         #update search direction for
         s = s*α

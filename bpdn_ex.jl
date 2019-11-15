@@ -4,10 +4,10 @@ using TRNC, Plots, Convex, SCS
 # include("minconf_spg/oneProjector.jl")
 # using .SLIM_optim
 
-#Here we just try to solve the l2-norm Problem over the l1 trust region
+#Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with 0≦x≦1
 #######
-# min_x 1/2||Ax - b||^2
-
+# min_x 1/2||Ax - b||^2 + λ||x||₁
+# s.t. 0≦x≦1
 
 m,n = 200,100; # this is a under determined system
 # m, n = 10, 2
@@ -31,24 +31,22 @@ function LScustom(x)
     return f, g, h
 end
 
-function proxG(x,λ,α)
-    n = length(x)
-    for i = 1:n
-        x[i] > α*λ ? x[i] -= α*λ :
-        x[i] <-α*λ ? x[i] += α*λ : x[i] = 0.0;
-    end
-    return x
-    # return sign.(x).*max(abs.(x).-(α)*ones(size(x)), zeros(size(x)))
+function proxG(z,α)
+    return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
+end
+
+function projq(z,σ)
+    return z/max(1, norm(z, 2)/σ)
 end
 #set all options
 #uncomment for OTHER test
-first_order_options = s_options(norm(A)^(2.0) ;optTol=1.0e-3, verbose=0)
-parameters = IP_struct(LScustom; l=l, u=u, tr_options = first_order_options, tr_projector_alg=FISTA, projector=proxG)
+first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-4, verbose=0, maxiter=10, restart=100)
+parameters = IP_struct(LScustom; l=l, u=u, tr_options = first_order_options, tr_projector_alg=prox_split_2w, projector=proxG)
 options = IP_options()
 #put in your initial guesses
-x = (l+u)/2;
-zl = ones(n,);
-zu = ones(n,);
+x = (l+u)/2
+zl = ones(n,)
+zu = ones(n,)
 
 X = Variable(n)
 problem = minimize(sumsquares(A * X - b), X>=l, X<=u)
