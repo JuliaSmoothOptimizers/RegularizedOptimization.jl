@@ -48,7 +48,7 @@ function projq(z,σ)
 end
 #set all options
 #uncomment for OTHER test
-first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-4, verbose=3, maxIter=10, restart=100)
+first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-4, verbose=2, maxIter=100, restart=100)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 parameters = IP_struct(LS; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, ψk=proxG, χ_projector=projq)
 options = IP_options(;simple=0, ptf=10)

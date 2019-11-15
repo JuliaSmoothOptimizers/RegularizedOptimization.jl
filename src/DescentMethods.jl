@@ -330,15 +330,7 @@ function  prox_split_2w(proxp, s0, projq, options)
     Bk = options.Bk
     xk = options.xk
 
-    if options.verbose==0
-        print_freq = Inf
-    elseif options.verbose==1
-        print_freq = round(max_iter/10)
-    elseif options.verbose==2
-        print_freq = round(max_iter/100)
-    else
-        print_freq = 1
-    end
+	print_freq = options.verbose
 
     u = s0+xk
     w1 = zeros(size(s0))
@@ -371,7 +363,7 @@ function  prox_split_2w(proxp, s0, projq, options)
 
         #w2 update
         w2 = projq(u - xk, σ_TR)
-           # @printf("iter: %d, ||w1-w1_||: %7.3e, ||w2-w2_||: %7.3e\n", k, norm(w1 - w1_), norm(w2 - w2_))
+
         w1_err = norm(w1 - u)^2
         w2_err = norm(w2 - u + xk)^2
         err = norm(u_ - u) + norm(w1_ - w1) + norm(w2_ - w2)
