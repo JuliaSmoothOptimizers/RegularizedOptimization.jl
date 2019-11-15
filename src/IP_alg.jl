@@ -94,7 +94,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
     FO_options = params.FO_options
     s_alg = params.s_alg
     χ_projector = params.χ_projector
-    ϕk = params.ϕk
+    ψk = params.ψk
     objfun = params.objfun
 
 
