@@ -138,8 +138,9 @@ function IntPt_TR(x, zl, zu,mu,params, options)
             FO_options.Bk = ∇²Phi
             FO_options.gk = ∇Phi
             FO_options.xk = x
-            # objInner(u,ν)= prox_lp(u, ν, p)
-            # funProj(z)= proj_lq(z, trrad)
+            FO_options.σ_TR = trrad
+            objInner(u, ν)= ϕk(u, ν)
+            funProj(s, Δ)= χ_projector(s, Δ)
         end
         # funProj(s) = projector(s, trrad, tr_options.β^(-1))
 

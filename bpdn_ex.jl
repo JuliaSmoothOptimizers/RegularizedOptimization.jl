@@ -1,6 +1,6 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
-using TRNC, Plots, Convex, Random, LinearAlgebra
+using TRNC, Plots, Convex,SCS, Random, LinearAlgebra
 
 
 #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with 0≦x≦1
@@ -49,8 +49,8 @@ end
 #uncomment for OTHER test
 first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-4, verbose=0, maxIter=10, restart=100)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
-parameters = IP_struct(LS; l=l, u=u, FO_options = first_order_options, ϕk=prox_split_2w, χ_projector=projq, simple=0)
-options = IP_options()
+parameters = IP_struct(LS; l=l, u=u, FO_options = first_order_options, ϕk=prox_split_2w, χ_projector=projq)
+options = IP_options(;simple=0)
 #put in your initial guesses
 x = (l+u)/2
 zl = ones(n,)
