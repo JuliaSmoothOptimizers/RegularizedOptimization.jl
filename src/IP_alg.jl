@@ -140,10 +140,11 @@ function IntPt_TR(x, zl, zu,mu,params, options)
             FO_options.gk = ∇Phi
             FO_options.xk = x
             FO_options.σ_TR = trrad
-            funProj(s, Δ)= χ_projector(s, Δ)
+            funProj = χ_projector
+            objInner= ϕk
         end
         # funProj(s) = projector(s, trrad, tr_options.β^(-1))
-        objInner(u, ν)= ϕk(u, ν)
+
         (s, fsave, funEvals)= s_alg(objInner, zeros(size(x)), funProj, FO_options)
 
 
