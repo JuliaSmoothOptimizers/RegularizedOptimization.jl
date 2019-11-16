@@ -1,6 +1,7 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
 using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra
+include("./src/minconf_spg/oneProjector.jl")
 
 #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with 0≦x≦1
 #######
@@ -43,12 +44,13 @@ function proxG(z, α)
     return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 #do l2 norm for testing purposes
-function projq(z,σ)
-    return z/max(1, norm(z, 2)/σ)
-end
+# function projq(z,σ)
+#     return z/max(1, norm(z, 2)/σ)
+# end
+projq(z,σ) = oneProjector(z, 1.0, σ)
 #set all options
 #uncomment for OTHER test
-first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-4, verbose=2, maxIter=100, restart=100)
+first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-4, verbose=100, maxIter=10, restart=250)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 parameters = IP_struct(LS; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, ψk=proxG, χ_projector=projq)
 options = IP_options(;simple=0, ptf=10)
@@ -57,9 +59,9 @@ x = (l+u)/2
 zl = ones(n,)
 zu = ones(n,)
 
-# X = Variable(n)
-# problem = minimize(sumsquares(A * X - b) + norm(X,1), X>=l, X<=u)
-# solve!(problem, SCSSolver())
+X = Variable(n)
+problem = minimize(sumsquares(A * X - b) + norm(X,1), X>=l, X<=u)
+solve!(problem, SCSSolver())
 
 
 
