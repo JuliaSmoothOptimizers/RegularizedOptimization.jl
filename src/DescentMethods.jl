@@ -176,7 +176,7 @@ function FISTA(Fcn, x,  proxG, options)
 end
 
 
-function linesearch(x, zjl, zju, s, dzl, dzu ;mult=.9, tau = .01)
+function linesearch(x, zjl, zju, s, dzl, dzu,l,u ;mult=.9, tau = .01)
 	α = 1.0
 	     while(
             any(x + α*s - l .< (1-tau)*(x-l)) ||

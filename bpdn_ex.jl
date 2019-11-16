@@ -17,8 +17,9 @@ x0 = zeros(n,)
 x0[p[1:k]]=sign.(randn(k))
 
 A = randn(m,n)
-# (Q,_) = qr(A')
-# A = Q'
+(Q,_) = qr(A')
+A = Matrix(Q)
+A = Matrix(A')
 
 b0 = A*x0
 b = b0 + 0.5*rand(m,)
