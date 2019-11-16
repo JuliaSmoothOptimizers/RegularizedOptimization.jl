@@ -355,7 +355,7 @@ function  prox_split_2w(proxp, s0, projq, options)
 
         #u update with prox_(ξ*λ*||⋅||_p)(...)
         # u = cg(A, b_pt1 + (w2+xk+w1)/η; maxiter=5)
-        u = fastcg(A,u_, b_pt1 + (w2+xk+w1)/η; maxiter=200)
+        u = fastcg(A,u_, b_pt1 + (w2+xk+w1)/η; maxiter=5)
 
 
         #update w1
