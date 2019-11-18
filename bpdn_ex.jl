@@ -32,13 +32,14 @@ u = ones(n,)+cutoff*ones(n,)
 
 
 #define your smooth objective function
-function LS(x)
+#merit function isn't just this though right?
+function LS(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
     r = b
     BLAS.gemv!('N',1.0, A, x, -1.0, r)
-    f = .5*norm(r)^2
+    f = .5*norm(r)^2 + norm(x,1)
     g = BLAS.gemv('T',A,r)
     h = BLAS.gemm('T', 'N', 1.0, A, A)
-    return f, g, h
+    return m, g, h
 end
 
 function proxG(z, α)
@@ -51,10 +52,10 @@ end
 # projq(z,σ) = oneProjector(z, 1.0, σ)
 #set all options
 #uncomment for OTHER test
-first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, verbose=10, maxIter=10, restart=25, η = 1.0, η_factor=.9)
+first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-5, verbose=1, maxIter=20, restart=50, η = 1.0, η_factor=.9)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 parameters = IP_struct(LS; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, ψk=proxG, χ_projector=projq)
-options = IP_options(;simple=0, ptf=10)
+options = IP_options(;simple=0, ptf=1)
 #put in your initial guesses
 x = (l+u)/2
 zl = ones(n,)

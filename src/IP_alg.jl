@@ -36,7 +36,7 @@ end
 
 function IP_struct(objfun; l=Vector{Float64}, u=Vector{Float64},
     FO_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
-    ψk = qk
+    ψk(x)=zeros(size(x))
     )
     return IP_methods(l, u, FO_options, s_alg, χ_projector, ψk, objfun)
 end
@@ -165,7 +165,9 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         dzu = dzu*α
 
         #update ρ
-        ρj = (meritFun(x + s) - meritFun(x))/(qk(s, ∇Phi,∇²Phi)[1]) #test this to make sure it's right (a little variable relative to matlab code)
+        #THIS IS NOT CORRECT FOR COMPOSITE case
+        # ρj = (meritFun(x + s) - meritFun(x))/(qk(s, ∇Phi,∇²Phi)[1])
+        ρj = (meritFun(x + s) - meritFun(x))/(qk(s, ∇Phi,∇²Phi)[1]+ψk(x+s) - ψk(x)) #test this to make sure it's right (a little variable relative to matlab code)
 
         if(ρj > eta2)
             TR_stat = "increase"
