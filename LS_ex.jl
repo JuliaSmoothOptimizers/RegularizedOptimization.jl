@@ -30,7 +30,7 @@ function f_obj(x)
 end
 
 function h_obj(x)
-    return zeros(size(x))
+    return 0
 end
 #set all options
 first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0,
