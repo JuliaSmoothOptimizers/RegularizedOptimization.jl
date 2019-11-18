@@ -22,9 +22,10 @@ mutable struct IP_methods
     FO_options #options for minConf_SPG/minimization routine you use for s
     s_alg #algorithm passed that determines descent direction
     χ_projector # Δ - norm ball that you project onto
+    prox_ψk
     ψk #part of ϕk that you are trying to solve - for ψ=0, this is just qk. Otherwise,
                 #it's the prox_{ξ*λ*ψ}(s - ν*∇q(s))
-    objfun #objective function (unaltered) that you want to minimize
+    f_obj #objective function (unaltered) that you want to minimize
 end
 
 function IP_options(;
@@ -34,11 +35,11 @@ function IP_options(;
     return IP_params(epsD, epsC, trrad, ptf, simple)
 end
 
-function IP_struct(objfun; l=Vector{Float64}, u=Vector{Float64},
+function IP_struct(f_obj, h; l=Vector{Float64}, u=Vector{Float64},
     FO_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
-    ψk(x)=zeros(size(x))
+    ψk=h, prox_ψk=h #initialize
     )
-    return IP_methods(l, u, FO_options, s_alg, χ_projector, ψk, objfun)
+    return IP_methods(l, u, FO_options, s_alg, χ_projector, prox_ψk, ψk, f_obj)
 end
 
 
@@ -46,7 +47,7 @@ end
 
 function IntPt_TR(x, zl, zu,mu,params, options)
     """Return the gradient of the variational penalty objective functional
-        IntPt_TR(x, zl, zu,objfun, options)
+        IntPt_TR(x, zl, zu,f_obj, options)
     Arguments
     ----------
     x : Array{Float64,1}
@@ -55,7 +56,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         Initial guess for the lower dual parameters
     zu : Array{Float64,1}
         Initial guess for the upper dual parameters
-    objfun : generic function with 3 outputs: f(x), gradient(x), Hessian(x)
+    f_obj : generic function with 3 outputs: f(x), gradient(x), Hessian(x)
     options : mutable structure IP_params with:
         -l Array{Float64,1}, lower bound
         -u Array{Float64,1}, upper bound
@@ -78,7 +79,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         number of iterations used
     """
 
-    #note - objfun is just l2 norm for the first example, takes in nothing except x. Will generalize later
+    #note - f_obj is just l2 norm for the first example, takes in nothing except x. Will generalize later
 
     #initialize passed options
     debug = false #turn this on to see debugging information
@@ -95,7 +96,8 @@ function IntPt_TR(x, zl, zu,mu,params, options)
     s_alg = params.s_alg
     χ_projector = params.χ_projector
     ψk = params.ψk
-    objfun = params.objfun
+    prox_ψk = params.prox_ψk
+    f_obj = params.f_obj
 
 
     #internal variabes
@@ -109,11 +111,11 @@ function IntPt_TR(x, zl, zu,mu,params, options)
 
 
     #make sure you only take the first output of the objective value of the true function you are minimizing
-    meritFun(x) = objfun(x)[1] - mu*sum(log.((x-l).*(u-x))) #mu*sum(log.(x-l)) - mu*sum(log.(u-x))
+    meritFun(x) = f_obj(x)[1] - mu*sum(log.((x-l).*(u-x))) + ψk(x) #mu*sum(log.(x-l)) - mu*sum(log.(u-x))
 
     #main algorithm initialization
-    (fj, gj, Hj) = objfun(x)
-    kktNorm = [norm(gj - zjl + zju);norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu) ]
+    (fj, gj, Hj) = f_obj(x)
+    kktNorm = [norm(gj - zjl + zju); norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu)]
 
     j = 0
     ρj = -1
@@ -140,7 +142,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
             FO_options.xk = x
             FO_options.σ_TR = trrad
             funProj = χ_projector
-            objInner= ψk
+            objInner= prox_ψk
         end
         # funProj(s) = projector(s, trrad, tr_options.β^(-1))
 
@@ -198,7 +200,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         end
 
 
-        (fj, gj, Hj) = objfun(x);
+        (fj, gj, Hj) = f_obj(x);
         kktNorm = [norm(gj - zjl + zju);norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu) ]
                 #Print values
         j % ptf ==0 && @printf("Iter %4d, Norm(kkt) %1.5e, ρj %1.5e/%s, trustR %1.5e/%s, mu %1.5e, α %1.5e\n", j, sum(kktNorm), ρj,x_stat, trrad,TR_stat, mu, α)

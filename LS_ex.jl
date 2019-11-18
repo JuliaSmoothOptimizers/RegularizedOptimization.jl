@@ -22,16 +22,20 @@ u = ones(n,)+cutoff*ones(n,)
 
 
 #define your objective function
-function LScustom(x)
+function f_obj(x)
     f = .5*norm(A*x-b)^2
     g = A'*(A*x - b)
     h = A'*A
     return f, g, h
 end
+
+function h_obj(x)
+    return zeros(size(x))
+end
 #set all options
 first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
-parameters = IP_struct(LScustom; l=l, u=u, FO_options = first_order_options)
+parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options)
 options = IP_options()
 #put in your initial guesses
 x = (l+u)/2
