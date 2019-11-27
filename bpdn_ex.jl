@@ -24,9 +24,9 @@ A = Matrix(A')
 b0 = A*x0
 b = b0 + 0.5*rand(m,)
 cutoff = 0.0;
-l = -1*ones(n,)+cutoff*ones(n,)
-u = ones(n,)+cutoff*ones(n,)
-
+l = -2.0*ones(n,)+cutoff*ones(n,)
+u = 2.0*ones(n,)+cutoff*ones(n,)
+λ_T = 1.0
 
 
 
@@ -36,27 +36,28 @@ u = ones(n,)+cutoff*ones(n,)
 function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
     r = b
     BLAS.gemv!('N',1.0, A, x, -1.0, r)
-    f = .5*norm(r)^2 + norm(x,1)
+    f = .5*norm(r)^2
     g = BLAS.gemv('T',A,r)
     h = BLAS.gemm('T', 'N', 1.0, A, A)
-    return m, g, h
+    return f, g, h
 end
 
 function proxG(z, α)
     return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 #do l2 norm for testing purposes
-function projq(z,σ)
-    return z/max(1, norm(z, 2)/σ)
-end
+# function projq(z,σ)
+#     return z/max(1, norm(z, 2)/σ)
+# end
+projq(z,σ) = oneProjector(z, 1.0, σ)
 
 function h_obj(x)
-    return norm(x,1)
+    return λ_T*norm(x,1)
 end
 # projq(z,σ) = oneProjector(z, 1.0, σ)
 #set all options
 #uncomment for OTHER test
-first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-5, verbose=Inf, maxIter=10, restart=50, η = 10.0, η_factor=.9)
+first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-5, verbose=Inf, maxIter=10, restart=100, η = 100.0, η_factor=.9)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxG, χ_projector=projq)
 options = IP_options(;simple=0, ptf=1)
@@ -66,7 +67,7 @@ zl = ones(n,)
 zu = ones(n,)
 
 X = Variable(n)
-problem = minimize(sumsquares(A * X - b) + norm(X,1), X>=l, X<=u)
+problem = minimize(sumsquares(A * X - b) + λ_T*norm(X,1), X>=l, X<=u)
 solve!(problem, SCSSolver())
 
 
@@ -79,13 +80,13 @@ x, zl, zu = barrier_alg(x,zl, zu, parameters, options)
 @printf("l2-norm TR: %5.5e\n", norm(x - x0))
 @printf("l2-norm CVX: %5.5e\n", norm(X.value - x0))
 @printf("TR vs CVX relative error: %5.5e\n", norm(X.value - x)/norm(X.value))
-# plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
-# plot!(x, label="tr", marker=2)
-# plot!(X.value, label="cvx")
-# savefig("xcomp.pdf")
+plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
+plot!(x, label="tr", marker=2)
+plot!(X.value, label="cvx")
+savefig("xcomp.pdf")
 
-# plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
-# plot!(b, label="Observed")
-# plot!(A*x, label="A*x: TR", marker=2)
-# plot!(A*X.value, label="A*x: CVX")
-# savefig("bcomp.pdf")
+plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
+plot!(b, label="Observed")
+plot!(A*x, label="A*x: TR", marker=2)
+plot!(A*X.value, label="A*x: CVX")
+savefig("bcomp.pdf")

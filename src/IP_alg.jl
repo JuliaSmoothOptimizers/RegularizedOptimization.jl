@@ -157,9 +157,9 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         mult = 0.9
 
         #linesearch to adjust parameter
-        α = linesearch(x, zjl, zju, s, dzl, dzu,l,u; mult=mult, tau = tau)
+        # α = linesearch(x, zjl, zju, s, dzl, dzu,l,u; mult=mult, tau = tau)
         # α = directsearch(x, zjl, zju, s, dzl, dzu)
-        # directsearch!(x-l, u-x, α,zjl, zju, s, dzl, dzu)
+        directsearch!(x-l, u-x, α,zjl, zju, s, dzl, dzu)
 
         #update search direction for
         s = s*α
