@@ -191,9 +191,9 @@ function IntPt_TR(x, zl, zu,mu,params, options)
             x_stat = "shrink"
 
             α = 1.0;
-            while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s)
-                α = α*mult;
-            end
+            # while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s)
+            #     α = α*mult;
+            # end
             x = x + α*s;
             zjl = zjl + α*dzl;
             zju = zjl + α*dzu;
