@@ -22,7 +22,7 @@ A = Matrix(Q)
 A = Matrix(A')
 
 b0 = A*x0
-b = b0 + 0.5*rand(m,)
+b = b0 + 0.005*rand(m,)
 cutoff = 0.0;
 l = -2.0*ones(n,)+cutoff*ones(n,)
 u = 2.0*ones(n,)+cutoff*ones(n,)

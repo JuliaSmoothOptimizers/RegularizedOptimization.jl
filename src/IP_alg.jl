@@ -127,8 +127,8 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         x_stat = ""
 
         #compute hessian and gradient for the problem
-        ∇Phi = gj - mu./(x-l) + mu./(u-x);
-        ∇²Phi = Hj + Diagonal(zjl./(x-l)) + Diagonal(zju./(u-x));
+        ∇Phi = gj - mu./(x-l) + mu./(u-x)
+        ∇²Phi = Hj + Diagonal(zjl./(x-l)) + Diagonal(zju./(u-x))
 
 
         #define custom inner objective to find search direction and solve
@@ -159,7 +159,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         #linesearch to adjust parameter
         # α = linesearch(x, zjl, zju, s, dzl, dzu,l,u; mult=mult, tau = tau)
         # α = directsearch(x, zjl, zju, s, dzl, dzu)
-        directsearch!(x-l, u-x, α,zjl, zju, s, dzl, dzu)
+        directsearch!(x-l, u-x, α,zjl, zju, s, dzl, dzu) #alpha to the boundary
 
         #update search direction for
         s = s*α
@@ -186,18 +186,18 @@ function IntPt_TR(x, zl, zu,mu,params, options)
             zju = zju + dzu
         end
 
-        if(ρj < eta1)
+        if(ρj < eta1) #
 
             x_stat = "shrink"
 
-            α = 1.0;
-            # while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s)
-            #     α = α*mult;
+            α = .5
+            # while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
+                # α = α*mult;
             # end
-            x = x + α*s;
-            zjl = zjl + α*dzl;
-            zju = zjl + α*dzu;
-            trrad = α*norm(s, 1);
+            # x = x + α*s
+            # zjl = zjl + α*dzl
+            # zju = zjl + α*dzu
+            trrad = α*norm(s, 1)
         end
 
 
