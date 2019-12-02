@@ -123,7 +123,7 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
 
     if mu == 1
         @printf("----------------------------------------------------------------------------------------------\n")
-        @printf("%10s %10s %10s %10s %10s %10s %10s %10s \n","Iteration","Norm(kkt)","ρk", "x status ","Δk", "Δk status","μk", "α")
+        @printf("%10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s \n","Iter","Norm(kkt)","ρk", "x status ","Δk", "Δk status","μk", "α")
         @printf("----------------------------------------------------------------------------------------------\n")
     end
     while(kktNorm[1] > epsD || kktNorm[2] >epsC || kktNorm[3]>epsC)
@@ -215,7 +215,7 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
         kktNorm = [norm(gk - zkl + zku);norm(zkl.*(x-l) .- mu); norm(zku.*(u-x).-mu) ]
 
         #Print values
-        k % ptf ==0 && @printf("%10d   %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α)
+        k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α)
 
     end
     return x, zkl, zku, k
