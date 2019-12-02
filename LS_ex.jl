@@ -1,6 +1,6 @@
 # Julia Testing function
 using TRNC
-using Plots, Convex, SCS, Printf
+using Plots, Convex, SCS, Printf,LinearAlgebra
 
 #Here we just try to solve the l2-norm Problem over the l1 trust region
 #######
@@ -21,11 +21,12 @@ u = ones(n,)+cutoff*ones(n,)
 
 
 
-#define your objective function
-function f_obj(x)
-    f = .5*norm(A*x-b)^2
-    g = A'*(A*x - b)
-    h = A'*A
+function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
+    r = b
+    BLAS.gemv!('N',1.0, A, x, -1.0, r)
+    f = .5*norm(r)^2
+    g = BLAS.gemv('T',A,r)
+    h = BLAS.gemm('T', 'N', 1.0, A, A)
     return f, g, h
 end
 
@@ -49,7 +50,7 @@ solve!(problem, SCSSolver())
 
 
 
-x, zl, zu = barrier_alg(x,zl, zu, parameters, options; is_cvx=1)
+x, zl, zu = barrier_alg(x,zl, zu, parameters, options; is_cvx=0)
 
 
 #print out l2 norm difference and plot the two x values

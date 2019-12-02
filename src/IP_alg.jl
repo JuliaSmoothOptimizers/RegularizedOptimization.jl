@@ -202,7 +202,7 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
             if simple==1#right now just consider the simple case for this linsearch
                 α = 1.0
                 while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
-                    α = α*mult;
+                    α = α*mult
                 end
                 x = x + α*s
                 zkl = zkl + α*dzl
