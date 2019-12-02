@@ -203,7 +203,7 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
                 end
                 x = x+α*s
                 zkl = zkl+α*dzl
-                zku =zku+α*dzu
+                zku = zku + α*dzu
             else
                 α = 0.5
             end
@@ -211,7 +211,7 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
         end
 
 
-        (fk, gk, Hk) = f_obj(x)
+        (fk, gk, Hk) = f_obj(x);
         kktNorm = [norm(gk - zkl + zku);norm(zkl.*(x-l) .- mu); norm(zku.*(u-x).-mu) ]
 
         #Print values
