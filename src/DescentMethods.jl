@@ -194,9 +194,7 @@ function directsearch(xsl, usx, zkl, zku, s, dzl, dzu; tau = .01) #used to be .0
 	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s; (-tau*zkl)./dzl; (-tau*zku)./dzu]
     temp=filter((a) -> 1>=a>0, temp)
     # @printf("%1.5e | %1.5e | %1.5e | %1.5e \n", maximum(abs.((u - x)./s)), maximum(abs.((x-l)./s)), maximum(abs.(-zjl./dzl)), maximum(abs.(-zju./dzu)))
-    temp = minimum(vcat(temp, 1.0))
-
-	return temp
+    return minimum(vcat(temp, 1.0))
 
 
 end
