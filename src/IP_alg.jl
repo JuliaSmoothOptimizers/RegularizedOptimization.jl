@@ -123,7 +123,7 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
 
     if mu == 1
         @printf("----------------------------------------------------------------------------------------------------------------\n")
-        @printf("%10s | %11s | %10s | %10s | %10s | %10s | %10s | %10s \n","Iter","Norm(kkt)","Ratio: ρk", "x status ","Δk", "Δk status","μk", "α")
+        @printf("%10s | %11s | %11s | %11s | %11s | %11s | %11s | %11s \n","Iter","Norm(kkt)","Ratio: ρk", "x status ","TR: Δk", "Δk status","Barrier: μk", "LnSrch: α")
         @printf("----------------------------------------------------------------------------------------------------------------\n")
     end
     while(kktNorm[1] > epsD || kktNorm[2] >epsC || kktNorm[3]>epsC)
