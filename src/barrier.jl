@@ -15,6 +15,7 @@ function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0)
 		else
 			mu = mu/10.0
 		end
+		@printf("%10.5e \n", mu)
 		if(mu < 1e-6)
 			break
 		end
