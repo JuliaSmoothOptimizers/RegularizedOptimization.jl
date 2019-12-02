@@ -11,7 +11,8 @@ function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0)
 			#pretty much the same deal as below
 			l, u = IPparams.l, IPparams.u
 			# mu = norm(zjl.*(x-l)) + norm(zju.*(u-x))
-			mu = sum(-zl.*(x-l) + zu.*(u-x))
+			# mu = sum(-zl.*(x-l) + zu.*(u-x))
+			mu = sum(zl.*(x-l) + zu.*(u-x))
 		else
 			mu = mu/10.0
 		end
