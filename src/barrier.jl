@@ -9,12 +9,12 @@ function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0)
 		x, zl, zu, k = IntPt_TR(x, zl, zu,mu,IterCount, IPparams, IPoptions) #changed zl and zu to be inputs
 		if (is_cvx==1)
 			#pretty much the same deal as below
+			l, u = IPparams.l, IPparams.u
 			# mu = norm(zjl.*(x-l)) + norm(zju.*(u-x))
 			mu = sum(-zl.*(x-l) + zu.*(u-x))
 		else
 			mu = mu/10.0
 		end
-		# iter % 2 ==0 && @printf("Barrier Method: iter %4d, μ %1.5e\n", iter, mu)
 		if(mu < 1e-6)
 			break
 		end
