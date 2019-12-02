@@ -166,8 +166,8 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
 
         #linesearch to adjust parameter
         # α = linesearch(x, zkl, zku, s, dzl, dzu,l,u; mult=mult, tau = tau)
-        # α = directsearch(x, zkl, zku, s, dzl, dzu)
-        directsearch!(x-l, u-x, α,zkl, zku, s, dzl, dzu) #alpha to the boundary
+        α = directsearch(x-l, u-x, zkl, zku, s, dzl, dzu)
+        # directsearch!(x-l, u-x, α,zkl, zku, s, dzl, dzu) #alpha to the boundary
 
         #update search direction for
         s = s*α
@@ -189,9 +189,9 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
 
         if(ρk >= eta1)
             x_stat = "update"
-            x = x + s
-            zkl = zkl + dzl
-            zku = zku + dzu
+            x += s
+            zkl += dzl
+            zku += dzu
         end
 
         if(ρk < eta1) #
@@ -204,9 +204,9 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
                 while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
                     α = α*mult
                 end
-                x = x + α*s
-                zkl = zkl + α*dzl
-                zku = zkl + α*dzu
+                x += α*s
+                zkl += α*dzl
+                zku += α*dzu
             else
                 α = 0.5
             end

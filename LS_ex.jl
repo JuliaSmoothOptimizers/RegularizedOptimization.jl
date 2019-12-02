@@ -50,7 +50,7 @@ solve!(problem, SCSSolver())
 
 
 
-x, zl, zu = barrier_alg(x,zl, zu, parameters, options; is_cvx=0)
+x, zl, zu = barrier_alg(x,zl, zu, parameters, options; is_cvx=1)
 
 
 #print out l2 norm difference and plot the two x values
