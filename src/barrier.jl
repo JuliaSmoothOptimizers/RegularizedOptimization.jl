@@ -19,7 +19,7 @@ function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0)
 			break
 		end
 		IPparams.FO_options.optTol = .1*IPparams.FO_options.optTol
-		k = IterCount
+		IterCount = k
 	end
 
 	return x, zl, zu

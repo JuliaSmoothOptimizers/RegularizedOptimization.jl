@@ -123,7 +123,7 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
 
     if mu == 1
         @printf("%10s %10s %10s %10s %10s %10s %10s %10s\n","Iteration","Norm(kkt)","ρk", "x status ","Δk", "Δk status","μk", "α")
-        @printf("----------|----------|----------|----------|----------|----------|----------|----------\n")
+        @printf("----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------\n")
     end
     while(kktNorm[1] > epsD || kktNorm[2] >epsC || kktNorm[3]>epsC)
         #update count
