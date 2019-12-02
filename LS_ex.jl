@@ -37,7 +37,7 @@ end
 first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options)
-options = IP_options(;ptf=1)
+options = IP_options(;ptf=100)
 #put in your initial guesses
 x = (l+u)/2
 zl = ones(n,)
