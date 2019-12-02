@@ -57,7 +57,8 @@ end
 # projq(z,σ) = oneProjector(z, 1.0, σ)
 #set all options
 #uncomment for OTHER test
-first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-5, verbose=Inf, maxIter=10, restart=20, η = 100.0, η_factor=.9)
+first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-5, verbose=Inf, maxIter=10, restart=10, η = 10.0, η_factor=.9)
+
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxG, χ_projector=projq)
 options = IP_options(;simple=0, ptf=1)
