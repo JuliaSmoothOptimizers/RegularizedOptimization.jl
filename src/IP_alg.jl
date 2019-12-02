@@ -10,7 +10,7 @@ export IP_options, IntPt_TR, IP_struct #export necessary values to file that cal
 
 mutable struct IP_params
     epsD #ε bound for 13a, alg 4.3
-    epsC #ε bound for 13b, alg 4.2
+    epsC #ε bound for 13b, alg 4.3
     Δk #trust region radius
     ptf #print every so often
     simple #if you can use spg_minconf with simple projection
@@ -143,7 +143,7 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
 
         if simple==1
             objInner(s) = qk(s, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
-            funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
+            funProj(s) = χ_projector(s, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
         else
             FO_options.Bk = ∇²Phi
             FO_options.gk = ∇Phi
@@ -165,8 +165,8 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
         mult = 0.9
 
         #linesearch to adjust parameter
-        # α = linesearch(x, zjl, zju, s, dzl, dzu,l,u; mult=mult, tau = tau)
-        # α = directsearch(x, zjl, zju, s, dzl, dzu)
+        # α = linesearch(x, zkl, zku, s, dzl, dzu,l,u; mult=mult, tau = tau)
+        # α = directsearch(x, zkl, zku, s, dzl, dzu)
         directsearch!(x-l, u-x, α,zkl, zku, s, dzl, dzu) #alpha to the boundary
 
         #update search direction for
@@ -198,14 +198,17 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
 
             x_stat = "shrink"
 
-            α = .5
+
             if simple==1#right now just consider the simple case for this linsearch
+                α = 1.0
                 while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
                     α = α*mult;
                 end
                 x = x + α*s
                 zkl = zkl + α*dzl
                 zku = zkl + α*dzu
+            else
+                α = 0.5
             end
             Δk = α*norm(s, 1)
         end
