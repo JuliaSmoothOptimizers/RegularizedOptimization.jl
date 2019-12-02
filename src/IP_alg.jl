@@ -123,10 +123,14 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
 
     if mu == 1
         @printf("----------------------------------------------------------------------------------------------\n")
-        @printf("| %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s |\n","Iteration","Norm(kkt)","ρk", "x status ","Δk", "Δk status","μk", "α")
+        @printf("%10s %10s %10s %10s %10s %10s %10s %10s \n","Iteration","Norm(kkt)","ρk", "x status ","Δk", "Δk status","μk", "α")
         @printf("----------------------------------------------------------------------------------------------\n")
     end
     while(kktNorm[1] > epsD || kktNorm[2] >epsC || kktNorm[3]>epsC)
+        #Print values
+        k % ptf ==0 && @printf("%10d   %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α)
+
+
         #update count
         k = k+1
         TR_stat = ""
@@ -197,20 +201,20 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
             x_stat = "shrink"
 
             α = .5
-            # while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
-                # α = α*mult;
-            # end
-            # x = x + α*s
-            # zkl = zkl + α*dzl
-            # zku = zkl + α*dzu
+            if simple==1#right now just consider the simple case for this linsearch
+                while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
+                    α = α*mult;
+                end
+                x = x + α*s
+                zkl = zkl + α*dzl
+                zku = zkl + α*dzu
+            end
             Δk = α*norm(s, 1)
         end
 
 
         (fk, gk, Hk) = f_obj(x);
         kktNorm = [norm(gk - zkl + zku);norm(zkl.*(x-l) .- mu); norm(zku.*(u-x).-mu) ]
-        #Print values
-        k % ptf ==0 && @printf("%10d %10.5e %10.5e %10s %10.5e %10s %10.5e %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α)
 
 
     end
