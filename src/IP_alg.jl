@@ -3,8 +3,6 @@
 
 include("minconf_spg/SPGSlim.jl")
 include("minconf_spg/oneProjector.jl")
-# include("Qcustom.jl") #make sure this is here, defines quadratic model for some function; must yield function value, gradient, and hessian
-# include("DescentMethods.jl")
 export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
 
 
@@ -45,7 +43,7 @@ end
 
 
 
-function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
+function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
     """Return the gradient of the variational penalty objective functional
         IntPt_TR(x, zl, zu,f_obj, options)
     Arguments
@@ -69,11 +67,11 @@ function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
     -------
     x   : Array{Float64,1}
         Final value of Algorithm 4.2 trust region
-    zjl : Array{Float64,1}
+    zkl : Array{Float64,1}
         final value for the lower dual parameters
-    zju : Array{Float64,1}
+    zku : Array{Float64,1}
         final value for the upper dual parameters
-    j   : Int
+    k   : Int
         number of iterations used
     """
 
@@ -104,16 +102,16 @@ function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
     tau = 0.01 #linesearch buffer parameter
     sigma = 1.0e-3 # quadratic model linesearch buffer parameter
     gamma = 3.0 #trust region buffer
-    zjl = copy(zl)
-    zju = copy(zu)
-
+    zkl = copy(zl0)
+    zku = copy(zu0)
+    xk = copy(x0)
 
     #make sure you only take the first output of the objective value of the true function you are minimizing
     meritFun(x) = f_obj(x)[1] - mu*sum(log.((x-l).*(u-x))) + ψk(x) #mu*sum(log.(x-l)) - mu*sum(log.(u-x))
 
     #main algorithm initialization
-    (fk, gk, Hk) = f_obj(x)
-    kktNorm = [norm(gk - zjl + zju); norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu)]
+    (fk, gk, Hk) = f_obj(xk)
+    kktNorm = [norm(gk - zkl + zku); norm(zkl.*(xk-l) .- mu); norm(zku.*(u-xk).-mu)]
 
 
     if mu == 1
@@ -122,18 +120,18 @@ function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
         @printf("----------------------------------------------------------------------------------------------------------------\n")
     end
 
-    j = TotalCount
-    ρj = -1
+    k = TotalCount
+    ρk = -1
     α = 1
     while(kktNorm[1] > epsD || kktNorm[2] >epsC || kktNorm[3]>epsC)
         #update count
-        j = j+1
+        k = k+1
         TR_stat = ""
         x_stat = ""
 
         #compute hessian and gradient for the problem
-        ∇Phi = gk - mu./(x-l) + mu./(u-x)
-        ∇²Phi = Hk + Diagonal(zjl./(x-l)) + Diagonal(zju./(u-x))
+        ∇Phi = gk - mu./(xk-l) + mu./(u-xk)
+        ∇²Phi = Hk + Diagonal(zkl./(xk-l)) + Diagonal(zku./(u-xk))
 
 
         #define custom inner objective to find search direction and solve
@@ -144,27 +142,27 @@ function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
         else
             FO_options.Bk = ∇²Phi
             FO_options.gk = ∇Phi
-            FO_options.xk = x
+            FO_options.xk = xk
             FO_options.σ_TR = Δk
             funProj = χ_projector
             objInner= prox_ψk
         end
         # funProj(s) = projector(s, Δk, tr_options.β^(-1))
 
-        (s, fsave, funEvals)= s_alg(objInner, zeros(size(x)), funProj, FO_options)
+        (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
 
 
         # gradient for z
-        dzl = mu./(x-l) - zjl - zjl.*s./(x-l)
-        dzu = mu./(u-x) - zju + zju.*s./(u-x)
+        dzl = mu./(xk-l) - zkl - zkl.*s./(xk-l)
+        dzu = mu./(u-xk) - zku + zku.*s./(u-xk)
 
         α = 1.0
         mult = 0.9
 
         #linesearch to adjust parameter
-        # α = linesearch(x, zjl, zju, s, dzl, dzu,l,u; mult=mult, tau = tau)
-        # α = directsearch(x, zjl, zju, s, dzl, dzu)
-        directsearch!(x-l, u-x, α,zjl, zju, s, dzl, dzu) #alpha to the boundary
+        # α = linesearch(x, zkl, zku, s, dzl, dzu,l,u; mult=mult, tau = tau)
+        # α = directsearch(x, zkl, zku, s, dzl, dzu)
+        directsearch!(xk-l, u-xk, α,zkl, zku, s, dzl, dzu) #alpha to the boundary
 
         #update search direction for
         s = s*α
@@ -173,46 +171,46 @@ function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
 
         #update ρ
         #THIS IS NOT CORRECT FOR COMPOSITE case
-        mk(d) = qk(d, ∇Phi, ∇²Phi)[1] + ψk(x+d) #qk should take barrier into account
-        # ρj = (meritFun(x + s) - meritFun(x))/(qk(s, ∇Phi,∇²Phi)[1])
-        ρj = (meritFun(x) - meritFun(x + s))/(mk(zeros(size(x))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
+        mk(d) = qk(d, ∇Phi, ∇²Phi)[1] + ψk(xk+d) #qk should take barrier into account
+        ρk = (meritFun(x + s) - meritFun(x))/(qk(s, ∇Phi,∇²Phi)[1])
+        # ρk = (meritFun(xk) - meritFun(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
 
-        if(ρj > eta2)
+        if(ρk > eta2)
             TR_stat = "increase"
             Δk = max(Δk, gamma*norm(s, 1)) #for safety
         else
             TR_stat = "kept"
         end
 
-        if(ρj >= eta1)
+        if(ρk >= eta1)
             x_stat = "update"
-            x = x + s
-            zjl = zjl + dzl
-            zju = zju + dzu
+            xk = xk + s
+            zkl = zkl + dzl
+            zku = zku + dzu
         end
 
-        if(ρj < eta1) #
+        if(ρk < eta1) #
 
             x_stat = "shrink"
 
             #changed back linesearch
             α = 1.0
-            while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
+            while(meritFun(xk + α*s) > meritFun(xk) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
                 α = α*mult;
             end
-            x = x + α*s
-            zjl = zjl + α*dzl
-            zju = zju + α*dzu
+            xk = xk + α*s
+            zkl = zkl + α*dzl
+            zku = zku + α*dzu
             Δk = α*norm(s, 1)
         end
 
 
-        (fk, gk, Hk) = f_obj(x);
-        kktNorm = [norm(gk - zjl + zju);norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu) ]
+        (fk, gk, Hk) = f_obj(xk);
+        kktNorm = [norm(gk - zkl + zku);norm(zkl.*(xk-l) .- mu); norm(zku.*(u-xk).-mu) ]
         #Print values
-        j % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e \n", j, sum(kktNorm), ρj,x_stat, Δk,TR_stat, mu, α)
+        k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α)
 
 
     end
-    return x, zjl, zju, j
+    return xk, zkl, zku, k
 end
