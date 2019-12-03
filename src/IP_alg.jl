@@ -45,7 +45,7 @@ end
 
 
 
-function IntPt_TR(x, zl, zu,mu,params, options)
+function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
     """Return the gradient of the variational penalty objective functional
         IntPt_TR(x, zl, zu,f_obj, options)
     Arguments
@@ -122,7 +122,7 @@ function IntPt_TR(x, zl, zu,mu,params, options)
         @printf("----------------------------------------------------------------------------------------------------------------\n")
     end
 
-    j = 0
+    j = TotalCount
     ρj = -1
     α = 1
     while(kktNorm[1] > epsD || kktNorm[2] >epsC || kktNorm[3]>epsC)
