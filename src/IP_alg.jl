@@ -172,7 +172,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         #update ρ
         #THIS IS NOT CORRECT FOR COMPOSITE case
         mk(d) = qk(d, ∇Phi, ∇²Phi)[1] + ψk(xk+d) #qk should take barrier into account
-        ρk = (meritFun(x + s) - meritFun(x))/(qk(s, ∇Phi,∇²Phi)[1])
+        ρk = (meritFun(xk + s) - meritFun(xk))/(qk(s, ∇Phi,∇²Phi)[1])
         # ρk = (meritFun(xk) - meritFun(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
 
         if(ρk > eta2)
