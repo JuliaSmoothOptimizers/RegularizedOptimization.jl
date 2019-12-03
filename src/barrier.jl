@@ -2,7 +2,7 @@ export barrier_alg
 
 
 
-function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0, mu_tol =1e-15)
+function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0, mu_tol =1e-10)
 	mu = 1.0
 	IterCount = 0.0
 	for iter=1:10000
@@ -10,8 +10,8 @@ function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0, mu_tol =1e-15)
 		if (is_cvx==1)
 			#pretty much the same deal as below
 			l, u = IPparams.l, IPparams.u
-			# mu = norm(zjl.*(x-l)) + norm(zju.*(u-x))
-			mu = sum(-zl.*(x-l) + zu.*(u-x))
+			mu = norm(zl.*(x-l)) + norm(zu.*(u-x))
+			# mu = sum(-zl.*(x-l) + zu.*(u-x))
 		else
 			mu = mu*.5
 		end
