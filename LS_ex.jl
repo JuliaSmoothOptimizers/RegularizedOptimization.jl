@@ -21,12 +21,18 @@ u = ones(n,)+cutoff*ones(n,)
 
 
 
-function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
-    r = b
-    BLAS.gemv!('N',1.0, A, x, -1.0, r)
-    f = .5*norm(r)^2
-    g = BLAS.gemv('T',A,r)
-    h = BLAS.gemm('T', 'N', 1.0, A, A)
+# function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
+#     r = b
+#     BLAS.gemv!('N',1.0, A, x, -1.0, r)
+#     f = .5*norm(r)^2
+#     g = BLAS.gemv('T',A,r)
+#     h = BLAS.gemm('T', 'N', 1.0, A, A)
+#     return f, g, h
+# end
+function f_obj(x)
+    f = .5*norm(A*x-b)^2
+    g = A'*(A*x - b)
+    h = A'*A
     return f, g, h
 end
 
@@ -37,9 +43,9 @@ end
 first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options)
-options = IP_options(;ptf=100)
+options = IP_options(;ptf=1)
 #put in your initial guesses
-x = (l+u)/2
+xi = (l+u)/2
 zl = ones(n,)
 zu = ones(n,)
 
@@ -50,7 +56,7 @@ solve!(problem, SCSSolver())
 
 
 
-x, zl, zu = barrier_alg(x,zl, zu, parameters, options; is_cvx=1)
+x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=1)
 
 
 #print out l2 norm difference and plot the two x values
