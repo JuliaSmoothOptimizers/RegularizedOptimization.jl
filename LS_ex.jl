@@ -43,7 +43,7 @@ end
 first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options)
-options = IP_options(;ptf=1)
+options = IP_options(;ptf=50)
 #put in your initial guesses
 xi = (l+u)/2
 zl = ones(n,)
@@ -56,7 +56,7 @@ solve!(problem, SCSSolver())
 
 
 
-x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=1)
+x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=0)
 
 
 #print out l2 norm difference and plot the two x values

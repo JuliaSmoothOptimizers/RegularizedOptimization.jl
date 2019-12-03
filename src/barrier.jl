@@ -2,7 +2,7 @@ export barrier_alg
 
 
 
-function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0)
+function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0, mu_tol =1e-15)
 	mu = 1.0
 	IterCount = 0.0
 	for iter=1:10000
@@ -15,7 +15,7 @@ function barrier_alg(x,zl, zu,IPparams, IPoptions; is_cvx=0)
 		else
 			mu = mu*.5
 		end
-		if(mu < 1e-6)
+		if(mu < mu_tol)
 			break
 		end
 		IPparams.FO_options.optTol = .1*IPparams.FO_options.optTol
