@@ -75,8 +75,6 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         number of iterations used
     """
 
-    #note - f_obj is just l2 norm for the first example, takes in nothing except x. Will generalize later
-
     #initialize passed options
     debug = false #turn this on to see debugging information
     epsD = options.epsD
@@ -147,8 +145,6 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
             funProj = χ_projector
             objInner= prox_ψk
         end
-        # funProj(s) = projector(s, Δk, tr_options.β^(-1))
-
         (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
 
 
@@ -160,9 +156,9 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         mult = 0.9
 
         #linesearch to adjust parameter
-        # α = linesearch(x, zkl, zku, s, dzl, dzu,l,u; mult=mult, tau = tau)
+        α = linesearch(xk, zkl, zku, s, dzl, dzu,l,u; mult=mult, tau = tau)
         # α = directsearch(x, zkl, zku, s, dzl, dzu)
-        directsearch!(xk-l, u-xk, α,zkl, zku, s, dzl, dzu) #alpha to the boundary
+        # directsearch!(xk-l, u-xk, α,zkl, zku, s, dzl, dzu) #alpha to the boundary
 
         #update search direction for
         s = s*α
@@ -196,7 +192,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
             #changed back linesearch
             α = 1.0
             while(meritFun(xk + α*s) > meritFun(xk) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
-                α = α*mult;
+                α = α*mult
             end
             xk = xk + α*s
             zkl = zkl + α*dzl

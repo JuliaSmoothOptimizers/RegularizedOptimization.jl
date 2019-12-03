@@ -176,13 +176,13 @@ function FISTA(Fcn, x,  proxG, options)
 end
 
 
-function linesearch(x, zkl, zku, s, dzl, dzu,l,u ;mult=.9, tau = .01)
+function linesearch(x, zl, zu, s, dzl, dzu,l,u ;mult=.9, tau = .01)
 	α = 1.0
 	     while(
             any(x + α*s - l .< (1-tau)*(x-l)) ||
             any(u - x - α*s .< (1-tau)*(u-x)) ||
-            any(zkl + α*dzl .< (1-tau)*zkl) ||
-            any(zku + α*dzu .< (1-tau)*zku)
+            any(zl + α*dzl .< (1-tau)*zl) ||
+            any(zu + α*dzu .< (1-tau)*zu)
             )
             α = α*mult
 
@@ -193,11 +193,9 @@ end
 function directsearch(xsl, usx, zkl, zku, s, dzl, dzu; tau = .01) #used to be .01
 	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s; (-tau*zkl)./dzl; (-tau*zku)./dzu]
     temp=filter((a) -> 1>=a>0, temp)
-    # @printf("%1.5e | %1.5e | %1.5e | %1.5e \n", maximum(abs.((u - x)./s)), maximum(abs.((x-l)./s)), maximum(abs.(-zjl./dzl)), maximum(abs.(-zju./dzu)))
     return minimum(vcat(temp, 1.0))
-
-
 end
+
 function directsearch!(xsl, usx,α, zkl, zku, s, dzl, dzu; tau = .01) #used to be .01
 	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s; (-tau*zkl)./dzl; (-tau*zku)./dzu]
     temp=filter((a) -> 1>=a>0, temp)
