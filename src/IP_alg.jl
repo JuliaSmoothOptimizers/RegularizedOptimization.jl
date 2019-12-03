@@ -10,8 +10,8 @@ export IP_options, IntPt_TR, IP_struct #export necessary values to file that cal
 
 mutable struct IP_params
     epsD #ε bound for 13a, alg 4.3
-    epsC #ε bound for 13b, alg 4.3
-    Δk #trust region radius
+    epsC #ε bound for 13b, alg 4.2
+    trrad #trust region radius
     ptf #print every so often
     simple #if you can use spg_minconf with simple projection
 end
@@ -30,9 +30,9 @@ end
 
 function IP_options(;
                       epsD=1.0e-3,
-                     epsC = 1.0e-3, Δk=1.0,  ptf = 100, simple=1
+                     epsC = 1.0e-3, trrad=1.0,  ptf = 100, simple=1
                       ) #default values for trust region parameters in algorithm 4.2
-    return IP_params(epsD, epsC, Δk, ptf, simple)
+    return IP_params(epsD, epsC, trrad, ptf, simple)
 end
 
 function IP_struct(f_obj, h; l=Vector{Float64}, u=Vector{Float64},
@@ -45,7 +45,7 @@ end
 
 
 
-function IntPt_TR(x, zl, zu,mu, TC, params, options)
+function IntPt_TR(x, zl, zu,mu,params, options)
     """Return the gradient of the variational penalty objective functional
         IntPt_TR(x, zl, zu,f_obj, options)
     Arguments
@@ -62,20 +62,18 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
         -u Array{Float64,1}, upper bound
         -epsD Float64, bound for 13a
         -epsC Float64, bound for 13b
-        -Δk Float64, trust region radius
+        -trrad Float64, trust region radius
         -options, options for trust region method
         -ptf Int, print output
-
-
     Returns
     -------
     x   : Array{Float64,1}
         Final value of Algorithm 4.2 trust region
-    zkl : Array{Float64,1}
+    zjl : Array{Float64,1}
         final value for the lower dual parameters
-    zku : Array{Float64,1}
+    zju : Array{Float64,1}
         final value for the upper dual parameters
-    k   : Int
+    j   : Int
         number of iterations used
     """
 
@@ -85,7 +83,7 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
     debug = false #turn this on to see debugging information
     epsD = options.epsD
     epsC = options.epsC
-    Δk = options.Δk
+    trrad = options.trrad
     ptf = options.ptf
     simple = options.simple
 
@@ -106,79 +104,67 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
     tau = 0.01 #linesearch buffer parameter
     sigma = 1.0e-3 # quadratic model linesearch buffer parameter
     gamma = 3.0 #trust region buffer
-    zkl = copy(zl)
-    zku = copy(zu)
+    zjl = copy(zl)
+    zju = copy(zu)
 
 
     #make sure you only take the first output of the objective value of the true function you are minimizing
     meritFun(x) = f_obj(x)[1] - mu*sum(log.((x-l).*(u-x))) + ψk(x) #mu*sum(log.(x-l)) - mu*sum(log.(u-x))
 
     #main algorithm initialization
-    (fk, gk, Hk) = f_obj(x)
-    kktNorm = [norm(gk - zkl + zku); norm(zkl.*(x-l) .- mu); norm(zku.*(u-x).-mu)]
+    (fj, gj, Hj) = f_obj(x)
+    kktNorm = [norm(gj - zjl + zju); norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu)]
 
-    k = TC
-    ρk = -1
-    α = 1
 
     if mu == 1
         @printf("----------------------------------------------------------------------------------------------------------------\n")
         @printf("%10s | %11s | %11s | %11s | %11s | %11s | %11s | %11s \n","Iter","Norm(kkt)","Ratio: ρk", "x status ","TR: Δk", "Δk status","Barrier: μk", "LnSrch: α")
         @printf("----------------------------------------------------------------------------------------------------------------\n")
     end
+
+    j = 0
+    ρj = -1
+    α = 1
     while(kktNorm[1] > epsD || kktNorm[2] >epsC || kktNorm[3]>epsC)
-
-
         #update count
-        k = k+1
+        j = j+1
         TR_stat = ""
         x_stat = ""
 
         #compute hessian and gradient for the problem
-<<<<<<< HEAD
-        ∇Phi = gk - mu./(x-l) + mu./(u-x)
-        ∇²Phi = Hk + Diagonal(zkl./(x-l)) + Diagonal(zku./(u-x))
-=======
-        ∇Phi = gj - mu./(x-l) + mu./(u-x);
-        ∇²Phi = Hj + Diagonal(zjl./(x-l)) + Diagonal(zju./(u-x));
->>>>>>> parent of ca4ed17... commented out linesearch
+        ∇Phi = gj - mu./(x-l) + mu./(u-x)
+        ∇²Phi = Hj + Diagonal(zjl./(x-l)) + Diagonal(zju./(u-x))
 
 
         #define custom inner objective to find search direction and solve
 
         if simple==1
             objInner(s) = qk(s, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
-            funProj(s) = χ_projector(s, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
+            funProj(x) = χ_projector(x, 1.0, trrad) #projects onto ball of radius trrad, weights of 1.0
         else
             FO_options.Bk = ∇²Phi
             FO_options.gk = ∇Phi
             FO_options.xk = x
-            FO_options.σ_TR = Δk
+            FO_options.σ_TR = trrad
             funProj = χ_projector
             objInner= prox_ψk
         end
-        # funProj(s) = projector(s, Δk, tr_options.β^(-1))
+        # funProj(s) = projector(s, trrad, tr_options.β^(-1))
 
         (s, fsave, funEvals)= s_alg(objInner, zeros(size(x)), funProj, FO_options)
 
 
         # gradient for z
-        dzl = mu./(x-l) - zkl - zkl.*s./(x-l)
-        dzu = mu./(u-x) - zku + zku.*s./(u-x)
+        dzl = mu./(x-l) - zjl - zjl.*s./(x-l)
+        dzu = mu./(u-x) - zju + zju.*s./(u-x)
 
         α = 1.0
         mult = 0.9
 
         #linesearch to adjust parameter
-<<<<<<< HEAD
-        # α = linesearch(x, zkl, zku, s, dzl, dzu,l,u; mult=mult, tau = tau)
-        α = directsearch(x-l, u-x, zkl, zku, s, dzl, dzu)
-        # directsearch!(x-l, u-x, α,zkl, zku, s, dzl, dzu) #alpha to the boundary
-=======
         # α = linesearch(x, zjl, zju, s, dzl, dzu,l,u; mult=mult, tau = tau)
         # α = directsearch(x, zjl, zju, s, dzl, dzu)
-        directsearch!(x-l, u-x, α,zjl, zju, s, dzl, dzu)
->>>>>>> parent of ca4ed17... commented out linesearch
+        directsearch!(x-l, u-x, α,zjl, zju, s, dzl, dzu) #alpha to the boundary
 
         #update search direction for
         s = s*α
@@ -188,61 +174,46 @@ function IntPt_TR(x, zl, zu,mu, TC, params, options)
         #update ρ
         #THIS IS NOT CORRECT FOR COMPOSITE case
         mk(d) = qk(d, ∇Phi, ∇²Phi)[1] + ψk(x+d) #qk should take barrier into account
-        # ρk = (meritFun(x + s) - meritFun(x))/(qk(s, ∇Phi,∇²Phi)[1])
-        ρk = (meritFun(x) - meritFun(x + s))/(mk(zeros(size(x))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
+        # ρj = (meritFun(x + s) - meritFun(x))/(qk(s, ∇Phi,∇²Phi)[1])
+        ρj = (meritFun(x) - meritFun(x + s))/(mk(zeros(size(x))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
 
-        if(ρk > eta2)
+        if(ρj > eta2)
             TR_stat = "increase"
-            Δk = max(Δk, gamma*norm(s, 1)) #for safety
+            trrad = max(trrad, gamma*norm(s, 1)) #for safety
         else
             TR_stat = "kept"
         end
 
-        if(ρk >= eta1)
+        if(ρj >= eta1)
             x_stat = "update"
             x = x + s
-            zkl = zkl + dzl
-            zku = zku + dzu
+            zjl = zjl + dzl
+            zju = zju + dzu
         end
 
-<<<<<<< HEAD
-        if(ρk < eta1)
-            x_stat = "shrink"
-            if simple==1#right now just consider the simple (no ψ) case for this linsearch
-                α = 1.0
-                while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
-                    α = α*mult
-                end
-                x = x+α*s
-                zkl = zkl+α*dzl
-                zku = zku + α*dzu
-            else
-                α = 0.5
-            end
-            Δk = α*norm(s, 1)
-=======
-        if(ρj < eta1)
+        if(ρj < eta1) #
 
             x_stat = "shrink"
 
-            α = 1.0;
-            # while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s)
-            #     α = α*mult;
+            α = .5
+            # while(meritFun(x + α*s) > meritFun(x) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
+                # α = α*mult;
             # end
-            x = x + α*s;
-            zjl = zjl + α*dzl;
-            zju = zjl + α*dzu;
-            trrad = α*norm(s, 1);
->>>>>>> parent of ca4ed17... commented out linesearch
+            # x = x + α*s
+            # zjl = zjl + α*dzl
+            # zju = zjl + α*dzu
+            trrad = α*norm(s, 1)
         end
 
 
-        (fk, gk, Hk) = f_obj(x);
-        kktNorm = [norm(gk - zkl + zku);norm(zkl.*(x-l) .- mu); norm(zku.*(u-x).-mu) ]
-
+        (fj, gj, Hj) = f_obj(x);
+        kktNorm = [norm(gj - zjl + zju);norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu) ]
+                #Print values
+        j % ptf ==0 && @printf("Iter %4d, Norm(kkt) %1.5e, ρj %1.5e/%s, trustR %1.5e/%s, mu %1.5e, α %1.5e\n", j, sum(kktNorm), ρj,x_stat, trrad,TR_stat, mu, α)
         #Print values
-        k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α)
+        k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e \n", k, sum(kktNorm), ρk,x_stat, trrad,TR_stat, mu, α)
+
 
     end
-    return x, zkl, zku, k
+    return x, zjl, zju, j
 end
