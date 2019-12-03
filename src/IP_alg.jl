@@ -11,7 +11,7 @@ export IP_options, IntPt_TR, IP_struct #export necessary values to file that cal
 mutable struct IP_params
     epsD #ε bound for 13a, alg 4.3
     epsC #ε bound for 13b, alg 4.2
-    trrad #trust region radius
+    Δk #trust region radius
     ptf #print every so often
     simple #if you can use spg_minconf with simple projection
 end
@@ -30,9 +30,9 @@ end
 
 function IP_options(;
                       epsD=1.0e-3,
-                     epsC = 1.0e-3, trrad=1.0,  ptf = 100, simple=1
+                     epsC = 1.0e-3, Δk=1.0,  ptf = 100, simple=1
                       ) #default values for trust region parameters in algorithm 4.2
-    return IP_params(epsD, epsC, trrad, ptf, simple)
+    return IP_params(epsD, epsC, Δk, ptf, simple)
 end
 
 function IP_struct(f_obj, h; l=Vector{Float64}, u=Vector{Float64},
@@ -62,7 +62,7 @@ function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
         -u Array{Float64,1}, upper bound
         -epsD Float64, bound for 13a
         -epsC Float64, bound for 13b
-        -trrad Float64, trust region radius
+        -Δk Float64, trust region radius
         -options, options for trust region method
         -ptf Int, print output
     Returns
@@ -83,7 +83,7 @@ function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
     debug = false #turn this on to see debugging information
     epsD = options.epsD
     epsC = options.epsC
-    trrad = options.trrad
+    Δk = options.Δk
     ptf = options.ptf
     simple = options.simple
 
@@ -112,8 +112,8 @@ function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
     meritFun(x) = f_obj(x)[1] - mu*sum(log.((x-l).*(u-x))) + ψk(x) #mu*sum(log.(x-l)) - mu*sum(log.(u-x))
 
     #main algorithm initialization
-    (fj, gj, Hj) = f_obj(x)
-    kktNorm = [norm(gj - zjl + zju); norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu)]
+    (fk, gk, Hk) = f_obj(x)
+    kktNorm = [norm(gk - zjl + zju); norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu)]
 
 
     if mu == 1
@@ -132,24 +132,24 @@ function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
         x_stat = ""
 
         #compute hessian and gradient for the problem
-        ∇Phi = gj - mu./(x-l) + mu./(u-x)
-        ∇²Phi = Hj + Diagonal(zjl./(x-l)) + Diagonal(zju./(u-x))
+        ∇Phi = gk - mu./(x-l) + mu./(u-x)
+        ∇²Phi = Hk + Diagonal(zjl./(x-l)) + Diagonal(zju./(u-x))
 
 
         #define custom inner objective to find search direction and solve
 
         if simple==1
             objInner(s) = qk(s, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
-            funProj(x) = χ_projector(x, 1.0, trrad) #projects onto ball of radius trrad, weights of 1.0
+            funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
         else
             FO_options.Bk = ∇²Phi
             FO_options.gk = ∇Phi
             FO_options.xk = x
-            FO_options.σ_TR = trrad
+            FO_options.σ_TR = Δk
             funProj = χ_projector
             objInner= prox_ψk
         end
-        # funProj(s) = projector(s, trrad, tr_options.β^(-1))
+        # funProj(s) = projector(s, Δk, tr_options.β^(-1))
 
         (s, fsave, funEvals)= s_alg(objInner, zeros(size(x)), funProj, FO_options)
 
@@ -179,7 +179,7 @@ function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
 
         if(ρj > eta2)
             TR_stat = "increase"
-            trrad = max(trrad, gamma*norm(s, 1)) #for safety
+            Δk = max(Δk, gamma*norm(s, 1)) #for safety
         else
             TR_stat = "kept"
         end
@@ -202,15 +202,15 @@ function IntPt_TR(x, zl, zu,mu, TotalCount, params, options)
             end
             x = x + α*s
             zjl = zjl + α*dzl
-            zju = zjl + α*dzu
-            trrad = α*norm(s, 1)
+            zju = zju + α*dzu
+            Δk = α*norm(s, 1)
         end
 
 
-        (fj, gj, Hj) = f_obj(x);
-        kktNorm = [norm(gj - zjl + zju);norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu) ]
+        (fk, gk, Hk) = f_obj(x);
+        kktNorm = [norm(gk - zjl + zju);norm(zjl.*(x-l) .- mu); norm(zju.*(u-x).-mu) ]
         #Print values
-        j % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e \n", j, sum(kktNorm), ρj,x_stat, trrad,TR_stat, mu, α)
+        j % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e \n", j, sum(kktNorm), ρj,x_stat, Δk,TR_stat, mu, α)
 
 
     end
