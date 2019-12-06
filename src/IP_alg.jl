@@ -105,7 +105,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
     xk = copy(x0)
 
     #make sure you only take the first output of the objective value of the true function you are minimizing
-    meritFun(x) = f_obj(x)[1] - mu*sum(log.((x-l).*(u-x)))# + ψk(x) #mu*sum(log.(x-l)) - mu*sum(log.(u-x))
+    meritFun(x) = f_obj(x)[1] - mu*sum(log.((x-l).*(u-x))) + ψk(x) #mu*sum(log.(x-l)) - mu*sum(log.(u-x))
 
     #main algorithm initialization
     (fk, gk, Hk) = f_obj(xk)
@@ -166,10 +166,9 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         dzu = dzu*α
 
         #update ρ
-        #THIS IS NOT CORRECT FOR COMPOSITE case
-        # mk(d) = qk(d, ∇Phi, ∇²Phi)[1] + ψk(xk+d) #qk should take barrier into account
-        ρk = (meritFun(xk + s) - meritFun(xk))/(qk(s, ∇Phi,∇²Phi)[1])
-        # ρk = (meritFun(xk) - meritFun(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
+        mk(d) = qk(d, ∇Phi, ∇²Phi)[1] + ψk(xk+d) #qk should take barrier into account
+        # ρk = (meritFun(xk + s) - meritFun(xk))/(qk(s, ∇Phi,∇²Phi)[1])
+        ρk = (meritFun(xk) - meritFun(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
 
         if(ρk > eta2)
             TR_stat = "increase"
