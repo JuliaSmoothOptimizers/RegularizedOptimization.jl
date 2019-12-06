@@ -204,7 +204,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         (fk, gk, Hk) = f_obj(xk);
         kktNorm = [norm(gk - zkl + zku);norm(zkl.*(xk-l) .- mu); norm(zku.*(u-xk).-mu) ]
         #Print values
-        k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e| %10.5e %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α, norm(x,2), norm(s,2))
+        k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e| %10.5e %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α, norm(xk,2), norm(s,2))
 
 
     end
