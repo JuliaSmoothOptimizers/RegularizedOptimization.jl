@@ -22,7 +22,7 @@ A = Matrix(Q)
 A = Matrix(A')
 
 b0 = A*x0
-b = b0 + 0.5*rand(m,)
+b = b0 + 0.005*rand(m,)
 cutoff = 0.0;
 l = -2.0*ones(n,)+cutoff*ones(n,)
 u = 2.0*ones(n,)+cutoff*ones(n,)
@@ -57,11 +57,11 @@ end
 # projq(z,σ) = oneProjector(z, 1.0, σ)
 #set all options
 #uncomment for OTHER test
-first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-5, verbose=Inf, maxIter=10, restart=10, η = 10.0, η_factor=.9)
+first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-5, verbose=Inf, maxIter=10, restart=10, η = .10, η_factor=.9)
 
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxG, χ_projector=projq)
-options = IP_options(;simple=0, ptf=1)
+options = IP_options(;simple=0, ptf=100)
 #put in your initial guesses
 x = (l+u)/2
 zl = ones(n,)
