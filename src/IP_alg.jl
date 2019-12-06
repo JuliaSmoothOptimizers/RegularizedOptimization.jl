@@ -189,10 +189,11 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
             x_stat = "shrink"
 
             #changed back linesearch
-            α = 1.0
-            while(meritFun(xk + α*s) > meritFun(xk) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
-                α = α*mult
-            end
+            # α = 1.0
+            # while(meritFun(xk + α*s) > meritFun(xk) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
+            #     α = α*mult
+            # end
+            α = 0.1
             xk = xk + α*s
             zkl = zkl + α*dzl
             zku = zku + α*dzu
