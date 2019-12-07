@@ -340,8 +340,8 @@ function  prox_split_2w(proxp, s0, projq, options)
     b_pt1 = Bk*xk - gk
 
     for i=1:restart
-    	A = Bk + (2/η)*I(size(Bk,1))
     while err>ε && k<max_iter #&& (w1_err+w2_err)>ε_w
+		A = Bk + (2/η)*I(size(Bk,1))
         #store previous values
         u_ = u
         w1_ = w1
@@ -368,9 +368,11 @@ function  prox_split_2w(proxp, s0, projq, options)
         @printf("iter: %d, ||w1-u||²: %7.3e, ||w2-u+xk||²: %7.3e, err: %7.3e, η: %7.3e, s_feas: %7.3e \n", k, w1_err, w2_err, err, η, s_feas)
 
         k = k+1
+		η = η*η_factor
+		ξ = η
     end
-            η = η*η_factor
-            ξ = η
+            # η = η*η_factor
+            # ξ = η
             err=100
             k=1
     end

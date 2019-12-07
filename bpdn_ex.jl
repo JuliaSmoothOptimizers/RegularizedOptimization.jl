@@ -46,18 +46,17 @@ function proxG(z, α)
     return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 #do l2 norm for testing purposes
-function projq(z,σ)
-    return z/max(1, norm(z, 2)/σ)
-end
-# projq(z,σ) = oneProjector(z, 1.0, σ)
+# function projq(z,σ)
+    # return z/max(1, norm(z, 2)/σ)
+# end
+projq(z,σ) = oneProjector(z, 1.0, σ)
 
 function h_obj(x)
     return λ_T*norm(x,1)
 end
-# projq(z,σ) = oneProjector(z, 1.0, σ)
 #set all options
 #uncomment for OTHER test
-first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=10, maxIter=20, restart=1, η = 10.0, η_factor=.9)
+first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=1, maxIter=2, restart=50, η = 1.0, η_factor=.9)
 # w2_options=s_options(norm(Bk)^2;maxIter=10, verbose=2, restart=100, λ=λ, η =1.0, η_factor=.9,gk = g, Bk = Bk, xk=x)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxG, χ_projector=projq)
