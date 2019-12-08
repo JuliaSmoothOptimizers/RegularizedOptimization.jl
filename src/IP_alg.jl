@@ -135,7 +135,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         #define custom inner objective to find search direction and solve
 
         if simple==1
-            objInner(s) = qk(s, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
+            objInner(s) = qk(s,fk, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
         else
             FO_options.Bk = ∇²Phi
@@ -166,7 +166,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         dzu = dzu*α
 
         #update ρ
-        mk(d) = qk(d, ∇Phi, ∇²Phi)[1] + ψk(xk+d) #qk should take barrier into account
+        mk(d) = qk(d,fk, ∇Phi, ∇²Phi)[1] + ψk(xk+d) #qk should take barrier into account
         # ρk = (meritFun(xk + s) - meritFun(xk))/(qk(s, ∇Phi,∇²Phi)[1])
         ρk = (meritFun(xk) - meritFun(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
 

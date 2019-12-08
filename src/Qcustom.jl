@@ -1,7 +1,7 @@
 export qk
 
 
-function qk(s, grad, Hess)
+function qk(s, f, grad, Hess)
 	"""
 	qk is the quadratic approximation for the smooth part of the function f(x)
 
@@ -15,7 +15,7 @@ function qk(s, grad, Hess)
         Hessian (or Hessian approximation) of TR method
 	"""
 
-	f = 0.5*(s'*(Hess*s)) + grad'*s
+	f = 0.5*(s'*(Hess*s)) + grad'*s + f
     g = Hess*s +grad
     h = Hess
 	return f, g, h
