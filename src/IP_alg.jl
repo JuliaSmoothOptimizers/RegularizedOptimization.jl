@@ -199,7 +199,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
             zku = zku + α*dzu
             Δk = α*norm(s, 1)
         end
-
+        k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e", meritFun(xk), meritFun(xk + s), mk(zeros(size(xk))), mk(s))
 
         (fk, gk, Hk) = f_obj(xk);
         kktNorm = [norm(gk - zkl + zku);norm(zkl.*(xk-l) .- mu); norm(zku.*(u-xk).-mu) ]
