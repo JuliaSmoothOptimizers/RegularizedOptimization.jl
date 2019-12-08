@@ -166,7 +166,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         dzu = dzu*α
 
         #update ρ
-        mk(d) = qk(d,fk, ∇Phi, ∇²Phi)[1] - mu*sum(log.(((xk+d)-l).*(u-(xk+d)))) + ψk(xk+d) #qk should take barrier into account
+        mk(d) = qk(d,fk, ∇Phi, ∇²Phi)[1]  - mu*sum(log.(((xk+d)-l).*(u-(xk+d)))) + ψk(xk+d) #qk should take barrier into account
         # ρk = (meritFun(xk + s) - meritFun(xk))/(qk(s, ∇Phi,∇²Phi)[1])
         ρk = (meritFun(xk) - meritFun(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
 
