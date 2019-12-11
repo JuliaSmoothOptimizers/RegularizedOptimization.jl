@@ -367,12 +367,12 @@ function  prox_split_2w(proxp, s0, projq, options)
         k % print_freq ==0 &&
         @printf("iter: %d, ||w1-u||²: %7.3e, ||w2-u+xk||²: %7.3e, err: %7.3e, η: %7.3e, s_feas: %7.3e \n", k, w1_err, w2_err, err, η, s_feas)
 
-        k = k+1
-		η = η*η_factor
-		ξ = η
+        # k = k+1
+		# η = η*η_factor
+		# ξ = η
     end
-            # η = η*η_factor
-            # ξ = η
+            η = η*η_factor
+            ξ = η
             err=100
             k=1
     end

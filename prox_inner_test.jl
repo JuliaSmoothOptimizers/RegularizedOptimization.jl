@@ -1,24 +1,42 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
-# include("./src/TRNC.jl")
-# include("./src/minconf_spg/oneProjector.jl")
-# using .TRNC
-# using .TRNC.SLIM_optim
-using TRNC
-using Printf, Convex, SCS, IterativeSolvers
-
+using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers
 
 
 #Here we just try to solve an easy example
 #######
 # min_s gᵀs + 1/2sᵀBks + λ||s+x||_1	s.t. ||s||_1⩽1
-function prox_inner_test()
-m,n = 200,200 # let's try something not too hard
-g = randn(n)
-B = rand(n,n)
-Bk = B'*B
-x  = rand(n)
-λ = 1.0
+# function prox_inner_test()
+# m,n = 200,200 # let's try something not too hard
+# g = randn(n)
+# B = rand(n,n)
+# Bk = B'*B
+# x  = rand(n)
+# λ = 1.0
+compound=1
+m,n = compound*120,compound*512
+p = randperm(n)
+k = compound*20
+#initialize x
+x0 = zeros(n,)
+x0[p[1:k]]=sign.(randn(k))
+
+A = randn(m,n)
+(Q,_) = qr(A')
+A = Matrix(Q)
+B = Matrix(A')
+b0 = B*x0
+b = b0 + 0.005*rand(m,)
+
+x=zeros(n,)
+r = b
+BLAS.gemv!('N',1.0, B, x, -1.0, r)
+f = .5*norm(r)^2
+g = BLAS.gemv('T',B,r)
+
+Bk = BLAS.gemm('T', 'N', 1.0, B, B)
+λ = .1*maximum(abs.(B'*b))
+
 
 
 S = Variable(n)
@@ -38,7 +56,7 @@ w1_options=s_options(norm(Bk)^2;maxIter=100, verbose=3, restart=10, λ=λ, η =.
     gk = g, Bk = Bk, xk=x)
 # s,w = prox_split_1w(proxp, zeros(size(x)), projq, w1_options)
 
-w2_options=s_options(norm(Bk)^2;maxIter=10, verbose=2, restart=100, λ=λ, η =1.0, η_factor=.9,
+w2_options=s_options(norm(Bk)^2;maxIter=10000, verbose=100, restart=1, λ=λ, η =1000.0, η_factor=.99,
     gk = g, Bk = Bk, xk=x)
 s2,w12,w22 = prox_split_2w(proxp, zeros(size(x)), projq, w2_options)
 
@@ -53,4 +71,4 @@ s2,w12,w22 = prox_split_2w(proxp, zeros(size(x)), projq, w2_options)
 # @printf("l2-norm CVX: %5.5e\n", norm(S.value - w12)/norm(S.value))
 # @printf("l2-norm CVX: %5.5e\n", norm(S.value - w22)/norm(S.value))
 # @printf("l2-norm| PG: %5.5e | FISTA: %5.5e\n", norm(xp - xt), norm(xf-xt))
-end
+# end
