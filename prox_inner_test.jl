@@ -56,7 +56,7 @@ w1_options=s_options(norm(Bk)^2;maxIter=100, verbose=3, restart=10, λ=λ, η =.
     gk = g, Bk = Bk, xk=x)
 # s,w = prox_split_1w(proxp, zeros(size(x)), projq, w1_options)
 
-w2_options=s_options(norm(Bk)^2;maxIter=10000, verbose=100, restart=1, λ=λ, η =1000.0, η_factor=.99,
+w2_options=s_options(norm(Bk)^2;maxIter=10000, verbose=100, restart=100, λ=λ, η =10.0, η_factor=.9,
     gk = g, Bk = Bk, xk=x)
 s2,w12,w22 = prox_split_2w(proxp, zeros(size(x)), projq, w2_options)
 
