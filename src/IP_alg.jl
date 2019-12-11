@@ -105,7 +105,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
     xk = copy(x0)
 
     #make sure you only take the first output of the objective value of the true function you are minimizing
-    meritFun(x) = f_obj(x)[1] - mu*sum(log.((x-l).*(u-x))) + ψk(x) #mu*sum(log.(x-l)) - mu*sum(log.(u-x))
+    β(x) = f_obj(x)[1] - mu*sum(log.((x-l).*(u-x))) + ψk(x) #mu*sum(log.(x-l)) - mu*sum(log.(u-x))
 
     #main algorithm initialization
     (fk, gk, Hk) = f_obj(xk)
@@ -166,9 +166,9 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         dzu = dzu*α
 
         #update ρ
-        mk(d) = qk(d,fk, ∇Phi, ∇²Phi)[1]  - mu*sum(log.(((xk+d)-l).*(u-(xk+d)))) + ψk(xk+d) #qk should take barrier into account
-        # ρk = (meritFun(xk + s) - meritFun(xk))/(qk(s, ∇Phi,∇²Phi)[1])
-        ρk = (meritFun(xk) - meritFun(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
+        mk(d) = qk(d,fk, ∇Phi, ∇²Phi)[1] + ψk(xk+d) #qk should take barrier terms into account
+        # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
+        ρk = (β(xk) - β(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
 
         if(ρk > eta2)
             TR_stat = "increase"
@@ -190,16 +190,16 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
 
             #changed back linesearch
             # α = 1.0
-            # while(meritFun(xk + α*s) > meritFun(xk) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
+            # while(β(xk + α*s) > β(xk) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
             #     α = α*mult
             # end
-            α = 0.1
+            α = 0.0 #was 0.1; can be whatever
             xk = xk + α*s
             zkl = zkl + α*dzl
             zku = zku + α*dzu
             Δk = α*norm(s, 1)
         end
-        k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", meritFun(xk), meritFun(xk + s), mk(zeros(size(xk))), mk(s))
+        k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
 
         (fk, gk, Hk) = f_obj(xk);
         kktNorm = [norm(gk - zkl + zku);norm(zkl.*(xk-l) .- mu); norm(zku.*(u-xk).-mu) ]
