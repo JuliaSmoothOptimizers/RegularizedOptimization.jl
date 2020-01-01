@@ -46,10 +46,10 @@ solve!(problem, SCSSolver())
 function proxp(z, α)
     return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
-# projq(z, σ) = oneProjector(z, 1.0, σ)
-function projq(z,σ)
-    return z/max(1, norm(z, 2)/σ)
-end
+projq(z, σ) = oneProjector(z, 1.0, σ)
+# function projq(z,σ)
+    # return z/max(1, norm(z, 2)/σ)
+# end
 # projq(y,τ) = proj_l1(y, τ)
 #input β, λ
 w1_options=s_options(norm(Bk)^2;maxIter=100, verbose=3, restart=10, λ=λ, η =.1, η_factor=.9,

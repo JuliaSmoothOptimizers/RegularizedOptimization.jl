@@ -363,10 +363,10 @@ function  prox_split_2w(proxp, s0, projq, options)
         w1_err = norm(w1 - u)^2
         w2_err = norm(w2 - u + xk)^2
         err = norm(u_ - u) + norm(w1_ - w1) + norm(w2_ - w2)
-        # s_feas = norm(u-xk, 1)-σ_TR
-		s_feas = norm(w2, 1) - σ_TR
+        s_feas = norm(u-xk, 1)-σ_TR
         k % print_freq ==0 &&
-        @printf("iter: %d, ||w1-u||²: %7.3e, ||w2-u+xk||²: %7.3e, err: %7.3e, η: %7.3e, s_feas: %7.3e \n", k, w1_err, w2_err, err, η, s_feas)
+        @printf("iter: %d, ||w1-u||²: %7.3e, ||w2-u+xk||²: %7.3e, err: %7.3e, η: %7.3e, s_feas: %7.3e, ||w1||_1: %7.3e, ||w2||_1: %7.3e, u-sum: %7.3e\n", k, w1_err, w2_err,
+		 err, η, s_feas, norm(w1,1), norm(w2,1), gk*(u-sk)+ 1/2*(u-sk)'*Bk*(u-sk))
 
         k = k+1
 		# η = η*η_factor
