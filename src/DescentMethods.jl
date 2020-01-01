@@ -366,7 +366,7 @@ function  prox_split_2w(proxp, s0, projq, options)
         s_feas = norm(u-xk, 1)-σ_TR
         k % print_freq ==0 &&
         @printf("iter: %d, ||w1-u||²: %7.3e, ||w2-u+xk||²: %7.3e, err: %7.3e, η: %7.3e, s_feas: %7.3e, ||w1||_1: %7.3e, ||w2||_1: %7.3e, u-sum: %7.3e\n", k, w1_err, w2_err,
-		 err, η, s_feas, norm(w1,1), norm(w2,1), gk*(u-sk)+ 1/2*(u-sk)'*Bk*(u-sk))
+		 err, η, s_feas, norm(w1,1), norm(w2,1), gk*(u-xk)+ 1/2*(u-xk)'*Bk*(u-xk))
 
         k = k+1
 		# η = η*η_factor

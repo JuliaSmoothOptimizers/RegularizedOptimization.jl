@@ -1,7 +1,7 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
 using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers
-
+include("src/minconf_spg/oneProjector.jl")
 
 #Here we just try to solve an easy example
 #######
