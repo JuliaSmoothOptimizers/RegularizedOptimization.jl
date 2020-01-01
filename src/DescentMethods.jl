@@ -351,7 +351,7 @@ function  prox_split_2w(proxp, s0, projq, options)
 
         #u update with prox_(ξ*λ*||⋅||_p)(...)
         # u = cg(A, b_pt1 + (w2+xk+w1)/η; maxiter=5)
-        u = fastcg(A,u_, b_pt1 + (w2+xk+w1)/η; maxiter=5)
+        u = fastcg(A,u_, b_pt1 + (w2+xk+w1)/η; maxiter=100)
 
 
         #update w1
@@ -363,7 +363,8 @@ function  prox_split_2w(proxp, s0, projq, options)
         w1_err = norm(w1 - u)^2
         w2_err = norm(w2 - u + xk)^2
         err = norm(u_ - u) + norm(w1_ - w1) + norm(w2_ - w2)
-        s_feas = norm(u-xk, 1)-σ_TR
+        # s_feas = norm(u-xk, 1)-σ_TR
+		s_feas = norm(w2, 1) - σ_TR
         k % print_freq ==0 &&
         @printf("iter: %d, ||w1-u||²: %7.3e, ||w2-u+xk||²: %7.3e, err: %7.3e, η: %7.3e, s_feas: %7.3e \n", k, w1_err, w2_err, err, η, s_feas)
 

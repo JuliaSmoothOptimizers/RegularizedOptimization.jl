@@ -56,7 +56,7 @@ w1_options=s_options(norm(Bk)^2;maxIter=100, verbose=3, restart=10, λ=λ, η =.
     gk = g, Bk = Bk, xk=x)
 # s,w = prox_split_1w(proxp, zeros(size(x)), projq, w1_options)
 
-w2_options=s_options(norm(Bk)^2;maxIter=10000, verbose=100, restart=100, λ=λ, η =10.0, η_factor=.9,
+w2_options=s_options(norm(Bk)^2;maxIter=99, verbose=10, restart=100, λ=λ, η =20.0, η_factor=.9,
     gk = g, Bk = Bk, xk=x)
 s2,w12,w22 = prox_split_2w(proxp, zeros(size(x)), projq, w2_options)
 
@@ -70,5 +70,4 @@ s2,w12,w22 = prox_split_2w(proxp, zeros(size(x)), projq, w2_options)
 @printf("l2-norm CVX: %5.5e\n", norm(S.value - s2)/norm(S.value))
 # @printf("l2-norm CVX: %5.5e\n", norm(S.value - w12)/norm(S.value))
 # @printf("l2-norm CVX: %5.5e\n", norm(S.value - w22)/norm(S.value))
-# @printf("l2-norm| PG: %5.5e | FISTA: %5.5e\n", norm(xp - xt), norm(xf-xt))
 # end
