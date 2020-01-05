@@ -329,8 +329,8 @@ function  prox_split_2w(proxp, s0, projq, options)
 	print_freq = options.verbose
 
     u = s0+xk
-    w1 = zeros(size(s0))
-    w2 = zeros(size(s0))
+    w1 = u #zeros(size(s0))
+    w2 = u-xk #zeros(size(s0))
 
     err=100
     w1_err = norm(w1 - u)^2
