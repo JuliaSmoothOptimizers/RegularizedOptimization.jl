@@ -55,7 +55,7 @@ function PG(Fcn, x,  proxG, options)
 	elseif options.verbose==2
 		print_freq = round(max_iter/100)
 	else
-		print_freq = round(max_iter/200)
+		print_freq = 1
 	end
 	#Problem Initialize
 	m = length(x)
