@@ -43,7 +43,7 @@ sp = zeros(n)
 up, hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
 sp = up-c
 
-fista_options=s_options(norm(B)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-6)
+fista_options=s_options(norm(B)^2; maxIter=10000, verbose=5, λ=λ, optTol=1e-6)
 sf = zeros(n)
 uf, hisf, fevalpg = FISTA(funcF, sf, proxp,pg_options)
 sf = uf - c
@@ -53,5 +53,3 @@ sf = uf - c
 @printf("True l2-norm CVX: %5.5e\n", norm(S.value - x0)/norm(x0))
 @printf("True l2-norm PG: %5.5e\n", norm(sp - x0)/norm(x0))
 @printf("True l2-norm FISTA: %5.5e\n", norm(sf - x0)/norm(x0))
-
-# end
