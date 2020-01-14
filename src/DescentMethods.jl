@@ -83,9 +83,9 @@ function PG(Fcn, x,  proxG, options)
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
-		 if k ≧ max_iter
-			 break
-		 end
+		if k >= max_iter
+			break
+		end
 	end
 	# @printf("Error Criteria Reached! -> Obj Val %1.5e, ε = ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", f, err)
 	return x, his[1:k-1], feval
