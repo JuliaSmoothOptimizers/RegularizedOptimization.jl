@@ -75,7 +75,7 @@ function PG(Fcn, x,  proxG, options)
 		#take a gradient step: x-=η*∇f
 		# BLAS.axpy!(-η, gradF, x1)
 		#prox step
-		xp = proxG(x - η*gradF, λ/η)
+		xp = proxG(x - η*gradF, η/λ)
 		# update function info
 		f, gradF = Fcn(xp)
 		feval+=1
