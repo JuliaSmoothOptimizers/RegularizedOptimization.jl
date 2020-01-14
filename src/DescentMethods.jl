@@ -129,7 +129,7 @@ function FISTA(Fcn, x,  proxG, options)
 
 	#initialize parameters
 	t = 1.0
-	tk = t
+	tk = copy(t)
 	# Iteration set up
 	k = 1
 	err = 100.0
@@ -138,14 +138,13 @@ function FISTA(Fcn, x,  proxG, options)
 	#do iterations
 	f, gradF = Fcn(y)
 	feval = 1
-	while err >= ε && k<max_iter
+	while err >= ε
 		# if (mod(k, restart) == 1)
 		# 		t = 1;
 		# end
 
 		his[k] = f
-		xk = copy(x)
-		x = proxG(y - η*gradF, η*λ)
+		x⁺ = proxG(y - η*gradF, η*λ)
 
 		#update x
 		#		x = y - η*gradF;
@@ -153,26 +152,28 @@ function FISTA(Fcn, x,  proxG, options)
 		# x = proxG(y - η*gradF, η)
 
 		#update step
-		tk = t
-		t = 0.5*(1.0 + sqrt(1.0+4.0*tk^2))
+		t⁺ = 0.5*(1.0 + sqrt(1.0+4.0*t^2))
 
 		#update y
-		y = x + ((tk - 1.0)/t)*(x-xk)
+		y = x⁺ + ((t - 1.0)/t⁺)*(x⁺-x)
 
 		#check convergence
-		err = norm(x - xk)
-
+		err = norm(x⁺ - x)
 
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 
 		#update parameters
 		f, gradF = Fcn(y)
+		t = t⁺
+		copy!(x, x⁺)
 		feval+=1
 		k+=1
+		if k<max_iter
+			break
+		end
 	end
-	# f, _ = Fcn(y)
-	# @printf("Error Criteria Reached! -> Obj Val %1.5e, ε = ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", f, err)
+
 	return x, his[1:k-1], feval
 end
 
