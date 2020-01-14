@@ -40,32 +40,30 @@ Bk = BLAS.gemm('T', 'N', 1.0, B, B)
 
 
 S = Variable(n)
-problem = minimize(g'*S + sumsquares(B*S)/2+λ*norm(vec(S+x), 1), norm(vec(S),2)<=1)
+problem = minimize(g'*S + sumsquares(B*S)/2+λ*norm(vec(S+x), 1))
 solve!(problem, SCSSolver())
 
 function proxp(z, α)
     return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 # projq(z, σ) = oneProjector(z, 1.0, σ)
-function projq(z,σ)
-    return z/max(1, norm(z, 2)/σ)
+function funcF(x)
+    return norm(B*s,2)^2 + g'*s, Bk*s + g
 end
-# projq(y,τ) = proj_l1(y, τ)
+
 #input β, λ
-w1_options=s_options(norm(Bk)^2;maxIter=100, verbose=3, restart=10, λ=λ, η =.1, η_factor=.9,
-    gk = g, Bk = Bk, xk=x)
-# s,w = prox_split_1w(proxp, zeros(size(x)), projq, w1_options)
+
 
 w2_options=s_options(norm(Bk)^2;maxIter=99, verbose=10, restart=100, λ=λ, η =20.0, η_factor=.9,
     gk = g, Bk = Bk, xk=x)
 s2,w12,w22 = prox_split_2w(proxp, zeros(size(x)), projq, w2_options)
 
 
-# x1 = rand(n)
-# xp, hispg, fevalpg = PG(funcF, x1, funProj,options)
+s1 = zeros(n)
+sp, hispg, fevalpg = PG(funcF, s1, funProj,options)
 # x2 = rand(n)
 # xf, hisf, fevalf = FISTA(funcF, x2, funProj, options)
-# @printf("l2-norm CVX: %5.5e\n", norm(S.value - s)/norm(S.value))
+@printf("l2-norm CVX: %5.5e\n", norm(S.value - sp)/norm(S.value))
 # @printf("l2-norm CVX: %5.5e\n", norm(S.value - w)/norm(S.value))
 @printf("l2-norm CVX: %5.5e\n", norm(S.value - s2)/norm(S.value))
 # @printf("l2-norm CVX: %5.5e\n", norm(S.value - w12)/norm(S.value))
