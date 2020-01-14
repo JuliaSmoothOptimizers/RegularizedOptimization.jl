@@ -49,7 +49,7 @@ w2_options=s_options(norm(B)^2; maxIter=10000, verbose=1, λ=λ)
 
 
 s1 = zeros(n)
-s, hispg, fevalpg = FISTA(funcF, s1, proxp,w2_options)
+s, hispg, fevalpg = PG(funcF, s1, proxp,w2_options)
 # x2 = rand(n)
 # xf, hisf, fevalf = FISTA(funcF, x2, funProj, options)
 @printf("l2-norm CVX: %5.5e\n", norm(S.value - s)/norm(S.value))
