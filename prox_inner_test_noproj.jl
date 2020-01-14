@@ -44,17 +44,17 @@ function funcF(x)
 end
 
 #input β, λ
-w2_options=s_options(norm(Bk)^2; maxIter=10000, verbose=1, restart=100, λ=λ)
+w2_options=s_options(norm(B)^2; maxIter=10000, verbose=1, λ=λ)
 # s2,w12,w22 = prox_split_2w(proxp, zeros(size(x)), projq, w2_options)
 
 
 s1 = zeros(n)
-sp, hispg, fevalpg = PG(funcF, s1, proxp,w2_options)
+s, hispg, fevalpg = FISTA(funcF, s1, proxp,w2_options)
 # x2 = rand(n)
 # xf, hisf, fevalf = FISTA(funcF, x2, funProj, options)
-@printf("l2-norm CVX: %5.5e\n", norm(S.value - sp)/norm(S.value))
-@printf("CVX: %5.5e     PG: %5.5e\n", norm(B*S.value)^2/2 + λ*norm(vec(S.value),1), funcF(sp)[1]+λ*norm(sp,1))
+@printf("l2-norm CVX: %5.5e\n", norm(S.value - s)/norm(S.value))
+@printf("CVX: %5.5e     PG: %5.5e\n", norm(B*S.value)^2/2 + λ*norm(vec(S.value),1), funcF(s)[1]+λ*norm(s,1))
 @printf("l2-norm CVX: %5.5e\n", norm(S.value - x0)/norm(x0))
-@printf("l2-norm PG: %5.5e\n", norm(sp - x0)/norm(x0))
+@printf("l2-norm PG: %5.5e\n", norm(s - x0)/norm(x0))
 
 # end

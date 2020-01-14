@@ -110,7 +110,7 @@ function FISTA(Fcn, x,  proxG, options)
 	max_iter=options.maxIter
 	restart = options.restart
 	η = options.β^(-1)
-	# λ = options.λ
+	λ = options.λ
 	if options.verbose==0
 		print_freq = Inf
 	elseif options.verbose==1
