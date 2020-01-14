@@ -39,14 +39,12 @@ function proxp(z, α)
     return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 # projq(z, σ) = oneProjector(z, 1.0, σ)
-function funcF(x)
-    return norm(B*x - b,2)^2/2 , B'*(B*x-b)
+function funcF(z)
+    return norm(B*z - b,2)^2/2 , B'*(B*z-b)
 end
 
 #input β, λ
-w2_options=s_options(norm(B)^2; maxIter=10000, verbose=1, λ=λ)
-# s2,w12,w22 = prox_split_2w(proxp, zeros(size(x)), projq, w2_options)
-
+w2_options=s_options(norm(B)^2; maxIter=2500, verbose=1, λ=λ, optTol=1e-6)
 
 s1 = zeros(n)
 s, hispg, fevalpg = PG(funcF, s1, proxp,w2_options)

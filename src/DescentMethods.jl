@@ -61,30 +61,31 @@ function PG(Fcn, x,  proxG, options)
 	m = length(x)
 	η = 1.0/options.β
 	λ = options.λ
+	y = copy(x)
 	k = 1
 	err = 100
 	his = zeros(max_iter)
-
-
 	# Iteration set up
 	f, gradF = Fcn(x)
 	feval = 1
 	#do iterations
-	while err ≥ ε && k <max_iter
+	while err ≥ ε
 		his[k] = f
 		#take a gradient step: x-=η*∇f
-		# BLAS.axpy!(-η, gradF, x1)
+		BLAS.axpy!(-η, gradF, x)
 		#prox step
-		xp = proxG(x - η*gradF, η*λ)
+		y = proxG(x, η*λ)
 		# update function info
-		f, gradF = Fcn(xp)
+		f, gradF = Fcn(y)
 		feval+=1
-		err = norm(x-xp)
-		x = xp
+		err = norm(x-y)
+		copy!(y,x)
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
-
+		 if k ≧ max_iter
+			 break
+		 end
 	end
 	# @printf("Error Criteria Reached! -> Obj Val %1.5e, ε = ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", f, err)
 	return x, his[1:k-1], feval
