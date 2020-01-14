@@ -145,7 +145,7 @@ function FISTA(Fcn, x,  proxG, options)
 
 		his[k] = f
 		x⁺ = proxG(y - η*gradF, η*λ)
-
+		@printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, norm(x⁺))
 		#update x
 		#		x = y - η*gradF;
 		# BLAS.axpy!(-η, gradF, x)
