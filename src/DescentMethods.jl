@@ -144,7 +144,7 @@ function FISTA(Fcn, x,  proxG, options)
 
 		his[k] = f
 		xk = copy(x)
-		x = proxG(y - η*gradF)
+		x = proxG(y - η*gradF, η*λ)
 
 		#update x
 		#		x = y - η*gradF;
