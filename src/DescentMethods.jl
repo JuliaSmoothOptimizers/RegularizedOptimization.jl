@@ -161,8 +161,8 @@ function FISTA(Fcn, x,  proxG, options)
 		err = norm(x⁺ - x)
 
 		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
-
+		# k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
+		@printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 		#update parameters
 		f, gradF = Fcn(y)
 		t = t⁺
