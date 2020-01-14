@@ -48,7 +48,7 @@ function proxp(z, α)
 end
 # projq(z, σ) = oneProjector(z, 1.0, σ)
 function funcF(x)
-    return norm(B*s,2)^2 + g'*s, Bk*s + g
+    return norm(B*x,2)^2 + g'*x, Bk*x + g
 end
 
 #input β, λ
@@ -56,16 +56,16 @@ end
 
 w2_options=s_options(norm(Bk)^2;maxIter=99, verbose=10, restart=100, λ=λ, η =20.0, η_factor=.9,
     gk = g, Bk = Bk, xk=x)
-s2,w12,w22 = prox_split_2w(proxp, zeros(size(x)), projq, w2_options)
+# s2,w12,w22 = prox_split_2w(proxp, zeros(size(x)), projq, w2_options)
 
 
 s1 = zeros(n)
-sp, hispg, fevalpg = PG(funcF, s1, funProj,options)
+sp, hispg, fevalpg = PG(funcF, s1, proxp,w2_options)
 # x2 = rand(n)
 # xf, hisf, fevalf = FISTA(funcF, x2, funProj, options)
 @printf("l2-norm CVX: %5.5e\n", norm(S.value - sp)/norm(S.value))
 # @printf("l2-norm CVX: %5.5e\n", norm(S.value - w)/norm(S.value))
-@printf("l2-norm CVX: %5.5e\n", norm(S.value - s2)/norm(S.value))
+# @printf("l2-norm CVX: %5.5e\n", norm(S.value - s2)/norm(S.value))
 # @printf("l2-norm CVX: %5.5e\n", norm(S.value - w12)/norm(S.value))
 # @printf("l2-norm CVX: %5.5e\n", norm(S.value - w22)/norm(S.value))
 # end

@@ -60,7 +60,7 @@ function PG(Fcn, x,  proxG, options)
 	#Problem Initialize
 	m = length(x)
 	η = 1.0/options.β
-	# λ = options.λ
+	λ = options.λ
 	k = 1
 	err = 100
 	his = zeros(max_iter)
@@ -75,7 +75,7 @@ function PG(Fcn, x,  proxG, options)
 		#take a gradient step: x-=η*∇f
 		# BLAS.axpy!(-η, gradF, x1)
 		#prox step
-		xp = proxG(x - η*gradF)
+		xp = proxG(x - η*gradF, η*λ)
 		# update function info
 		f, gradF = Fcn(xp)
 		feval+=1
