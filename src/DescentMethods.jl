@@ -26,25 +26,24 @@ function s_options(β;optTol=1f-10, maxIter=10000, verbose=2, restart=10, λ=1.0
 
 end
 
-
-#===========================================================================
-	Proximal Gradient Descent for
-	min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
-
-	Input:
-		x: initial point
-		β: Lipschitz constant for F
-		Fcn: function handle that returns f(x) and ∇f(x)
-		proxG: function handle that calculates prox_{ηg}
-		ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
-		* max_iter: self-explanatory
-		* print_freq: # of freq's in the sheets
-	Output:
-		x: x update
-		flag 0: exit normal
-		flag 1: max iter exit
-===========================================================================#
 function PG(Fcn, x,  proxG, options)
+	"""
+		Proximal Gradient Descent for
+		min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
+
+		Input:
+			x: initial point
+			β: Lipschitz constant for F
+			Fcn: function handle that returns f(x) and ∇f(x)
+			proxG: function handle that calculates prox_{ηg}
+			ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
+			* max_iter: self-explanatory
+			* print_freq: # of freq's in the sheets
+		Output:
+			x: x update
+			flag 0: exit normal
+			flag 1: max iter exit
+	"""
 	ε=options.optTol
 	max_iter=options.maxIter
 
@@ -90,23 +89,24 @@ function PG(Fcn, x,  proxG, options)
 	# @printf("Error Criteria Reached! -> Obj Val %1.5e, ε = ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", f, err)
 	return x, his[1:k-1], feval
 end
-#===========================================================================
-	FISTA for
-	min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
 
-	Input:
-		x: initial point
-		β: Lipschitz constant for F
-		Fcn!: function handle that returns f(x) and ∇f(x)
-		proxG!: function handle that calculates prox_{ηg}
-		ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
-		* max_iter: self-explanatory
-		* print_freq: # of freq's in the sheets
-	Output:
-		x: x update
-===========================================================================#
 
 function FISTA(Fcn, x,  proxG, options)
+	"""
+		FISTA for
+		min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
+
+		Input:
+			x: initial point
+			β: Lipschitz constant for F
+			Fcn: function handle that returns f(x) and ∇f(x)
+			proxG: function handle that calculates prox_{ηg}
+			ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
+			* max_iter: self-explanatory
+			* print_freq: # of freq's in the sheets
+		Output:
+			x: x update
+	"""
 	ε=options.optTol
 	max_iter=options.maxIter
 	restart = options.restart
@@ -176,6 +176,8 @@ function FISTA(Fcn, x,  proxG, options)
 
 	return x, his[1:k-1], feval
 end
+
+
 
 
 function linesearch(x, zl, zu, s, dzl, dzu,l,u ;mult=.9, tau = .01)
