@@ -6,7 +6,7 @@ using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers
 #######
 # min_s ||As - b||^2 + λ||s||_1
 compound=1
-# m,n = compound*120,compound*512
+m,n = compound*120,compound*512
 p = randperm(n)
 k = compound*20
 #initialize x
@@ -40,7 +40,7 @@ sp = zeros(n)
 sp, hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
 
 fista_options=s_options(norm(B)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-6)
-# sf = zeros(n)
+sf = zeros(n)
 sf, hisf, fevalpg = FISTA(funcF, sf, proxp,pg_options)
 @printf("PG l2-norm CVX: %5.5e\n", norm(S.value - sp)/norm(S.value))
 @printf("FISTA l2-norm CVX: %5.5e\n", norm(S.value - sf)/norm(S.value))
