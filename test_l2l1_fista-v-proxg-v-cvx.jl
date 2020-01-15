@@ -16,7 +16,7 @@ p   = randperm(n)[1:k]
 for i = 1:k
     x0[p[i]] = (5.0+randn())*sign(rand()-0.5);
 end
-b   = A*x0
+b0  = A*x0
 # x0 = zeros(n,)
 # x0[p[1:k]]=sign.(randn(k))
 
@@ -56,7 +56,7 @@ function funcF(x)
     g = A'*r
     return norm(r), g
 end
-function proxG(z, α)
+function proxp(z, α)
     return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 

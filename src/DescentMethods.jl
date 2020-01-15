@@ -74,7 +74,7 @@ function PG(Fcn, x,  proxG, options)
 		his[k] = f
 		#take a gradient step: x-=η*∇f
 		#prox step
-		x⁺ = proxG(x - η*g)
+		x⁺ = proxG(x - η*g, η*λ)
 		# update function info
 		f, gradF = Fcn(x⁺)
 		feval+=1
@@ -202,7 +202,7 @@ function FISTA(Fcn, x,  proxG, options)
 
 		his[k] = f
 		x⁻ = copy(x)
-		x = proxG(y - η*g)
+		x = proxG(y - η*g, η*λ)
 
 		#update step
 		t⁻ = copy(t)
