@@ -176,7 +176,8 @@ function FISTA!(Fcn!, x,  proxG!, options)
 			@printf("stopped max")
 		end
 	end
-	@printf("stopped other: %1.5e\n", err)
+
+	@printf("stopped other: %1.5e %1.5\n", err, ε)
 	return his[1:k-1], feval
 end
 
