@@ -46,7 +46,7 @@ end
 #input β, λ
 pg_options=s_options(norm(B'*B)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-6)
 sp = zeros(n)
-sp, hispg, fevalpg = PG(funcF!, sp, proxp!,pg_options)
+sp, hispg, fevalpg = PG!(funcF!, sp, proxp!,pg_options)
 
 # fista_options=s_options(norm(B)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-6)
 # sf = zeros(n)
