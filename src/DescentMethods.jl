@@ -137,16 +137,11 @@ function FISTA(Fcn, x,  proxG, options)
 	#do iterations
 	f, gradF = Fcn(y)
 	feval = 1
-	while ε≦err && f >1e-16
+	while ε<err && f >1e-16
 
 
 		his[k] = f
 		x⁺ = proxG(y - η*gradF, η*λ)
-		@printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, norm(x⁺))
-		#update x
-		#		x = y - η*gradF;
-		# BLAS.axpy!(-η, gradF, x)
-		# x = proxG(y - η*gradF, η)
 
 		#update step
 		t⁺ = 0.5*(1.0 + sqrt(1.0+4.0*t^2))
@@ -158,8 +153,7 @@ function FISTA(Fcn, x,  proxG, options)
 		err = norm(x⁺ - x)
 
 		#sheet on which to freq
-		# k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
-		@printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
+		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 		#update parameters
 		f, gradF = Fcn(y)
 		t = t⁺
