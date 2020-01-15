@@ -1,4 +1,4 @@
-export s_options, PG!, FISTA, prox_split_1w, prox_split_2w
+export s_options, PG!, FISTA!, prox_split_1w, prox_split_2w
 
 
 mutable struct s_params
@@ -92,7 +92,7 @@ function PG!(Fcn!, x,  proxG!, options)
 end
 
 
-function FISTA(Fcn, x,  proxG, options)
+function FISTA!(Fcn!, x,  proxG!, options)
 	"""
 		FISTA for
 		min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
@@ -126,6 +126,7 @@ function FISTA(Fcn, x,  proxG, options)
 	#Problem Initialize
 	m = length(x)
 	y = zeros(m)
+	gradF = zeros(m)
 
 
 	#initialize parameters
@@ -137,13 +138,15 @@ function FISTA(Fcn, x,  proxG, options)
 	his = zeros(max_iter)
 
 	#do iterations
-	f, gradF = Fcn(y)
+	f = Fcn!(y, gradF)
 	feval = 1
 	while ε≦err && f >1e-16
 
 
 		his[k] = f
-		x⁺ = proxG(y - η*gradF, η*λ)
+		BLAS.axpy!(-η,gradF,y)
+		copy!(x⁺, y)
+		proxG!(x⁺, η*λ)
 		@printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, norm(x⁺))
 		#update x
 		#		x = y - η*gradF;
@@ -163,8 +166,8 @@ function FISTA(Fcn, x,  proxG, options)
 		# k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 		@printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 		#update parameters
-		f, gradF = Fcn(y)
-		t = t⁺
+		f = Fcn!(y, gradF)
+		t = copy(t⁺)
 		copy!(x, x⁺)
 		feval+=1
 		k+=1
@@ -173,7 +176,7 @@ function FISTA(Fcn, x,  proxG, options)
 		end
 	end
 
-	return x, his[1:k-1], feval
+	return his[1:k-1], feval
 end
 
 
