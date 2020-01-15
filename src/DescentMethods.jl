@@ -146,7 +146,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 
 		his[k] = f
 		BLAS.axpy!(-η,gradF,y)
-		copy!(x⁺, y)
+		x⁺ = y
 		proxG!(x⁺, η*λ)
 		#update x
 		#		x = y - η*gradF;
@@ -160,7 +160,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		y = x⁺ + ((t - 1.0)/t⁺)*(x⁺-x)
 
 		#check convergence
-		err = norm(x⁺ - x)
+		err = norm(x⁺ - x)/η
 
 		#sheet on which to freq
 		# k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
@@ -173,9 +173,10 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		k+=1
 		if k<max_iter
 			break
+			@printf("stopped max")
 		end
 	end
-
+	@printf("stopped other: %1.5e\n", err)
 	return his[1:k-1], feval
 end
 
