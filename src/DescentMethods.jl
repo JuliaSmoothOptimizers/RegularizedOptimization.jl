@@ -171,7 +171,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		copy!(x, x⁺)
 		feval+=1
 		k+=1
-		if k<max_iter
+		if k>max_iter
 			break
 			@printf("stopped max")
 		end
