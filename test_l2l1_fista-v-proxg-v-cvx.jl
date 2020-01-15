@@ -1,7 +1,7 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
 using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers
-
+# Random.seed!(123)
 #Here we just try to solve an easy example
 #######
 # min_s ||As - b||^2 + λ||s||_1
@@ -10,22 +10,16 @@ m,n = compound*200,compound*512
 p = randperm(n)
 k = compound*10
 #initialize x
-A = randn(m,n)
 x0 = zeros(n)
 p   = randperm(n)[1:k]
-for i = 1:k
-    x0[p[i]] = (5.0+randn())*sign(rand()-0.5);
-end
-b0  = A*x0
-# x0 = zeros(n,)
-# x0[p[1:k]]=sign.(randn(k))
+x0 = zeros(n,)
+x0[p[1:k]]=sign.(randn(k))
 
-# A,_ = qr(randn(n,m))
-# B = Array(A)'
-# B = Array(B)
-# B = rand(m,n)
+A,_ = qr(randn(n,m))
+B = Array(A)'
+A = Array(B)
 
-# b0 = B*x0
+b0 = A*x0
 b = b0 + 0.001*rand(m,)
 λ = norm(A'*b, Inf)/10
 
@@ -41,7 +35,6 @@ function proxp!(z, α)
             z[i] > α ? z[i] -= α :
             z[i] <-α ? z[i] += α : z[i] = 0.0
         end
-    # return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 
 function funcF!(z, g)
@@ -49,7 +42,6 @@ function funcF!(z, g)
     BLAS.gemv!('N', 1.0, A, z, -1.0, r)
     BLAS.gemv!('T', 1.0, A, r, 0.0, g)
     return r'*r
-    # return .5*norm(A*z - b,2)^2, A'*(A*z-b)
 end
 function funcF(x)
     r = A*x - b
@@ -57,15 +49,15 @@ function funcF(x)
     return norm(r)^2, g
 end
 function proxp(z, α)
-    return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
+    return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 
 #input β, λ
-pg_options=s_options(norm(A)^2; maxIter=1000, verbose=1, λ=λ, optTol=1e-10)
+pg_options=s_options(norm(A)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-10)
 sp = zeros(n)
 sp, hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
 
-fista_options=s_options(norm(A)^2; maxIter=1000, verbose=1, λ=λ, optTol=1e-10)
+fista_options=s_options(norm(A)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-10)
 sf = zeros(n)
 sf, hisf, fevalf = FISTA(funcF, sf, proxp,pg_options)
 
