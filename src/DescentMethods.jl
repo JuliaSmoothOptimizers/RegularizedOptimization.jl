@@ -63,7 +63,7 @@ function PG(Fcn, x,  proxG, options)
 	k = 1
 	err = 100
 	his = zeros(max_iter)
-	x⁺ = copy(x)
+	x⁺ = deepcopy(x)
 
 
 	# Iteration set up
@@ -79,12 +79,12 @@ function PG(Fcn, x,  proxG, options)
 		f, g = Fcn(x⁺)
 		feval+=1
 		err = norm(x-x⁺)
-		x = copy(x⁺)
+		x = x⁺
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 	end
-	return x, his[1:k-1], feval
+	return x⁺, his[1:k-1], feval
 end
 
 

@@ -27,7 +27,7 @@ b0  = A*x0
 
 # b0 = B*x0
 b = b0 + 0.001*rand(m,)
-λ = norm(A'*b, Inf)/50
+λ = norm(A'*b, Inf)/10
 
 
 
@@ -54,7 +54,7 @@ end
 function funcF(x)
     r = A*x - b
     g = A'*r
-    return norm(r), g
+    return norm(r)^2, g
 end
 function proxp(z, α)
     return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
