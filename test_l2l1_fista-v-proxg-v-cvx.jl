@@ -25,26 +25,26 @@ b = b0 + 0.001*rand(m,)
 S = Variable(n)
 problem = minimize(sumsquares(B*S - b)/2+λ*norm(vec(S), 1))
 solve!(problem, SCSSolver())
-
+#
 function proxp(z, α)
     return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 
-function funcF(z)
-    return norm(B*z - b,2)^2/2 , B'*(B*z-b)
+function funcF(z, g)
+    return .5*norm(B*z - b,2)^2, B'*(B*z-b)
 end
 
 #input β, λ
-pg_options=s_options(norm(B)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-6)
+pg_options=s_options(norm(B'*B)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-6)
 sp = zeros(n)
 sp, hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
 
-fista_options=s_options(norm(B)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-6)
-sf = zeros(n)
-sf, hisf, fevalpg = FISTA(funcF, sf, proxp,pg_options)
+# fista_options=s_options(norm(B)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-6)
+# sf = zeros(n)
+# sf, hisf, fevalpg = FISTA(funcF, sf, proxp,pg_options)
 @printf("PG l2-norm CVX: %5.5e\n", norm(S.value - sp)/norm(S.value))
-@printf("FISTA l2-norm CVX: %5.5e\n", norm(S.value - sf)/norm(S.value))
-@printf("CVX: %5.5e     PG: %5.5e   FISTA: %5.5e\n", norm(B*S.value)^2/2 + λ*norm(vec(S.value),1), funcF(sp)[1]+λ*norm(sp,1), funcF(sf)[1]+λ*norm(sf,1))
+# @printf("FISTA l2-norm CVX: %5.5e\n", norm(S.value - sf)/norm(S.value))
+# @printf("CVX: %5.5e     PG: %5.5e   FISTA: %5.5e\n", norm(B*S.value)^2/2 + λ*norm(vec(S.value),1), funcF(sp)[1]+λ*norm(sp,1), funcF(sf)[1]+λ*norm(sf,1))
 @printf("True l2-norm CVX: %5.5e\n", norm(S.value - x0)/norm(x0))
 @printf("True l2-norm PG: %5.5e\n", norm(sp - x0)/norm(x0))
-@printf("True l2-norm FISTA: %5.5e\n", norm(sf - x0)/norm(x0))
+# @printf("True l2-norm FISTA: %5.5e\n", norm(sf - x0)/norm(x0))

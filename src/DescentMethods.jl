@@ -65,19 +65,18 @@ function PG(Fcn, x,  proxG, options)
 	err = 100
 	his = zeros(max_iter)
 	# Iteration set up
-	f, gradF = Fcn(x⁺)
+	f, gradF = Fcn(x)
 	feval = 1
 	#do iterations
 	while err ≥ ε && f> 1e-16
 		his[k] = f
 		#prox step
-		x⁺ = proxG(x-η*gradF, η*λ)
+		x⁺ = proxG(x⁺-η*gradF, η*λ)
 		err = norm(x-x⁺)/η
 		# update function info
 		f, gradF = Fcn(x⁺)
 		feval+=1
 
-		# copy!(x,x⁺)
 		x = copy(x⁺)
 		k+=1
 		#sheet on which to freq
