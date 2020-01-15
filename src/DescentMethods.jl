@@ -41,8 +41,8 @@ function PG(Fcn, x,  proxG, options)
 			* print_freq: # of freq's in the sheets
 		Output:
 			x: x update
-			flag 0: exit normal
-			flag 1: max iter exit
+			his: descent history
+			feval: number of function evals
 	"""
 	ε=options.optTol
 	max_iter=options.maxIter
@@ -60,7 +60,7 @@ function PG(Fcn, x,  proxG, options)
 	m = length(x)
 	η = 1.0/options.β
 	λ = options.λ
-	y = copy(x)
+	x⁺ = copy(x)
 	k = 1
 	err = 100
 	his = zeros(max_iter)
@@ -68,17 +68,16 @@ function PG(Fcn, x,  proxG, options)
 	f, gradF = Fcn(x)
 	feval = 1
 	#do iterations
-	while err ≥ ε
+	while err ≥ ε && f> 1e-16
 		his[k] = f
-		#take a gradient step: x-=η*∇f
-		BLAS.axpy!(-η, gradF, x)
 		#prox step
-		y = proxG(x, η*λ)
+		x⁺ = proxG(x-η*gradF, η*λ)
+		err = norm(x-x⁺)/η
 		# update function info
-		f, gradF = Fcn(y)
+		f, gradF = Fcn(x⁺)
 		feval+=1
-		err = norm(x-y)
-		copy!(y,x)
+
+		copy!(x,x⁺)
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
@@ -138,10 +137,8 @@ function FISTA(Fcn, x,  proxG, options)
 	#do iterations
 	f, gradF = Fcn(y)
 	feval = 1
-	while err >= ε
-		# if (mod(k, restart) == 1)
-		# 		t = 1;
-		# end
+	while ε≦err && f >1e-16
+
 
 		his[k] = f
 		x⁺ = proxG(y - η*gradF, η*λ)

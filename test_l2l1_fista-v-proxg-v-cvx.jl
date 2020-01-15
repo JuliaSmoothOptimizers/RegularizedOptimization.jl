@@ -14,9 +14,10 @@ x0 = zeros(n,)
 x0[p[1:k]]=sign.(randn(k))
 
 A,_ = qr(randn(n,m))
-B = Matrix(A')
+B = Matrix(A)'
+
 b0 = B*x0
-b = b0 + 0.001*rand(n,)
+b = b0 + 0.001*rand(m,)
 λ = .1*maximum(abs.(B'*b))
 
 
@@ -40,7 +41,7 @@ sp, hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
 
 fista_options=s_options(norm(B)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-6)
 sf = zeros(n)
-sf, hispg, fevalpg = FISTA(funcF, sf, proxp,pg_options)
+sf, hisf, fevalpg = FISTA(funcF, sf, proxp,pg_options)
 @printf("PG l2-norm CVX: %5.5e\n", norm(S.value - sp)/norm(S.value))
 @printf("FISTA l2-norm CVX: %5.5e\n", norm(S.value - sf)/norm(S.value))
 @printf("CVX: %5.5e     PG: %5.5e   FISTA: %5.5e\n", norm(B*S.value)^2/2 + λ*norm(vec(S.value),1), funcF(sp)[1]+λ*norm(sp,1), funcF(sf)[1]+λ*norm(sf,1))

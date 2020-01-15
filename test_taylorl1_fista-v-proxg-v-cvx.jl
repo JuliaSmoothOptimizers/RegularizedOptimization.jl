@@ -15,7 +15,7 @@ c = randn(n,)
 x0[p[1:k]]=sign.(randn(k))
 
 A,_ = qr(randn(n,m))
-B = Matrix(A')
+B = Matrix(A)'
 b0 = B*x0
 b = b0 + 0.001*rand(n,)
 λ = .1*maximum(abs.(B'*b))
@@ -28,13 +28,7 @@ problem = minimize(sumsquares(B*S) + g'*S + b'*b + λ*norm(vec(S+c), 1))
 solve!(problem, SCSSolver())
 
 function proxp(z, α)
-    n = length(z)
-    temp = zeros(n)
-    for i=1:n
-        z[i]< α ? temp[i] = z[i] - α
-        z[i]>-α ? temp[i] = z[i] + α: continue
-    # return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
-    return temp
+    return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 
 function funcF(z)
