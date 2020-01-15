@@ -163,8 +163,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		err = norm(x⁺ - x)/η
 
 		#sheet on which to freq
-		# k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
-		@printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
+		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 		#update parameters
 		f = Fcn!(y, gradF)
 		t = copy(t⁺)
@@ -173,11 +172,9 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		k+=1
 		if k>max_iter
 			break
-			@printf("stopped max")
 		end
 	end
 
-	@printf("stopped other: %1.5e, eps: %1.5e\n", err, ε)
 	return his[1:k-1], feval
 end
 
