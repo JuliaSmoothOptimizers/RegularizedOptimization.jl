@@ -28,7 +28,13 @@ problem = minimize(sumsquares(B*S) + g'*S + b'*b + λ*norm(vec(S+c), 1))
 solve!(problem, SCSSolver())
 
 function proxp(z, α)
-    return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
+    n = length(z)
+    temp = zeros(n)
+    for i=1:n
+        z[i]< α ? temp[i] = z[i] - α
+        z[i]>-α ? temp[i] = z[i] + α: continue
+    # return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
+    return temp
 end
 
 function funcF(z)
@@ -44,7 +50,7 @@ up, hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
 sp = up-c
 
 fista_options=s_options(norm(B)^2; maxIter=10000, verbose=5, λ=λ, optTol=1e-6)
-sf = zeros(n)
+sf = randn(n)
 uf, hisf, fevalpg = FISTA(funcF, sf, proxp,pg_options)
 sf = uf - c
 @printf("PG l2-norm CVX: %5.5e\n", norm(S.value - sp)/norm(S.value))
