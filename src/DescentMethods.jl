@@ -73,7 +73,7 @@ function PG!(Fcn!, x,  proxG!, options)
 	while err ≥ ε && f> 1e-16
 		his[k] = f
 		#prox step
-		BLAS.axpy!(-α,g,x⁺)
+		BLAS.axpy!(-η,g,x⁺)
 		proxG!(x⁺, η*λ)
 		err = norm(x-x⁺)
 		# update function info

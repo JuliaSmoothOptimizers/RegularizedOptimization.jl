@@ -14,7 +14,8 @@ x0 = zeros(n,)
 x0[p[1:k]]=sign.(randn(k))
 
 A,_ = qr(randn(n,m))
-B = Matrix(A)'
+B = Array(A)'
+B = Array(B)
 
 b0 = B*x0
 b = b0 + 0.001*rand(m,)
@@ -29,8 +30,8 @@ solve!(problem, SCSSolver())
 function proxp!(z, α)
         n = length(z);
         for i = 1:n
-            z[i] > α*λ ? z[i] -= α*λ :
-            z[i] <-α*λ ? z[i] += α*λ : z[i] = 0.0;
+            z[i] > α ? z[i] -= α :
+            z[i] <-α ? z[i] += α : z[i] = 0.0
         end
     # return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
