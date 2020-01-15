@@ -126,6 +126,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 	#Problem Initialize
 	m = length(x)
 	y = zeros(m)
+	copy!(x⁺, y)
 	gradF = zeros(m)
 
 
