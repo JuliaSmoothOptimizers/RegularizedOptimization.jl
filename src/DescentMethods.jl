@@ -70,7 +70,7 @@ function PG!(Fcn!, x,  proxG!, options)
 	f = Fcn!(x,g)
 	feval = 1
 	#do iterations
-	while err ≥ ε && f> 1e-16
+	while err > ε && f> 1e-16
 		his[k] = f
 		#prox step
 		BLAS.axpy!(-η,g,x⁺)
