@@ -48,5 +48,3 @@ sf, hisf, fevalpg = FISTA(funcF, sf, proxp,pg_options)
 @printf("True l2-norm CVX: %5.5e\n", norm(S.value - x0)/norm(x0))
 @printf("True l2-norm PG: %5.5e\n", norm(sp - x0)/norm(x0))
 @printf("True l2-norm FISTA: %5.5e\n", norm(sf - x0)/norm(x0))
-
-# end
