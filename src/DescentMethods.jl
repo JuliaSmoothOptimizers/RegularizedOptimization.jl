@@ -77,7 +77,7 @@ function PG!(Fcn!, x,  proxG!, options)
 		proxG!(x⁺, η*λ)
 		err = norm(x-x⁺)
 		# update function info
-		f= Fcn(x⁺,g)
+		f= Fcn!(x⁺,g)
 		feval+=1
 
 		copy(x,x⁺)
