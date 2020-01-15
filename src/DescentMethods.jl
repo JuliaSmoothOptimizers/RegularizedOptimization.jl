@@ -80,7 +80,7 @@ function PG!(Fcn!, x,  proxG!, options)
 		f= Fcn!(x⁺,g)
 		feval+=1
 
-		copy(x,x⁺)
+		copy!(x,x⁺)
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
