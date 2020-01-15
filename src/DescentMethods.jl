@@ -140,14 +140,13 @@ function FISTA!(Fcn!, x,  proxG!, options)
 	#do iterations
 	f = Fcn!(y, gradF)
 	feval = 1
-	while ε≦err && f >1e-16
+	while ε<err && f >1e-16
 
 
 		his[k] = f
 		BLAS.axpy!(-η,gradF,y)
 		copy!(x⁺, y)
 		proxG!(x⁺, η*λ)
-		@printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, norm(x⁺))
 		#update x
 		#		x = y - η*gradF;
 		# BLAS.axpy!(-η, gradF, x)
