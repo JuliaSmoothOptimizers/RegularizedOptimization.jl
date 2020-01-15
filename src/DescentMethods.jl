@@ -26,7 +26,7 @@ function s_options(β;optTol=1f-10, maxIter=10000, verbose=2, restart=10, λ=1.0
 
 end
 
-function PG(Fcn, x,  proxG, options)
+function PG!(Fcn!, x,  proxG!, options)
 	"""
 		Proximal Gradient Descent for
 		min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
@@ -61,23 +61,26 @@ function PG(Fcn, x,  proxG, options)
 	η = 1.0/options.β
 	λ = options.λ
 	x⁺ = copy(x)
+	g = zeros(m)
+
 	k = 1
 	err = 100
 	his = zeros(max_iter)
 	# Iteration set up
-	f, gradF = Fcn(x)
+	f = Fcn!(x,g)
 	feval = 1
 	#do iterations
 	while err ≥ ε && f> 1e-16
 		his[k] = f
 		#prox step
-		x⁺ = proxG(x⁺-η*gradF, η*λ)
-		err = norm(x-x⁺)/η
+		BLAS.axpy!(-α,g,x⁺)
+		proxG!(x⁺, η*λ)
+		err = norm(x-x⁺)
 		# update function info
-		f, gradF = Fcn(x⁺)
+		f= Fcn(x⁺,g)
 		feval+=1
 
-		x = copy(x⁺)
+		copy(x,x⁺)
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
@@ -85,8 +88,7 @@ function PG(Fcn, x,  proxG, options)
 			break
 		end
 	end
-	# @printf("Error Criteria Reached! -> Obj Val %1.5e, ε = ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", f, err)
-	return x, his[1:k-1], feval
+	return his[1:k-1], feval
 end
 
 

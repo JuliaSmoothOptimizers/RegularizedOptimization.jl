@@ -26,18 +26,27 @@ S = Variable(n)
 problem = minimize(sumsquares(B*S - b)/2+λ*norm(vec(S), 1))
 solve!(problem, SCSSolver())
 #
-function proxp(z, α)
-    return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
+function proxp!(z, α)
+        n = length(z);
+        for i = 1:n
+            z[i] > α*λ ? z[i] -= α*λ :
+            z[i] <-α*λ ? z[i] += α*λ : z[i] = 0.0;
+        end
+    # return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 
-function funcF(z, g)
-    return .5*norm(B*z - b,2)^2, B'*(B*z-b)
+function funcF!(z, g)
+    r = copy(b)
+    BLAS.gemv!('N', 1.0, B, z, -1.0, r)
+    BLAS.gemv!('T', 1.0, B, r, 0.0, g)
+    return r'*r
+    # return .5*norm(B*z - b,2)^2, B'*(B*z-b)
 end
 
 #input β, λ
 pg_options=s_options(norm(B'*B)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-6)
 sp = zeros(n)
-sp, hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
+sp, hispg, fevalpg = PG(funcF!, sp, proxp!,pg_options)
 
 # fista_options=s_options(norm(B)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-6)
 # sf = zeros(n)
