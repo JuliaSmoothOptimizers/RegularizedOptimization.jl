@@ -1,4 +1,4 @@
-export s_options, PG!, FISTA!, prox_split_1w, prox_split_2w
+export s_options, PG, PG!, FISTA, FISTA!, prox_split_1w, prox_split_2w
 
 
 mutable struct s_params
@@ -25,6 +25,69 @@ function s_options(β;optTol=1f-10, maxIter=10000, verbose=2, restart=10, λ=1.0
 	return s_params(optTol, maxIter, verbose, restart, β,λ, η, η_factor,σ_TR, WoptTol, gk, Bk,xk)
 
 end
+function PG(Fcn, x,  proxG, options)
+	"""
+		Proximal Gradient Descent for
+		min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
+
+		Input:
+			x: initial point
+			β: Lipschitz constant for F
+			Fcn: function handle that returns f(x) and ∇f(x)
+			proxG: function handle that calculates prox_{ηg}
+			ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
+			* max_iter: self-explanatory
+			* print_freq: # of freq's in the sheets
+		Output:
+			x: x update
+			his: descent history
+			feval: number of function evals
+	"""
+
+	ε=options.optTol
+	max_iter=options.maxIter
+
+	if options.verbose==0
+		print_freq = Inf
+	elseif options.verbose==1
+		print_freq = round(max_iter/10)
+	elseif options.verbose==2
+		print_freq = round(max_iter/100)
+	else
+		print_freq = 1
+	end
+	#Problem Initialize
+	m = length(x)
+	η = 1.0/options.β
+	λ = options.λ
+	k = 1
+	err = 100
+	his = zeros(max_iter)
+	x⁺ = copy(x)
+
+
+	# Iteration set up
+	f, g = Fcn(x⁺)
+	feval = 1
+		#do iterations
+	while err ≥ ε && k <max_iter && f>1e-16
+		his[k] = f
+		#take a gradient step: x-=η*∇f
+		#prox step
+		x⁺ = proxG(x - η*g)
+		# update function info
+		f, gradF = Fcn(x⁺)
+		feval+=1
+		err = norm(x-x⁺)
+		x = copy(x⁺)
+		k+=1
+		#sheet on which to freq
+		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
+	end
+	return x, his[1:k-1], feval
+end
+
+
 
 function PG!(Fcn!, x,  proxG!, options)
 	"""
@@ -70,7 +133,7 @@ function PG!(Fcn!, x,  proxG!, options)
 	f = Fcn!(x,g)
 	feval = 1
 	#do iterations
-	while err > ε && f> 1e-16
+	while err > ε && f> 1e-16 && k < max_iter
 		his[k] = f
 		#prox step
 		BLAS.axpy!(-η,g,x⁺)
@@ -84,13 +147,85 @@ function PG!(Fcn!, x,  proxG!, options)
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
-		if k >= max_iter
-			break
-		end
 	end
 	return his[1:k-1], feval
 end
 
+
+function FISTA(Fcn, x,  proxG, options)
+	"""
+		FISTA for
+		min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
+
+		Input:
+			x: initial point
+			β: Lipschitz constant for F
+			Fcn: function handle that returns f(x) and ∇f(x)
+			proxG: function handle that calculates prox_{ηg}
+			ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
+			* max_iter: self-explanatory
+			* print_freq: # of freq's in the sheets
+		Output:
+			x: x update
+	"""
+	ε=options.optTol
+	max_iter=options.maxIter
+	restart = options.restart
+	η = options.β^(-1)
+	λ = options.λ
+	if options.verbose==0
+		print_freq = Inf
+	elseif options.verbose==1
+		print_freq = round(max_iter/10)
+	elseif options.verbose==2
+		print_freq = round(max_iter/100)
+	else
+		print_freq = round(max_iter/200)
+	end
+
+	#Problem Initialize
+	m = length(x)
+	y = zeros(m)
+
+	#initialize parameters
+	t = 1.0
+	tk = t
+	# Iteration set up
+	k = 1
+	err = 100.0
+	his = zeros(max_iter)
+
+	#do iterations
+	f, g = Fcn(y)
+	feval = 1
+	while err >= ε && k<max_iter && f>1e-16
+
+		his[k] = f
+		x⁻ = copy(x)
+		x = proxG(y - η*g)
+
+		#update step
+		t⁻ = copy(t)
+		t = 0.5*(1.0 + sqrt(1.0+4.0*t⁻^2))
+
+		#update y
+		y = x + ((t⁻ - 1.0)/t)*(x-x⁻)
+
+		#check convergence
+		err = norm(x - x⁻)
+
+
+		#sheet on which to freq
+		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
+
+		#update parameters
+		f, gradF = Fcn(y)
+		feval+=1
+		k+=1
+	end
+	return x, his[1:k-1], feval
+
+end
 
 function FISTA!(Fcn!, x,  proxG!, options)
 	"""
@@ -141,17 +276,13 @@ function FISTA!(Fcn!, x,  proxG!, options)
 	#do iterations
 	f = Fcn!(y, gradF)
 	feval = 1
-	while ε<err && f >1e-16
+	while ε<err && f >1e-16 && k<max_iter
 
 
 		his[k] = f
 		BLAS.axpy!(-η,gradF,y)
-		x⁺ = y
+		x⁺ = copy(y)
 		proxG!(x⁺, η*λ)
-		#update x
-		#		x = y - η*gradF;
-		# BLAS.axpy!(-η, gradF, x)
-		# x = proxG(y - η*gradF, η)
 
 		#update step
 		t⁺ = 0.5*(1.0 + sqrt(1.0+4.0*t^2))
@@ -170,9 +301,6 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		copy!(x, x⁺)
 		feval+=1
 		k+=1
-		if k>max_iter
-			break
-		end
 	end
 
 	return his[1:k-1], feval
