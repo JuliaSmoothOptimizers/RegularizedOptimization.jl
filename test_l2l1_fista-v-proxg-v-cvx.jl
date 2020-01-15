@@ -27,7 +27,7 @@ b0  = A*x0
 
 # b0 = B*x0
 b = b0 + 0.001*rand(m,)
-λ = .1*maximum(abs.(A'*b))
+λ = norm(A'*b, Inf)/50
 
 
 
@@ -63,15 +63,15 @@ end
 #input β, λ
 pg_options=s_options(norm(A)^2; maxIter=1000, verbose=1, λ=λ, optTol=1e-10)
 sp = zeros(n)
-hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
+sp, hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
 
 fista_options=s_options(norm(A)^2; maxIter=1000, verbose=1, λ=λ, optTol=1e-10)
 sf = zeros(n)
-hisf, fevalpg = FISTA(funcF, sf, proxp,pg_options)
+sf, hisf, fevalf = FISTA(funcF, sf, proxp,pg_options)
 
 @printf("PG l2-norm CVX: %5.5e\n", norm(S.value - sp)/norm(S.value))
 @printf("FISTA l2-norm CVX: %5.5e\n", norm(S.value - sf)/norm(S.value))
-@printf("CVX: %5.5e     PG: %5.5e   FISTA: %5.5e\n", norm(B*S.value)^2/2 + λ*norm(vec(S.value),1), funcF!(sp, sp)+λ*norm(sp,1), funcF!(sf, sf)+λ*norm(sf,1))
+@printf("CVX: %5.5e     PG: %5.5e   FISTA: %5.5e\n", norm(A*S.value)^2/2 + λ*norm(vec(S.value),1), funcF(sp)[1]+λ*norm(sp,1), funcF(sf)[1]+λ*norm(sf,1))
 @printf("True l2-norm CVX: %5.5e\n", norm(S.value - x0)/norm(x0))
 @printf("True l2-norm PG: %5.5e\n", norm(sp - x0)/norm(x0))
 @printf("True l2-norm FISTA: %5.5e\n", norm(sf - x0)/norm(x0))

@@ -76,7 +76,7 @@ function PG(Fcn, x,  proxG, options)
 		#prox step
 		x⁺ = proxG(x - η*g, η*λ)
 		# update function info
-		f, gradF = Fcn(x⁺)
+		f, g = Fcn(x⁺)
 		feval+=1
 		err = norm(x-x⁺)
 		x = copy(x⁺)
@@ -219,7 +219,7 @@ function FISTA(Fcn, x,  proxG, options)
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 
 		#update parameters
-		f, gradF = Fcn(y)
+		f, g = Fcn(y)
 		feval+=1
 		k+=1
 	end
