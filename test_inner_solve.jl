@@ -29,7 +29,7 @@ g = -A'*b
 c = .00*randn(n) #pretty important here - definitely hurts the sparsity
 
 S = Variable(n)
-problem = minimize(g'*S + sumsquares(A*S)/2 + b'*b+λ*norm(vec(S+c), 1), norm(vec(S),1)<=k)
+problem = minimize(g'*S + sumsquares(A*S)/2 + b'*b/2+λ*norm(vec(S+c), 1), norm(vec(S),1)<=k)
 solve!(problem, SCSSolver())
 
 function proxp(z, α)

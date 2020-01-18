@@ -26,7 +26,7 @@ b = b0 + 0.005*rand(m,)
 cutoff = 0.0;
 l = -2.0*ones(n,)+cutoff*ones(n,)
 u = 2.0*ones(n,)+cutoff*ones(n,)
-λ_T = .1*maximum(abs.(A'*b))
+λ_T = .1*norm(A'*b, Inf)
 
 
 
@@ -57,10 +57,11 @@ end
 #set all options
 #uncomment for OTHER test
 first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=10, restart=40, η = 1.0, η_factor=.9)
-# w2_options=s_options(norm(Bk)^2;maxIter=10, verbose=2, restart=100, λ=λ, η =1.0, η_factor=.9,gk = g, Bk = Bk, xk=x)
+# fo_options=s_options(norm(Bk)^2;maxIter=10, verbose=2, restart=100, λ=λ, η =1.0, η_factor=.9,gk = g, Bk = Bk, xk=x)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
+
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxG, χ_projector=projq)
-options = IP_options(;simple=0, ptf=10)
+options = IP_options(;simple=0, ptf=10, Δk = k)
 #put in your initial guesses
 x = (l+u)/2
 zl = ones(n,)
@@ -77,16 +78,16 @@ x, zl, zu = barrier_alg(x,zl, zu, parameters, options)
 
 
 #print out l2 norm difference and plot the two x values
-@printf("l2-norm TR: %5.5e\n", norm(x - x0))
-@printf("l2-norm CVX: %5.5e\n", norm(X.value - x0))
-@printf("TR vs CVX relative error: %5.5e\n", norm(X.value - x)/norm(X.value))
-plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
-plot!(x, label="tr", marker=2)
-plot!(X.value, label="cvx")
-savefig("xcomp.pdf")
+@printf("l2-norm CVX vs VP: %5.5e\n", norm(X.value - x)/norm(X.value))
+@printf("l2-norm CVX vs True: %5.5e\n", norm(X.value - x0)/norm(X.value))
+@printf("l2-norm VP vs True: %5.5e\n", norm(x0 - x)/norm(x0))
+# plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
+# plot!(x, label="tr", marker=2)
+# plot!(X.value, label="cvx")
+# savefig("xcomp.pdf")
 
-plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
-plot!(b, label="Observed")
-plot!(A*x, label="A*x: TR", marker=2)
-plot!(A*X.value, label="A*x: CVX")
-savefig("bcomp.pdf")
+# plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
+# plot!(b, label="Observed")
+# plot!(A*x, label="A*x: TR", marker=2)
+# plot!(A*X.value, label="A*x: CVX")
+# savefig("bcomp.pdf")
