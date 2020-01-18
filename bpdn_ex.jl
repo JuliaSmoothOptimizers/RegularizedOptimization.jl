@@ -43,7 +43,7 @@ function f_obj(x) #gradient and hessian info are smooth parts, m also includes n
 end
 
 function proxG(z, α)
-    return sign.(z).*max(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
+    return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 #do l2 norm for testing purposes
 # function projq(z,σ)
@@ -56,11 +56,11 @@ function h_obj(x)
 end
 #set all options
 #uncomment for OTHER test
-first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=100, maxIter=200, restart=1, η = 1.0, η_factor=.9)
+first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=10, restart=40, η = 1.0, η_factor=.9)
 # w2_options=s_options(norm(Bk)^2;maxIter=10, verbose=2, restart=100, λ=λ, η =1.0, η_factor=.9,gk = g, Bk = Bk, xk=x)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxG, χ_projector=projq)
-options = IP_options(;simple=0, ptf=100)
+options = IP_options(;simple=0, ptf=10)
 #put in your initial guesses
 x = (l+u)/2
 zl = ones(n,)

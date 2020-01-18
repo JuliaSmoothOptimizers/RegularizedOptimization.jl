@@ -70,7 +70,7 @@ function PG(Fcn, x,  proxG, options)
 	f, g = Fcn(x⁺)
 	feval = 1
 		#do iterations
-	while err ≥ ε && k <max_iter && f>1e-16
+	while err ≥ ε && k <max_iter && abs(f)>1e-16
 		his[k] = f
 		#take a gradient step: x-=η*∇f
 		#prox step
@@ -133,7 +133,7 @@ function PG!(Fcn!, x,  proxG!, options)
 	f = Fcn!(x,g)
 	feval = 1
 	#do iterations
-	while err > ε && f> 1e-16 && k < max_iter
+	while err > ε && abs(f)> 1e-16 && k < max_iter
 		his[k] = f
 		#prox step
 		BLAS.axpy!(-η,g,x⁺)
@@ -198,7 +198,7 @@ function FISTA(Fcn, x,  proxG, options)
 	#do iterations
 	f, g = Fcn(y)
 	feval = 1
-	while err >= ε && k<max_iter && f>1e-16
+	while err >= ε && k<max_iter && abs(f)>1e-16
 
 		his[k] = f
 		x⁻ = copy(x)
@@ -276,7 +276,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 	#do iterations
 	f = Fcn!(y, gradF)
 	feval = 1
-	while ε<err && f >1e-16 && k<max_iter
+	while ε<err && abs(f) >1e-16 && k<max_iter
 
 
 		his[k] = f
@@ -473,8 +473,9 @@ function  prox_split_2w(proxp, s0, projq, options)
     b_pt1 = Bk*xk - gk
 
     for i=1:restart
-    while err>ε && k<max_iter #&& (w1_err+w2_err)>ε_w
 		A = Bk + (2/η)*I(size(Bk,1))
+    while err>ε && k<max_iter #&& (w1_err+w2_err)>ε_w
+
         #store previous values
         u_ = u
         w1_ = w1
