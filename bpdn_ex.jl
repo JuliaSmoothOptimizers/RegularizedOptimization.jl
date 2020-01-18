@@ -22,8 +22,8 @@ A = Matrix(Q)
 A = Matrix(A')
 
 b0 = A*x0
-b = b0 + 0.005*rand(m,)
-cutoff = 0.0;
+b = b0 + 0.005*randn(m,)
+cutoff = 0.0
 l = -2.0*ones(n,)+cutoff*ones(n,)
 u = 2.0*ones(n,)+cutoff*ones(n,)
 λ_T = .1*norm(A'*b, Inf)
@@ -34,12 +34,9 @@ u = 2.0*ones(n,)+cutoff*ones(n,)
 #define your smooth objective function
 #merit function isn't just this though right?
 function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
-    r = b
-    BLAS.gemv!('N',1.0, A, x, -1.0, r)
-    f = .5*norm(r)^2
-    g = BLAS.gemv('T',A,r)
-    h = BLAS.gemm('T', 'N', 1.0, A, A)
-    return f, g, h
+    r = A*x - b
+    g = A'*r
+    return norm(r)^2, g, A'*A
 end
 
 function proxG(z, α)
@@ -61,11 +58,11 @@ first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbos
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxG, χ_projector=projq)
-options = IP_options(;simple=0, ptf=10, Δk = k)
+options = IP_options(;simple=0, ptf=1, Δk = 1)
 #put in your initial guesses
 x = (l+u)/2
-zl = ones(n,)
-zu = ones(n,)
+zl = zeros(n,)
+zu = zeros(n,)
 
 X = Variable(n)
 problem = minimize(sumsquares(A * X - b) + λ_T*norm(X,1), X>=l, X<=u)
@@ -74,7 +71,7 @@ solve!(problem, SCSSolver())
 
 
 
-x, zl, zu = barrier_alg(x,zl, zu, parameters, options)
+x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1.0)
 
 
 #print out l2 norm difference and plot the two x values

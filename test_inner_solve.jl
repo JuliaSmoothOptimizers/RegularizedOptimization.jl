@@ -22,11 +22,9 @@ B = Array(A)'
 A = Array(B)
 
 b0 = A*x0
-b = b0 + 0.001*rand(m,)
+b = b0 #+ 0.001*randn(m,)
 λ = norm(A'*b, Inf)/10
 g = -A'*b
-
-c = .00*randn(n) #pretty important here - definitely hurts the sparsity
 
 S = Variable(n)
 problem = minimize(g'*S + sumsquares(A*S)/2 + b'*b/2+λ*norm(vec(S+c), 1), norm(vec(S),1)<=k)
@@ -35,10 +33,10 @@ solve!(problem, SCSSolver())
 function proxp(z, α)
     return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
-projq(z, σ) = oneProjector(z, 1.0, σ)
-# function projq(z,σ)
-#     return z/max(1, norm(z, 2)/σ)
-# end
+# projq(z, σ) = oneProjector(z, 1.0, σ)
+function projq(z,σ)
+    return z/max(1, norm(z, 2)/σ)
+end
 
 vp_options=s_options(norm(A'*A)^2;maxIter=10, verbose=99, restart=100, λ=λ, η =1.0, η_factor=.9,
     gk = g, Bk = A'*A, xk=c, σ_TR = k)
