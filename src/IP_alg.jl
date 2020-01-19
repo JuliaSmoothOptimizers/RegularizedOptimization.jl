@@ -193,7 +193,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
             # while(β(xk + α*s) > β(xk) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
             #     α = α*mult
             # end
-            α = 0.0 #was 0.1; can be whatever
+            α = 0.1 #was 0.1; can be whatever
             xk = xk + α*s
             zkl = zkl + α*dzl
             zku = zku + α*dzu

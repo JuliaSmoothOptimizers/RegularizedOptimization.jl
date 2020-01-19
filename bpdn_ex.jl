@@ -24,8 +24,10 @@ A = Matrix(A')
 b0 = A*x0
 b = b0 + 0.005*randn(m,)
 cutoff = 0.0
-l = -2.0*ones(n,)+cutoff*ones(n,)
-u = 2.0*ones(n,)+cutoff*ones(n,)
+# l = -2.0*ones(n,)+cutoff*ones(n,)
+# u = 2.0*ones(n,)+cutoff*ones(n,)
+l = -10000*ones(n,)
+u = 10000*ones(n,)
 λ_T = .1*norm(A'*b, Inf)
 
 
@@ -60,7 +62,8 @@ first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbos
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxG, χ_projector=projq)
 options = IP_options(;simple=0, ptf=1, Δk = 1)
 #put in your initial guesses
-x = (l+u)/2
+# x = (l+u)/2
+x = zeros(n,)
 zl = zeros(n,)
 zu = zeros(n,)
 
