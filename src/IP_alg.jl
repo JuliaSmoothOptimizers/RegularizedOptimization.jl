@@ -184,7 +184,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
             zku = zku + dzu
         end
 
-        if(ρk < eta1) #
+        if(ρk < eta1)
 
             x_stat = "shrink"
 
@@ -206,6 +206,9 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         #Print values
         k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α, norm(xk,2), norm(s,2), fk, ψk(xk))
 
+        if(isnan(ρk))
+            break
+        end
 
     end
     return xk, zkl, zku, k

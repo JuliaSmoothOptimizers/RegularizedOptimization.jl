@@ -60,7 +60,7 @@ first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbos
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxG, χ_projector=projq)
-options = IP_options(;simple=0, ptf=1, Δk = 1)
+options = IP_options(;simple=0, ptf=10, Δk = k)
 #put in your initial guesses
 # x = (l+u)/2
 x = zeros(n,)
@@ -74,7 +74,7 @@ solve!(problem, SCSSolver())
 
 
 
-x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1.0)
+x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-2)
 
 
 #print out l2 norm difference and plot the two x values
