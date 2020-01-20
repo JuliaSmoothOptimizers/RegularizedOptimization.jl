@@ -199,14 +199,14 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
             zku = zku + α*dzu
             Δk = α*norm(s, 1)
         end
-        k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
+        # k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
 
         (fk, gk, Hk) = f_obj(xk);
         kktNorm = [norm(gk - zkl + zku);norm(zkl.*(xk-l) .- mu); norm(zku.*(u-xk).-mu) ]
         #Print values
         k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α, norm(xk,2), norm(s,2), fk, ψk(xk))
 
-        if(isnan(ρk))
+        if(isnan(ρk) || Δk<1e-10)
             break
         end
 

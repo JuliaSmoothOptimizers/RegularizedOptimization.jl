@@ -60,12 +60,12 @@ first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbos
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
 parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxG, χ_projector=projq)
-options = IP_options(;simple=0, ptf=10, Δk = k)
+options = IP_options(;simple=0, ptf=100, Δk = 1)
 #put in your initial guesses
-# x = (l+u)/2
-x = zeros(n,)
-zl = zeros(n,)
-zu = zeros(n,)
+x = (l+u)/2
+# x = zeros(n,)
+zl = ones(n,)
+zu = ones(n,)
 
 X = Variable(n)
 problem = minimize(sumsquares(A * X - b) + λ_T*norm(X,1), X>=l, X<=u)
@@ -74,7 +74,7 @@ solve!(problem, SCSSolver())
 
 
 
-x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-2)
+x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-3)
 
 
 #print out l2 norm difference and plot the two x values
