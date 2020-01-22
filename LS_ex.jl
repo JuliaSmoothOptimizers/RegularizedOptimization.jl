@@ -8,7 +8,6 @@ using Plots, Convex, SCS, Printf,LinearAlgebra
 
 
 m,n = 200,100 # this is a under determined system
-# m, n = 10, 2
 A = rand(m,n)
 x0  = rand(n,)
 b0 = A*x0
@@ -17,18 +16,6 @@ cutoff = 0.0
 l = zeros(n,)+cutoff*ones(n,)
 u = ones(n,)+cutoff*ones(n,)
 
-
-
-
-
-# function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
-#     r = b
-#     BLAS.gemv!('N',1.0, A, x, -1.0, r)
-#     f = .5*norm(r)^2
-#     g = BLAS.gemv('T',A,r)
-#     h = BLAS.gemm('T', 'N', 1.0, A, A)
-#     return f, g, h
-# end
 function f_obj(x)
     f = .5*norm(A*x-b)^2
     g = A'*(A*x - b)
