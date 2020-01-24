@@ -22,15 +22,15 @@ A = Matrix(Q)
 A = Matrix(A')
 
 b0 = A*x0
-# b = b0 + 0.005*randn(m,)
-b = b0
+b = b0 + 0.005*randn(m,)
+# b = b0
 cutoff = 0.0
 # l = -2.0*ones(n,)+cutoff*ones(n,)
 # u = 2.0*ones(n,)+cutoff*ones(n,)
 l = -10*ones(n,)
 u = 10*ones(n,)
 λ_T = norm(A'*b, Inf)/50
-λ_o = norm(A'*b, Inf)
+λ_o = 100*norm(A'*b, Inf)
 
 
 
@@ -89,7 +89,7 @@ x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-3)
 
 @printf("Full Objective - CVX: %5.5e     VP: %5.5e   True: %5.5e\n", f_obj(X.value)[1] + h_obj(X.value), f_obj(x)[1]+h_obj(x), f_obj(x0)[1]+h_obj(x0))
 @printf("f(x) - CVX: %5.5e     VP: %5.5e   True: %5.5e\n", f_obj(X.value)[1],f_obj(x)[1], f_obj(x0)[1])
-@printf("h(x) - CVX: %5.5e     VP: %5.5e   True: %5.5e\n", h_obj(X.value),h_obj(x), h_obj(x0))
+@printf("h(x) - CVX: %5.5e     VP: %5.5e   True: %5.5e\n", h_obj(X.value)/λ_T,h_obj2(x)/λ_o, h_obj(x0)/λ_T)
 
 plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
 plot!(x, label="tr", marker=2)
