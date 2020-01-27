@@ -31,7 +31,7 @@ function IP_options(;
                       epsD=1.0e-3,
                      epsC = 1.0e-3, Δk=1.0,  ptf = 100, simple=1, maxIter=10000
                       ) #default values for trust region parameters in algorithm 4.2
-    return IP_params(epsD, epsC, Δk, ptf, simple)
+    return IP_params(epsD, epsC, Δk, ptf, simple, maxIter)
 end
 
 function IP_struct(f_obj, h; l=Vector{Float64}, u=Vector{Float64},
