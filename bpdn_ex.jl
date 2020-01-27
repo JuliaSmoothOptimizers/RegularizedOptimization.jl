@@ -30,42 +30,44 @@ cutoff = 0.0
 l = -10*ones(n,)
 u = 10*ones(n,)
 λ_T = norm(A'*b, Inf)/50
-λ_o = 100*norm(A'*b, Inf)
 
 
 
+##@##TO_DO-------
+# make better function names
+# have epsC and D change with mu - 10*mu or something
 
 #define your smooth objective function
 #merit function isn't just this though right?
 function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
     r = A*x - b
     g = A'*r
-    return norm(r)^2, g, A'*A
+    return norm(r)^2/2, g, A'*A
 end
 
-function proxG(z, α)
+function proxp(z, α)
     return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
 #do l2 norm for testing purposes
 function projq(z,σ)
-    return z/max(1, norm(z, 2)/σ)
+    return z./max(1, norm(z, 2)/σ)
 end
 # projq(z,σ) = oneProjector(z, 1.0, σ)
 
 function h_obj(x)
     return λ_T*norm(x,1)
 end
-function h_obj2(x)
-    return λ_o*norm(x,1)
-end
+# function h_obj2(x)
+#     return λ_o*norm(x,1)
+# end
 #set all options
 #uncomment for OTHER test
 first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
 # fo_options=s_options(norm(Bk)^2;maxIter=10, verbose=2, restart=100, λ=λ, η =1.0, η_factor=.9,gk = g, Bk = Bk, xk=x)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
-parameters = IP_struct(f_obj, h_obj2; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxG, χ_projector=projq)
-options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.1, epsD=.1)
+parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=proxp, χ_projector=projq)
+options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2)
 #put in your initial guesses
 x = (l+u)/2
 # x = zeros(n,)
@@ -89,7 +91,7 @@ x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-3)
 
 @printf("Full Objective - CVX: %5.5e     VP: %5.5e   True: %5.5e\n", f_obj(X.value)[1] + h_obj(X.value), f_obj(x)[1]+h_obj(x), f_obj(x0)[1]+h_obj(x0))
 @printf("f(x) - CVX: %5.5e     VP: %5.5e   True: %5.5e\n", f_obj(X.value)[1],f_obj(x)[1], f_obj(x0)[1])
-@printf("h(x) - CVX: %5.5e     VP: %5.5e   True: %5.5e\n", h_obj(X.value)/λ_T,h_obj2(x)/λ_o, h_obj(x0)/λ_T)
+@printf("h(x) - CVX: %5.5e     VP: %5.5e   True: %5.5e\n", h_obj(X.value)/λ_T,h_obj(x)/λ_T, h_obj(x0)/λ_T)
 
 plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
 plot!(x, label="tr", marker=2)

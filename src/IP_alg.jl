@@ -12,6 +12,7 @@ mutable struct IP_params
     Δk #trust region radius
     ptf #print every so often
     simple #if you can use spg_minconf with simple projection
+    maxIter
 end
 
 mutable struct IP_methods
@@ -28,7 +29,7 @@ end
 
 function IP_options(;
                       epsD=1.0e-3,
-                     epsC = 1.0e-3, Δk=1.0,  ptf = 100, simple=1
+                     epsC = 1.0e-3, Δk=1.0,  ptf = 100, simple=1, maxIter=10000
                       ) #default values for trust region parameters in algorithm 4.2
     return IP_params(epsD, epsC, Δk, ptf, simple)
 end
@@ -82,6 +83,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
     Δk = options.Δk
     ptf = options.ptf
     simple = options.simple
+    maxIter=options.maxIter
 
     #other parameters
     l = params.l
@@ -118,12 +120,14 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         @printf("----------------------------------------------------------------------------------------------------------------------------------------------------------------------\n")
     end
 
+    k_i = 0
     k = TotalCount
     ρk = -1
     α = 1
-    while(kktNorm[1] > epsD || kktNorm[2] >epsC || kktNorm[3]>epsC)
+    while(kktNorm[1] > epsD || kktNorm[2] >epsC || kktNorm[3]>epsC || k_i<maxIter)
         #update count
-        k = k+1
+        k_i = k_i+1 #inner
+        k = k+1  #outer
         TR_stat = ""
         x_stat = ""
 
