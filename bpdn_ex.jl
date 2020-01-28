@@ -29,13 +29,13 @@ cutoff = 0.0
 # u = 2.0*ones(n,)+cutoff*ones(n,)
 l = -10*ones(n,)
 u = 10*ones(n,)
-λ_T = norm(A'*b, Inf)/50
+λ_T = norm(A'*b, Inf)/100
 
 
 
 ##@##TO_DO-------
 # make better function names
-# have epsC and D change with mu - 10*mu or something
+
 
 #define your smooth objective function
 #merit function isn't just this though right?
@@ -57,17 +57,13 @@ end
 function h_nonsmooth(x)
     return λ_T*norm(x,1)
 end
-# function h_nonsmooth2(x)
-#     return λ_o*norm(x,1)
-# end
+
 #set all options
-#uncomment for OTHER test
 first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
-# fo_options=s_options(norm(Bk)^2;maxIter=10, verbose=2, restart=100, λ=λ, η =1.0, η_factor=.9,gk = g, Bk = Bk, xk=x)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
 parameters = IP_struct(f_smooth, h_nonsmooth; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=h_nsmth_prox, χ_projector=tr_norm)
-options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2)
+options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
 #put in your initial guesses
 x = (l+u)/2
 # x = zeros(n,)
@@ -81,7 +77,7 @@ solve!(problem, SCSSolver())
 
 
 
-x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-3)
+x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-4)
 
 
 #print out l2 norm difference and plot the two x values

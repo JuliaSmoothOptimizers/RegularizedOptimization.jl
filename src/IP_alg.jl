@@ -12,7 +12,7 @@ mutable struct IP_params
     Δk #trust region radius
     ptf #print every so often
     simple #if you can use spg_minconf with simple projection
-    maxIter
+    maxIter #maximum amount of inner iterations
 end
 
 mutable struct IP_methods
@@ -55,15 +55,19 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         Initial guess for the lower dual parameters
     zu : Array{Float64,1}
         Initial guess for the upper dual parameters
-    f_obj : generic function with 3 outputs: f(x), gradient(x), Hessian(x)
+    mu : Float64
+        Barrier parameter
+    TotalCount: Float64
+        overall count on total iterations
     options : mutable structure IP_params with:
         -l Array{Float64,1}, lower bound
         -u Array{Float64,1}, upper bound
         -epsD Float64, bound for 13a
         -epsC Float64, bound for 13b
         -Δk Float64, trust region radius
-        -options, options for trust region method
+        -options, options for descent direction method
         -ptf Int, print output
+        -maxIter Float64, maximum number of inner iterations (note: does not influence TotalCount)
     Returns
     -------
     x   : Array{Float64,1}
