@@ -5,7 +5,7 @@ using Plots, Convex, SCS, Printf,LinearAlgebra
 #Here we just try to solve the l2-norm Problem over the l1 trust region
 #######
 # min_x 1/2||Ax - b||^2 st 0⩽x⩽1
-
+# min_x f(x) st 0≦x≦1
 
 m,n = 200,100 # this is a under determined system
 A = rand(m,n)
@@ -19,7 +19,7 @@ u = ones(n,)+cutoff*ones(n,)
 function f_obj(x)
     f = .5*norm(A*x-b)^2
     g = A'*(A*x - b)
-    h = A'*A
+    h = A'*A #-> BFGS later
     return f, g, h
 end
 
@@ -29,8 +29,10 @@ end
 #set all options
 first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
-parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options)
-options = IP_options(;ptf=50)
+
+# Interior Pt Algorithm
+parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options) #defaults to h=0, spgl1/min_confSPG
+options = IP_options(;ptf=50) #print freq, ΔK init, epsC/epsD initialization, maxIter
 #put in your initial guesses
 xi = (l+u)/2
 zl = ones(n,)
@@ -43,7 +45,7 @@ solve!(problem, SCSSolver())
 
 
 
-x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=0)
+x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=0, mu_tol=1e-3)
 
 
 #print out l2 norm difference and plot the two x values

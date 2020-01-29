@@ -24,7 +24,7 @@ mutable struct IP_methods
     prox_ψk
     ψk #part of ϕk that you are trying to solve - for ψ=0, this is just qk. Otherwise,
                 #it's the prox_{ξ*λ*ψ}(s - ν*∇q(s))
-    f_obj #objective function (unaltered) that you want to minimize
+    # f_obj #objective function (unaltered) that you want to minimize
 end
 
 function IP_options(;
@@ -36,49 +36,48 @@ end
 
 function IP_struct(f_obj, h; l=Vector{Float64}, u=Vector{Float64},
     FO_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
-    ψk=h, prox_ψk=h #initialize
+    ψk=h, prox_ψk=h #prox_{h + δᵦ(x)} for $B = Indicator of \|s\|_2 ≦σ_TR
     )
     return IP_methods(l, u, FO_options, s_alg, χ_projector, prox_ψk, ψk, f_obj)
 end
 
 
 
-
+"""Interior method for Trust Region problem for given mu barrier parameter
+    IntPt_TR(x, zl, zu,f_obj, options)
+Arguments
+----------
+x : Array{Float64,1}
+    Initial guess for the x value used in the trust region
+zl : Array{Float64,1}
+    Initial guess for the lower dual parameters
+zu : Array{Float64,1}
+    Initial guess for the upper dual parameters
+mu : Float64
+    Barrier parameter
+TotalCount: Float64
+    overall count on total iterations
+options : mutable structure IP_params with:
+    -l Array{Float64,1}, lower bound
+    -u Array{Float64,1}, upper bound
+    -epsD Float64, bound for 13a
+    -epsC Float64, bound for 13b
+    -Δk Float64, trust region radius
+    -options, options for descent direction method
+    -ptf Int, print output
+    -maxIter Float64, maximum number of inner iterations (note: does not influence TotalCount)
+Returns
+-------
+x   : Array{Float64,1}
+    Final value of Algorithm 4.2 trust region
+zkl : Array{Float64,1}
+    final value for the lower dual parameters
+zku : Array{Float64,1}
+    final value for the upper dual parameters
+k   : Int
+    number of iterations used
+"""
 function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
-    """Return the gradient of the variational penalty objective functional
-        IntPt_TR(x, zl, zu,f_obj, options)
-    Arguments
-    ----------
-    x : Array{Float64,1}
-        Initial guess for the x value used in the trust region
-    zl : Array{Float64,1}
-        Initial guess for the lower dual parameters
-    zu : Array{Float64,1}
-        Initial guess for the upper dual parameters
-    mu : Float64
-        Barrier parameter
-    TotalCount: Float64
-        overall count on total iterations
-    options : mutable structure IP_params with:
-        -l Array{Float64,1}, lower bound
-        -u Array{Float64,1}, upper bound
-        -epsD Float64, bound for 13a
-        -epsC Float64, bound for 13b
-        -Δk Float64, trust region radius
-        -options, options for descent direction method
-        -ptf Int, print output
-        -maxIter Float64, maximum number of inner iterations (note: does not influence TotalCount)
-    Returns
-    -------
-    x   : Array{Float64,1}
-        Final value of Algorithm 4.2 trust region
-    zkl : Array{Float64,1}
-        final value for the lower dual parameters
-    zku : Array{Float64,1}
-        final value for the upper dual parameters
-    k   : Int
-        number of iterations used
-    """
 
     #initialize passed options
     debug = false #turn this on to see debugging information
@@ -106,19 +105,23 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
     tau = 0.01 #linesearch buffer parameter
     sigma = 1.0e-3 # quadratic model linesearch buffer parameter
     gamma = 3.0 #trust region buffer
+
+    #initialize parameters
     zkl = copy(zl0)
     zku = copy(zu0)
     xk = copy(x0)
 
     #make sure you only take the first output of the objective value of the true function you are minimizing
-    β(x) = f_obj(x)[1] - mu*sum(log.((x-l).*(u-x))) + ψk(x) #mu*sum(log.(x-l)) - mu*sum(log.(u-x))
+    β(x) = f_obj(x)[1] + ψk(x) - mu*sum(log.(x-l)) - mu*sum(log.(u-x)) #- mu*sum(log.((x-l).*(u-x)))
+    #change this to h not psik
 
     #main algorithm initialization
     (fk, gk, Hk) = f_obj(xk)
     kktNorm = [norm(gk - zkl + zku); norm(zkl.*(xk-l) .- mu); norm(zku.*(u-xk).-mu)]
+    #norm((g_k + gh_k) - zkl + zku)
+#g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
-
-    if mu == 1
+    if TotalCount==0 #actual first mu
         @printf("----------------------------------------------------------------------------------------------------------------------------------------------------------------------\n")
         @printf("%10s | %11s | %11s | %11s | %10s | %11s | %11s | %11s | %10s | %10s | %10s | %10s\n","Iter","Norm(kkt)","Ratio: ρk", "x status ","TR: Δk", "Δk status","Barrier: μk", "LnSrch: α", "||x||", "||s||", "f(x)", "h(x)")
         @printf("----------------------------------------------------------------------------------------------------------------------------------------------------------------------\n")
@@ -142,7 +145,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
 
         #define custom inner objective to find search direction and solve
 
-        if simple==1
+        if simple==1 #when h==0
             objInner(s) = qk(s,fk, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
         else
@@ -165,7 +168,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
 
         #linesearch to adjust parameter
         # α = linesearch(xk, zkl, zku, s, dzl, dzu,l,u; mult=mult, tau = tau)
-        α = directsearch(xk-l, u-xk ,zkl, zku, s, dzl, dzu)
+        α = directsearch(xk-l, u-xk ,zkl, zku, s, dzl, dzu) #direct search cutting back step to remain feasible
         # directsearch!(xk-l, u-xk, α,zkl, zku, s, dzl, dzu) #alpha to the boundary
 
         #update search direction for
@@ -202,9 +205,10 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
             #     α = α*mult
             # end
             α = 0.1 #was 0.1; can be whatever
-            xk = xk + α*s
-            zkl = zkl + α*dzl
-            zku = zku + α*dzu
+            #step should be rejected
+            # xk = xk + α*s
+            # zkl = zkl + α*dzl
+            # zku = zku + α*dzu
             Δk = α*norm(s, 1)
         end
         # k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
@@ -214,9 +218,10 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         #Print values
         k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α, norm(xk,2), norm(s,2), fk, ψk(xk))
 
-        if(isnan(ρk) || Δk<1e-10)
-            break
-        end
+        #uncommented for now 
+        # if(isnan(ρk) || Δk<1e-10)
+        #     break
+        # end
 
     end
     return xk, zkl, zku, k

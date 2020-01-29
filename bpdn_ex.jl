@@ -55,7 +55,7 @@ end
 # tr_norm(z,σ) = oneProjector(z, 1.0, σ)
 
 function h_nonsmooth(x)
-    return λ_T*norm(x,1)
+    return λ_T*norm(x,1) #, g∈∂h 
 end
 
 #set all options
