@@ -25,24 +25,26 @@ function s_options(β;optTol=1f-10, maxIter=10000, verbose=2, restart=10, λ=1.0
 	return s_params(optTol, maxIter, verbose, restart, β,λ, η, η_factor,σ_TR, WoptTol, gk, Bk,xk)
 
 end
-function PG(Fcn, x,  proxG, options)
-	"""
-		Proximal Gradient Descent for
-		min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
 
-		Input:
-			x: initial point
-			β: Lipschitz constant for F
-			Fcn: function handle that returns f(x) and ∇f(x)
-			proxG: function handle that calculates prox_{ηg}
-			ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
-			* max_iter: self-explanatory
-			* print_freq: # of freq's in the sheets
-		Output:
-			x: x update
-			his: descent history
-			feval: number of function evals
-	"""
+
+"""
+	Proximal Gradient Descent for
+	min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
+
+	Input:
+		x: initial point
+		β: Lipschitz constant for F
+		Fcn: function handle that returns f(x) and ∇f(x)
+		proxG: function handle that calculates prox_{ηg}
+		ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
+		* max_iter: self-explanatory
+		* print_freq: # of freq's in the sheets
+	Output:
+		x: x update
+		his: descent history
+		feval: number of function evals
+"""
+function PG(Fcn, x,  proxG, options)
 
 	ε=options.optTol
 	max_iter=options.maxIter
@@ -88,25 +90,24 @@ function PG(Fcn, x,  proxG, options)
 end
 
 
+"""
+	Proximal Gradient Descent for
+	min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
 
+	Input:
+		x: initial point
+		β: Lipschitz constant for F
+		Fcn: function handle that returns f(x) and ∇f(x)
+		proxG: function handle that calculates prox_{ηg}
+		ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
+		* max_iter: self-explanatory
+		* print_freq: # of freq's in the sheets
+	Output:
+		x: x update
+		his: descent history
+		feval: number of function evals
+"""
 function PG!(Fcn!, x,  proxG!, options)
-	"""
-		Proximal Gradient Descent for
-		min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
-
-		Input:
-			x: initial point
-			β: Lipschitz constant for F
-			Fcn: function handle that returns f(x) and ∇f(x)
-			proxG: function handle that calculates prox_{ηg}
-			ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
-			* max_iter: self-explanatory
-			* print_freq: # of freq's in the sheets
-		Output:
-			x: x update
-			his: descent history
-			feval: number of function evals
-	"""
 	ε=options.optTol
 	max_iter=options.maxIter
 
@@ -151,23 +152,22 @@ function PG!(Fcn!, x,  proxG!, options)
 	return his[1:k-1], feval
 end
 
+"""
+	FISTA for
+	min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
 
+	Input:
+		x: initial point
+		β: Lipschitz constant for F
+		Fcn: function handle that returns f(x) and ∇f(x)
+		proxG: function handle that calculates prox_{ηg}
+		ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
+		* max_iter: self-explanatory
+		* print_freq: # of freq's in the sheets
+	Output:
+		x: x update
+"""
 function FISTA(Fcn, x,  proxG, options)
-	"""
-		FISTA for
-		min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
-
-		Input:
-			x: initial point
-			β: Lipschitz constant for F
-			Fcn: function handle that returns f(x) and ∇f(x)
-			proxG: function handle that calculates prox_{ηg}
-			ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
-			* max_iter: self-explanatory
-			* print_freq: # of freq's in the sheets
-		Output:
-			x: x update
-	"""
 	ε=options.optTol
 	max_iter=options.maxIter
 	restart = options.restart
@@ -227,22 +227,22 @@ function FISTA(Fcn, x,  proxG, options)
 
 end
 
-function FISTA!(Fcn!, x,  proxG!, options)
-	"""
-		FISTA for
-		min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
+"""
+	FISTA for
+	min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
 
-		Input:
-			x: initial point
-			β: Lipschitz constant for F
-			Fcn: function handle that returns f(x) and ∇f(x)
-			proxG: function handle that calculates prox_{ηg}
-			ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
-			* max_iter: self-explanatory
-			* print_freq: # of freq's in the sheets
-		Output:
-			x: x update
-	"""
+	Input:
+		x: initial point
+		β: Lipschitz constant for F
+		Fcn: function handle that returns f(x) and ∇f(x)
+		proxG: function handle that calculates prox_{ηg}
+		ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
+		* max_iter: self-explanatory
+		* print_freq: # of freq's in the sheets
+	Output:
+		x: x update
+"""
+function FISTA!(Fcn!, x,  proxG!, options)
 	ε=options.optTol
 	max_iter=options.maxIter
 	restart = options.restart
@@ -335,27 +335,29 @@ function directsearch!(xsl, usx,α, zkl, zku, s, dzl, dzu; tau = .01) #used to b
     α = minimum(vcat(temp, 1.0))
 end
 
+
+
+"""Solves descent direction s for some objective function with the structure
+	min_s q_k(s) + ψ(x+s) s.t. ||s||_q⩽ σ_TR
+	for some σ_TR provided
+Arguments
+----------
+proxp : prox method for p-norm
+	takes in z (vector), a (λ||⋅||_p), p is norm for ψ I think
+s0 : Vector{Float64,1}
+	Initial guess for the descent direction
+projq : generic that projects onto ||⋅||_q⩽σ_TR norm ball
+options : mutable structure p_params
+
+
+Returns
+-------
+s   : Vector{Float64,1}
+	Final value of Algorithm 6.1 descent direction
+w   : Vector{Float64,1}
+	relaxation variable of Algorithm 6.1 descent direction
+"""
 function  prox_split_1w(proxp, s0, projq, options)
-    """Solves descent direction s for some objective function with the structure
-        min_s q_k(s) + ψ(x+s) s.t. ||s||_q⩽ σ_TR
-        for some σ_TR provided
-    Arguments
-    ----------
-    proxp : prox method for p-norm
-        takes in z (vector), a (λ||⋅||_p), p is norm for ψ I think
-    s0 : Vector{Float64,1}
-        Initial guess for the descent direction
-    projq : generic that projects onto ||⋅||_q⩽σ_TR norm ball
-    options : mutable structure p_params
-
-
-    Returns
-    -------
-    s   : Vector{Float64,1}
-        Final value of Algorithm 6.1 descent direction
-    w   : Vector{Float64,1}
-        relaxation variable of Algorithm 6.1 descent direction
-    """
     ε=options.optTol
     max_iter=options.maxIter
     ε_w=options.WoptTol
@@ -422,28 +424,27 @@ function  prox_split_1w(proxp, s0, projq, options)
 
 end
 
+"""Solves descent direction s for some objective function with the structure
+	min_s q_k(s) + ψ(x+s) s.t. ||s||_q⩽ σ_TR
+	for some σ_TR provided
+Arguments
+----------
+proxp : prox method for p-norm
+	takes in z (vector), a (λ||⋅||_p), p is norm for ψ I think
+s0 : Vector{Float64,1}
+	Initial guess for the descent direction
+projq : generic that projects onto ||⋅||_q⩽σ_TR norm ball
+options : mutable structure p_params
 
+
+Returns
+-------
+s   : Vector{Float64,1}
+	Final value of Algorithm 6.2 descent direction
+w   : Vector{Float64,1}
+	relaxation variable of Algorithm 6.2 descent direction
+"""
 function  prox_split_2w(proxp, s0, projq, options)
-    """Solves descent direction s for some objective function with the structure
-        min_s q_k(s) + ψ(x+s) s.t. ||s||_q⩽ σ_TR
-        for some σ_TR provided
-    Arguments
-    ----------
-    proxp : prox method for p-norm
-        takes in z (vector), a (λ||⋅||_p), p is norm for ψ I think
-    s0 : Vector{Float64,1}
-        Initial guess for the descent direction
-    projq : generic that projects onto ||⋅||_q⩽σ_TR norm ball
-    options : mutable structure p_params
-
-
-    Returns
-    -------
-    s   : Vector{Float64,1}
-        Final value of Algorithm 6.2 descent direction
-    w   : Vector{Float64,1}
-        relaxation variable of Algorithm 6.2 descent direction
-    """
 
     ε=options.optTol
     max_iter=options.maxIter
