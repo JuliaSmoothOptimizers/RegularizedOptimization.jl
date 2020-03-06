@@ -112,11 +112,14 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
     xk = copy(x0)
 
     #make sure you only take the first output of the objective value of the true function you are minimizing
+    ########YOU SHOULD CHECK HERE FOR L AND U -> OPT OUT OF CONSTRAINTS OTHERWISE###################
     β(x) = f_obj(x)[1] + ψk(x) - mu*sum(log.(x-l)) - mu*sum(log.(u-x)) #- mu*sum(log.((x-l).*(u-x)))
     #change this to h not psik
 
     #main algorithm initialization
     (fk, gk, Hk) = f_obj(xk)
+
+    ########YOU SHOULD CHECK HERE FOR L AND U -> CHANGE KKT OTHERWISE###################
     kktNorm = [norm(gk - zkl + zku); norm(zkl.*(xk-l) .- mu); norm(zku.*(u-xk).-mu)]
     #norm((g_k + gh_k) - zkl + zku)
 #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
@@ -131,6 +134,8 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
     k = TotalCount
     ρk = -1
     α = 1
+
+    ########YOU SHOULD CHECK HERE FOR L AND U -> MAYBE WRITE A FUNCTION THAT CHECKS FOR YOU?###################
     while(kktNorm[1] > epsD || kktNorm[2] >epsC || kktNorm[3]>epsC || k_i<maxIter)
         #update count
         k_i = k_i+1 #inner
@@ -139,6 +144,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         x_stat = ""
 
         #compute hessian and gradient for the problem
+        ########YOU SHOULD CHECK HERE FOR L AND U -> CHANGE FUNCTIONS?###################
         ∇Phi = gk - mu./(xk-l) + mu./(u-xk)
         ∇²Phi = Hk + Diagonal(zkl./(xk-l)) + Diagonal(zku./(u-xk))
 
@@ -177,6 +183,8 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         dzu = dzu*α
 
         #update ρ
+
+        ########YOU WILL HAVE TO CHANGE THE MODEL TO THE NEW ONE IN THE PAPER###################
         mk(d) = qk(d,fk, ∇Phi, ∇²Phi)[1] + ψk(xk+d) #qk should take barrier terms into account
         # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
         ρk = (β(xk) - β(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
@@ -218,7 +226,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
         #Print values
         k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, mu, α, norm(xk,2), norm(s,2), fk, ψk(xk))
 
-        #uncommented for now 
+        #uncommented for now
         # if(isnan(ρk) || Δk<1e-10)
         #     break
         # end

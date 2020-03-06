@@ -1,10 +1,11 @@
+function hardproxtestBinf
 x = 10*randn(1); 
 z = 5*randn(1);
 t = 20*rand(1);
 lambda = 10*rand(1); 
 tau = 3*rand(1);
 
-[s,f] = hardprox(z, x, t, lambda, tau);
+[s,f] = hardproxBinf(z, x, t, lambda, tau);
 
 cvx_precision high
 cvx_begin
@@ -15,3 +16,7 @@ cvx_begin
 cvx_end
 
 norm(s_cvx - s)
+
+end
+
+

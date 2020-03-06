@@ -1,4 +1,4 @@
-function [s,f] = hardprox(z, x, t, lambda, tau)
+function [s,f] = hardproxBinf(z, x, t, lambda, tau)
 %HARDPROX computes the prox of the sum of shifted 1-norm and interval
 %constraint for a scalar variable 
 

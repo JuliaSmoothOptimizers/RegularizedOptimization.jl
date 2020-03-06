@@ -1,5 +1,5 @@
-n = 1; 
-
+n = 4; 
+% rng(2); 
 % vectors 
 x = 10*randn(n,1); 
 z = 5*randn(n,1);
@@ -9,14 +9,29 @@ t = 20*rand(1);
 lambda = 10*rand(1); 
 tau = 3*rand(1);
 
-[s,f] = hardproxB2(z, x, t, lambda, tau);
+
 
 cvx_precision high
-cvx_begin
+cvx_begin quiet
     variable s_cvx(n)
     minimize( sum_square(s_cvx-z)/(2*t) + lambda*norm(s_cvx+x,1))
     subject to
         norm(s_cvx,2) <=tau
 cvx_end
 
-norm(s_cvx - s)
+
+
+[s,f] = hardproxB2(z, x, t, lambda, tau);
+
+
+if n==1
+fprintf('Us: %1.4f    CVX: %1.4f    s: %1.4f   s_cvx: %1.4f    normdiff: %1.4f\n',...
+    f, sum_square(s_cvx-z)/(2*t) + lambda*norm(s_cvx+x,1), s, s_cvx, norm(s_cvx - s)); 
+else
+    fprintf('Us: %1.4f    CVX: %1.4f    s: %1.4f   s_cvx: %1.4f    normdiff: %1.4f\n',...
+    f, sum_square(s_cvx-z)/(2*t) + lambda*norm(s_cvx+x,1), norm(s)^2, norm(s_cvx)^2, norm(s_cvx - s)); 
+
+    
+end
+
+
