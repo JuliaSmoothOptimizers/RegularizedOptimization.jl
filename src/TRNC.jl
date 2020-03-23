@@ -11,5 +11,8 @@ include("IP_alg.jl")
 include("ProxLQ.jl")
 include("ProxProj.jl")
 include("Qcustom.jl")
+include("ProxBinf.jl")
+include("ProxB2.jl")
+
 
 end  # module TRNC

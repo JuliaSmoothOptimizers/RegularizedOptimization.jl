@@ -10,7 +10,7 @@ t = 20*rand(n)
 lambda = 10*rand(n)
 tau = 3*rand(1)
 
-(s,f) = ProxBinf(z, x, t, lambda, tau)
+(s,f) = hardproxBinf(z, x, t, lambda, tau)
 
 
 s_cvx = Variable(n)
