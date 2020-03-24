@@ -5,7 +5,7 @@ function hardproxB2(z, x, t, lambda, tau)
 # %constraint for a scalar variable
 
 fval(s) = norm(s.-z).^2/(2*t) .+ lambda.*norm(s.+x,1)
-projbox(y) = min(max(y, z.-lambda.*t),z.+lambda.*t) # different since through dual
+projbox(y) = min.(max.(y, z.-lambda.*t),z.+lambda.*t) # different since through dual
 froot(eta) = eta - norm(projbox((-x).*(eta/tau)))
 
 
