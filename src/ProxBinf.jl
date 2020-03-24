@@ -7,8 +7,8 @@ s = zeros(size(q))
 f = zeros(size(q))
 
 for i=1:length(q)
-fval(s) = (s-(x[i]+q[i])^2/(2*ν)+λ*abs(s)
-projbox(w) = min(max(w,x[i]-τ),x[i]+τ)
+fval(s) = (s-(x[i]+q[i]))^2/(2*ν)+λ*abs(s)
+projbox(w) = min(max(w,x[i]-τ), x[i]+τ)
 
 y1 = 0
 if y1>x[i]-τ && y1<x[i]+τ
