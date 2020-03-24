@@ -1,8 +1,10 @@
-# function hardproxtestBinf
 using TRNC,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers, Roots
 
 
-n=1
+function hardproxtestBinf(n)
+
+
+# n=10
 
 x = 10*randn(n)
 q= 5*randn(n)
@@ -10,11 +12,12 @@ q= 5*randn(n)
 λ = 10*rand()
 τ = 3*rand()
 
-(s,f) = hardproxBinf(z, x, t, lambda, tau)
+(s,f) = hardproxBinf(q, x, ν,λ, τ)
 
 
 s_cvx = Variable(n)
-problem = minimize((s_cvx-z)^2/(2*t) + lambda*abs(s_cvx+x), norm(s_cvx, Inf)<=tau)
+problem = minimize(sumsquares(s_cvx-q)/(2*ν) + λ*norm(s_cvx+x,1), norm(s_cvx, Inf)<=τ);
+solve!(problem, SCSSolver())
 # cvx_precision high
 # cvx_begin
 #     variable s_cvx(1)
@@ -23,4 +26,6 @@ problem = minimize((s_cvx-z)^2/(2*t) + lambda*abs(s_cvx+x), norm(s_cvx, Inf)<=ta
 #         -tau <= s_cvx <= tau
 # cvx_end
 
-norm(s_cvx - s)
+norm(s_cvx.value - s)
+
+end
