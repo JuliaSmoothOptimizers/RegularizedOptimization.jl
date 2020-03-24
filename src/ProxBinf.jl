@@ -24,7 +24,7 @@ f3 = fval(y3)
 smat = [y1, y2, y3]
 fvec = [f1; f2; f3]
 
-f[i]= mininum(fvec)
+f[i]= minimum(fvec)
 idx = argmin(fvec)
 s[i] = smat[:, idx]-x[i]
 

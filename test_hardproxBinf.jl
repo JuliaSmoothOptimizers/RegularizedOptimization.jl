@@ -6,8 +6,8 @@ n=1
 
 x = 10*randn(n)
 z = 5*randn(n)
-t = 20*rand(n)
-lambda = 10*rand(n)
+t = 20*rand()
+lambda = 10*rand()
 tau = 3*rand()
 
 (s,f) = hardproxBinf(z, x, t, lambda, tau)
