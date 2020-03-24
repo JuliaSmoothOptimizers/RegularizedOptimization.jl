@@ -26,7 +26,7 @@ fvec = [f1; f2; f3]
 
 f[i]= minimum(fvec)
 idx = argmin(fvec)
-s[i] = smat[:, idx]-x[i]
+s[i] = smat[idx]-x[i]
 
 end
 
