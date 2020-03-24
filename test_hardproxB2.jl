@@ -1,35 +1,46 @@
-n = 40;
+using TRNC,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers, Roots
+
+
+function hardproxtestB2(n)
+
 # rng(2)
 # vectors
-x = 10*randn(n,1);
-z = 5*randn(n,1);
+x = 10*randn(n);
+q = 5*randn(n);
 
 # scalars
-t = 20*rand(1);
-lambda = 10*rand(1);
-tau = 3*rand(1);
+ν = 20*rand();
+λ = 10*rand();
+τ = 3*rand();
+
+
+(s,f) = hardproxB2(z, x, t, λ, τ);
+
+
+s_cvx = Variable(n)
+problem = minimize(sumsquares(s_cvx-q)/(2*ν) + λ*norm(s_cvx+x,1), norm(s_cvx, 2)<=τ);
+solve!(problem, SCSSolver())
+
+# cvx_precision high
+# cvx_begin quiet
+#     variable s_cvx(n)
+#     minimize( sum_square(s_cvx-z)/(2*t) + λ*norm(s_cvx+x,1))
+#     subject to
+#         norm(s_cvx,2) <=τ
+# cvx_end
 
 
 
-cvx_precision high
-cvx_begin quiet
-    variable s_cvx(n)
-    minimize( sum_square(s_cvx-z)/(2*t) + lambda*norm(s_cvx+x,1))
-    subject to
-        norm(s_cvx,2) <=tau
-cvx_end
 
-
-
-[s,f] = hardproxB2(z, x, t, lambda, tau);
 
 
 if n==1
-fprintf('Us: %1.4f    CVX: %1.4f    s: %1.4f   s_cvx: %1.4f    normdiff: %1.4f\n',...
-    f, sum_square(s_cvx-z)/(2*t) + lambda*norm(s_cvx+x,1), s, s_cvx, norm(s_cvx - s));
+    printf('Us: %1.4f    CVX: %1.4f    s: %1.4f   s_cvx: %1.4f    normdiff: %1.4f\n',...
+    f, sum_square(s_cvx.value-q)/(2*ν) + λ*norm(s_cvx.value+x,1), s, s_cvx.value, norm(s_cvx.value - s));
 else
-    fprintf('Us: %1.4f    CVX: %1.4f    s: %1.4f   s_cvx: %1.4f    normdiff: %1.4f\n',...
-    f, sum_square(s_cvx-z)/(2*t) + lambda*norm(s_cvx+x,1), norm(s)^2, norm(s_cvx)^2, norm(s_cvx - s));
+    printf('Us: %1.4f    CVX: %1.4f    s: %1.4f   s_cvx: %1.4f    normdiff: %1.4f\n',...
+    f, norm(s_cvx.value-q)^2/(2*ν) + λ*norm(s_cvx.value+x,1), norm(s)^2, norm(s_cvx.value)^2, norm(s_cvx.value - s));
+end
 
 
 end
