@@ -7,7 +7,7 @@ s = zeros(size(q))
 f = zeros(size(q))
 
 for i=1:length(q)
-fval(s) = (s-(x[i]+q[i]))^2/(2*ν)+λ*abs(s)
+fval(y) = (y-(x[i]+q[i]))^2/(2*ν)+λ*abs(y)
 projbox(w) = min(max(w,x[i]-τ), x[i]+τ)
 
 y1 = 0
@@ -17,9 +17,9 @@ else
     f1 = Inf
 end
 
-y2 = projbox(q[i]-ν*λ)
+y2 = projbox(x[i]+q[i]-ν*λ)
 f2 = fval(y2)
-y3 = projbox(q[i]+ν*λ)
+y3 = projbox(x[i]+q[i]+ν*λ)
 f3 = fval(y3)
 smat = [y1, y2, y3]
 fvec = [f1; f2; f3]

@@ -26,6 +26,6 @@ solve!(problem, SCSSolver())
 #         -tau <= s_cvx <= tau
 # cvx_end
 
-norm(s_cvx.value - s)
+return norm(s_cvx.value .- s)
 
 end
