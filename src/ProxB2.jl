@@ -29,7 +29,7 @@ else
 end
 f = fval(s)
 
-@printf("Y-meth: %s    s-meth: %s    s: %1.4f   y:%1.4f\n", str, str2, s, y);
+@printf("Y-meth: %s    s-meth: %s    s: %1.4e   y:%1.4e\n", str, str2, s[1], y[1]);
 return s,f
 
 
