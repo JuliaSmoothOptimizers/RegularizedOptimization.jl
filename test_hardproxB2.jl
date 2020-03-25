@@ -3,18 +3,30 @@ using TRNC,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers, Roots
 
 function hardproxtestB2(n)
 
+A,_ = qr(5*randn(n,n))
+
+B = Array(A)'
+
+A = Array(B)
 # rng(2)
 # vectors
-x = 10*randn(n);
-q = 5*randn(n);
+x = 10*randn(n)
+g = 5*randn(n)
 
 # scalars
-ν = 20*rand();
-λ = 10*rand();
-τ = 3*rand();
+ν = 1/norm(A'*A)^2
+λ = 10*rand()
+τ = 3*rand()
 
+# This constructs q = ν∇qᵢ(sⱼ) = Bksⱼ + gᵢ (note that i = k in paper notation)
+q = A'*(A*g) - randn(n) #doesn't really matter tho in the example
 
-(s,f) = hardproxB2(q, x, ν, λ, τ);
+Doptions=s_options(1/ν; maxIter=10, λ=λ,
+    gk = g, Bk = A'*A, xk=x, σ_TR = τ)
+
+fval(s) = norm(s.-q)^2/(2*ν) + λ*norm(s.+x,1)
+projbox(y) = min.(max.(y, q.-λ*ν),q.+λ*ν) # different since through dual
+(s,f) = hardproxB2(fval, x, projbox, Doptions);
 
 
 s_cvx = Variable(n)

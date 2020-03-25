@@ -158,7 +158,7 @@ function IntPt_TR(x0, zl0, zu0,mu, TotalCount, params, options)
             FO_options.Bk = ∇²Phi
             FO_options.gk = ∇Phi
             FO_options.xk = xk
-            FO_options.σ_TR = Δk
+            FO_options.Δ = Δk
             funProj = χ_projector
             objInner= prox_ψk
         end

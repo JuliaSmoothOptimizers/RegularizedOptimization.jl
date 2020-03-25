@@ -1,36 +1,42 @@
 export hardproxB2
 
-function hardproxB2(q, x, ν, λ, τ)
+# function hardproxB2(q, x, ν, λ, τ)
+function hardproxB2(Fcn, x, ProjB, options)
 # %HARDPROXB2 computes the prox of the sum of shifted 1-norm and L2
 # %constraint for a scalar variable
+λ = options.λ
+ν = 1.0/options.β
+Bk = options.Bk
+xk = options.xk
+gk = options.gk
+Δ = options.Δ
 
-fval(s) = norm(s.-q)^2/(2*ν) + λ*norm(s.+x,1)
-projbox(y) = min.(max.(y, q.-λ*ν),q.+λ*ν) # different since through dual
-froot(η) = η - norm(projbox((-x).*(η/τ)))
+
+froot(η) = η - norm(ProjB((-xk).*(η/Δ)))
 
 
 # %do the 2 norm projection
-y1 = projbox(-x) #start with eta = tau
-if (norm(y1)<= τ)
+y1 = ProjB(-xk) #start with eta = tau
+if (norm(y1)<= Δ)
     y = y1  # easy case
     str = "y in tau"
 else
     # η = fzero(froot, τ)
     η = fzero(froot, 1e-10, Inf)
-    y = projbox((-x).*(η/τ))
+    y = ProjB((-xk).*(η/Δ))
     str = "y root"
 end
 
-if(norm(y)<=τ)
+if(norm(y)<=Δ)
     s = y
     str2 = "within tau"
 else
-    s = τ.*y./norm(y)
+    s = Δ.*y./norm(y)
     str2 = "out tau"
 end
-f = fval(s)
+f = Fcn(s)
 
-@printf("Y-meth: %s    s-meth: %s    s: %1.4e   y:%1.4e\n", str, str2, s[1], y[1]);
+# @printf("Y-meth: %s    s-meth: %s    s: %1.4e   y:%1.4e\n", str, str2, s[1], y[1]);
 return s,f
 
 
