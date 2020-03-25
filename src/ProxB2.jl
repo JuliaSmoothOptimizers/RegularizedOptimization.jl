@@ -15,7 +15,7 @@ if (norm(y1)<= τ)
     y = y1  # easy case
     str = "y in tau"
 else
-    η = find_zero(froot, τ)
+    η = fzero(froot, τ)
     y = projbox((-x).*(η/τ))
     str = "y root"
 end
