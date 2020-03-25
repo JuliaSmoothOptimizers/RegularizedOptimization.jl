@@ -14,7 +14,7 @@ q = 5*randn(n);
 τ = 3*rand();
 
 
-(s,f) = hardproxB2(z, x, t, λ, τ);
+(s,f) = hardproxB2(q, x, ν, λ, τ);
 
 
 s_cvx = Variable(n)
@@ -35,11 +35,9 @@ solve!(problem, SCSSolver())
 
 
 if n==1
-    printf('Us: %1.4f    CVX: %1.4f    s: %1.4f   s_cvx: %1.4f    normdiff: %1.4f\n',...
-    f, sum_square(s_cvx.value-q)/(2*ν) + λ*norm(s_cvx.value+x,1), s, s_cvx.value, norm(s_cvx.value - s));
+    @printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", f, norm(s_cvx.value-q)^2/(2*ν) + λ*norm(s_cvx.value+x,1), s, s_cvx.value, norm(s_cvx.value - s));
 else
-    printf('Us: %1.4f    CVX: %1.4f    s: %1.4f   s_cvx: %1.4f    normdiff: %1.4f\n',...
-    f, norm(s_cvx.value-q)^2/(2*ν) + λ*norm(s_cvx.value+x,1), norm(s)^2, norm(s_cvx.value)^2, norm(s_cvx.value - s));
+    @printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", f, norm(s_cvx.value-q)^2/(2*ν) + λ*norm(s_cvx.value+x,1), norm(s)^2, norm(s_cvx.value)^2, norm(s_cvx.value - s));
 end
 
 

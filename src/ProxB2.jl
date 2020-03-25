@@ -4,7 +4,7 @@ function hardproxB2(q, x, ν, λ, τ)
 # %HARDPROXB2 computes the prox of the sum of shifted 1-norm and L2
 # %constraint for a scalar variable
 
-fval(s) = norm(s.-q).^2/(2*t) .+ λ.*norm(s.+x,1)
+fval(s) = norm(s.-q).^2/(2*ν) .+ λ.*norm(s.+x,1)
 projbox(y) = min.(max.(y, q.-λ.*ν),q.+λ.*ν) # different since through dual
 froot(η) = η - norm(projbox((-x).*(η/τ)))
 
