@@ -35,9 +35,9 @@ solve!(problem, SCSSolver())
 
 
 if n==1
-    @printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", f, norm(s_cvx.value-q)^2/(2*ν) + λ*norm(s_cvx.value+x,1), s, s_cvx.value, norm(s_cvx.value - s));
+    @printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", f, norm(s_cvx.value.-q)^2/(2*ν) + λ*norm(s_cvx.value.+x,1), s[1], s_cvx.value, norm(s_cvx.value .- s));
 else
-    @printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", f, norm(s_cvx.value-q)^2/(2*ν) + λ*norm(s_cvx.value+x,1), norm(s)^2, norm(s_cvx.value)^2, norm(s_cvx.value - s));
+    @printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", f, norm(s_cvx.value.-q)^2/(2*ν) + λ*norm(s_cvx.value.+x,1), norm(s)^2, norm(s_cvx.value)^2, norm(s_cvx.value .- s));
 end
 
 
