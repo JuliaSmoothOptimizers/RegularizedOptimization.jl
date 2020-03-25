@@ -22,7 +22,7 @@ g = 5*randn(n)
 q = A'*(A*g) - randn(n) #doesn't really matter tho in the example
 
 Doptions=s_options(1/ν; maxIter=10, λ=λ,
-    gk = g, Bk = A'*A, xk=x, σ_TR = τ)
+    gk = g, Bk = A'*A, xk=x, Δ = τ)
 
 fval(s) = norm(s.-q)^2/(2*ν) + λ*norm(s.+x,1)
 projbox(y) = min.(max.(y, q.-λ*ν),q.+λ*ν) # different since through dual

@@ -22,7 +22,7 @@ end
 function s_options(β;optTol=1f-10, maxIter=10000, verbose=2, restart=10, λ=1.0, η =1.0, η_factor=.9, Δ=1.0,
      WoptTol=1f-10, gk = Vector{Float64}(undef,0), Bk = Array{Float64}(undef, 0,0), xk=Vector{Float64}(undef,0))
 
-	return s_params(optTol, maxIter, verbose, restart, β,λ, η, η_factor,σ_TR, WoptTol, gk, Bk,xk)
+	return s_params(optTol, maxIter, verbose, restart, β, λ, η, η_factor,Δ, WoptTol, gk, Bk,xk)
 
 end
 
@@ -338,15 +338,15 @@ end
 
 
 """Solves descent direction s for some objective function with the structure
-	min_s q_k(s) + ψ(x+s) s.t. ||s||_q⩽ σ_TR
-	for some σ_TR provided
+	min_s q_k(s) + ψ(x+s) s.t. ||s||_q⩽ Δ
+	for some Δ provided
 Arguments
 ----------
 proxp : prox method for p-norm
 	takes in z (vector), a (λ||⋅||_p), p is norm for ψ I think
 s0 : Vector{Float64,1}
 	Initial guess for the descent direction
-projq : generic that projects onto ||⋅||_q⩽σ_TR norm ball
+projq : generic that projects onto ||⋅||_q⩽Δ norm ball
 options : mutable structure p_params
 
 
@@ -362,7 +362,7 @@ function  prox_split_1w(proxp, s0, projq, options)
     max_iter=options.maxIter
     ε_w=options.WoptTol
     λ = options.λ
-    σ_TR = options.σ_TR
+    Δ = options.Δ
     restart = options.restart
     #η_factor should have two values, as should η
     η = options.η
@@ -406,7 +406,7 @@ function  prox_split_1w(proxp, s0, projq, options)
         s = u - xk
 
         #w update
-        w = projq(s, σ_TR)
+        w = projq(s, Δ)
 
         w_err = norm(w - xk-s)^2
         err = norm(s_ - s) + norm(w_ - w)
@@ -425,15 +425,15 @@ function  prox_split_1w(proxp, s0, projq, options)
 end
 
 """Solves descent direction s for some objective function with the structure
-	min_s q_k(s) + ψ(x+s) s.t. ||s||_q⩽ σ_TR
-	for some σ_TR provided
+	min_s q_k(s) + ψ(x+s) s.t. ||s||_q⩽ Δ
+	for some Δ provided
 Arguments
 ----------
 proxp : prox method for p-norm
 	takes in z (vector), a (λ||⋅||_p), p is norm for ψ I think
 s0 : Vector{Float64,1}
 	Initial guess for the descent direction
-projq : generic that projects onto ||⋅||_q⩽σ_TR norm ball
+projq : generic that projects onto ||⋅||_q⩽Δ norm ball
 options : mutable structure p_params
 
 
@@ -450,7 +450,7 @@ function  prox_split_2w(proxp, s0, projq, options)
     max_iter=options.maxIter
     ε_w=options.WoptTol
     λ = options.λ
-    σ_TR = options.σ_TR
+    Δ = options.Δ
     restart = options.restart
     #η_factor should have two values, as should η
     η = options.η
@@ -469,7 +469,7 @@ function  prox_split_2w(proxp, s0, projq, options)
     err=100
     w1_err = norm(w1 - u)^2
     w2_err = norm(w2 - u + xk)^2
-	s_feas = norm(s0,1)-σ_TR
+	s_feas = norm(s0,1)-Δ
     k = 1
     b_pt1 = Bk*xk - gk
 
@@ -493,12 +493,12 @@ function  prox_split_2w(proxp, s0, projq, options)
         w1 = proxp(u, ξ*λ)
 
         #w2 update
-        w2 = projq(u - xk, σ_TR)
+        w2 = projq(u - xk, Δ)
 
         w1_err = norm(w1 - u)^2
         w2_err = norm(w2 - u + xk)^2
         err = norm(u_ - u) + norm(w1_ - w1) + norm(w2_ - w2)
-        s_feas = norm(u-xk, 1)-σ_TR
+        s_feas = norm(u-xk, 1)-Δ
         k % print_freq ==0 &&
         @printf("iter: %d, ||w1-u||²: %7.3e, ||w2-u+xk||²: %7.3e, err: %7.3e, η: %7.3e, s_feas: %7.3e, ||w1||_1: %7.3e, ||w2||_1: %7.3e, u-sum: %7.3e\n", k, w1_err, w2_err,
 		 err, η, s_feas, norm(w1,1), norm(w2,1), gk'*(u-xk)+ 1/2*(u-xk)'*Bk*(u-xk))
