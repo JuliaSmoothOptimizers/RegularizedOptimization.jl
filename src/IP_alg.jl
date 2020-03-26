@@ -24,7 +24,7 @@ mutable struct IP_methods
     prox_ψk
     ψk #part of ϕk that you are trying to solve - for ψ=0, this is just qk. Otherwise,
                 #it's the prox_{ξ*λ*ψ}(s - ν*∇q(s))
-    # f_obj #objective function (unaltered) that you want to minimize
+    f_obj #objective function (unaltered) that you want to minimize
 end
 
 function IP_options(;
@@ -36,7 +36,7 @@ end
 
 function IP_struct(f_obj, h; l=Vector{Float64}, u=Vector{Float64},
     FO_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
-    ψk=h, prox_ψk=h #prox_{h + δᵦ(x)} for $B = Indicator of \|s\|_2 ≦σ_TR
+    ψk=h, prox_ψk=h #prox_{h + δᵦ(x)} for $B = Indicator of \|s\|_2 ≦Δ
     )
     return IP_methods(l, u, FO_options, s_alg, χ_projector, prox_ψk, ψk, f_obj)
 end
