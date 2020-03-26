@@ -32,9 +32,9 @@ f1[idx] .= Inf
 #     f1 = Inf
 # end
 
-y2 = projbox(x+gk.-ν*λ)
+y2 = ProjB(x+gk.-ν*λ)
 f2 = fval(y2)
-y3 = projbox(x+gk.+ν*λ)
+y3 = ProjB(x+gk.+ν*λ)
 f3 = fval(y3)
 smat = hcat(y1, y2, y3) #to get dimensions right
 # fvec = [f1; f2; f3]
