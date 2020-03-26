@@ -13,8 +13,6 @@ x0  = rand(n,)
 b0 = A*x0
 b = b0 + 0.5*rand(m,)
 cutoff = 0.0
-l = zeros(n,)+cutoff*ones(n,)
-u = ones(n,)+cutoff*ones(n,)
 
 function f_obj(x)
     f = .5*norm(A*x-b)^2
@@ -31,21 +29,21 @@ first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
 
 # Interior Pt Algorithm
-parameters = IP_struct(f_obj, h_obj; l=l, u=u, FO_options = first_order_options) #defaults to h=0, spgl1/min_confSPG
+parameters = IP_struct(f_obj, h_obj; FO_options = first_order_options) #defaults to h=0, spgl1/min_confSPG
 options = IP_options(;ptf=50) #print freq, ΔK init, epsC/epsD initialization, maxIter
 #put in your initial guesses
-xi = (l+u)/2
-zl = ones(n,)
-zu = ones(n,)
+xi = ones(n,)/2
 
 X = Variable(n)
-problem = minimize(sumsquares(A * X - b), X>=l, X<=u)
+problem = minimize(sumsquares(A * X - b))
 solve!(problem, SCSSolver())
 
 
 
 
-x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=0, mu_tol=1e-3)
+# x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=0, mu_tol=1e-3)
+# x, zl, zu, k = IntPt_TR(x, zl, zu,mu,IterCount, IPparams, IPoptions)
+x, k = IntPt_TR(xi, TotalCount, parameters, options)
 
 
 #print out l2 norm difference and plot the two x values
