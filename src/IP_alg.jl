@@ -95,7 +95,7 @@ function IntPt_TR(x0, TotalCount, params, options)
     (fk, gk, Hk) = f_obj(xk)
 
     s = Inf*ones(size(gk)) #just initialize s
-    #norm((g_k + gh_k) - zkl + zku)
+    #norm((g_k + gh_k))
     #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
     if TotalCount==0 #actual first mu
@@ -158,8 +158,6 @@ function IntPt_TR(x0, TotalCount, params, options)
         if(ρk >= eta1)
             x_stat = "update"
             xk = xk + s
-            zkl = zkl + dzl
-            zku = zku + dzu
         end
 
         if(ρk < eta1)
@@ -174,8 +172,6 @@ function IntPt_TR(x0, TotalCount, params, options)
             α = 0.1 #was 0.1; can be whatever
             #step should be rejected
             # xk = xk + α*s
-            # zkl = zkl + α*dzl
-            # zku = zku + α*dzu
             Δk = α*norm(s, 1)
         end
         # k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
