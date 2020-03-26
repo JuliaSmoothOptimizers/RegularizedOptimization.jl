@@ -92,7 +92,7 @@ function IntPt_TR(x0, TotalCount, params, options)
     #main algorithm initialization
     (fk, gk, Hk) = f_obj(xk)
 
-    s = Inf #just initialize s
+    s = Inf*ones(size(gk)) #just initialize s
     #norm((g_k + gh_k) - zkl + zku)
     #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 

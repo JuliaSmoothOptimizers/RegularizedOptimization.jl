@@ -38,7 +38,7 @@ X = Variable(n)
 problem = minimize(sumsquares(A * X - b))
 solve!(problem, SCSSolver())
 
-
+TotalCount = 0 
 
 
 # x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=0, mu_tol=1e-3)
