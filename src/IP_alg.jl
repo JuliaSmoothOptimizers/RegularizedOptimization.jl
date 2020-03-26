@@ -100,7 +100,7 @@ function IntPt_TR(x0, TotalCount, params, options)
 
     if TotalCount==0 #actual first mu
         @printf("---------------------------------------------------------------------------------------------------------------------------------------------------\n")
-        @printf("%10s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s\n","Iter","Norm(kkt)","Ratio: ρk", "x status ","TR: Δk", "Δk status", "LnSrch: α", "||x||", "||s||", "f(x)", "h(x)")
+        @printf("%10s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s\n","Iter","Norm(s+gk)","Ratio: ρk", "x status ","TR: Δk", "Δk status", "LnSrch: α", "||x||", "||s||", "f(x)", "h(x)")
         @printf("---------------------------------------------------------------------------------------------------------------------------------------------------\n")
     end
 
@@ -178,7 +178,7 @@ function IntPt_TR(x0, TotalCount, params, options)
 
         (fk, gk, Hk) = f_obj(xk);
         #Print values
-        k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, sum(kktNorm), ρk,x_stat, Δk,TR_stat, α, norm(xk,2), norm(s,2), fk, ψk(xk))
+        k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, norm(s+gk), ρk,x_stat, Δk,TR_stat, α, norm(xk,2), norm(s,2), fk, ψk(xk))
 
         #uncommented for now
         # if(isnan(ρk) || Δk<1e-10)
