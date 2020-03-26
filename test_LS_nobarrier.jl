@@ -4,8 +4,8 @@ using Plots, Convex, SCS, Printf,LinearAlgebra
 
 #Here we just try to solve the l2-norm Problem over the l1 trust region
 #######
-# min_x 1/2||Ax - b||^2 st 0⩽x⩽1
-# min_x f(x) st 0≦x≦1
+# min_x 1/2||Ax - b||^2
+# min_x f(x)
 
 m,n = 200,100 # this is a under determined system
 A = rand(m,n)
@@ -21,6 +21,10 @@ function f_obj(x)
     return f, g, h
 end
 
+function tr_norm(z,σ)
+    return z./max(1, norm(z, 2)/σ)
+end
+
 function h_obj(x)
     return 0
 end
@@ -29,8 +33,8 @@ first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
 
 # Interior Pt Algorithm
-parameters = IP_struct(f_obj, h_obj; FO_options = first_order_options) #defaults to h=0, spgl1/min_confSPG
-options = IP_options(;ptf=50) #print freq, ΔK init, epsC/epsD initialization, maxIter
+parameters = IP_struct(f_obj, h_obj; FO_options = first_order_options, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
+options = IP_options(;ptf=1) #print freq, ΔK init, epsC/epsD initialization, maxIter
 #put in your initial guesses
 xi = ones(n,)/2
 
@@ -38,7 +42,7 @@ X = Variable(n)
 problem = minimize(sumsquares(A * X - b))
 solve!(problem, SCSSolver())
 
-TotalCount = 0 
+TotalCount = 0
 
 
 # x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=0, mu_tol=1e-3)

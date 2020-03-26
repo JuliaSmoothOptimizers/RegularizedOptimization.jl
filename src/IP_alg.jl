@@ -31,7 +31,7 @@ end
 
 function IP_struct(f_obj, h;
     FO_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
-    ψk=h, prox_ψk=h #prox_{h + δᵦ(x)} for $B = Indicator of \|s\|_2 ≦Δ
+    ψk=h, prox_ψk=h #prox_{h + δᵦ(x)} for $B = Indicator of \|s\|_p ≦Δ
     )
     return IP_methods(FO_options, s_alg, χ_projector, prox_ψk, ψk, f_obj)
 end
@@ -110,7 +110,7 @@ function IntPt_TR(x0, TotalCount, params, options)
     α = 1
 
     ########YOU SHOULD CHECK HERE FOR L AND U -> MAYBE WRITE A FUNCTION THAT CHECKS FOR YOU?###################
-    while(norm(s + gk) > ϵ || k_i<maxIter)
+    while(norm(s + gk) > ϵ & k_i<maxIter)
         #update count
         k_i = k_i+1 #inner
         k = k+1  #outer
@@ -133,7 +133,7 @@ function IntPt_TR(x0, TotalCount, params, options)
             FO_options.gk = ∇Phi
             FO_options.xk = xk
             FO_options.Δ = Δk
-            funProj = χ_projector
+            funProj = χ_projector(x, Δk)
             objInner= prox_ψk
         end
 
