@@ -33,9 +33,9 @@ f1[idx] .= Inf
 # end
 
 y2 = ProjB(x+gk.-ν*λ)
-f2 = fval(y2)
+f2 = Fcn(y2)
 y3 = ProjB(x+gk.+ν*λ)
-f3 = fval(y3)
+f3 = Fcn(y3)
 smat = hcat(y1, y2, y3) #to get dimensions right
 # fvec = [f1; f2; f3]
 fvec = hcat(f1, f2, f3)

@@ -21,7 +21,7 @@ g = 5*randn(n)
 q = g #doesn't really matter tho in the example
 
 fval(y) = (y-(x+q)).^2/(2*ν)+λ*abs.(y)
-projbox(w) = min.(max.(w,x.-Δ), x.+Δ)
+projbox(w) = min.(max.(w,x.-τ), x.+τ)
 
 Doptions=s_options(1/ν; maxIter=10, λ=λ, gk = g, Bk = A'*A, xk=x, Δ = τ)
 # n=10
