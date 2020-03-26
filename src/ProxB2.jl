@@ -12,18 +12,18 @@ gk = options.gk
 Δ = options.Δ
 
 
-froot(η) = η - norm(ProjB((-xk).*(η/Δ)))
+froot(η) = η - norm(ProjB((-xk).*(η/Δ), , ))
 
 
 # %do the 2 norm projection
-y1 = ProjB(-xk) #start with eta = tau
+y1 = ProjB(-xk, , ) #start with eta = tau
 if (norm(y1)<= Δ)
     y = y1  # easy case
     str = "y in tau"
 else
     # η = fzero(froot, τ)
     η = fzero(froot, 1e-10, Inf)
-    y = ProjB((-xk).*(η/Δ))
+    y = ProjB((-xk).*(η/Δ), , )
     str = "y root"
 end
 
@@ -34,7 +34,7 @@ else
     s = Δ.*y./norm(y)
     str2 = "out tau"
 end
-f = Fcn(s)
+f = Fcn(s,gk, ν)
 
 # @printf("Y-meth: %s    s-meth: %s    s: %1.4e   y:%1.4e\n", str, str2, s[1], y[1]);
 return s,f

@@ -22,8 +22,8 @@ gk = options.gk #note that q = gk = ∇f(x_k) for this example
 # projbox(w) = min(max(w,x[i]-Δ), x[i]+Δ)
 
 y1 = zeros(size(x))
-f1 = Fcn(y1)
-idx = (y1.<x.-Δ) .| (y1.>x .+ Δ) #actually do outward since more efficient
+f1 = Fcn(y1, gk, ν)
+idx = (y1.<xk.-Δ) .| (y1.>xk .+ Δ) #actually do outward since more efficient
 f1[idx] .= Inf
 
 # if y1>x[i]-Δ && y1<x[i]+Δ
@@ -32,10 +32,10 @@ f1[idx] .= Inf
 #     f1 = Inf
 # end
 
-y2 = ProjB(x+gk.-ν*λ)
-f2 = Fcn(y2)
-y3 = ProjB(x+gk.+ν*λ)
-f3 = Fcn(y3)
+y2 = ProjB(xk+gk.-ν*λ, xk, τ)
+f2 = Fcn(y2,gk, ν)
+y3 = ProjB(xk+gk.+ν*λ, xk, τ)
+f3 = Fcn(y3,gk, ν)
 smat = hcat(y1, y2, y3) #to get dimensions right
 # fvec = [f1; f2; f3]
 fvec = hcat(f1, f2, f3)

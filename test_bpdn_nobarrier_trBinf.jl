@@ -6,7 +6,6 @@ include("./src/minconf_spg/oneProjector.jl")
 #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with -10≦x≦10
 #######
 # min_x 1/2||Ax - b||^2 + λ||x||₁
-# s.t. -10≦x≦10
 compound = 1
 #m rows, n columns, k nonzeros
 m,n = compound*120,compound*512
@@ -32,9 +31,16 @@ u = 10*ones(n,)
 λ_T = norm(A'*b, Inf)/100
 
 
+q = g #doesn't really matter tho in the example
 
-##@##TO_DO-------
-# make better function names
+fval(y) = (y-(x+q)).^2/(2*ν)+λ*abs.(y)
+projbox(w) = min.(max.(w,x.-τ), x.+τ)
+
+Doptions=s_options(1/ν; maxIter=10, λ=λ, gk = g, Bk = A'*A, xk=x, Δ = τ)
+# n=10
+
+# (s,f) = hardproxBinf(q, x, ν,λ, τ)
+(s, f) = hardproxBinf(fval, x, projbox, Doptions)
 
 
 #define your smooth objective function
@@ -65,19 +71,17 @@ first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbos
 parameters = IP_struct(f_smooth, h_nonsmooth; l=l, u=u, FO_options = first_order_options, s_alg=prox_split_2w, prox_ψk=h_nsmth_prox, χ_projector=tr_norm)
 options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
 #put in your initial guesses
-x = (l+u)/2
-# x = zeros(n,)
-zl = ones(n,)
-zu = ones(n,)
+x = ones(n,)/2
 
 X = Variable(n)
-problem = minimize(sumsquares(A * X - b) + λ_T*norm(X,1), X>=l, X<=u)
+problem = minimize(sumsquares(A * X - b) + λ_T*norm(X,1))
 solve!(problem, SCSSolver())
 
 
 
 
-x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-4)
+# x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-4)
+x, k = IntPt_TR(xi, TotalCount, parameters, options)
 
 
 #print out l2 norm difference and plot the two x values

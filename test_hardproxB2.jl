@@ -22,28 +22,16 @@ g = 5*randn(n)
 q = A'*(A*g) - randn(n) #doesn't really matter tho in the example
 
 Doptions=s_options(1/ν; maxIter=10, λ=λ,
-    gk = g, Bk = A'*A, xk=x, Δ = τ)
+    gk = q, Bk = A'*A, xk=x, Δ = τ)
 
-fval(s) = norm(s.-q)^2/(2*ν) + λ*norm(s.+x,1)
-projbox(y) = min.(max.(y, q.-λ*ν),q.+λ*ν) # different since through dual
+fval(s, bq, νi) = norm(s.-bq)^2/(2*νi) + λ*norm(s.+x,1)
+projbox(y, bq, νi) = min.(max.(y, bq.-λ*νi),bq.+λ*νi) # different since through dual
 (s,f) = hardproxB2(fval, x, projbox, Doptions);
 
 
 s_cvx = Variable(n)
 problem = minimize(sumsquares(s_cvx-q)/(2*ν) + λ*norm(s_cvx+x,1), norm(s_cvx, 2)<=τ);
 solve!(problem, SCSSolver())
-
-# cvx_precision high
-# cvx_begin quiet
-#     variable s_cvx(n)
-#     minimize( sum_square(s_cvx-z)/(2*t) + λ*norm(s_cvx+x,1))
-#     subject to
-#         norm(s_cvx,2) <=τ
-# cvx_end
-
-
-
-
 
 
 if n==1

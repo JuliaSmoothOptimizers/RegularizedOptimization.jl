@@ -20,8 +20,8 @@ g = 5*randn(n)
 #but it's first order tho so sⱼ = 0 and it's just ∇f(x_k)
 q = g #doesn't really matter tho in the example
 
-fval(y) = (y-(x+q)).^2/(2*ν)+λ*abs.(y)
-projbox(w) = min.(max.(w,x.-τ), x.+τ)
+fval(y, bq, νi) = (y-(x+bq)).^2/(2*νi)+λ*abs.(y)
+projbox(w, bx, τi) = min.(max.(w,bx.-τi), bx.+τi)
 
 Doptions=s_options(1/ν; maxIter=10, λ=λ, gk = g, Bk = A'*A, xk=x, Δ = τ)
 # n=10
