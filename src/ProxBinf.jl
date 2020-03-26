@@ -11,7 +11,7 @@ f = zeros(size(x))
 ν = 1.0/options.β
 Bk = options.Bk
 xk = options.xk
-gk = options.gk
+gk = options.gk #note that q = gk = ∇f(x_k) for this example
 Δ = options.Δ
 
 
@@ -32,9 +32,9 @@ f1[idx] .= Inf
 #     f1 = Inf
 # end
 
-y2 = projbox(x+q.-ν*λ)
+y2 = projbox(x+gk.-ν*λ)
 f2 = fval(y2)
-y3 = projbox(x+q.+ν*λ)
+y3 = projbox(x+gk.+ν*λ)
 f3 = fval(y3)
 smat = hcat(y1, y2, y3) #to get dimensions right
 # fvec = [f1; f2; f3]

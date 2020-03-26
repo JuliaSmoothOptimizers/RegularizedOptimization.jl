@@ -4,9 +4,7 @@ using TRNC,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers, Roots
 function hardproxtestBinf(n)
 
 A,_ = qr(5*randn(n,n))
-
 B = Array(A)'
-
 A = Array(B)
 # rng(2)
 # vectors
@@ -19,7 +17,8 @@ g = 5*randn(n)
 τ = 3*rand()
 
 # This constructs q = ν∇qᵢ(sⱼ) = Bksⱼ + gᵢ (note that i = k in paper notation)
-q = A'*(A*g) - randn(n) #doesn't really matter tho in the example
+#but it's first order tho so sⱼ = 0 and it's just ∇f(x_k)
+q = g #doesn't really matter tho in the example
 
 fval(y) = (y-(x+q)).^2/(2*ν)+λ*abs.(y)
 projbox(w) = min.(max.(w,x.-Δ), x.+Δ)
@@ -28,7 +27,7 @@ Doptions=s_options(1/ν; maxIter=10, λ=λ, gk = g, Bk = A'*A, xk=x, Δ = τ)
 # n=10
 
 # (s,f) = hardproxBinf(q, x, ν,λ, τ)
-(s, f) = hardproxBinf(fval, x, projBox, options)
+(s, f) = hardproxBinf(fval, sp, projbox, Doptions)
 
 
 s_cvx = Variable(n)
