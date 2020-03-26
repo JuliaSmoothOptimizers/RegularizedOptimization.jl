@@ -1,34 +1,52 @@
 export hardproxBinf
 
-function hardproxBinf(q, x, ν, λ, τ)
+# function hardproxBinf(q, x, ν, λ, Δ)
+function hardproxBinf(Fcn, x, ProjB, options)
 # HARDPROX computes the prox of the sum of shifted 1-norm and interval
 # constraint for a scalar variable
-s = zeros(size(q))
-f = zeros(size(q))
+s = zeros(size(x))
+f = zeros(size(x))
 
-for i=1:length(q)
-fval(y) = (y-(x[i]+q[i]))^2/(2*ν)+λ*abs(y)
-projbox(w) = min(max(w,x[i]-τ), x[i]+τ)
+λ = options.λ
+ν = 1.0/options.β
+Bk = options.Bk
+xk = options.xk
+gk = options.gk
+Δ = options.Δ
 
-y1 = 0
-if y1>x[i]-τ && y1<x[i]+τ
-    f1 =fval(y1)
-else
-    f1 = Inf
-end
 
-y2 = projbox(x[i]+q[i]-ν*λ)
+
+
+# for i=1:length(q)
+# fval(y) = (y-(x[i]+q[i]))^2/(2*ν)+λ*abs(y)
+# projbox(w) = min(max(w,x[i]-Δ), x[i]+Δ)
+
+y1 = zeros(size(x))
+f1 = Fcn(y1)
+idx = (y1.<x.-Δ) .| (y1.>x .+ Δ) #actually do outward since more efficient
+f1[idx] .= Inf
+
+# if y1>x[i]-Δ && y1<x[i]+Δ
+#     f1 =fval(y1)
+# else
+#     f1 = Inf
+# end
+
+y2 = projbox(x+q.-ν*λ)
 f2 = fval(y2)
-y3 = projbox(x[i]+q[i]+ν*λ)
+y3 = projbox(x+q.+ν*λ)
 f3 = fval(y3)
-smat = [y1, y2, y3]
-fvec = [f1; f2; f3]
+smat = hcat(y1, y2, y3) #to get dimensions right
+# fvec = [f1; f2; f3]
+fvec = hcat(f1, f2, f3)
 
-f[i]= minimum(fvec)
-idx = argmin(fvec)
-s[i] = smat[idx]-x[i]
+# f[i]= minimum(fvec)
+f = minimum(fvec, dims=2)
+# idx = argmin(fvec)
+idx = argmin(fvec, dims=2)
+# s[i] = smat[idx]-x[i]
+s = smat[idx]-x
+# end
 
-end
-
-return s, f
+return s, sum(f)
 end
