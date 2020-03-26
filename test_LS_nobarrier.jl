@@ -21,7 +21,7 @@ function f_obj(x)
     return f, g, h
 end
 
-function tr_norm(z,σ)
+function tr_norm(z,α,σ)
     return z./max(1, norm(z, 2)/σ)
 end
 
@@ -34,7 +34,7 @@ first_order_options = spg_options(;optTol=1.0e-2, progTol=1.0e-10, verbose=0,
 
 # Interior Pt Algorithm
 parameters = IP_struct(f_obj, h_obj; FO_options = first_order_options, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
-options = IP_options(;ptf=1) #print freq, ΔK init, epsC/epsD initialization, maxIter
+options = IP_options(;ptf=100) #print freq, ΔK init, epsC/epsD initialization, maxIter
 #put in your initial guesses
 xi = ones(n,)/2
 
