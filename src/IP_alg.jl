@@ -7,6 +7,7 @@ export IP_options, IntPt_TR, IP_struct #export necessary values to file that cal
 
 
 mutable struct IP_params
+    ϵ #termination criteria
     Δk #trust region radius
     ptf #print every so often
     simple #if you can use spg_minconf with simple projection
@@ -23,9 +24,9 @@ mutable struct IP_methods
     f_obj #objective function (unaltered) that you want to minimize
 end
 
-function IP_options(;Δk=1.0,  ptf = 100, simple=1, maxIter=10000
+function IP_options(;ϵ = 1e-4, Δk=1.0,  ptf = 100, simple=1, maxIter=10000
                       ) #default values for trust region parameters in algorithm 4.2
-    return IP_params(Δk, ptf, simple, maxIter)
+    return IP_params(ϵ, Δk, ptf, simple, maxIter)
 end
 
 function IP_struct(f_obj, h;
@@ -61,6 +62,7 @@ function IntPt_TR(x0, TotalCount, params, options)
 
     #initialize passed options
     debug = false #turn this on to see debugging information
+    ϵ = options.ϵ
     Δk = options.Δk
     ptf = options.ptf
     simple = options.simple
