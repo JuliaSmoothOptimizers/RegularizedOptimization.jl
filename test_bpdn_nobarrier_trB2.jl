@@ -40,7 +40,7 @@ end
 
 
 
-fval(s,qi,xi,νi) = norm(s.-qi)^2/(2*νi) + λ_T*norm(s.+xi,1)
+fval(s,qi,xi,νi) = norm(s.-qi)^2/(2*νi) + λ_T*norm(s.+xi,1) #note - this is supposed to be s+q, work out math tomorrow
 projbox(y,qi,νi) = min.(max.(y, qi.-λ_T*νi),qi.+λ_T*νi) # different since through dual
 # (s,f) = hardproxB2(fval, x, projbox, Doptions)
 

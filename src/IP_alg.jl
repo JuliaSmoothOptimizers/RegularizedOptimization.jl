@@ -125,7 +125,7 @@ function IntPt_TR(x0, TotalCount, params, options)
         else
             FO_options.β = norm(Hk)^2
             FO_options.Bk = Hk
-            FO_options.gk = gk
+            FO_options.gk = -gk
             FO_options.xk = xk
             FO_options.Δ = Δk
             funProj = χ_projector
