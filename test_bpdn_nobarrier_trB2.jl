@@ -40,7 +40,7 @@ end
 
 
 
-fval(s,q,ν) = norm(s.-q)^2/(2*ν) + λ_T*norm(s.+x,1)
+fval(s,q,ν,x) = norm(s.-q)^2/(2*ν) + λ_T*norm(s.+x,1)
 projbox(y,q,ν) = min.(max.(y, q.-λ_T*ν),q.+λ_T*ν) # different since through dual
 # (s,f) = hardproxB2(fval, x, projbox, Doptions)
 
