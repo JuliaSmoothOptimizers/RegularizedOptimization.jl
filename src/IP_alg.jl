@@ -117,23 +117,17 @@ function IntPt_TR(x0, TotalCount, params, options)
         TR_stat = ""
         x_stat = ""
 
-        #compute hessian and gradient for the problem
-        ########YOU SHOULD CHECK HERE FOR L AND U -> CHANGE FUNCTIONS?###################
-        ∇Phi = gk
-        ∇²Phi = Hk
-
-
         #define custom inner objective to find search direction and solve
 
         if simple==1 #when h==0
-            objInner(s) = qk(s,fk, ∇Phi,∇²Phi ) #this can probably be sped up since we declare new function every time
+            objInner(s) = qk(s,fk, gk,Hk) #this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
         # elseif simple==2
         #     objInner(s) = []
         #     funProj(x) = []
         else
-            FO_options.Bk = ∇²Phi
-            FO_options.gk = ∇Phi
+            FO_options.Bk = Hk
+            FO_options.gk = gk
             FO_options.xk = xk
             FO_options.Δ = Δk
             funProj = χ_projector
@@ -147,7 +141,7 @@ function IntPt_TR(x0, TotalCount, params, options)
         #update ρ
 
         ########YOU WILL HAVE TO CHANGE THE MODEL TO THE NEW ONE IN THE PAPER###################
-        mk(d) = qk(d,fk, ∇Phi, ∇²Phi)[1] + ψk(xk+d) #qk should take barrier terms into account
+        mk(d) = qk(d,fk, gk, Hk)[1] + ψk(xk+d) #qk should take barrier terms into account
         # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
         ρk = (β(xk) - β(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
 

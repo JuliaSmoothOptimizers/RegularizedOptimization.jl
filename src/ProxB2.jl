@@ -12,7 +12,7 @@ gk = options.gk
 Δ = options.Δ
 
 
-froot(η) = η - norm(ProjB((-xk).*(η/Δ), gk, ν ))
+froot(η) = η - norm(ProjB((-xk).*(η/Δ), gk, ν))
 
 
 # %do the 2 norm projection
@@ -23,7 +23,7 @@ if (norm(y1)<= Δ)
 else
     # η = fzero(froot, τ)
     η = fzero(froot, 1e-10, Inf)
-    y = ProjB((-xk).*(η/Δ), gk,ν )
+    y = ProjB((-xk).*(η/Δ), gk, ν)
     str = "y root"
 end
 

@@ -40,8 +40,8 @@ end
 
 
 
-fval(s,q,ν,x) = norm(s.-q)^2/(2*ν) + λ_T*norm(s.+x,1)
-projbox(y,q,ν) = min.(max.(y, q.-λ_T*ν),q.+λ_T*ν) # different since through dual
+fval(s,qi,xi,νi) = norm(s.-qi)^2/(2*νi) + λ_T*norm(s.+xi,1)
+projbox(y,qi,νi) = min.(max.(y, qi.-λ_T*νi),qi.+λ_T*νi) # different since through dual
 # (s,f) = hardproxB2(fval, x, projbox, Doptions)
 
 #set all options
@@ -49,7 +49,7 @@ first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, maxIte
 # Doptions=s_options(1/ν; gk = g, Bk = A'*A, xk=x, Δ = τ)
 
 parameters = IP_struct(f_smooth, h_nonsmooth; FO_options = first_order_options, s_alg=hardproxB2, prox_ψk=fval, χ_projector=projbox)
-options = IP_options(;simple=0, ptf=50, Δk = k, maxIter=100)
+options = IP_options(;simple=0, ptf=1, Δk = 1.0, maxIter=100)
 #put in your initial guesses
 xi = ones(n,)/2
 
