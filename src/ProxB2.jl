@@ -34,10 +34,10 @@ else
     s = Δ.*y./norm(y)
     str2 = "out tau"
 end
-f = Fcn(s,gk, ν)
+f = Fcn(s, gk, ν)
 
 # @printf("Y-meth: %s    s-meth: %s    s: %1.4e   y:%1.4e\n", str, str2, s[1], y[1]);
-return s,f
+return s,f,1 #funEvals=1 here
 
 
 end

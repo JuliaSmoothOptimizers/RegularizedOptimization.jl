@@ -48,5 +48,5 @@ idx = argmin(fvec, dims=2)
 s = smat[idx]-x
 # end
 
-return s, sum(f)
+return s, sum(f), 1 #funEvals = 1 here
 end
