@@ -12,18 +12,18 @@ gk = options.gk
 Δ = options.Δ
 
 
-froot(η) = η - norm(ProjB((-xk).*(η/Δ), , ))
+froot(η) = η - norm(ProjB((-xk).*(η/Δ), xk, ν ))
 
 
 # %do the 2 norm projection
-y1 = ProjB(-xk, , ) #start with eta = tau
+y1 = ProjB(-xk, xk, ν) #start with eta = tau
 if (norm(y1)<= Δ)
     y = y1  # easy case
     str = "y in tau"
 else
     # η = fzero(froot, τ)
     η = fzero(froot, 1e-10, Inf)
-    y = ProjB((-xk).*(η/Δ), , )
+    y = ProjB((-xk).*(η/Δ), xk,ν )
     str = "y root"
 end
 
