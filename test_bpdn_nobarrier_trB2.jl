@@ -45,7 +45,7 @@ projbox(y,qi,νi) = min.(max.(y, qi.-λ_T*νi),qi.+λ_T*νi) # different since t
 # (s,f) = hardproxB2(fval, x, projbox, Doptions)
 
 #set all options
-first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, maxIter=5)
+first_order_options = s_options(norm(A'*A)^(2.0); λ=λ_T, maxIter=5)
 # Doptions=s_options(1/ν; gk = g, Bk = A'*A, xk=x, Δ = τ)
 
 parameters = IP_struct(f_smooth, h_nonsmooth; FO_options = first_order_options, s_alg=hardproxB2, prox_ψk=fval, χ_projector=projbox)

@@ -122,10 +122,8 @@ function IntPt_TR(x0, TotalCount, params, options)
         if simple==1 #when h==0
             objInner(s) = qk(s,fk, gk,Hk) #this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
-        # elseif simple==2
-        #     objInner(s) = []
-        #     funProj(x) = []
         else
+            FO_options.β = norm(Hk)^2
             FO_options.Bk = Hk
             FO_options.gk = gk
             FO_options.xk = xk
