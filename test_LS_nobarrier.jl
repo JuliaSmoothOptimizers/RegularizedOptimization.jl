@@ -29,7 +29,7 @@ function h_obj(x)
     return 0
 end
 #set all options
-first_order_options = spg_options(;optTol=1.0e-10, progTol=1.0e-10, verbose=0,
+first_order_options = spg_options(;optTol=1.0e-1, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
     #need to tighten this because you don't make any progress in the later iterations
     #put in projected gradient descent in DescentMethods.jl to solve in the inner loop with relative accuracy

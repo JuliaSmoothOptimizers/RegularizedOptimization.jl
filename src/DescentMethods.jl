@@ -73,6 +73,7 @@ function PG(Fcn, x,  proxG, options)
 	feval = 1
 		#do iterations
 	while err ≥ ε && k <max_iter && abs(f)>1e-16
+		x = x⁺
 		his[k] = f
 		#take a gradient step: x-=η*∇f
 		#prox step
@@ -81,12 +82,11 @@ function PG(Fcn, x,  proxG, options)
 		f, g = Fcn(x⁺)
 		feval+=1
 		err = norm(x-x⁺)
-		x = x⁺
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 	end
-	return x⁺, his[1:k-1], feval
+	return x⁺,x, his[1:k-1], feval
 end
 
 
@@ -124,7 +124,7 @@ function PG!(Fcn!, x,  proxG!, options)
 	m = length(x)
 	η = 1.0/options.β
 	λ = options.λ
-	x⁺ = copy(x)
+	x⁻ = copy(x)
 	g = zeros(m)
 
 	k = 1
@@ -135,21 +135,20 @@ function PG!(Fcn!, x,  proxG!, options)
 	feval = 1
 	#do iterations
 	while err > ε && abs(f)> 1e-16 && k < max_iter
+		copy!(x⁻,x)
 		his[k] = f
 		#prox step
-		BLAS.axpy!(-η,g,x⁺)
-		proxG!(x⁺, η*λ)
-		err = norm(x-x⁺)
+		BLAS.axpy!(-η,g,x)
+		proxG!(x, η*λ)
+		err = norm(x-x⁻)
 		# update function info
-		f= Fcn!(x⁺,g)
+		f= Fcn!(x,g)
 		feval+=1
-
-		copy!(x,x⁺)
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 	end
-	return his[1:k-1], feval
+	return x⁻, his[1:k-1], feval
 end
 
 """
@@ -223,7 +222,7 @@ function FISTA(Fcn, x,  proxG, options)
 		feval+=1
 		k+=1
 	end
-	return x, his[1:k-1], feval
+	return x,x⁻, his[1:k-1], feval
 
 end
 
@@ -261,7 +260,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 	#Problem Initialize
 	m = length(x)
 	y = zeros(m)
-	x⁺ = zeros(m)
+	x⁻ = zeros(m)
 	gradF = zeros(m)
 
 
@@ -277,33 +276,33 @@ function FISTA!(Fcn!, x,  proxG!, options)
 	f = Fcn!(y, gradF)
 	feval = 1
 	while ε<err && abs(f) >1e-16 && k<max_iter
-
+		copy!(x⁻, x)
 
 		his[k] = f
 		BLAS.axpy!(-η,gradF,y)
-		x⁺ = copy(y)
-		proxG!(x⁺, η*λ)
+		x = copy(y)
+		proxG!(x, η*λ)
 
 		#update step
 		t⁺ = 0.5*(1.0 + sqrt(1.0+4.0*t^2))
 
 		#update y
-		y = x⁺ + ((t - 1.0)/t⁺)*(x⁺-x)
+		y = x + ((t - 1.0)/t⁺)*(x⁺-x⁻)
 
 		#check convergence
-		err = norm(x⁺ - x)/η
+		err = norm(x - x⁻)/η
 
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 		#update parameters
 		f = Fcn!(y, gradF)
 		t = copy(t⁺)
-		copy!(x, x⁺)
+
 		feval+=1
 		k+=1
 	end
 
-	return his[1:k-1], feval
+	return x⁻, his[1:k-1], feval
 end
 
 
@@ -420,7 +419,7 @@ function  prox_split_1w(proxp, s0, projq, options)
 	end
 
 
-    return s, w
+    return s,s_, w
 
 end
 
@@ -514,7 +513,7 @@ function  prox_split_2w(proxp, s0, projq, options)
     end
 
 
-    return u - xk ,s_feas, err
+    return u - xk, u_ - xk, s_feas, err
 
 end
 

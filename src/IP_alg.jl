@@ -94,7 +94,7 @@ function IntPt_TR(x0, TotalCount, params, options)
     #main algorithm initialization
     (fk, gk, Hk) = f_obj(xk)
 
-    s = Inf*ones(size(gk)) #just initialize s
+    s = ones(size(gk)) #just initialize s
     #norm((g_k + gh_k))
     #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
@@ -107,10 +107,9 @@ function IntPt_TR(x0, TotalCount, params, options)
     k_i = 0
     k = TotalCount
     ρk = -1
-    α = 1
+    α = 1.0
 
-    ########YOU SHOULD CHECK HERE FOR L AND U -> MAYBE WRITE A FUNCTION THAT CHECKS FOR YOU?###################
-    while(norm(s + gk) > ϵ && k_i<maxIter)
+    while(norm(s/ν + gk) > ϵ && k_i<maxIter)
         #update count
         k_i = k_i+1 #inner
         k = k+1  #outer
@@ -122,6 +121,7 @@ function IntPt_TR(x0, TotalCount, params, options)
         if simple==1 #when h==0
             objInner(s) = qk(s,fk, gk,Hk) #this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
+            (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
         else
             FO_options.β = norm(Hk)^2
             FO_options.Bk = Hk
@@ -130,14 +130,12 @@ function IntPt_TR(x0, TotalCount, params, options)
             FO_options.Δ = Δk
             funProj = χ_projector
             objInner= prox_ψk
+            (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
         end
 
-        #note - you don't need linesearch because there are no barrier terms
-        α = 1.0
-        (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
+
 
         #update ρ
-
         ########YOU WILL HAVE TO CHANGE THE MODEL TO THE NEW ONE IN THE PAPER###################
         mk(d) = qk(d,fk, gk, Hk)[1] + ψk(xk+d) #qk should take barrier terms into account
         # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
@@ -175,6 +173,7 @@ function IntPt_TR(x0, TotalCount, params, options)
         #Print values
         k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, norm(s+gk), ρk,x_stat, Δk,TR_stat, α, norm(xk,2), norm(s,2), fk, ψk(xk))
 
+        k % 50 ==0 && FO_options.optTol = FO_options.optTol*.1
         #uncommented for now
         # if(isnan(ρk) || Δk<1e-10)
         #     break

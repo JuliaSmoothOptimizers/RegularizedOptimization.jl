@@ -40,7 +40,7 @@ end
 
 vp_options=s_options(norm(A'*A)^2;maxIter=10, verbose=99, restart=100, λ=λ, η =1.0, η_factor=.9,
     gk = g, Bk = A'*A, xk=c, Δ = k)
-s,w1,w2 = prox_split_2w(proxp, zeros(size(x0)), projq, vp_options)
+s,s⁻, w1,w2 = prox_split_2w(proxp, zeros(size(x0)), projq, vp_options)
 
 
 # @printf("l2-norm CVX: %5.5e\n", norm(S.value - s)/norm(S.value))

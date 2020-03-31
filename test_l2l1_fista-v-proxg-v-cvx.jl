@@ -55,11 +55,11 @@ end
 #input β, λ
 pg_options=s_options(norm(A)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-10)
 sp = zeros(n)
-sp, hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
+sp,sp⁻, hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
 
 fista_options=s_options(norm(A)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-10)
 sf = zeros(n)
-sf, hisf, fevalf = FISTA(funcF, sf, proxp,pg_options)
+sf,sf⁻, hisf, fevalf = FISTA(funcF, sf, proxp,pg_options)
 
 @printf("PG l2-norm CVX: %5.5e\n", norm(S.value - sp)/norm(S.value))
 @printf("FISTA l2-norm CVX: %5.5e\n", norm(S.value - sf)/norm(S.value))
