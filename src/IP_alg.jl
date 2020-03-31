@@ -173,7 +173,9 @@ function IntPt_TR(x0, TotalCount, params, options)
         #Print values
         k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, norm(s+gk), ρk,x_stat, Δk,TR_stat, α, norm(xk,2), norm(s,2), fk, ψk(xk))
 
-        k % 50 ==0 && FO_options.optTol = FO_options.optTol*.1
+        if k % 50 ==0
+            FO_options.optTol = FO_options.optTol*.1
+        end
         #uncommented for now
         # if(isnan(ρk) || Δk<1e-10)
         #     break
