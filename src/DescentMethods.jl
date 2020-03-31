@@ -35,7 +35,7 @@ end
 		x: initial point
 		β: Lipschitz constant for F
 		Fcn: function handle that returns f(x) and ∇f(x)
-		proxG: function handle that calculates prox_{ηg}
+		proxG: function handle that calculates prox_{νg}
 		ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
 		* max_iter: self-explanatory
 		* print_freq: # of freq's in the sheets
@@ -60,7 +60,7 @@ function PG(Fcn, x,  proxG, options)
 	end
 	#Problem Initialize
 	m = length(x)
-	η = 1.0/options.β
+	ν = 1.0/options.β
 	λ = options.λ
 	k = 1
 	err = 100
@@ -75,9 +75,9 @@ function PG(Fcn, x,  proxG, options)
 	while err ≥ ε && k <max_iter && abs(f)>1e-16
 		x = x⁺
 		his[k] = f
-		#take a gradient step: x-=η*∇f
+		#take a gradient step: x-=ν*∇f
 		#prox step
-		x⁺ = proxG(x - η*g, η*λ)
+		x⁺ = proxG(x - ν*g, ν*λ)
 		# update function info
 		f, g = Fcn(x⁺)
 		feval+=1
@@ -98,7 +98,7 @@ end
 		x: initial point
 		β: Lipschitz constant for F
 		Fcn: function handle that returns f(x) and ∇f(x)
-		proxG: function handle that calculates prox_{ηg}
+		proxG: function handle that calculates prox_{νg}
 		ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
 		* max_iter: self-explanatory
 		* print_freq: # of freq's in the sheets
@@ -122,7 +122,7 @@ function PG!(Fcn!, x,  proxG!, options)
 	end
 	#Problem Initialize
 	m = length(x)
-	η = 1.0/options.β
+	ν = 1.0/options.β
 	λ = options.λ
 	x⁻ = copy(x)
 	g = zeros(m)
@@ -138,8 +138,8 @@ function PG!(Fcn!, x,  proxG!, options)
 		copy!(x⁻,x)
 		his[k] = f
 		#prox step
-		BLAS.axpy!(-η,g,x)
-		proxG!(x, η*λ)
+		BLAS.axpy!(-ν,g,x)
+		proxG!(x, ν*λ)
 		err = norm(x-x⁻)
 		# update function info
 		f= Fcn!(x,g)
@@ -159,7 +159,7 @@ end
 		x: initial point
 		β: Lipschitz constant for F
 		Fcn: function handle that returns f(x) and ∇f(x)
-		proxG: function handle that calculates prox_{ηg}
+		proxG: function handle that calculates prox_{νg}
 		ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
 		* max_iter: self-explanatory
 		* print_freq: # of freq's in the sheets
@@ -170,7 +170,7 @@ function FISTA(Fcn, x,  proxG, options)
 	ε=options.optTol
 	max_iter=options.maxIter
 	restart = options.restart
-	η = options.β^(-1)
+	ν = options.β^(-1)
 	λ = options.λ
 	if options.verbose==0
 		print_freq = Inf
@@ -201,7 +201,7 @@ function FISTA(Fcn, x,  proxG, options)
 
 		his[k] = f
 		x⁻ = copy(x)
-		x = proxG(y - η*g, η*λ)
+		x = proxG(y - ν*g, ν*λ)
 
 		#update step
 		t⁻ = copy(t)
@@ -234,7 +234,7 @@ end
 		x: initial point
 		β: Lipschitz constant for F
 		Fcn: function handle that returns f(x) and ∇f(x)
-		proxG: function handle that calculates prox_{ηg}
+		proxG: function handle that calculates prox_{νg}
 		ε: tolerance, where ||x^{k+1} - x^k ||⩽ ε
 		* max_iter: self-explanatory
 		* print_freq: # of freq's in the sheets
@@ -245,7 +245,8 @@ function FISTA!(Fcn!, x,  proxG!, options)
 	ε=options.optTol
 	max_iter=options.maxIter
 	restart = options.restart
-	η = options.β^(-1)
+	ν = options.β^(-1)
+	ν
 	λ = options.λ
 	if options.verbose==0
 		print_freq = Inf
@@ -279,9 +280,9 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		copy!(x⁻, x)
 
 		his[k] = f
-		BLAS.axpy!(-η,gradF,y)
+		BLAS.axpy!(-ν,gradF,y)
 		x = copy(y)
-		proxG!(x, η*λ)
+		proxG!(x, ν*λ)
 
 		#update step
 		t⁺ = 0.5*(1.0 + sqrt(1.0+4.0*t^2))
@@ -290,7 +291,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		y = x + ((t - 1.0)/t⁺)*(x⁺-x⁻)
 
 		#check convergence
-		err = norm(x - x⁻)/η
+		err = norm(x - x⁻)/ν
 
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
@@ -363,8 +364,8 @@ function  prox_split_1w(proxp, s0, projq, options)
     λ = options.λ
     Δ = options.Δ
     restart = options.restart
-    #η_factor should have two values, as should η
-    η = options.η
+    #ν_factor should have two values, as should ν
+    ν = options.ν
     ξ = options.β^(-1)
     η_factor = options.η_factor
     gk = options.gk
