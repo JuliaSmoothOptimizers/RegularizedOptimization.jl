@@ -185,7 +185,7 @@ function FISTA(Fcn, x,  proxG, options)
 	#Problem Initialize
 	m = length(x)
 	y = zeros(m)
-
+	x⁻ = copy(x)
 	#initialize parameters
 	t = 1.0
 	tk = t
@@ -462,6 +462,7 @@ function  prox_split_2w(proxp, s0, projq, options)
 	print_freq = options.verbose
 
     u = s0+xk
+	u_ = copy(u)
     w1 = u #zeros(size(s0))
     w2 = u-xk #zeros(size(s0))
 

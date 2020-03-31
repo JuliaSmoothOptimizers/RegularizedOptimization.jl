@@ -23,6 +23,7 @@ A = Array(B)
 
 b0 = A*x0
 b = b0 #+ 0.001*randn(m,)
+c = randn(size(x0))
 λ = norm(A'*b, Inf)/10
 g = -A'*b
 
