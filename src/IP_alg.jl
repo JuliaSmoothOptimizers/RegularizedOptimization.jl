@@ -94,7 +94,9 @@ function IntPt_TR(x0, TotalCount, params, options)
     #main algorithm initialization
     (fk, gk, Hk) = f_obj(xk)
 
-    s = ones(size(gk)) #just initialize s
+    #stopping condition
+    nGν = Inf
+    # s = ones(size(gk)) #just initialize s
     #norm((g_k + gh_k))
     #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
@@ -109,7 +111,7 @@ function IntPt_TR(x0, TotalCount, params, options)
     ρk = -1
     α = 1.0
 
-    while(norm(s/ν + gk) > ϵ && k_i<maxIter)
+    while(norm(nGν+ gk) > ϵ && k_i<maxIter)
         #update count
         k_i = k_i+1 #inner
         k = k+1  #outer
@@ -122,6 +124,7 @@ function IntPt_TR(x0, TotalCount, params, options)
             objInner(s) = qk(s,fk, gk,Hk) #this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
             (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
+            nGν = norm(s/FO_options.β,2)
         else
             FO_options.β = norm(Hk)^2
             FO_options.Bk = Hk
@@ -131,6 +134,7 @@ function IntPt_TR(x0, TotalCount, params, options)
             funProj = χ_projector
             objInner= prox_ψk
             (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
+            nGν =norm((s⁻ - s)/FO_options.β, 2)
         end
 
 

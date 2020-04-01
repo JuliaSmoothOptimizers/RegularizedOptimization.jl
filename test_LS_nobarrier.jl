@@ -29,14 +29,15 @@ function h_obj(x)
     return 0
 end
 #set all options
-first_order_options = spg_options(;optTol=1.0e-1, progTol=1.0e-10, verbose=0,
-    feasibleInit=true, curvilinear=true, bbType=true, memory=1)
+# first_order_options = spg_options(;optTol=1.0e-1, progTol=1.0e-10, verbose=0,
+    # feasibleInit=true, curvilinear=true, bbType=true, memory=1)
+first_order_options = spg_options(1/norm(A'*A);optTol=1.0e-1)
     #need to tighten this because you don't make any progress in the later iterations
     #put in projected gradient descent in DescentMethods.jl to solve in the inner loop with relative accuracy
 
 
 # Interior Pt Algorithm
-parameters = IP_struct(f_obj, h_obj; FO_options = first_order_options, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
+parameters = IP_struct(f_obj, h_obj;s_alg = PG, FO_options = first_order_options, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
 options = IP_options(;ptf=1) #print freq, ΔK init, epsC/epsD initialization, maxIter
 #put in your initial guesses
 xi = ones(n,)/2
