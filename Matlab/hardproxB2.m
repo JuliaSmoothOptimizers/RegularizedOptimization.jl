@@ -1,9 +1,9 @@
-function [s,f] = hardproxB2(z, x, t, lambda, tau)
+function [s,f] = hardproxB2(q, x, t, lambda, tau)
 %HARDPROXB2 computes the prox of the sum of shifted 1-norm and L2
 %constraint for a scalar variable 
 
-fval = @(s) norm(s-z)^2/(2*t) + lambda*norm(s+x,1); 
-projbox = @(y) min(max(y, z-lambda*t),z+lambda*t); % different since through dual 
+fval = @(s) norm(s+q)^2/(2*t) + lambda*norm(s+x,1); 
+projbox = @(y) min(max(y, -q-lambda*t),-q+lambda*t); % different since through dual 
 froot = @(eta) eta - norm(projbox((-x)*(eta/tau)));
 
 

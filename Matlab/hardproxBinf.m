@@ -6,7 +6,7 @@ s = zeros(size(q));
 f = zeros(size(q)); 
 for i=1:numel(q)
 
-fval = @(y) (y-(x(i)+q(i)))^2/(2*nu) + lambda*abs(y); 
+fval = @(y) (y-(x(i)-q(i)))^2/(2*nu) + lambda*abs(y); 
 projbox = @(w) min(max(w,x(i)-tau),x(i)+tau);
 
 y1 = 0; 
@@ -18,8 +18,8 @@ end
 
 
 
-y2 = projbox(x(i)+q(i)-nu*lambda); f2 = fval(y2);
-y3 = projbox(x(i)+q(i)+nu*lambda); f3 = fval(y3);
+y2 = projbox(x(i)-q(i)-nu*lambda); f2 = fval(y2);
+y3 = projbox(x(i)-q(i)+nu*lambda); f3 = fval(y3);
 smat = [y1, y2, y3];
 fvec = [f1; f2; f3];
 

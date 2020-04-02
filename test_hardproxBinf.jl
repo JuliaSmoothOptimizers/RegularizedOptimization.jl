@@ -20,7 +20,7 @@ g = 5*randn(n)
 #but it's first order tho so sⱼ = 0 and it's just ∇f(x_k)
 q = g #doesn't really matter tho in the example
 
-fval(y, bq, bx, νi) = (y-(bx+bq)).^2/(2*νi)+λ*abs.(y)
+fval(y, bq, bx, νi) = (y+(bx+bq)).^2/(2*νi)+λ*abs.(y)
 projbox(w, bx, τi) = min.(max.(w,bx.-τi), bx.+τi)
 
 Doptions=s_options(1/ν; maxIter=10, λ=λ, gk = g, Bk = A'*A, xk=x, Δ = τ)
@@ -31,7 +31,7 @@ Doptions=s_options(1/ν; maxIter=10, λ=λ, gk = g, Bk = A'*A, xk=x, Δ = τ)
 
 
 s_cvx = Variable(n)
-problem = minimize(sumsquares(s_cvx-q)/(2*ν) + λ*norm(s_cvx+x,1), norm(s_cvx, Inf)<=τ);
+problem = minimize(sumsquares(s_cvx+q)/(2*ν) + λ*norm(s_cvx+x,1), norm(s_cvx, Inf)<=τ);
 solve!(problem, SCSSolver())
 # cvx_precision high
 # cvx_begin
