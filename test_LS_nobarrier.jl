@@ -21,6 +21,7 @@ function f_obj(x)
     return f, g, h
 end
 
+#SPGSlim version
 function tr_norm(z,α,σ)
     return z./max(1, norm(z, 2)/σ)
 end

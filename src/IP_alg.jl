@@ -122,10 +122,20 @@ function IntPt_TR(x0, TotalCount, params, options)
         #define custom inner objective to find search direction and solve
 
         if simple==1 #when h==0
-            objInner(s) = qk(s,fk, ∇fk,Bk)[1:2] #this can probably be sped up since we declare new function every time
+            objInner(s) = qk(s,fk, ∇fk,Bk)#this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
             (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
             s⁻ = zeros(size(s))
+        elseif simple==2
+            #h=0 but using PG
+            objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]#this can probably be sped up since we declare new function every time
+            FO_options.β = norm(Bk)^2
+            # FO_options.Bk = Bk
+            # FO_options.∇fk = ∇fk
+            # FO_options.xk = xk
+            # FO_options.Δ = Δk
+            funProj(s, α) = χ_projector(s, α, Δk)
+            (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
         else
             FO_options.β = norm(Bk)^2
             FO_options.Bk = Bk
