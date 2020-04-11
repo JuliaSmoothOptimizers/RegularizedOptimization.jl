@@ -102,9 +102,9 @@ function IntPt_TR(x0, TotalCount, params, options)
     #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
     if TotalCount==0 #actual first mu
-        @printf("---------------------------------------------------------------------------------------------------------------------------------------------------\n")
+        @printf("--------------------------------------------------------------------------------------------------------------------------------------------------------------\n")
         @printf("%10s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s\n","Iter","Norm((Gν-∇f) + ∇f⁺)","Ratio: ρk", "x status ","TR: Δk", "Δk status", "LnSrch: α", "||x||", "||s||", "f(x)", "h(x)")
-        @printf("---------------------------------------------------------------------------------------------------------------------------------------------------\n")
+        @printf("--------------------------------------------------------------------------------------------------------------------------------------------------------------\n")
     end
 
     k_i = 0
@@ -122,12 +122,14 @@ function IntPt_TR(x0, TotalCount, params, options)
         #define custom inner objective to find search direction and solve
 
         if simple==1 #when h==0
+            @printf("%10s\n", "simple=1")
             objInner(s) = qk(s,fk, ∇fk,Bk)#this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
             (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
             s⁻ = zeros(size(s))
             Gν = -s*norm(Bk)^2 #Gν = 1/ν(s⁻ - s) = 1/(1/β)(-s) = -(s)β
         elseif simple==2 #h=0 but using PG
+            @printf("%10s\n", "simple=2")
             objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]#this can probably be sped up since we declare new function every time
             FO_options.β = norm(Bk)^2
             funProj(s, α) = χ_projector(s, α, Δk)
