@@ -92,17 +92,17 @@ function IntPt_TR(x0, TotalCount, params, options)
     #change this to h not psik
 
     #main algorithm initialization
-    (fk, gk, Hk) = f_obj(xk)
+    (fk, ∇fk, Bk) = f_obj(xk)
 
     #stopping condition
-    nGν = Inf
-    # s = ones(size(gk)) #just initialize s
+    Gν = Inf*∇fk
+    # s = ones(size(∇fk)) #just initialize s
     #norm((g_k + gh_k))
     #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
     if TotalCount==0 #actual first mu
         @printf("---------------------------------------------------------------------------------------------------------------------------------------------------\n")
-        @printf("%10s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s\n","Iter","Norm(s+gk)","Ratio: ρk", "x status ","TR: Δk", "Δk status", "LnSrch: α", "||x||", "||s||", "f(x)", "h(x)")
+        @printf("%10s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s\n","Iter","Norm((Gν-∇f) + ∇f⁺)","Ratio: ρk", "x status ","TR: Δk", "Δk status", "LnSrch: α", "||x||", "||s||", "f(x)", "h(x)")
         @printf("---------------------------------------------------------------------------------------------------------------------------------------------------\n")
     end
 
@@ -111,7 +111,7 @@ function IntPt_TR(x0, TotalCount, params, options)
     ρk = -1
     α = 1.0
 
-    while(norm(nGν+ gk) > ϵ && k_i<maxIter)
+    while(norm((Gν - ∇qk)+ ∇fk) > ϵ && k_i<maxIter)
         #update count
         k_i = k_i+1 #inner
         k = k+1  #outer
@@ -121,27 +121,28 @@ function IntPt_TR(x0, TotalCount, params, options)
         #define custom inner objective to find search direction and solve
 
         if simple==1 #when h==0
-            objInner(s) = qk(s,fk, gk,Hk) #this can probably be sped up since we declare new function every time
+            objInner(s) = qk(s,fk, ∇fk,Bk) #this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
             (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
-            nGν = norm(s/FO_options.β,2)
+            s⁻ = zeros(size(s))
         else
-            FO_options.β = norm(Hk)^2
-            FO_options.Bk = Hk
-            FO_options.gk = -gk
+            FO_options.β = norm(Bk)^2
+            FO_options.Bk = Bk
+            FO_options.∇fk = ∇fk
             FO_options.xk = xk
             FO_options.Δ = Δk
             funProj = χ_projector
             objInner= prox_ψk
             (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
-            nGν =norm((s⁻ - s)/FO_options.β, 2)
-        end
 
+        end
+        Gν =(s⁻ - s)/FO_options.β
+        ∇qk = ∇fk + Bk*s⁻
 
 
         #update ρ
         ########YOU WILL HAVE TO CHANGE THE MODEL TO THE NEW ONE IN THE PAPER###################
-        mk(d) = qk(d,fk, gk, Hk)[1] + ψk(xk+d) #qk should take barrier terms into account
+        mk(d) = qk(d,fk, ∇fk, Bk)[1] + ψk(xk+d) #qk should take barrier terms into account
         # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
         ρk = (β(xk) - β(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
 
@@ -173,9 +174,9 @@ function IntPt_TR(x0, TotalCount, params, options)
         end
         # k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
 
-        (fk, gk, Hk) = f_obj(xk);
+        (fk, ∇fk, Bk) = f_obj(xk);
         #Print values
-        k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, norm(s+gk), ρk,x_stat, Δk,TR_stat, α, norm(xk,2), norm(s,2), fk, ψk(xk))
+        k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, norm((Gν - ∇qk)+ ∇fk), ρk,x_stat, Δk,TR_stat, α, norm(xk,2), norm(s,2), fk, ψk(xk))
 
         if k % 50 ==0
             FO_options.optTol = FO_options.optTol*.1
