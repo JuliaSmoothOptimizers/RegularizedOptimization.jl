@@ -12,7 +12,7 @@ mutable struct s_params
     η_factor
     Δ
     WoptTol
-    gk
+    ∇fk
     Bk
     xk
 
@@ -20,9 +20,9 @@ end
 
 
 function s_options(β;optTol=1f-10, maxIter=10000, verbose=2, restart=10, λ=1.0, η =1.0, η_factor=.9, Δ=1.0,
-     WoptTol=1f-10, gk = Vector{Float64}(undef,0), Bk = Array{Float64}(undef, 0,0), xk=Vector{Float64}(undef,0))
+     WoptTol=1f-10, ∇fk = Vector{Float64}(undef,0), Bk = Array{Float64}(undef, 0,0), xk=Vector{Float64}(undef,0))
 
-	return s_params(optTol, maxIter, verbose, restart, β, λ, η, η_factor,Δ, WoptTol, gk, Bk,xk)
+	return s_params(optTol, maxIter, verbose, restart, β, λ, η, η_factor,Δ, WoptTol, ∇fk, Bk,xk)
 
 end
 
@@ -368,7 +368,7 @@ function  prox_split_1w(proxp, s0, projq, options)
     ν = options.ν
     ξ = options.β^(-1)
     η_factor = options.η_factor
-    gk = options.gk
+    ∇fk = options.∇fk
     Bk = options.Bk
     xk = options.xk
 
@@ -400,7 +400,7 @@ function  prox_split_1w(proxp, s0, projq, options)
         #I don't really like the Prox list that's currently in ProxLQ so I might make my own
 
         #u update with prox_(ξ*λ*||⋅||_p)(...)
-        u = proxp(u_ - ξ*(gk +Bk*(u_ - xk) - (w_ - u_ + xk)/η), ξ*λ)
+        u = proxp(u_ - ξ*(∇fk +Bk*(u_ - xk) - (w_ - u_ + xk)/η), ξ*λ)
 
         #update s
         s = u - xk
@@ -456,7 +456,7 @@ function  prox_split_2w(proxp, s0, projq, options)
     η = options.η
     ξ = η
     η_factor = options.η_factor
-    gk = options.gk
+    ∇fk = options.∇fk
     Bk = options.Bk
     xk = options.xk
 
@@ -472,7 +472,7 @@ function  prox_split_2w(proxp, s0, projq, options)
     w2_err = norm(w2 - u + xk)^2
 	s_feas = norm(s0,1)-Δ
     k = 1
-    b_pt1 = Bk*xk - gk
+    b_pt1 = Bk*xk - ∇fk
 
     for i=1:restart
 		A = Bk + (2/η)*I(size(Bk,1))
@@ -502,7 +502,7 @@ function  prox_split_2w(proxp, s0, projq, options)
         s_feas = norm(u-xk, 1)-Δ
         k % print_freq ==0 &&
         @printf("iter: %d, ||w1-u||²: %7.3e, ||w2-u+xk||²: %7.3e, err: %7.3e, η: %7.3e, s_feas: %7.3e, ||w1||_1: %7.3e, ||w2||_1: %7.3e, u-sum: %7.3e\n", k, w1_err, w2_err,
-		 err, η, s_feas, norm(w1,1), norm(w2,1), gk'*(u-xk)+ 1/2*(u-xk)'*Bk*(u-xk))
+		 err, η, s_feas, norm(w1,1), norm(w2,1), ∇fk'*(u-xk)+ 1/2*(u-xk)'*Bk*(u-xk))
 
         k = k+1
 		# η = η*η_factor
