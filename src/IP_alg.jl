@@ -126,8 +126,9 @@ function IntPt_TR(x0, TotalCount, params, options)
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
             (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
             s⁻ = zeros(size(s))
-        elseif simple==2
-            #h=0 but using PG
+            Gν = -s/norm(Bk)^2
+            ∇qk = ∇fk
+        elseif simple==2 #h=0 but using PG
             objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]#this can probably be sped up since we declare new function every time
             FO_options.β = norm(Bk)^2
             # FO_options.Bk = Bk
@@ -136,6 +137,8 @@ function IntPt_TR(x0, TotalCount, params, options)
             # FO_options.Δ = Δk
             funProj(s, α) = χ_projector(s, α, Δk)
             (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
+            Gν =(s⁻ - s)/FO_options.β
+            ∇qk = ∇fk + Bk*s⁻
         else
             FO_options.β = norm(Bk)^2
             FO_options.Bk = Bk
@@ -145,10 +148,10 @@ function IntPt_TR(x0, TotalCount, params, options)
             funProj = χ_projector
             objInner= prox_ψk
             (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
-
+            Gν =(s⁻ - s)/FO_options.β
+            ∇qk = ∇fk + Bk*s⁻
         end
-        Gν =(s⁻ - s)/FO_options.β
-        ∇qk = ∇fk + Bk*s⁻
+
 
 
         #update ρ
