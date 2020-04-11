@@ -126,19 +126,13 @@ function IntPt_TR(x0, TotalCount, params, options)
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
             (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
             s⁻ = zeros(size(s))
-            Gν = -s/norm(Bk)^2
-            ∇qk = ∇fk
+            Gν = -s*norm(Bk)^2 #Gν = 1/ν(s⁻ - s) = 1/(1/β)(-s) = -(s)β
         elseif simple==2 #h=0 but using PG
             objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]#this can probably be sped up since we declare new function every time
             FO_options.β = norm(Bk)^2
-            # FO_options.Bk = Bk
-            # FO_options.∇fk = ∇fk
-            # FO_options.xk = xk
-            # FO_options.Δ = Δk
             funProj(s, α) = χ_projector(s, α, Δk)
             (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
             Gν =(s⁻ - s)/FO_options.β
-            ∇qk = ∇fk + Bk*s⁻
         else
             FO_options.β = norm(Bk)^2
             FO_options.Bk = Bk
@@ -149,8 +143,9 @@ function IntPt_TR(x0, TotalCount, params, options)
             objInner= prox_ψk
             (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
             Gν =(s⁻ - s)/FO_options.β
-            ∇qk = ∇fk + Bk*s⁻
         end
+
+        ∇qk = ∇fk + Bk*s⁻
 
 
 
@@ -190,7 +185,7 @@ function IntPt_TR(x0, TotalCount, params, options)
 
         (fk, ∇fk, Bk) = f_obj(xk);
         #Print values
-        k % ptf ==0 && @printf("%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, norm((Gν - ∇qk)+ ∇fk), ρk,x_stat, Δk,TR_stat, α, norm(xk,2), norm(s,2), fk, ψk(xk))
+        k % ptf ==0 && @printf("%11d|  %19.5e   %10.5e   %10s   %10.5e   %10s   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, norm((Gν - ∇qk)+ ∇fk), ρk,x_stat, Δk,TR_stat, α, norm(xk,2), norm(s,2), fk, ψk(xk))
 
         if k % 50 ==0
             FO_options.optTol = FO_options.optTol*.1
