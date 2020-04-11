@@ -120,17 +120,18 @@ function IntPt_TR(x0, TotalCount, params, options)
         x_stat = ""
 
         #define custom inner objective to find search direction and solve
+        if simple==1 || simple==2
+            objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]
+        end
 
         if simple==1 #when h==0
-            @printf("%10s\n", "simple=1")
-            objInner(s) = qk(s,fk, ∇fk,Bk)#this can probably be sped up since we declare new function every time
+            #this can probably be sped up since we declare new function every time
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
             (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
             s⁻ = zeros(size(s))
             Gν = -s*norm(Bk)^2 #Gν = 1/ν(s⁻ - s) = 1/(1/β)(-s) = -(s)β
         elseif simple==2 #h=0 but using PG
-            @printf("%10s\n", "simple=2")
-            objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]#this can probably be sped up since we declare new function every time
+            #this can probably be sped up since we declare new function every time
             FO_options.β = norm(Bk)^2
             funProj(s, α) = χ_projector(s, α, Δk)
             (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
