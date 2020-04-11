@@ -113,6 +113,7 @@ function IntPt_TR(x0, TotalCount, params, options)
     α = 1.0
 
     while(norm((Gν - ∇qk)+ ∇fk) > ϵ && k_i<maxIter)
+        local objInner, funProj
         #update count
         k_i = k_i+1 #inner
         k = k+1  #outer
