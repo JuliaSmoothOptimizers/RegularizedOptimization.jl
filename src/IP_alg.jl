@@ -122,6 +122,8 @@ function IntPt_TR(x0, TotalCount, params, options)
         #define custom inner objective to find search direction and solve
         if simple==1 || simple==2
             objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]
+        else
+            objInner= prox_ψk
         end
 
         if simple==1 #when h==0
@@ -143,7 +145,6 @@ function IntPt_TR(x0, TotalCount, params, options)
             FO_options.xk = xk
             FO_options.Δ = Δk
             funProj = χ_projector
-            objInner= prox_ψk
             (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
             Gν =(s⁻ - s)/FO_options.β
         end
