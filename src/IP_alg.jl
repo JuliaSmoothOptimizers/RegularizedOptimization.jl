@@ -96,6 +96,7 @@ function IntPt_TR(x0, TotalCount, params, options)
 
     #stopping condition
     Gν = Inf*∇fk
+    ∇qk = ∇fk + Bk*zeros(size(∇fk))
     # s = ones(size(∇fk)) #just initialize s
     #norm((g_k + gh_k))
     #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
