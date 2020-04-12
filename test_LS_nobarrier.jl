@@ -25,6 +25,10 @@ end
 function tr_norm(z,α,σ)
     return z./max(1, norm(z, 2)/σ)
 end
+# PG version
+function tr_norm(z,σ)
+    return z./max(1, norm(z, 2)/σ)
+end
 
 function h_obj(x)
     return 0

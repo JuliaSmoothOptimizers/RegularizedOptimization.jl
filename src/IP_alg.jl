@@ -113,38 +113,33 @@ function IntPt_TR(x0, TotalCount, params, options)
     α = 1.0
 
     while(norm((Gν - ∇qk)+ ∇fk) > ϵ && k_i<maxIter)
-        local objInner, funProj
         #update count
         k_i = k_i+1 #inner
         k = k+1  #outer
         TR_stat = ""
         x_stat = ""
 
-        #define custom inner objective to find search direction and solve
-        if simple==1 || simple==2
-            objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]
-        else
-            objInner= prox_ψk
-        end
 
         if simple==1 #when h==0
             #this can probably be sped up since we declare new function every time
+            objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]
             funProj(x) = χ_projector(x, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
             (s, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
             s⁻ = zeros(size(s))
             Gν = -s*norm(Bk)^2 #Gν = 1/ν(s⁻ - s) = 1/(1/β)(-s) = -(s)β
-        elseif simple==2 #h=0 but using PG
             #this can probably be sped up since we declare new function every time
-            FO_options.β = norm(Bk)^2
-            funProj(s, α) = χ_projector(s, α, Δk)
-            (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
-            Gν =(s⁻ - s)/FO_options.β
+
         else
+            objInner= prox_ψk
             FO_options.β = norm(Bk)^2
             FO_options.Bk = Bk
             FO_options.∇fk = ∇fk
             FO_options.xk = xk
             FO_options.Δ = Δk
+            if simple==2
+                FO_options.λ = FO_options.β*Δk
+            end
+            # funProj(s, α) = χ_projector(s, α, Δk)
             funProj = χ_projector
             (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
             Gν =(s⁻ - s)/FO_options.β
