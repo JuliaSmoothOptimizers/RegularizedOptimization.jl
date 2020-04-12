@@ -25,27 +25,59 @@ end
 function tr_norm(z,α,σ)
     return z./max(1, norm(z, 2)/σ)
 end
-# PG version
-function tr_norm(z,σ)
-    return z./max(1, norm(z, 2)/σ)
-end
 
 function h_obj(x)
     return 0
 end
 
+
+function minalg_proj(Fcn, s, proj, options)
+    ε=options.optTol
+    max_iter = options.maxIter
+    # print_freq = 1
+    #Problem Initialize
+    m = length(s)
+    ν = 1.0/options.β
+    k = 1
+    err = 100
+    his = zeros(max_iter)
+    s⁺ = deepcopy(s)
+
+    # Iteration set up
+    f, g = Fcn(s⁺)
+    feval = 1
+    #do iterations
+    while err ≥ ε && k<max_iter && abs(f)>1e-16
+        s = s⁺
+        his[k] = f
+        #take a gradient step: x-=ν*∇f
+        #prox step
+        s⁺ = proj(s - ν*g)
+        # update function info
+        f, g = Fcn(s⁺)
+        feval+=1
+        err = norm(s-s⁺)
+        k+=1
+        # k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
+    end
+    return s⁺, his[1:k-1], feval
+
+end
+
 #set all options
-# first_order_options = spg_options(;optTol=1.0e-1, progTol=1.0e-10, verbose=0,
-    # feasibleInit=true, curvilinear=true, bbType=true, memory=1)
-first_order_options = s_options(1/norm(A'*A);optTol=1.0e-5, verbose=0)
+first_order_options_spgslim = spg_options(;optTol=1.0e-1, progTol=1.0e-10, verbose=0,
+    feasibleInit=true, curvilinear=true, bbType=true, memory=1)
+first_order_options_proj = s_options(1/norm(A'*A);optTol=1.0e-3)
     #need to tighten this because you don't make any progress in the later iterations
-    #put in projected gradient descent in DescentMethods.jl to solve in the inner loop with relative accuracy
 
 
 # Interior Pt Algorithm
-parameters = IP_struct(f_obj, h_obj;s_alg = PG, FO_options = first_order_options, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
+parameters_spgslim = IP_struct(f_obj, h_obj; FO_options = first_order_options_spgslim, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
+parameters_proj = IP_struct(f_obj, h_obj;s_alg = minalg_proj, FO_options = first_order_options_proj, χ_projector=tr_norm)
 # parameters = IP_struct(f_obj, h_obj;FO_options = first_order_options, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
-options = IP_options(;ptf=1, simple=2) #print freq, ΔK init, epsC/epsD initialization, maxIter
+options_spgslim = IP_options(;ptf=100) #print freq, ΔK init, epsC/epsD initialization, maxIter
+options_proj= IP_options(;ptf=1)
+
 #put in your initial guesses
 xi = ones(n,)/2
 
@@ -58,20 +90,22 @@ TotalCount = 0
 
 # x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=0, mu_tol=1e-3)
 # x, zl, zu, k = IntPt_TR(x, zl, zu,mu,IterCount, IPparams, IPoptions)
-x, k = IntPt_TR(xi, TotalCount, parameters, options)
+x_spg, k = IntPt_TR(xi, TotalCount, parameters_spgslim, options_spgslim)
+x_pr, k = IntPt_TR(xi, TotalCount, parameters_proj, options_proj)
 
 
 #print out l2 norm difference and plot the two x values
-@printf("l2-norm TR: %5.5e\n", norm(x - x0))
-@printf("l2-norm CVX: %5.5e\n", norm(X.value - x0))
+@printf("l2-norm TR (SPGSlim) vs True: %5.5e\n", norm(x_spg - x0))
+@printf("l2-norm TR (PG) vs True: %5.5e\n", norm(x_pr - x0))
+@printf("l2-norm CVX vs True: %5.5e\n", norm(X.value - x0))
 @printf("TR vs CVX relative error: %5.5e\n", norm(X.value - x)/norm(X.value))
-plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
-plot!(x, label="tr", marker=2)
-plot!(X.value, label="cvx")
-savefig("figs/ls/xcomp.pdf")
-
-plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
-plot!(b, label="Observed")
-plot!(A*x, label="A*x: TR", marker=2)
-plot!(A*X.value, label="A*x: CVX")
-savefig("figs/ls/bcomp.pdf")
+# plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
+# plot!(x, label="tr", marker=2)
+# plot!(X.value, label="cvx")
+# savefig("figs/ls/xcomp.pdf")
+#
+# plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
+# plot!(b, label="Observed")
+# plot!(A*x, label="A*x: TR", marker=2)
+# plot!(A*X.value, label="A*x: CVX")
+# savefig("figs/ls/bcomp.pdf")
