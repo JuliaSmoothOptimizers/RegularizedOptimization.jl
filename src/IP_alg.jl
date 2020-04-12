@@ -120,8 +120,13 @@ function IntPt_TR(x0, TotalCount, params, options)
         x_stat = ""
 
 
-        if simple==1
+        if simple==1 || simple==2
             objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]
+        else
+            objInner = prox_ψk
+        end
+
+        if simple==1
             funProj(s) = χ_projector(s, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
             s⁻ = zeros(size(xk))
             (s, fsave, funEvals)= s_alg(objInner, s⁻, funProj, FO_options)
@@ -133,8 +138,10 @@ function IntPt_TR(x0, TotalCount, params, options)
             FO_options.∇fk = ∇fk
             FO_options.xk = xk
             FO_options.Δ = Δk
+            if simple==2
+                FO_options.λ = Δk*norm(Bk^2)
+            end
             # funProj(s, α) = χ_projector(s, α, Δk)
-            objInner = prox_ψk
             funProj = χ_projector
             (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
             Gν =(s⁻ - s)/FO_options.β

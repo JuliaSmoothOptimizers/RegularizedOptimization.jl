@@ -22,7 +22,11 @@ function f_obj(x)
 end
 
 #SPGSlim version
-function tr_norm(z,α,σ)
+function tr_norm_spg(z,α,σ)
+    return z./max(1, norm(z, 2)/σ)
+end
+
+function tr_norm(z,σ)
     return z./max(1, norm(z, 2)/σ)
 end
 
@@ -30,53 +34,19 @@ function h_obj(x)
     return 0
 end
 
-
-function minalg_proj(Fcn, s, proj, options)
-    ε=options.optTol
-    max_iter = options.maxIter
-    # print_freq = 1
-    #Problem Initialize
-    m = length(s)
-    ν = 1.0/options.β
-    k = 1
-    err = 100
-    his = zeros(max_iter)
-    s⁺ = deepcopy(s)
-
-    # Iteration set up
-    f, g = Fcn(s⁺)
-    feval = 1
-    #do iterations
-    while err ≥ ε && k<max_iter && abs(f)>1e-16
-        s = s⁺
-        his[k] = f
-        #take a gradient step: x-=ν*∇f
-        #prox step
-        s⁺ = proj(s - ν*g)
-        # update function info
-        f, g = Fcn(s⁺)
-        feval+=1
-        err = norm(s-s⁺)
-        k+=1
-        # k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
-    end
-    return s⁺, his[1:k-1], feval
-
-end
-
 #set all options
 first_order_options_spgslim = spg_options(;optTol=1.0e-1, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
-first_order_options_proj = s_options(1/norm(A'*A);optTol=1.0e-3)
+first_order_options_proj = s_options(1/norm(A'*A);optTol=1.0)
     #need to tighten this because you don't make any progress in the later iterations
 
 
 # Interior Pt Algorithm
-parameters_spgslim = IP_struct(f_obj, h_obj; FO_options = first_order_options_spgslim, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
-parameters_proj = IP_struct(f_obj, h_obj;s_alg = minalg_proj, FO_options = first_order_options_proj, χ_projector=tr_norm)
+parameters_spgslim = IP_struct(f_obj, h_obj; FO_options = first_order_options_spgslim, χ_projector=tr_norm_spg) #defaults to h=0, spgl1/min_confSPG
+parameters_proj = IP_struct(f_obj, h_obj;s_alg = PG, FO_options = first_order_options_proj, χ_projector=tr_norm)
 # parameters = IP_struct(f_obj, h_obj;FO_options = first_order_options, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
 options_spgslim = IP_options(;ptf=100) #print freq, ΔK init, epsC/epsD initialization, maxIter
-options_proj= IP_options(;ptf=1)
+options_proj= IP_options(;ptf=1, simple=2)
 
 #put in your initial guesses
 xi = ones(n,)/2
