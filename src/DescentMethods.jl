@@ -72,7 +72,7 @@ function PG(Fcn, x,  proxG, options)
 	f, g = Fcn(x⁺)
 	feval = 1
 		#do iterations
-	while err ≥ ε && k <max_iter && abs(f)>1e-16
+	while err >= ε && k<max_iter && abs(f)>1e-16
 		x = x⁺
 		his[k] = f
 		#take a gradient step: x-=ν*∇f
