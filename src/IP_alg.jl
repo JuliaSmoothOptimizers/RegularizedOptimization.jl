@@ -154,7 +154,7 @@ function IntPt_TR(x0, TotalCount, params, options)
         ∇qk = ∇fk + Bk*s⁻
 
         @printf("%10.5e   %10.5e   %10.5e \n", size(s,1), fk, size(xk,1))
-
+        @printf("%10.5e   %10.5e   %10.5e \n", maximum(s), minimum(s), maximum(xk))
 
         #update ρ
         ########YOU WILL HAVE TO CHANGE THE MODEL TO THE NEW ONE IN THE PAPER###################
