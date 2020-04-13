@@ -160,9 +160,6 @@ function IntPt_TR(x0, TotalCount, params, options)
         ########YOU WILL HAVE TO CHANGE THE MODEL TO THE NEW ONE IN THE PAPER###################
         mk(d) = qk(d,fk, ∇fk, Bk)[1] + ψk(xk+d) #qk should take barrier terms into account
         # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
-        @printf("%10.5e\n", β(xk))
-        @printf("%10.5e\n", β(xk+s))
-        @printf("%10.5e\n", mk(zeros(size(xk))))
         @printf("%10.5e\n", mk(s)) 
         ρk = (β(xk) - β(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
 
