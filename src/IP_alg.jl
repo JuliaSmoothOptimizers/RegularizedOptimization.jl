@@ -144,7 +144,7 @@ function IntPt_TR(x0, TotalCount, params, options)
             # funProj(s, α) = χ_projector(s, α, Δk)
             funProj = χ_projector
             (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
-            Gν =(s⁻ - s)/FO_options.β
+            Gν =(s⁻ - s)*FO_options.β
         end
 
         ∇qk = ∇fk + Bk*s⁻

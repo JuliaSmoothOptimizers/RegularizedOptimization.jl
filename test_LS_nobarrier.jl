@@ -37,7 +37,7 @@ end
 #set all options
 first_order_options_spgslim = spg_options(;optTol=1.0e-1, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
-first_order_options_proj = s_options(1/norm(A'*A);optTol=1.0)
+first_order_options_proj = s_options(1/norm(A'*A);optTol=1.0e-1, verbose=1)
     #need to tighten this because you don't make any progress in the later iterations
 
 
@@ -46,7 +46,7 @@ parameters_spgslim = IP_struct(f_obj, h_obj; FO_options = first_order_options_sp
 parameters_proj = IP_struct(f_obj, h_obj;s_alg = PG, FO_options = first_order_options_proj, χ_projector=tr_norm)
 # parameters = IP_struct(f_obj, h_obj;FO_options = first_order_options, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
 options_spgslim = IP_options(;ptf=100) #print freq, ΔK init, epsC/epsD initialization, maxIter
-options_proj= IP_options(;ptf=1, simple=2)
+options_proj= IP_options(;ptf=10, simple=2, ϵ=1e-7)
 
 #put in your initial guesses
 xi = ones(n,)/2
@@ -68,14 +68,17 @@ x_pr, k = IntPt_TR(xi, TotalCount, parameters_proj, options_proj)
 @printf("l2-norm TR (SPGSlim) vs True: %5.5e\n", norm(x_spg - x0))
 @printf("l2-norm TR (PG) vs True: %5.5e\n", norm(x_pr - x0))
 @printf("l2-norm CVX vs True: %5.5e\n", norm(X.value - x0))
-@printf("TR vs CVX relative error: %5.5e\n", norm(X.value - x)/norm(X.value))
-# plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
-# plot!(x, label="tr", marker=2)
-# plot!(X.value, label="cvx")
-# savefig("figs/ls/xcomp.pdf")
-#
-# plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
-# plot!(b, label="Observed")
-# plot!(A*x, label="A*x: TR", marker=2)
-# plot!(A*X.value, label="A*x: CVX")
-# savefig("figs/ls/bcomp.pdf")
+@printf("TR (SPGSlim) vs CVX relative error: %5.5e\n", norm(X.value - x_spg)/norm(X.value))
+@printf("TR (PG) vs CVX relative error: %5.5e\n", norm(X.value - x_pr)/norm(X.value))
+plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
+plot!(x_spg, label="tr-spg", marker=2)
+plot!(x_pr, label="tr-pr", marker=3)
+plot!(X.value, label="cvx")
+savefig("figs/ls/xcomp.pdf")
+
+plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
+plot!(b, label="Observed")
+plot!(A*x_spg, label="A*x: TR-spg", marker=2)
+plot!(A*x_pr, label="A*x: TR-pr", marker=3)
+plot!(A*X.value, label="A*x: CVX")
+savefig("figs/ls/bcomp.pdf")
