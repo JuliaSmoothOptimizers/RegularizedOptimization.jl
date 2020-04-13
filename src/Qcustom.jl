@@ -14,8 +14,12 @@ function qk(s, f, grad, Hess)
     Hess : Array{Float64,2}
         Hessian (or Hessian approximation) of TR method
 	"""
-
-	f = 0.5*(s'*(Hess*s)) + grad'*s + f
+	t1 =  0.5*(s'*(Hess*s))
+	t2 = grad'*s
+	t3 = t1 + t2
+	f = t3+f
+	@printf("%10.5e   %10.5e   %10.5e  %10.5e\n", t1, t2, t3, f)
+	# f = 0.5*(s'*(Hess*s)) + grad'*s + f
     g = Hess*s +grad
     h = Hess
 	return f, g, h

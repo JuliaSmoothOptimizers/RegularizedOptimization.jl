@@ -42,19 +42,19 @@ function h_nonsmooth(x)
 end
 
 #all this should be unraveling in the hardproxB# code
-fval(y, bq, bx, νi) = (y-(bx-bq)).^2/(2*νi)+λ*abs.(y)
+fval(y, bq, bx, νi) = (y-(bx-bq)).^2/(2*νi)+λ_T*abs.(y)
 projbox(w, bx, τi) = min.(max.(w,bx.-τi), bx.+τi)
 
 #set all options
-Doptions=s_options(1/norm(A'*A)^2; maxIter=10, λ=λ_T)
+Doptions=s_options(1/norm(A'*A); maxIter=10, λ=λ_T)
 
 # first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
 parameters = IP_struct(f_smooth, h_nonsmooth;
-FO_options = Doptions, s_alg=hardproxB2, prox_ψk=fval, χ_projector=projbox)
+FO_options = Doptions, s_alg=hardproxBinf, prox_ψk=fval, χ_projector=projbox)
 # options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
-options = IP_options(;ptf=50)
+options = IP_options(;simple=0, ptf=1)
 #put in your initial guesses
 xi = ones(n,)/2
 TotalCount=0
