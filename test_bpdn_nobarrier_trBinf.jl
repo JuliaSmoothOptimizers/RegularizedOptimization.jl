@@ -46,7 +46,7 @@ fval(y, bq, bx, νi) = (y-(bx-bq)).^2/(2*νi)+λ*abs.(y)
 projbox(w, bx, τi) = min.(max.(w,bx.-τi), bx.+τi)
 
 #set all options
-Doptions=s_options(1/ν; maxIter=10, λ=λ_T)
+Doptions=s_options(1/norm(A'*A)^2; maxIter=10, λ=λ_T)
 
 # first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
@@ -56,7 +56,8 @@ FO_options = Doptions, s_alg=hardproxB2, prox_ψk=fval, χ_projector=projbox)
 # options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
 options = IP_options(;ptf=50)
 #put in your initial guesses
-x = ones(n,)/2
+xi = ones(n,)/2
+TotalCount=0
 
 X = Variable(n)
 problem = minimize(sumsquares(A * X - b) + λ_T*norm(X,1))

@@ -8,7 +8,7 @@ function hardproxB2(Fcn, x, ProjB, options)
 ν = 1.0/options.β
 Bk = options.Bk
 xk = options.xk
-gk = options.gk
+gk = options.∇fk
 Δ = options.Δ
 
 

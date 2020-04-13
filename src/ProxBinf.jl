@@ -11,7 +11,7 @@ f = zeros(size(x))
 ν = 1.0/options.β
 Bk = options.Bk
 xk = options.xk
-gk = options.gk #note that q = gk = ∇f(x_k) for this example
+gk = options.∇fk #note that q = gk = ∇f(x_k) for this example
 Δ = options.Δ
 
 
