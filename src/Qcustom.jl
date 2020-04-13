@@ -23,7 +23,7 @@ function qk(s, f, grad, Hess)
 	@printf("%10.5e\n", f)
 	f = t3+f
 
-	# f = 0.5*(s'*(Hess*s)) + grad'*s + f
+	f = 0.5*(s'*(Hess*s)) + grad'*s + f
     g = Hess*s +grad
     h = Hess
 	return f, g, h
