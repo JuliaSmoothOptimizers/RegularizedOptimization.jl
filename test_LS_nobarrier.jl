@@ -60,8 +60,8 @@ TotalCount = 0
 
 # x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=0, mu_tol=1e-3)
 # x, zl, zu, k = IntPt_TR(x, zl, zu,mu,IterCount, IPparams, IPoptions)
-x_spg, k = IntPt_TR(xi, TotalCount, parameters_spgslim, options_spgslim)
-x_pr, k = IntPt_TR(xi, TotalCount, parameters_proj, options_proj)
+x_spg, k, Fhist_spg, Hhist_spg = IntPt_TR(xi, TotalCount, parameters_spgslim, options_spgslim)
+x_pr, k, Fhist_pg, Hhist_pg = IntPt_TR(xi, TotalCount, parameters_proj, options_proj)
 
 
 #print out l2 norm difference and plot the two x values
@@ -82,3 +82,11 @@ plot!(A*x_spg, label="A*x: TR-spg", marker=2)
 plot!(A*x_pr, label="A*x: TR-pr", marker=3)
 plot!(A*X.value, label="A*x: CVX")
 savefig("figs/ls/bcomp.pdf")
+
+plot(Fhist_spg, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)")
+plot!(Hhist_spg, label="h(x) (SPGSlim)")
+plot!(Fhist_spg+ Hhist_spg, label="f+h (SPGSlim)")
+plot!(Hhist_pg, label="h(x) (Prox-grad)")
+plot!(Fhist_pg, label="f(x) (Prox-grad)")
+plot!(Fhist_pg+ Hhist_pg, label="f+h (Prox-grad)")
+savefig("figs/ls/objhist.pdf")

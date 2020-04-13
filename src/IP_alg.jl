@@ -94,6 +94,9 @@ function IntPt_TR(x0, TotalCount, params, options)
     #main algorithm initialization
     (fk, ∇fk, Bk) = f_obj(xk)
 
+    Fobj_hist = zeros(maxIter)
+    Hobj_hist = zeros(maxIter)
+
     #stopping condition
     Gν = Inf*∇fk
     ∇qk = ∇fk + Bk*zeros(size(∇fk))
@@ -118,7 +121,8 @@ function IntPt_TR(x0, TotalCount, params, options)
         k = k+1  #outer
         TR_stat = ""
         x_stat = ""
-
+        Fobj_hist[k] = fk
+        Hobj_hist[k] = ψk(xk)
 
         if simple==1 || simple==2
             objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]
@@ -189,14 +193,10 @@ function IntPt_TR(x0, TotalCount, params, options)
         #Print values
         k % ptf ==0 && @printf("%11d|  %19.5e   %10.5e   %10s   %10.5e   %10s   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, norm((Gν - ∇qk)+ ∇fk), ρk,x_stat, Δk,TR_stat, α, norm(xk,2), norm(s,2), fk, ψk(xk))
 
-        if k % 50 ==0
+        if k % ptf ==0
             FO_options.optTol = FO_options.optTol*.1
         end
-        #uncommented for now
-        # if(isnan(ρk) || Δk<1e-10)
-        #     break
-        # end
 
     end
-    return xk, k
+    return xk, k, Fobj_hist, Hobj_hist
 end
