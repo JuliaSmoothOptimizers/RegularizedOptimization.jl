@@ -27,7 +27,7 @@ Doptions=s_options(1/ν; maxIter=10, λ=λ, ∇fk = g, Bk = A'*A, xk=x, Δ = τ)
 # n=10
 
 # (s,f) = hardproxBinf(q, x, ν,λ, τ)
-(s,s⁻, f, funEvals) = hardproxBinf(fval, x, projbox, Doptions)
+(s,s⁻, f, funEvals) = hardproxBinf(fval, zeros(size(x)), projbox, Doptions)
 
 
 s_cvx = Variable(n)

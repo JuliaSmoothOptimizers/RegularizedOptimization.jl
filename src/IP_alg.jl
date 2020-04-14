@@ -146,10 +146,6 @@ function IntPt_TR(x0, TotalCount, params, options)
             if simple==2
                 FO_options.λ = Δk*norm(Bk^2)
             end
-            # if simple==3
-            #     s⁻ = xk
-            # end
-            # funProj(s, α) = χ_projector(s, α, Δk)
             funProj = χ_projector
             (s, s⁻, fsave, funEvals)= s_alg(objInner, s⁻, funProj, FO_options)
             Gν =(s⁻ - s)*FO_options.β
