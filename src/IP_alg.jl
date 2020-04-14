@@ -142,16 +142,21 @@ function IntPt_TR(x0, TotalCount, params, options)
             FO_options.∇fk = ∇fk
             FO_options.xk = xk
             FO_options.Δ = Δk
+            s⁻ = zeros(size(xk))
             if simple==2
                 FO_options.λ = Δk*norm(Bk^2)
             end
+            # if simple==3
+            #     s⁻ = xk
+            # end
             # funProj(s, α) = χ_projector(s, α, Δk)
             funProj = χ_projector
-            (s, s⁻, fsave, funEvals)= s_alg(objInner, zeros(size(xk)), funProj, FO_options)
+            (s, s⁻, fsave, funEvals)= s_alg(objInner, s⁻, funProj, FO_options)
             Gν =(s⁻ - s)*FO_options.β
         end
 
         ∇qk = ∇fk + Bk*s⁻
+
         #update ρ
         ########YOU WILL HAVE TO CHANGE THE MODEL TO THE NEW ONE IN THE PAPER###################
         mk(d) = qk(d,fk, ∇fk, Bk)[1] + ψk(xk+d) #qk should take barrier terms into account

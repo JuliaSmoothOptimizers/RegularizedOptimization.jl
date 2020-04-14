@@ -45,8 +45,8 @@ f = minimum(fvec, dims=2)
 # idx = argmin(fvec)
 idx = argmin(fvec, dims=2)
 # s[i] = smat[idx]-x[i]
-s = smat[idx]-x
+s = smat[idx]-xk
 # end
 
-return dropdims(s, dims=2),zeros(size(s)), sum(f), 1 #funEvals = 1 here
+return dropdims(s, dims=2),s, sum(f), 1 #funEvals = 1 here
 end
