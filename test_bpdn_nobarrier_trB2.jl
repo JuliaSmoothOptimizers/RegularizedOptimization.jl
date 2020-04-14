@@ -27,7 +27,7 @@ cutoff = 0.0
 # l = -2.0*ones(n,)+cutoff*ones(n,)
 # u = 2.0*ones(n,)+cutoff*ones(n,)
 λ_T = norm(A'*b, Inf)/100
-λ_O = norm(A'*b, Inf)/2
+λ_O = norm(A'*b, Inf)
 
 
 #define your smooth objective function

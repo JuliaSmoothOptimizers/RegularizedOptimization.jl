@@ -54,7 +54,7 @@ Doptions=s_options(1/norm(A'*A); maxIter=10, λ=λ_O)
 parameters = IP_struct(f_smooth, h_nonsmooth;
 FO_options = Doptions, s_alg=hardproxBinf, prox_ψk=fval, χ_projector=projbox)
 # options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
-options = IP_options(;simple=0, ptf=1)
+options = IP_options(;simple=0, ptf=100)
 #put in your initial guesses
 xi = ones(n,)/2
 TotalCount=0
