@@ -186,7 +186,7 @@ function IntPt_TR(
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
             ∇²ϕ = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
 
-            @printf("%10.5e   %10.5e %10.5e %10.5e\n", ϕ(xk), norm(∇ϕ), norm(∇²ϕ), ψk(xk))
+            @printf("%10.5e   %10.5e %10.5e %10.5e\n", ϕ, norm(∇ϕ), norm(∇²ϕ), fk)
 
 
             if simple == 1 || simple == 2
