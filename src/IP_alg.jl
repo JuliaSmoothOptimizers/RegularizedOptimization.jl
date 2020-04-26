@@ -90,8 +90,8 @@ function IntPt_TR(
     x0,
     params,
     options;
-    l = -Inf * ones(size(x0)),
-    u = Inf * ones(size(x0)),
+    l = -1.0e16 * ones(size(x0)),
+    u = 1.0e16 * ones(size(x0)),
     μ = 0.0,
     BarIter = 1,
 )
