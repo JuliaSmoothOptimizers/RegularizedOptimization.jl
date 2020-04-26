@@ -42,11 +42,13 @@ first_order_options_proj = s_options(1/norm(A'*A);maxIter=1000, verbose=0)
 
 
 # Interior Pt Algorithm
-parameters_spgslim = IP_struct(f_obj, h_obj; FO_options = first_order_options_spgslim, χ_projector=tr_norm_spg) #defaults to h=0, spgl1/min_confSPG
-parameters_proj = IP_struct(f_obj, h_obj;s_alg = FISTA, FO_options = first_order_options_proj, χ_projector=tr_norm)
+parameters_spgslim = IP_struct(f_obj, h_obj;
+    FO_options = first_order_options_spgslim, χ_projector=tr_norm_spg) #defaults to h=0, spgl1/min_confSPG
+parameters_proj = IP_struct(f_obj, h_obj;
+    s_alg = FISTA, FO_options = first_order_options_proj, χ_projector=tr_norm)
 # parameters = IP_struct(f_obj, h_obj;FO_options = first_order_options, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
 options_spgslim = IP_options(;ptf=100) #print freq, ΔK init, epsC/epsD initialization, maxIter
-options_proj= IP_options(;ptf=100, simple=2, ϵ=1e-2)
+options_proj= IP_options(;ptf=100, simple=2)
 
 #put in your initial guesses
 xi = ones(n,)/2

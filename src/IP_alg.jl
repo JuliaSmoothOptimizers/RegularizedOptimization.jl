@@ -34,7 +34,7 @@ function IP_struct(f_obj, h;
     FO_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
     ψk=h, InnerFunc=h #prox_{h + δᵦ(x)} for $B = Indicator of \|s\|_p ≦Δ
     )
-    return IP_methods(FO_options, s_alg, χ_projector,ψk, InnerFunc, ψk, f_obj)
+    return IP_methods(FO_options, s_alg, χ_projector, InnerFunc, ψk, f_obj)
 end
 
 
