@@ -74,7 +74,7 @@ x   : Array{Float64,1}
 k   : Int
     number of iterations used
 """
-function IntPt_TR(x0, params, options; l = -Inf*ones(size(x0)), u = -Inf*ones(size(x0)), μ = 1.0, BarIter=1)
+function IntPt_TR(x0, params, options; l = -Inf*ones(size(x0)), u = Inf*ones(size(x0)), μ = 1.0, BarIter=1)
 
     #initialize passed options
     debug = false #turn this on to see debugging information
