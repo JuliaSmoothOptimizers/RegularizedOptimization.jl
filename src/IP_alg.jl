@@ -186,8 +186,6 @@ function IntPt_TR(
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
             ∇²ϕ = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
 
-            @printf("%10.5e   %10.5e %10.5e %10.5e\n", ϕ, norm(∇ϕ), norm(∇²ϕ), fk)
-
 
             if simple == 1 || simple == 2
                 objInner(s) = qk(s, ϕ, ∇ϕ, ∇²ϕ)[1:2]
@@ -271,7 +269,7 @@ function IntPt_TR(
                 # zku = zku + α*dzu
                 Δk = α * norm(s, 1)
             end
-            k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
+            # k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
 
             (fk, ∇fk, Bk) = f_obj(xk)
             kktNorm = [
@@ -288,7 +286,6 @@ function IntPt_TR(
             if k % ptf == 0
                 FO_options.optTol = FO_options.optTol * 0.1
             end
-            QQQ
         end
         # mu = norm(zl.*(x.-l)) + norm(zu.*(u.-x))
         μ = 0.5 * μ
