@@ -6,7 +6,7 @@ include("./src/minconf_spg/oneProjector.jl")
 #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with -10≦x≦10
 #######
 # min_x 1/2||Ax - b||^2 + λ||x||₁
-compound = 1
+compound = 2
 #m rows, n columns, k nonzeros
 m,n = compound*120,compound*512
 k = compound*20
@@ -46,7 +46,7 @@ fval(yp, bq, bx, νi) = (yp-bx+bq).^2/(2*νi)+λ_O*abs.(yp)
 projbox(wp, bx, τi) = min.(max.(wp,bx.-τi), bx.+τi)
 
 #set all options
-Doptions=s_options(1/norm(A'*A); maxIter=10, λ=λ_O)
+Doptions=s_options(1/norm(A'*A)^2; maxIter=10, λ=λ_O)
 
 # first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
@@ -57,7 +57,6 @@ FO_options = Doptions, s_alg=hardproxBinf, prox_ψk=fval, χ_projector=projbox)
 options = IP_options(;simple=0, ptf=100)
 #put in your initial guesses
 xi = ones(n,)/2
-TotalCount=0
 
 X = Variable(n)
 problem = minimize(sumsquares(A * X - b) + λ_T*norm(X,1))
@@ -67,7 +66,7 @@ solve!(problem, SCSSolver())
 
 
 # x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-4)
-x, k, Fhist, Hhist = IntPt_TR(xi, TotalCount, parameters, options)
+x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
 
 
 #print out l2 norm difference and plot the two x values

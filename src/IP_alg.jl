@@ -7,7 +7,8 @@ export IP_options, IntPt_TR, IP_struct #export necessary values to file that cal
 
 
 mutable struct IP_params
-    ϵ #termination criteria
+    ϵD #termination criteria
+    ϵC #dual termination criteria
     Δk #trust region radius
     ptf #print every so often
     simple #if you can use spg_minconf with simple projection
@@ -18,39 +19,54 @@ mutable struct IP_methods
     FO_options #options for minConf_SPG/minimization routine you use for s
     s_alg #algorithm passed that determines descent direction
     χ_projector # Δ - norm ball that you project onto
-    prox_ψk
+    InnerFunc
     ψk #part of ϕk that you are trying to solve - for ψ=0, this is just qk. Otherwise,
                 #it's the prox_{ξ*λ*ψ}(s - ν*∇q(s))
     f_obj #objective function (unaltered) that you want to minimize
 end
 
-function IP_options(;ϵ = 1e-2, Δk=1.0,  ptf = 100, simple=1, maxIter=10000
+function IP_options(;ϵD = 1e-2, ϵC = 1e-2, Δk=1.0,  ptf = 100, simple=1, maxIter=10000
                       ) #default values for trust region parameters in algorithm 4.2
-    return IP_params(ϵ, Δk, ptf, simple, maxIter)
+    return IP_params(ϵD,ϵC, Δk, ptf, simple, maxIter)
 end
 
 function IP_struct(f_obj, h;
     FO_options = spg_options(),s_alg = minConf_SPG, χ_projector=oneProjector,
-    ψk=h, prox_ψk=h #prox_{h + δᵦ(x)} for $B = Indicator of \|s\|_p ≦Δ
+    ψk=h, InnerFunc=h #prox_{h + δᵦ(x)} for $B = Indicator of \|s\|_p ≦Δ
     )
-    return IP_methods(FO_options, s_alg, χ_projector, prox_ψk, ψk, f_obj)
+    return IP_methods(FO_options, s_alg, χ_projector,ψk, InnerFunc, ψk, f_obj)
 end
 
 
 
 """Interior method for Trust Region problem
-    IntPt_TR(x, f_obj, options)
+    IntPt_TR(x, TotalCount,params, options)
 Arguments
 ----------
 x : Array{Float64,1}
     Initial guess for the x value used in the trust region
 TotalCount: Float64
     overall count on total iterations
-options : mutable structure IP_params with:
+params : mutable structure IP_params with:
+    --
+    -ϵD, tolerance for primal convergence
+    -ϵC, tolerance for dual convergence
     -Δk Float64, trust region radius
-    -options, options for descent direction method
-    -ptf Int, print output
+    -ptf Int, print every # iterations
+    -simple, 1 for h=0, 0 for other
     -maxIter Float64, maximum number of inner iterations (note: does not influence TotalCount)
+options : mutable struct IP_methods
+    -f_obj, smooth objective function; takes in x and outputs [f, g, Bk]
+    -h_obj, nonsmooth objective function; takes in x and outputs h
+    --
+    -FO_options, options for first order algorithm, see DescentMethods.jl for more
+    -s_alg, algorithm for descent direction, see DescentMethods.jl for more
+    -χ_projector, function projecting onto the trust region ball or h+χ
+    -InnerFunc, inner objective or proximal operator of ψk+χk+1/2||u - sⱼ + ∇qk|²
+l : Vector{Float64} size of x, defaults to -Inf
+u : Vector{Float64} size of x, defaults to Inf
+μ : Float64, initial barrier parameter, defaults to 1.0
+
 Returns
 -------
 x   : Array{Float64,1}
@@ -58,11 +74,12 @@ x   : Array{Float64,1}
 k   : Int
     number of iterations used
 """
-function IntPt_TR(x0, TotalCount, params, options)
+function IntPt_TR(x0, params, options; l = -Inf*ones(size(x0)), u = -Inf*ones(size(x0)), μ = 1.0, BarIter=1)
 
     #initialize passed options
     debug = false #turn this on to see debugging information
-    ϵ = options.ϵ
+    ϵD = options.ϵD
+    ϵC = options.ϵC
     Δk = options.Δk
     ptf = options.ptf
     simple = options.simple
@@ -73,7 +90,7 @@ function IntPt_TR(x0, TotalCount, params, options)
     s_alg = params.s_alg
     χ_projector = params.χ_projector
     ψk = params.ψk
-    prox_ψk = params.prox_ψk
+    InnerFunc = params.InnerFunc
     f_obj = params.f_obj
 
 
@@ -86,115 +103,150 @@ function IntPt_TR(x0, TotalCount, params, options)
 
     #initialize parameters
     xk = copy(x0)
+    zkl = copy(x0)
+    zku = copy(x0)
+    k = 0
+    Fobj_hist = zeros(maxIter*BarIter)
+    Hobj_hist = zeros(maxIter*BarIter)
+    @printf("---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n")
+    @printf("%10s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s | %10s\n","Iter","μ","Norm((Gν-∇ϕ) + ∇ϕ⁺)","Ratio: ρk", "x status ","TR: Δk", "Δk status", "LnSrch: α", "||x||", "||s||", "f(x)", "h(x)")
+    @printf("---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n")
 
-    #make sure you only take the first output of the objective value of the true function you are minimizing
-    β(x) = f_obj(x)[1] + ψk(x)#- mu*sum(log.((x-l).*(u-x)))
-    #change this to h not psik
+#Barrier Loop
+    while k<BarIter || μ<1e-6 #create options for this
+        #make sure you only take the first output of the objective value of the true function you are minimizing
+        β(x) = f_obj(x)[1] + ψk(x) - μ*sum(log.(x-l)) - μ*sum(log.(u-x)) #- μ*sum(log.((x-l).*(u-x)))
+        #change this to h not psik
 
-    #main algorithm initialization
-    (fk, ∇fk, Bk) = f_obj(xk)
+        #main algorithm initialization
+        (fk, ∇fk, Bk) = f_obj(xk)
 
-    Fobj_hist = zeros(maxIter)
-    Hobj_hist = zeros(maxIter)
+        ∇ϕ = ∇fk - μ./(xk - l) + μ./(u - xk)
+        ∇²ϕ = Bk + Diagonal(zkl./(xk - l)) + Diagonal(zku./(u-xk))
+        #stopping condition
+        Gν = Inf*∇fk
+        ∇qk = ∇ϕ + ∇²ϕ*zeros(size(∇fk))
+        # s = ones(size(∇fk)) #just initialize s
+        #norm((g_k + gh_k))
+        #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
-    #stopping condition
-    Gν = Inf*∇fk
-    ∇qk = ∇fk + Bk*zeros(size(∇fk))
-    # s = ones(size(∇fk)) #just initialize s
-    #norm((g_k + gh_k))
-    #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
+        k_i = 0
+        ρk = -1
+        α = 1.0
+        kktNorm = [norm(((Gν - ∇qk)+ ∇ϕ) - zkl + zku); norm(zkl.*(xk-l) .- μ); norm(zku.*(u-xk).-μ)]
+        # while(norm((Gν - ∇qk)+ ∇fk) > ϵD && k_i<maxIter)
+        while(kktNorm[1]>ϵD || kktNorm[2]>ϵC || kktNorm[3]>ϵC || k_i<maxIter)
+            #update count
+            k_i = k_i+1 #inner
+            k = k+1  #outer
+            TR_stat = ""
+            x_stat = ""
+            Fobj_hist[k] = fk
+            Hobj_hist[k] = ψk(xk)
 
-    if TotalCount==0 #actual first mu
-        @printf("--------------------------------------------------------------------------------------------------------------------------------------------------------------\n")
-        @printf("%10s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s\n","Iter","Norm((Gν-∇f) + ∇f⁺)","Ratio: ρk", "x status ","TR: Δk", "Δk status", "LnSrch: α", "||x||", "||s||", "f(x)", "h(x)")
-        @printf("--------------------------------------------------------------------------------------------------------------------------------------------------------------\n")
-    end
+            ϕ = fk - μ*sum(log.(x-l)) - μ*sum(log.(u-x))
+            ∇ϕ = ∇fk - μ./(xk - l) + μ./(u - xk)
+            ∇²ϕ = Bk + Diagonal(zkl./(xk - l)) + Diagonal(zku./(u-xk))
 
-    k_i = 0
-    k = TotalCount
-    ρk = -1
-    α = 1.0
-
-    while(norm((Gν - ∇qk)+ ∇fk) > ϵ && k_i<maxIter)
-        #update count
-        k_i = k_i+1 #inner
-        k = k+1  #outer
-        TR_stat = ""
-        x_stat = ""
-        Fobj_hist[k] = fk
-        Hobj_hist[k] = ψk(xk)
-
-        if simple==1 || simple==2
-            objInner(s) = qk(s,fk, ∇fk,Bk)[1:2]
-        else
-            objInner = prox_ψk
-        end
-
-        if simple==1
-            funProj(s) = χ_projector(s, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
-            s⁻ = zeros(size(xk))
-            (s, fsave, funEvals)= s_alg(objInner, s⁻, funProj, FO_options)
-            Gν = -s*norm(Bk)^2 #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
-            #this can probably be sped up since we declare new function every time
-        else
-            FO_options.β = norm(Bk)^2
-            FO_options.Bk = Bk
-            FO_options.∇fk = ∇fk
-            FO_options.xk = xk
-            FO_options.Δ = Δk
-            s⁻ = zeros(size(xk))
-            if simple==2
-                FO_options.λ = Δk*norm(Bk^2)
+            if simple==1 || simple==2
+                objInner(s) = qk(s,ϕ, ∇ϕ,∇²ϕ)[1:2]
+            else
+                objInner = InnerFunc
             end
-            funProj = χ_projector
-            (s, s⁻, fsave, funEvals)= s_alg(objInner, s⁻, funProj, FO_options)
-            Gν =(s⁻ - s)*FO_options.β
+
+            if simple==1
+                funProj(s) = χ_projector(s, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
+                s⁻ = zeros(size(xk))
+                (s, fsave, funEvals)= s_alg(objInner, s⁻, funProj, FO_options)
+                Gν = -s*norm(Bk)^2 #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
+                #this can probably be sped up since we declare new function every time
+            else
+                FO_options.β = norm(∇²ϕ)^2
+                FO_options.Bk = ∇²ϕ
+                FO_options.∇fk = ∇ϕ
+                FO_options.xk = xk
+                FO_options.Δ = Δk
+                s⁻ = zeros(size(xk))
+                if simple==2
+                    FO_options.λ = Δk*norm(∇²ϕ)^2
+                end
+                funProj = χ_projector
+                (s, s⁻, fsave, funEvals)= s_alg(objInner, s⁻, funProj, FO_options)
+                Gν =(s⁻ - s)*FO_options.β
+            end
+
+            ∇qk = ∇ϕ + ∇²ϕ*s⁻
+
+
+            α = 1.0
+            mult = 0.9
+            # gradient for z
+            dzl = μ./(xk-l) - zkl - zkl.*s./(xk-l)
+            dzu = μ./(u-xk) - zku + zku.*s./(u-xk)
+
+            #linesearch for step size
+            α = directsearch(xk-l, u-xk ,zkl, zku, s, dzl, dzu)
+
+            #update search direction for
+            s = s*α
+            dzl = dzl*α
+            dzu = dzu*α
+
+            #update ρ
+            mk(d) = qk(d,ϕ, ∇ϕ, ∇²ϕ)[1] + ψk(xk+d) #qk should take barrier terms into account
+            # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
+            ρk = (β(xk) - β(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
+
+            if(ρk > eta2)
+                TR_stat = "increase"
+                Δk = max(Δk, gamma*norm(s, 1)) #for safety
+            else
+                TR_stat = "kept"
+            end
+
+            if(ρk >= eta1)
+                x_stat = "update"
+                xk = xk + s
+            end
+
+            if(ρk < eta1)
+
+                x_stat = "shrink"
+
+                #changed back linesearch
+                # α = 1.0
+                # while(β(xk + α*s) > β(xk) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
+                #     α = α*mult
+                # end
+                α = 0.1 #was 0.1; can be whatever
+                #step should be rejected
+                # xk = xk + α*s
+                # zkl = zkl + α*dzl
+                # zku = zku + α*dzu
+                Δk = α*norm(s, 1)
+            end
+            # k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
+
+            (fk, ∇fk, Bk) = f_obj(xk);
+            kktNorm = [norm(((Gν - ∇qk)+ ∇ϕ) - zkl + zku); norm(zkl.*(xk-l) .- μ); norm(zku.*(u-xk).-μ)]
+
+            #Print values
+            k % ptf ==0 && @printf("%11d| %10.5e  %19.5e
+            %10.5e   %10s   %10.5e   %10s   %10.5e
+            %10.5e   %10.5e   %10.5e   %10.5e \n",
+            k,μ, kktNorm[1], ρk,x_stat, Δk,TR_stat,
+            α, norm(xk,2), norm(s,2), fk, ψk(xk))
+
+            if k % ptf ==0
+                FO_options.optTol = FO_options.optTol*.1
+            end
+
         end
-
-        ∇qk = ∇fk + Bk*s⁻
-
-        #update ρ
-        ########YOU WILL HAVE TO CHANGE THE MODEL TO THE NEW ONE IN THE PAPER###################
-        mk(d) = qk(d,fk, ∇fk, Bk)[1] + ψk(xk+d) #qk should take barrier terms into account
-        # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
-        ρk = (β(xk) - β(xk + s))/(mk(zeros(size(xk))) - mk(s)) #test this to make sure it's right (a little variable relative to matlab code)
-
-        if(ρk > eta2)
-            TR_stat = "increase"
-            Δk = max(Δk, gamma*norm(s, 1)) #for safety
-        else
-            TR_stat = "kept"
-        end
-
-        if(ρk >= eta1)
-            x_stat = "update"
-            xk = xk + s
-        end
-
-        if(ρk < eta1)
-
-            x_stat = "shrink"
-
-            #changed back linesearch
-            # α = 1.0
-            # while(β(xk + α*s) > β(xk) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
-            #     α = α*mult
-            # end
-            α = 0.1 #was 0.1; can be whatever
-            #step should be rejected
-            # xk = xk + α*s
-            Δk = α*norm(s, 1)
-        end
-        # k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
-
-        (fk, ∇fk, Bk) = f_obj(xk);
-        #Print values
-        k % ptf ==0 && @printf("%11d|  %19.5e   %10.5e   %10s   %10.5e   %10s   %10.5e  %10.5e   %10.5e   %10.5e   %10.5e \n", k, norm((Gν - ∇qk)+ ∇fk), ρk,x_stat, Δk,TR_stat, α, norm(xk,2), norm(s,2), fk, ψk(xk))
-
-        if k % ptf ==0
-            FO_options.optTol = FO_options.optTol*.1
-        end
-
+        # mu = norm(zl.*(x.-l)) + norm(zu.*(u.-x))
+        μ = .5*μ
+        k = k+1
+        ϵD = ϵD*μ
+        ϵC = ϵC*μ
     end
     return xk, k, Fobj_hist, Hobj_hist
 end

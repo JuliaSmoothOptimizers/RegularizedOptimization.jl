@@ -55,13 +55,12 @@ X = Variable(n)
 problem = minimize(sumsquares(A * X - b))
 solve!(problem, SCSSolver())
 
-TotalCount = 0
 
 
 # x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=0, mu_tol=1e-3)
 # x, zl, zu, k = IntPt_TR(x, zl, zu,mu,IterCount, IPparams, IPoptions)
-x_spg, k, Fhist_spg, Hhist_spg = IntPt_TR(xi, TotalCount, parameters_spgslim, options_spgslim)
-x_pr, k, Fhist_pg, Hhist_pg = IntPt_TR(xi, TotalCount, parameters_proj, options_proj)
+x_spg, k, Fhist_spg, Hhist_spg = IntPt_TR(xi, parameters_spgslim, options_spgslim)
+x_pr, k, Fhist_pg, Hhist_pg = IntPt_TR(xi, parameters_proj, options_proj)
 
 
 #print out l2 norm difference and plot the two x values
