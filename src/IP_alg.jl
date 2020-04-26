@@ -153,7 +153,7 @@ function IntPt_TR(
 #Barrier Loop
     while k < BarIter || μ < 1e-6 #create options for this
         #make sure you only take the first output of the objective value of the true function you are minimizing
-        if (sum(l.== -Inf*ones(size(xk)))+sum(u.== -Inf*ones(size(xk))))== (2*size(xk,1))
+        if (sum(l.== -Inf*ones(size(xk)))+sum(u.== Inf*ones(size(xk))))== (2*size(xk,1))
             β(x) = f_obj(x)[1] + ψk(x)
         else
             β(x) = f_obj(x)[1] + ψk(x) - μ*sum(log.((x-l).*(u-x)))# - μ * sum(log.(x - l)) - μ * sum(log.(u - x)) #
