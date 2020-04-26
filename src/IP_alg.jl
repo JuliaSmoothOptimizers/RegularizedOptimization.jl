@@ -231,11 +231,8 @@ function IntPt_TR(x0, params, options; l = -Inf*ones(size(x0)), u = Inf*ones(siz
             kktNorm = [norm(((Gν - ∇qk)+ ∇ϕ) - zkl + zku); norm(zkl.*(xk-l) .- μ); norm(zku.*(u-xk).-μ)]
 
             #Print values
-            k % ptf ==0 && @printf("%11d| %10.5e  %19.5e
-            %10.5e   %10s   %10.5e   %10s   %10.5e
-            %10.5e   %10.5e   %10.5e   %10.5e \n",
-            k,μ, kktNorm[1], ρk,x_stat, Δk,TR_stat,
-            α, norm(xk,2), norm(s,2), fk, ψk(xk))
+            k % ptf ==0 && @printf("%11d|   %10.5e  %19.5e  %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
+            k,μ, kktNorm[1], ρk,x_stat, Δk,TR_stat, α, norm(xk,2), norm(s,2), fk, ψk(xk))
 
             if k % ptf ==0
                 FO_options.optTol = FO_options.optTol*.1
