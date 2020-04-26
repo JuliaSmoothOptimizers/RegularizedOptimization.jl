@@ -144,7 +144,7 @@ function IntPt_TR(x0, params, options; l = -Inf*ones(size(x0)), u = -Inf*ones(si
             Fobj_hist[k] = fk
             Hobj_hist[k] = ψk(xk)
 
-            ϕ = fk - μ*sum(log.(x-l)) - μ*sum(log.(u-x))
+            ϕ = fk - μ*sum(log.(xk-l)) - μ*sum(log.(u-xk))
             ∇ϕ = ∇fk - μ./(xk - l) + μ./(u - xk)
             ∇²ϕ = Bk + Diagonal(zkl./(xk - l)) + Diagonal(zku./(u-xk))
 
