@@ -156,7 +156,7 @@ function IntPt_TR(
     )
 
 #Barrier Loop
-    while k < BarIter && (μ > 1e-6 && μ≂̸0) #create options for this
+    while k < BarIter && (μ > 1e-6 && μ==0) #create options for this
         #make sure you only take the first output of the objective value of the true function you are minimizing
         β(x) = f_obj(x)[1] + ψk(x) - μ*sum(log.((x-l).*(u-x)))# - μ * sum(log.(x - l)) - μ * sum(log.(u - x)) #
         #change this to h not psik
