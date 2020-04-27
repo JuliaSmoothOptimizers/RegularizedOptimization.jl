@@ -164,7 +164,7 @@ function IntPt_TR(
         ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
         ∇²ϕ = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
         #stopping condition
-        Gν = Inf * ∇fk
+        Gν =  ∇fk
         ∇qk = ∇ϕ + ∇²ϕ * zeros(size(∇fk))
         # s = ones(size(∇fk)) #just initialize s
         #norm((g_k + gh_k))
@@ -284,7 +284,7 @@ function IntPt_TR(
 
             #Print values
             k % ptf == 0 && @printf(
-                "%11d|  %10.5e  %19.5e   %18.5e   %18.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
+                "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
                 k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), fk, ψk(xk))
 
             if k % ptf == 0
