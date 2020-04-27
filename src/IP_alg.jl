@@ -28,7 +28,7 @@ end
 function IP_options(
     ;
     ϵD = 1e-2,
-    ϵC = 1.0,
+    ϵC = 1e-2,
     Δk = 1.0,
     ptf = 100,
     simple = 1,
@@ -100,6 +100,9 @@ function IntPt_TR(
     debug = false #turn this on to see debugging information
     ϵD = options.ϵD
     ϵC = options.ϵC
+    if μ==0
+        ϵC = 1.0
+    end
     Δk = options.Δk
     ptf = options.ptf
     simple = options.simple
@@ -153,7 +156,7 @@ function IntPt_TR(
     )
 
 #Barrier Loop
-    while k < BarIter #|| μ > 1e-6 #create options for this
+    while k < BarIter && (μ > 1e-6 && μ≂̸0) #create options for this
         #make sure you only take the first output of the objective value of the true function you are minimizing
         β(x) = f_obj(x)[1] + ψk(x) - μ*sum(log.((x-l).*(u-x)))# - μ * sum(log.(x - l)) - μ * sum(log.(u - x)) #
         #change this to h not psik
