@@ -187,6 +187,7 @@ function IntPt_TR(
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
             ∇²ϕ = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
 
+            @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
 
             if simple == 1 || simple == 2
                 objInner(s) = qk(s, ϕ, ∇ϕ, ∇²ϕ)[1:2]
