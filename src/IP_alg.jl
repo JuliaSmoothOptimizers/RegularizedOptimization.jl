@@ -151,7 +151,7 @@ function IntPt_TR(
     )
 
 #Barrier Loop
-    while k < BarIter || μ < 1e-6 #create options for this
+    while k < BarIter #|| μ > 1e-6 #create options for this
         #make sure you only take the first output of the objective value of the true function you are minimizing
         β(x) = f_obj(x)[1] + ψk(x) - μ*sum(log.((x-l).*(u-x)))# - μ * sum(log.(x - l)) - μ * sum(log.(u - x)) #
         #change this to h not psik
@@ -172,8 +172,9 @@ function IntPt_TR(
         ρk = -1
         α = 1.0
         kktNorm = [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
+        kktInit = kktNorm
         # while(norm((Gν - ∇qk)+ ∇fk) > ϵD && k_i<maxIter)
-        while (kktNorm[1] > ϵD || kktNorm[2] > ϵC || kktNorm[3] > ϵC || k_i < maxIter)
+        while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
             #update count
             k_i = k_i + 1 #inner
             k = k + 1  #outer
@@ -197,7 +198,7 @@ function IntPt_TR(
                 funProj(s) = χ_projector(s, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
                 s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
-                Gν = -s * norm(Bk)^2 #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
+                Gν = -s * norm(∇²ϕ)^2 #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
                 #this can probably be sped up since we declare new function every time
             else
                 FO_options.β = norm(∇²ϕ)^2
