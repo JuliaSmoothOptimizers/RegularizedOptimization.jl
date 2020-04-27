@@ -28,7 +28,7 @@ end
 function IP_options(
     ;
     ϵD = 1e-2,
-    ϵC = 1e-2,
+    ϵC = 1.0,
     Δk = 1.0,
     ptf = 100,
     simple = 1,
@@ -176,7 +176,7 @@ function IntPt_TR(
         kktNorm = [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
         kktInit = kktNorm
         # while(norm((Gν - ∇qk)+ ∇fk) > ϵD && k_i<maxIter)
-        while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
+        while (kktNorm[1]/kktInit[1] >= ϵD || kktNorm[2]/kktInit[2] >= ϵC || kktNorm[3]/kktInit[3] >= ϵC) && k_i < maxIter
             #update count
             k_i = k_i + 1 #inner
             k = k + 1  #outer
@@ -284,7 +284,7 @@ function IntPt_TR(
 
             #Print values
             k % ptf == 0 && @printf(
-                "%11d|  %10.5e  %19.5e   %19.5e   %19.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
+                "%11d|  %10.5e  %19.5e   %18.5e   %18.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
                 k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), fk, ψk(xk))
 
             if k % ptf == 0
