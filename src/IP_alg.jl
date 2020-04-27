@@ -179,7 +179,7 @@ function IntPt_TR(
         kktNorm = [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
         kktInit = kktNorm
         # while(norm((Gν - ∇qk)+ ∇fk) > ϵD && k_i<maxIter)
-        while (kktNorm[1]/kktInit[1] >= ϵD || kktNorm[2]/kktInit[2] >= ϵC || kktNorm[3]/kktInit[3] >= ϵC) && k_i < maxIter
+        while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
             #update count
             k_i = k_i + 1 #inner
             k = k + 1  #outer
