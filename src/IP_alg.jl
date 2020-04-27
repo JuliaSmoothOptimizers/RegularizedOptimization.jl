@@ -187,7 +187,7 @@ function IntPt_TR(
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
             ∇²ϕ = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
 
-            @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
+            # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
 
             if simple == 1 || simple == 2
                 objInner(s) = qk(s, ϕ, ∇ϕ, ∇²ϕ)[1:2]
@@ -231,7 +231,7 @@ function IntPt_TR(
             dzu = μ ./ (u - xk) - zku + zku .* s ./ (u - xk)
 
             #linesearch for step size
-            α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
+            # α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
 
             #update search direction for
             s = s * α
