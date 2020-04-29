@@ -41,7 +41,7 @@ problem = minimize(sumsquares(s_cvx+q)/(2*ν), [norm(s_cvx, Inf)<=τ, norm(s_cvx
 solve!(problem, SCS.Optimizer)
 
 
-@printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", fval(s, q, x, ν),fval(s_cvx.value, q, x, ν) , norm(s,1), norm(s_cvx.value,1), norm(s_cvx.value .- s));
+@printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", fval(s, q, x, ν),fval(s_cvx.value, q, x, ν) , norm(s,0), norm(s_cvx.value,0), norm(s_cvx.value .- s));
 
 @printf("Smooth:  Us=%1.4e vs  CVX=%1.4e    Nonsmooth: Us=%1.4e   CVX=%1.4e\n", norm(s.+q)^2,norm(s_cvx.value .+ q)^2 , norm(s+x,0) - δ, norm(s_cvx.value+x,0) - δ);
 
