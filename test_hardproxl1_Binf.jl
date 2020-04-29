@@ -30,7 +30,7 @@ Doptions=s_options(1/ν; maxIter=10, λ=λ, ∇fk = g, Bk = A'*A, xk=x, Δ = τ)
 
 s_cvx = Variable(n)
 problem = minimize(sumsquares(s_cvx+q)/(2*ν) + λ*norm(s_cvx+x,1), norm(s_cvx, Inf)<=τ);
-solve!(problem, SCSSolver())
+solve!(problem, SCS.Optimizer)
 
 
 return norm(s_cvx.value .- s)
