@@ -1,7 +1,7 @@
 using TRNC,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers, Roots
 
 
-function hardproxtestBinf(n)
+function hardproxtestl1Binf(n)
 
 A,_ = qr(5*randn(n,n))
 B = Array(A)'
@@ -27,7 +27,7 @@ Doptions=s_options(1/ν; maxIter=10, λ=λ, ∇fk = g, Bk = A'*A, xk=x, Δ = τ)
 # n=10
 
 # (s,f) = hardproxBinf(q, x, ν,λ, τ)
-(s,s⁻, f, funEvals) = hardproxBinf(fval, zeros(size(x)), projbox, Doptions)
+(s,s⁻, f, funEvals) = hardproxl1Binf(fval, zeros(size(x)), projbox, Doptions)
 
 
 s_cvx = Variable(n)

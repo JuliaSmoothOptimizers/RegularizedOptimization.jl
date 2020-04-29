@@ -1,14 +1,18 @@
 using TRNC,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers, Roots
 
 
-function hardproxtestBinf(n)
+function hardproxtestB0Binf(n)
 
 A,_ = qr(5*randn(n,n))
 B = Array(A)'
 A = Array(B)
 # rng(2)
 # vectors
-x = 10*randn(n)
+k = compound*20
+p = randperm(n)
+#initialize x
+x = zeros(n,)
+x[p[1:k]]=sign.(randn(k))
 g = 5*randn(n)
 
 # scalars

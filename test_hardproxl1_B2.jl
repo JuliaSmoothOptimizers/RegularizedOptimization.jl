@@ -1,7 +1,7 @@
 using TRNC,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers, Roots
 
 
-function hardproxtestB2(n)
+function hardproxtestl1B2(n)
 
 A,_ = qr(5*randn(n,n))
 
@@ -26,7 +26,7 @@ Doptions=s_options(1/ν; maxIter=10, λ=λ,
 
 fval(s, bq, xi, νi) = norm(s.+bq)^2/(2*νi) + λ*norm(s.+xi,1)
 projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi) # different since through dual
-(s,s⁻,f,funEvals) = hardproxB2(fval, x, projbox, Doptions);
+(s,s⁻,f,funEvals) = hardproxl1B2(fval, x, projbox, Doptions);
 
 
 s_cvx = Variable(n)

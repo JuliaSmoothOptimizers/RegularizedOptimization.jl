@@ -1,7 +1,7 @@
-export hardproxl1B2
+export hardproxB0Binf
 
 # function hardproxB2(q, x, ν, λ, τ)
-function hardproxl1B2(Fcn, x, ProjB, options)
+function hardproxB0Binf(Fcn, x, ProjB, options)
 # %HARDPROXB2 computes the prox of the sum of shifted 1-norm and L2
 # %constraint for a scalar variable
 λ = options.λ
