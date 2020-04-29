@@ -29,7 +29,7 @@ Doptions=s_options(1/ν; maxIter=10, λ=λ,
     ∇fk = q, Bk = A'*A, xk=x, Δ = τ)
 
 # fval(s, bq, xi, νi) = norm(s.+bq)^2/(2*νi) + λ*norm(s.+xi,0)
-fval(s, bq, xi, νi) = (s.+bq)^2/(2*νi) + λ.*(.!iszero.(s.+xi,0))
+fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ.*(.!iszero.(s.+xi,0))
 projbox(y, bq, Δi) = min.(max.(y, bq.-Δi),bq.+Δi) # different since through dual
 (s,s⁻,f,funEvals) = hardproxl0Binf(fval, zeros(size(x)), projbox, Doptions);
 
