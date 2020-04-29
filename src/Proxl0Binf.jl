@@ -16,7 +16,7 @@ c = sqrt(2*λ*ν)
 st = zeros(size(s⁻))
 
 for i = 1:length(s⁻)
-    absx = abs(x[i])
+    absx = abs(s⁻[i])
     if absx <=c
         st[i] = 0
     else
