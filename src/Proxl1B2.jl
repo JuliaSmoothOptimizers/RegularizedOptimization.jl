@@ -1,7 +1,7 @@
 export hardproxl1B2
 
 # function hardproxB2(q, x, ν, λ, τ)
-function hardproxl1B2(Fcn, x, ProjB, options)
+function hardproxl1B2(Fcn, s⁻, ProjB, options)
 # %HARDPROXB2 computes the prox of the sum of shifted 1-norm and L2
 # %constraint for a scalar variable
 λ = options.λ
@@ -34,10 +34,10 @@ else
     s = Δ.*y./norm(y)
     str2 = "out tau"
 end
-f = Fcn(s, gk, xk, ν)
+f = sum(Fcn(s, gk, xk, ν)) #because you need it to be component-wise
 
 # @printf("Y-meth: %s    s-meth: %s    s: %1.4e   y:%1.4e\n", str, str2, s[1], y[1]);
-return s,zeros(size(s)), f,1 #funEvals=1 here
+return s,s⁻, f,1 #funEvals=1 here
 
 
 end

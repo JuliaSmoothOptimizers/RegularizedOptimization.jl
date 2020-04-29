@@ -29,7 +29,7 @@ g = -A'*b
 
 S = Variable(n)
 problem = minimize(g'*S + sumsquares(A*S)/2 + b'*b/2+λ*norm(vec(S+c), 1), norm(vec(S),1)<=k)
-solve!(problem, SCSSolver())
+solve!(problem, SCS.Optimizer)
 
 function proxp(z, α)
     return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))

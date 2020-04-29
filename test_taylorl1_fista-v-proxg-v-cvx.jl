@@ -29,7 +29,7 @@ c = .01*randn(n) #pretty important here - definitely hurts the sparsity
 
 S = Variable(n)
 problem = minimize(sumsquares(A*S)/2 + g'*S + b'*b/2 + λ*norm(vec(S+c), 1))
-solve!(problem, SCSSolver())
+solve!(problem, SCS.Optimizer)
 
 function proxp(z, α)
     return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))

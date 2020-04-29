@@ -24,9 +24,7 @@ fval(y, bq, bx, νi) = (y-(bx-bq)).^2/(2*νi)+λ*abs.(y)
 projbox(w, bx, τi) = min.(max.(w,bx.-τi), bx.+τi)
 
 Doptions=s_options(1/ν; maxIter=10, λ=λ, ∇fk = g, Bk = A'*A, xk=x, Δ = τ)
-# n=10
 
-# (s,f) = hardproxBinf(q, x, ν,λ, τ)
 (s,s⁻, f, funEvals) = hardproxl1Binf(fval, zeros(size(x)), projbox, Doptions)
 
 

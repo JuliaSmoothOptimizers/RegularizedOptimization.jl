@@ -27,7 +27,7 @@ b = b0 + 0.001*rand(m,)
 
 S = Variable(n)
 problem = minimize(sumsquares(A*S - b)/2+λ*norm(vec(S), 1))
-solve!(problem, SCSSolver())
+solve!(problem, SCS.Optimizer)
 #
 function proxp!(z, α)
         n = length(z);

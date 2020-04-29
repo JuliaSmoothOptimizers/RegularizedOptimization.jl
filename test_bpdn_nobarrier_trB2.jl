@@ -43,7 +43,7 @@ function h_nonsmooth(x)
 end
 
 #all this should be unraveling in the hardproxB# code
-fval(s, bq, xi, νi) = norm(s.+bq)^2/(2*νi) + λ_O*norm(s.+xi,1)
+fval(s, bq, xi, νi) = (s.+bq)^2/(2*νi) + λ_O*abs.(s.+xi,1)
 projbox(y, bq, νi) = min.(max.(y, -bq.-λ_O*νi),-bq.+λ_O*νi)
 
 #set all options
