@@ -26,7 +26,7 @@ end
 
 
 s = ProjB(st, xk, Δ) - xk
-f = Fcn(s, gk, xk, ν)
+f = sum(Fcn(s, gk, xk, ν))
 # @printf("Y-meth: %s    s-meth: %s    s: %1.4e   y:%1.4e\n", str, str2, s[1], y[1]);
 return s,s⁻, f,1 #funEvals=1 here
 
