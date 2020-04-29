@@ -29,11 +29,11 @@ q = A'*(A*x - zeros(size(x))) #doesn't really matter tho in the example
 Doptions=s_options(1/ν; maxIter=10, λ=δ,
     ∇fk = q, Bk = A'*A, xk=x, Δ = τ)
 
-fval(y, bq, bx, νi) = (s.+bq)^2/(2*νi)
+fval(sb, bq, bx, νi) = (sb.+bq).^2/(2*νi)
 projbox(w, bx, τi) = min.(max.(w,bx.-τi), bx.+τi)
 
 
-(s,s⁻, f, funEvals) = hardproxBinf(fval, zeros(size(x)), projbox, Doptions)
+(s,s⁻, f, funEvals) = hardproxB0Binf(fval, zeros(size(x)), projbox, Doptions)
 
 
 s_cvx = Variable(n)
@@ -41,7 +41,7 @@ problem = minimize(sumsquares(s_cvx+q)/(2*ν), [norm(s_cvx, Inf)<=τ, norm(s_cvx
 solve!(problem, SCS.Optimizer)
 
 
-@printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", fval(s, q, x, ν),fval(s_cvx.value, q, x, ν) , norm(s,0), norm(s_cvx.value,0), norm(s_cvx.value .- s));
+@printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", sum(fval(s, q, x, ν)),sum(fval(s_cvx.value, q, x, ν)) , norm(s,0), norm(s_cvx.value,0), norm(s_cvx.value .- s));
 
 @printf("Smooth:  Us=%1.4e vs  CVX=%1.4e    Nonsmooth: Us=%1.4e   CVX=%1.4e\n", norm(s.+q)^2,norm(s_cvx.value .+ q)^2 , norm(s+x,0) - δ, norm(s_cvx.value+x,0) - δ);
 
