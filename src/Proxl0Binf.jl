@@ -12,15 +12,15 @@ gk = options.∇fk
 
 #make the constant
 c = sqrt(2*λ*ν)
-
+w = xk-gk
 st = zeros(size(s⁻))
 
 for i = 1:length(s⁻)
-    absx = abs(s⁻[i])
+    absx = abs(w[i])
     if absx <=c
         st[i] = 0
     else
-        st[i] = s⁻[i]
+        st[i] = w[i]
     end
 end
 
