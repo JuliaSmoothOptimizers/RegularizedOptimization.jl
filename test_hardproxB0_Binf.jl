@@ -24,7 +24,7 @@ function hardproxtestB0Binf(n)
 
 # This constructs q = ν∇qᵢ(sⱼ) = Bksⱼ + gᵢ (note that i = k in paper notation)
 #but it's first order tho so sⱼ = 0 and it's just ∇f(x_k)
-q = A'*(A*x - b) #doesn't really matter tho in the example
+q = randn(size(x)) #A'*(A*x - b) #doesn't really matter tho in the example
 
 Doptions=s_options(1/ν; maxIter=10, λ=δ,
     ∇fk = q, Bk = A'*A, xk=x, Δ = τ)
@@ -37,7 +37,7 @@ projbox(w, bx, τi) = min.(max.(w,bx.-τi), bx.+τi)
 
 
 s_cvx = Variable(n)
-problem = minimize(sumsquares(s_cvx+q)/(2*ν), [norm(s_cvx, Inf)<=τ, norm(s_cvx, 1)<=δ]);
+problem = minimize(sumsquares(s_cvx+q)/(2*ν), [norm(s_cvx, Inf)<=τ, norm(s_cvx+x, 1)<=δ]);
 solve!(problem, SCS.Optimizer)
 
 
