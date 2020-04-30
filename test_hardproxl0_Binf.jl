@@ -20,16 +20,16 @@ x[p[1:k]]=sign.(randn(k))
 # scalars
 ν = 1/norm(A'*A)^2
 λ = 10*rand()
-τ = .5
+τ = 1
 
 # This constructs q = ν∇qᵢ(sⱼ) = Bksⱼ + gᵢ (note that i = k in paper notation)
-q = A'*(A*x - zeros(size(x))) #l0 it might tho - gradient of smooth function
+q = randn(size(x))#A'*(A*x - zeros(size(x))) #l0 it might tho - gradient of smooth function
 
 Doptions=s_options(1/ν; maxIter=10, λ=λ,
     ∇fk = q, Bk = A'*A, xk=x, Δ = τ)
 
 # fval(s, bq, xi, νi) = norm(s.+bq)^2/(2*νi) + λ*norm(s.+xi,0)
-fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ.*(.!iszero.(s.+xi,0))
+fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ.*(.!iszero.(s.+xi))
 projbox(y, bq, Δi) = min.(max.(y, bq.-Δi),bq.+Δi) # different since through dual
 (s,s⁻,f,funEvals) = hardproxl0Binf(fval, zeros(size(x)), projbox, Doptions);
 

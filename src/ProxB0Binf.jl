@@ -14,7 +14,7 @@ gk = options.∇fk
 
 w = xk - gk
 p = sortperm(w,rev=true)
-w[p[λ:end]].=0
+w[p[λ+1:end]].=0
 
 
 

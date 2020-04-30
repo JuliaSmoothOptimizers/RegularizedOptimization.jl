@@ -27,7 +27,7 @@ cutoff = 0.0
 # l = -2.0*ones(n,)+cutoff*ones(n,)
 # u = 2.0*ones(n,)+cutoff*ones(n,)
 λ_T = norm(A'*b, Inf)/100 #SPGL1 uses this
-λ_O = norm(A'*b, Inf)
+λ_O = λ_T
 
 
 #define your smooth objective function
@@ -43,11 +43,11 @@ function h_nonsmooth(x)
 end
 
 #all this should be unraveling in the hardproxB# code
-fval(s, bq, xi, νi) = (s.+bq)^2/(2*νi)+λ_O.*(.!iszero.(s.+xi,0))
+fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ_O.*(.!iszero.(u.+xi))
 projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
 
 #set all options
-Doptions=s_options(1/norm(A'*A); maxIter=10, λ=λ_O)
+Doptions=s_options(1/norm(A'*A); maxIter=10, λ=λ_O, Δ = k)
 
 # first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
