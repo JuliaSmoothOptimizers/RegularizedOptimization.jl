@@ -12,14 +12,16 @@ gk = options.∇fk
 Δ = options.Δ
 
 
+# w = xk - gk
+# p = sortperm(w,rev=true)
+# w[p[λ+1:end]].=0
+# s = ProjB(w, xk, Δ) - xk
 w = xk - gk
-p = sortperm(w,rev=true)
-w[p[λ+1:end]].=0
-
-
-
-
-s = ProjB(w, xk, Δ) - xk
+y = ProjB(w, zeros(size(xk)), Δ)
+r = (1/(2*ν))*((y - (xk - gk)).^2 - (xk - gk))
+p = sortperm(r, rev=true)
+y[p[λ+1:end]].=0
+s = y - xk
 f = sum(Fcn(s, gk, xk, ν))
 
 # @printf("Y-meth: %s    s-meth: %s    s: %1.4e   y:%1.4e\n", str, str2, s[1], y[1]);
