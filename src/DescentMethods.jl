@@ -185,7 +185,6 @@ function FISTA(Fcn, x,  proxG, options)
 	#Problem Initialize
 	m = length(x)
 	y = zeros(m)
-	x⁻ = zeros(m)
 	#initialize parameters
 	t = 1.0
 	# Iteration set up
@@ -199,18 +198,17 @@ function FISTA(Fcn, x,  proxG, options)
 	while err >= ε && k<max_iter && abs(f)>1e-16
 
 		his[k] = f
-		x⁻ = x
-		x = proxG(y - ν*g, ν*λ)
+		x⁺ = proxG(y - ν*g, ν*λ)
 
 		#update step
 		t⁻ = t
 		t = 0.5*(1.0 + sqrt(1.0+4.0*t⁻^2))
 
 		#update y
-		y = x + ((t⁻ - 1.0)/t)*(x-x⁻)
+		y = x⁺ + ((t⁻ - 1.0)/t)*(x⁺-x)
 
 		#check convergence
-		err = norm(x - x⁻)
+		err = norm(x - x⁺)
 
 
 		#sheet on which to freq
@@ -218,10 +216,11 @@ function FISTA(Fcn, x,  proxG, options)
 
 		#update parameters
 		f, g = Fcn(y)
+		x = x⁺
 		feval+=1
 		k+=1
 	end
-	return x,x⁻, his[1:k-1], feval
+	return x⁺,x, his[1:k-1], feval
 
 end
 
@@ -265,7 +264,6 @@ function FISTA!(Fcn!, x,  proxG!, options)
 
 	#initialize parameters
 	t = 1.0
-	tk = copy(t)
 	# Iteration set up
 	k = 1
 	err = 100.0
@@ -279,7 +277,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 
 		his[k] = f
 		BLAS.axpy!(-ν,gradF,y)
-		x = copy(y)
+		copy!(x, y)
 		proxG!(x, ν*λ)
 
 		#update step
@@ -289,7 +287,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		y = x + ((t - 1.0)/t⁺)*(x-x⁻)
 
 		#check convergence
-		err = norm(x - x⁻)/ν
+		err = norm(x - x⁻)
 
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
