@@ -8,24 +8,22 @@ function bpdnNoBarTrBinf()
 #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with -10≦x≦10
 #######
 # min_x 1/2||Ax - b||^2 + λ||x||₁
-compound = 1
-#m rows, n columns, k nonzeros
-m,n = compound*120,compound*512
-k = compound*20
+compound=1
+m,n = compound*200,compound*512
 p = randperm(n)
+k = compound*10
 #initialize x
+x0 = zeros(n)
+p   = randperm(n)[1:k]
 x0 = zeros(n,)
 x0[p[1:k]]=sign.(randn(k))
 
-#R  = randn(m,n); [Q,~] = qr(R',0);  R = Q';
-A = randn(m,n)
-(Q,_) = qr(A')
-A = Matrix(Q)
-A = Matrix(A')
+A,_ = qr(randn(n,m))
+B = Array(A)'
+A = Array(B)
 
 b0 = A*x0
-# b = b0 + 0.005*randn(m,)
-b = b0
+b = b0 + 0.005*randn(m,)
 cutoff = 0.0
 # l = -2.0*ones(n,)+cutoff*ones(n,)
 # u = 2.0*ones(n,)+cutoff*ones(n,)

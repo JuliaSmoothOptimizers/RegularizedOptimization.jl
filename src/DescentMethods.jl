@@ -184,7 +184,7 @@ function FISTA(Fcn, x,  proxG, options)
 
 	#Problem Initialize
 	m = length(x)
-	y = zeros(m)
+	y = deepcopy(x)
 	x⁺ = zeros(m)
 	#initialize parameters
 	t = 1.0
@@ -203,7 +203,8 @@ function FISTA(Fcn, x,  proxG, options)
 
 		#update step
 		t⁻ = t
-		t = 0.5*(1.0 + sqrt(1.0+4.0*t⁻^2))
+		# t = 0.5*(1.0 + sqrt(1.0+4.0*t⁻^2))
+		t = (1.0 + sqrt(1.0+4.0*t⁻^2))
 
 		#update y
 		y = x⁺ + ((t⁻ - 1.0)/t)*(x⁺-x)
@@ -258,7 +259,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 
 	#Problem Initialize
 	m = length(x)
-	y = zeros(m)
+	y = deepcopy(m)
 	x⁻ = zeros(m)
 	gradF = zeros(m)
 
@@ -294,7 +295,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 		#update parameters
 		f = Fcn!(y, gradF)
-		t = copy(t⁺)
+		copy!(t, t⁺)
 
 		feval+=1
 		k+=1
