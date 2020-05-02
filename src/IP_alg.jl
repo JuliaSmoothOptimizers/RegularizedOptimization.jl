@@ -207,7 +207,7 @@ function IntPt_TR(
                 Gν = -s * norm(∇²ϕ)^2 #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
                 #this can probably be sped up since we declare new function every time
             else
-                FO_options.β = norm(∇²ϕ)^2
+                FO_options.β = eigmax(∇²ϕ)
                 FO_options.Bk = ∇²ϕ
                 FO_options.∇fk = ∇ϕ
                 FO_options.xk = xk
@@ -280,7 +280,7 @@ function IntPt_TR(
 
             (fk, ∇fk, Bk) = f_obj(xk)
             kktNorm = [
-                norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this 
+                norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this
                 norm(zkl .* (xk - l) .- μ)
                 norm(zku .* (u - xk) .- μ)
             ]

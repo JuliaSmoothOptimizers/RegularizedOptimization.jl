@@ -43,8 +43,8 @@ function h_nonsmooth(x)
 end
 
 #all this should be unraveling in the hardproxB# code
-fval(yp, bq, bx, νi) = (yp-bx+bq).^2/(2*νi)+λ_O*abs.(yp)
-projbox(wp, bx, τi) = min.(max.(wp,bx.-τi), bx.+τi)
+fval(yp, bq, bx, νi) = (yp-bx+bq).^2/(2*νi)+λ*abs.(yp)
+projbox(wp, bx, Δi) = min.(max.(wp,bx.-Δi), bx.+Δi)
 
 #set all options
 β = eigmax(A'*A)
@@ -73,46 +73,29 @@ end
 function proxp(z, α)
     return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 end
-function proxp!(z, α)
-        n = length(z);
-        for i = 1:n
-            z[i] > α ? z[i] -= α :
-            z[i] <-α ? z[i] += α : z[i] = 0.0
-        end
-end
 
-function func!(z, g)
-    r = copy(b)
-    BLAS.gemv!('N', 1.0, A, z, -1.0, r)
-    BLAS.gemv!('T', 1.0, A, r, 0.0, g)
-    return r'*r
-end
-
-(x, x⁻, fsave, funEvals) =PG(
+(xp, xp⁻, fsave, funEvals) =PG(
     funcF,
     xi,
     proxp,
     Doptions,
 )
-# x = xi;
-# (x⁻, fsave, funEvals) = PG!(
-#     func!,
-#     x,
-#     proxp!,
-#     Doptions,
-# )
-# x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-4)
-# x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
+
+x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
 
 
 #print out l2 norm difference and plot the two x values
-@printf("l2-norm CVX vs VP: %5.5e\n", norm(X.value - x)/norm(X.value))
+@printf("l2-norm CVX vs TR: %5.5e\n", norm(X.value - x))
 @printf("l2-norm CVX vs True: %5.5e\n", norm(X.value - x0)/norm(x0))
-@printf("l2-norm VP vs True: %5.5e\n", norm(x0 - x)/norm(x0))
+@printf("l2-norm TR vs True: %5.5e\n", norm(x0 - x)/norm(x0))
+@printf("l2-norm PG vs True: %5.5e\n", norm(x0 - xp)/norm(x0))
 
-@printf("Full Objective - CVX: %5.5e     VP: %5.5e   True: %5.5e\n", f_smooth(X.value)[1] + h_nonsmooth(X.value), f_smooth(x)[1]+h_nonsmooth(x), f_smooth(x0)[1]+h_nonsmooth(x0))
-@printf("f(x) - CVX: %5.5e     VP: %5.5e   True: %5.5e\n", f_smooth(X.value)[1],f_smooth(x)[1], f_smooth(x0)[1])
-@printf("h(x) - CVX: %5.5e     VP: %5.5e   True: %5.5e\n", h_nonsmooth(X.value)/λ,h_nonsmooth(x)/λ, h_nonsmooth(x0)/λ)
+@printf("Full Objective - CVX: %5.5e     TR: %5.5e     PG: %5.5e   True: %5.5e\n",
+f_smooth(X.value)[1] + h_nonsmooth(X.value), f_smooth(x)[1]+h_nonsmooth(x),f_smooth(xp)[1]+h_nonsmooth(xp), f_smooth(x0)[1]+h_nonsmooth(x0))
+@printf("f(x) - CVX: %5.5e     TR: %5.5e    PG: %5.5e   True: %5.5e\n",
+f_smooth(X.value)[1],f_smooth(x)[1], f_smooth(xp)[1], f_smooth(x0)[1])
+@printf("h(x) - CVX: %5.5e     TR: %5.5e    PG: %5.5e    True: %5.5e\n",
+h_nonsmooth(X.value)/λ,h_nonsmooth(x)/λ, h_nonsmooth(xp)/λ, h_nonsmooth(x0)/λ)
 #
 # plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
 # plot!(x, label="tr", marker=2)
