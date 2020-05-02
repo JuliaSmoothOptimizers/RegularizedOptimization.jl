@@ -185,10 +185,9 @@ function FISTA(Fcn, x,  proxG, options)
 	#Problem Initialize
 	m = length(x)
 	y = zeros(m)
-	x⁻ = copy(x)
+	x⁻ = zeros(m)
 	#initialize parameters
 	t = 1.0
-	tk = t
 	# Iteration set up
 	k = 1
 	err = 100.0
@@ -200,11 +199,11 @@ function FISTA(Fcn, x,  proxG, options)
 	while err >= ε && k<max_iter && abs(f)>1e-16
 
 		his[k] = f
-		x⁻ = copy(x)
+		x⁻ = x
 		x = proxG(y - ν*g, ν*λ)
 
 		#update step
-		t⁻ = copy(t)
+		t⁻ = t
 		t = 0.5*(1.0 + sqrt(1.0+4.0*t⁻^2))
 
 		#update y
