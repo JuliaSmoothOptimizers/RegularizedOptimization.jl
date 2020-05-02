@@ -3,18 +3,41 @@ function [s,f] = hardproxl0Binf(q, x, t, lambda, tau)
 %constraint for a scalar variable 
 
 fval = @(s) norm(s+q)^2/(2*t) + lambda*nnz(x+s); 
+
+
+% projbox = @(y) min(max(y, x-tau),x+tau); % different since through dual 
+% w = x - q; 
+% idx = abs(w)>=sqrt(2*t*lambda); 
+% y = zeros(size(w));
+% y(idx) = w(idx); 
+% s = projbox(y) - x; 
+
 projbox = @(y) min(max(y, x-tau),x+tau); % different since through dual 
 
 w = x - q; 
+w = projbox(w) - x;
+idx = abs(w)>=sqrt(2*t*lambda);
+s = zeros(size(w)); 
+s(idx) = w(idx); 
+ 
 
-idx = abs(w)>sqrt(2*t*lambda); 
-y = zeros(size(w));
-y(idx) = w(idx); 
-s = projbox(y) - x; 
+
+for i = 1:numel(x)
+    ft = @(s) (s+q(i))^2/(2*t) + lambda*nnz(x(i)+s); 
+    stemp = linspace(-tau, tau, 100);
+    fi = zeros(100,1); 
+    for j = 1:100
+        fi(j) = ft(stemp(j)); 
+    end
+    [mfi, ifi] = min(fi); 
+    figure;
+    plot(stemp, fi,'*')
+    fprintf('min - f: %1.4f argmin - f: %1.4f  min - fs: %1.4f   s: %1.4f \n', mfi, stemp(ifi),ft(s(i)), s(i));  
+   
+end
 f = fval(s); 
  
-% fprintf('Y-meth: %s    s-meth: %s    s: %1.4f   y:%1.4f\n', str, str2, s, y);  
-    
+  
 
 
 end

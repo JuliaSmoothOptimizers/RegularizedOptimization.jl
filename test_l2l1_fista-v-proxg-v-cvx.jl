@@ -53,13 +53,15 @@ function proxp(z, α)
 end
 
 #input β, λ
-pg_options=s_options(norm(A)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-10)
+β = eigmax(A'*A)
+pg_options=s_options(β; maxIter=10000, verbose=3, λ=λ, optTol=1e-10)
 sp = zeros(n)
+@printf("%s\n", "PG")
 sp,sp⁻, hispg, fevalpg = PG(funcF, sp, proxp,pg_options)
-
-fista_options=s_options(norm(A)^2; maxIter=10000, verbose=1, λ=λ, optTol=1e-10)
+@printf("%s\n", "FISTA")
+fista_options=s_options(β; maxIter=10000, verbose=10, λ=λ, optTol=1e-10)
 sf = zeros(n)
-sf,sf⁻, hisf, fevalf = FISTA(funcF, sf, proxp,pg_options)
+sf,sf⁻, hisf, fevalf = FISTA(funcF, sf, proxp, fista_options)
 
 @printf("PG l2-norm CVX: %5.5e\n", norm(S.value - sp)/norm(S.value))
 @printf("FISTA l2-norm CVX: %5.5e\n", norm(S.value - sf)/norm(S.value))

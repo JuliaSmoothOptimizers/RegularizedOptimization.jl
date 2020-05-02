@@ -30,7 +30,7 @@ Doptions=s_options(1/ν; maxIter=10, λ=δ,
     ∇fk = q, Bk = A'*A, xk=x, Δ = τ)
 
 fval(sb, bq, bx, νi) = (sb.+bq).^2/(2*νi)
-projbox(w, bx, τi) = min.(max.(w,bx.-τi), bx.+τi)
+projbox(w, bx, τi) = min.(max.(w,-τi), +τi)
 
 
 (s,s⁻, f, funEvals) = hardproxB0Binf(fval, zeros(size(x)), projbox, Doptions)

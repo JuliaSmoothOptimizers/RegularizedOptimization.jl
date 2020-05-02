@@ -1,38 +1,52 @@
-n = 40; 
-% rng(2); 
-% vectors 
-x = 10*randn(n,1); 
-q = 5*randn(n,1);
+% function hardproxtestBinf
+n = 10;
+% rng(2);
+[A,~] = qr(5*randn(n,n));
+
+A = A';
+
+k = floor(.5*n);
+p = randperm(n);
+
+%initialize x
+x = zeros(n,1);
+x(p(1:k))=sign(randn(k,1));
 
 % scalars
-nu = 20*rand(1);
-lambda = 10*rand(1); 
-Delta = 3*rand(1);
+nu = 1/norm(A'*A)^2;
+l = 10*rand(1);
+t = rand(1);
+
+% This constructs q = ν∇qᵢ(sⱼ) = Bksⱼ + gᵢ (note that i = k in paper notation)
+q = 10*randn(size(x));%A'*(A*x - zeros(size(x))) %l0 it might tho - gradient of smooth function
+% scalars
+lambda = 5; 
 
 
 
 cvx_precision high
 cvx_begin quiet
     variable s_cvx(n)
-    minimize( sum_square(s_cvx+q)/(2*nu)
+    minimize( sum_square(s_cvx+q)/(2*nu))
     subject to
-        norm(s_cvx,Inf) <=Delta
+        norm(s_cvx,Inf) <= t
         norm(s_cvx,1) <=lambda
-cvx_en
+cvx_end
 
 
 
-[s,f] = hardproxB2(q, x, nu, lambda, Delta);
+[s,f] = hardproxB0Binf(q, x, nu, lambda, t);
 
+f
+s
+s_cvx
+norm(s_cvx+q)^2/(2*v) + l*norm(s_cvx+x,1)
+norm(s_cvx - s)
 
-if n==1
 fprintf('Us: %1.4f    CVX: %1.4f    s: %1.4f   s_cvx: %1.4f    normdiff: %1.4f\n',...
-    f, sum_square(s_cvx-q)/(2*nu) + lambda*norm(s_cvx+x,1), s, s_cvx, norm(s_cvx - s)); 
-else
-    fprintf('Us: %1.4f    CVX: %1.4f    s: %1.4f   s_cvx: %1.4f    normdiff: %1.4f\n',...
     f, sum_square(s_cvx-q)/(2*nu) + lambda*norm(s_cvx+x,1), norm(s)^2, norm(s_cvx)^2, norm(s_cvx - s)); 
 
     
-end
+
 
 

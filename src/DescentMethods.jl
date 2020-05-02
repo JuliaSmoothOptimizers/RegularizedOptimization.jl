@@ -179,7 +179,7 @@ function FISTA(Fcn, x,  proxG, options)
 	elseif options.verbose==2
 		print_freq = round(max_iter/100)
 	else
-		print_freq = round(max_iter/200)
+		print_freq = 1
 	end
 
 	#Problem Initialize
@@ -246,7 +246,6 @@ function FISTA!(Fcn!, x,  proxG!, options)
 	max_iter=options.maxIter
 	restart = options.restart
 	ν = options.β^(-1)
-	ν
 	λ = options.λ
 	if options.verbose==0
 		print_freq = Inf
@@ -288,7 +287,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		t⁺ = 0.5*(1.0 + sqrt(1.0+4.0*t^2))
 
 		#update y
-		y = x + ((t - 1.0)/t⁺)*(x⁺-x⁻)
+		y = x + ((t - 1.0)/t⁺)*(x-x⁻)
 
 		#check convergence
 		err = norm(x - x⁻)/ν

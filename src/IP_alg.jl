@@ -280,7 +280,7 @@ function IntPt_TR(
 
             (fk, ∇fk, Bk) = f_obj(xk)
             kktNorm = [
-                norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku)
+                norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this 
                 norm(zkl .* (xk - l) .- μ)
                 norm(zku .* (u - xk) .- μ)
             ]
