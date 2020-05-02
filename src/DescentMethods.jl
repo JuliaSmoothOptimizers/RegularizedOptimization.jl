@@ -183,7 +183,7 @@ function FISTA(Fcn, x,  proxG, options)
 	end
 
 	#Problem Initialize
-	# m = length(x)
+	m = length(x)
 	y = zeros(m)
 	x⁺ = zeros(m)
 	#initialize parameters
@@ -209,8 +209,7 @@ function FISTA(Fcn, x,  proxG, options)
 		y = x⁺ + ((t⁻ - 1.0)/t)*(x⁺-x)
 
 		#check convergence
-		# err = norm(x - x⁺)
-		err = norm(y - x⁺)
+		err = norm(x - x⁺)
 
 
 		#sheet on which to freq
@@ -289,8 +288,7 @@ function FISTA!(Fcn!, x,  proxG!, options)
 		y = x + ((t - 1.0)/t⁺)*(x-x⁻)
 
 		#check convergence
-		# err = norm(x - x⁻)
-		err = norm(y - x)
+		err = norm(x - x⁻)
 
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
