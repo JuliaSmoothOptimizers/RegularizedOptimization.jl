@@ -24,8 +24,8 @@ A = Array(B)
 b0 = A*x0
 b = b0 + 0.005*randn(m,)
 cutoff = 0.0
-# l = -2.0*ones(n,)+cutoff*ones(n,)
-# u = 2.0*ones(n,)+cutoff*ones(n,)
+l = -2.0*ones(n,)+cutoff*ones(n,)
+u = 2.0*ones(n,)+cutoff*ones(n,)
 λ = norm(A'*b, Inf)/100
 
 
@@ -64,8 +64,7 @@ X = Variable(n)
 problem = minimize(sumsquares(A * X - b) + λ*norm(X,1))
 solve!(problem, SCS.Optimizer)
 
-# x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l=l, u=u, μ = 1.0, BarIter=1000)
-x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
+x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l = l, u = u, μ = 1.0, BarIter=1000)
 
 
 #print out l2 norm difference and plot the two x values

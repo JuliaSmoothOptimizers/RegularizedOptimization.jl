@@ -178,7 +178,7 @@ function IntPt_TR(
         kktInit = kktNorm
         # @printf("%10.5e   %10.5e %10.5e %10.5e\n",kktNorm[1], kktNorm[2], kktNorm[3],k_i)
         # while(norm((Gν - ∇qk)+ ∇fk) > ϵD && k_i<maxIter)
-        while (kktNorm[1] > ϵD || kktNorm[2] > ϵC || kktNorm[3] > ϵC) && k_i < maxIter
+        while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
             #update count
             k_i = k_i + 1 #inner
             k = k + 1  #outer
