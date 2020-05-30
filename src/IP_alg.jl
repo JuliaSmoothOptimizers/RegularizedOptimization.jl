@@ -200,17 +200,17 @@ function IntPt_TR(
                 funProj(s) = χ_projector(s, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
                 s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
-                Gν = -s * eigmax(∇²ϕ)^2 #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
+                Gν = -s * eigmax(∇²ϕ) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
                 #this can probably be sped up since we declare new function every time
             else
-                FO_options.β = eigmax(∇²ϕ)^2
+                FO_options.β = eigmax(∇²ϕ)
                 FO_options.Bk = ∇²ϕ
                 FO_options.∇fk = ∇ϕ
                 FO_options.xk = xk
                 FO_options.Δ = Δk
                 s⁻ = zeros(size(xk))
                 if simple == 2
-                    FO_options.λ = Δk * eigmax(∇²ϕ)^2
+                    FO_options.λ = Δk * eigmax(∇²ϕ)
                 end
                 funProj = χ_projector
                 (s, s⁻, fsave, funEvals) = s_alg(
