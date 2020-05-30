@@ -58,7 +58,7 @@ Doptions=s_options(β; maxIter=1000, λ=λ)
 parameters = IP_struct(f_smooth, h_nonsmooth;
 FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, χ_projector=projbox)
 # options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
-options = IP_options(;simple=0, ptf=1, ϵD = 1e-5)
+options = IP_options(;simple=0, ptf=10, ϵD = 1e-5)
 #put in your initial guesses
 xi = ones(n,)/2
 
@@ -102,18 +102,18 @@ h_nonsmooth(X.value)/λ,h_nonsmooth(x)/λ, h_nonsmooth(xp)/λ, h_nonsmooth(x0)/�
 plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
 plot!(x, label="tr", marker=2)
 plot!(X.value, label="cvx")
-savefig("figs/bpdn/xcomp.pdf")
+savefig("figs/bpdn/LS_l1_B2/xcomp.pdf")
 
 plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
 plot!(b, label="Observed")
 plot!(A*x, label="A*x: TR", marker=2)
 plot!(A*X.value, label="A*x: CVX")
-savefig("figs/bpdn/bcomp.pdf")
+savefig("figs/bpdn/LS_l1_B2/bcomp.pdf")
 
 plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)")
 plot!(Hhist, label="h(x)")
 plot!(Fhist + Hhist, label="f+h")
-savefig("figs/bpdn/objhist.pdf")
+savefig("figs/bpdn/LS_l1_B2/objhist.pdf")
 
 
 end

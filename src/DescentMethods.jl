@@ -197,7 +197,7 @@ function FISTA(Fcn, x,  proxG, options)
 	f, g = Fcn(y)
 	feval = 1
 	while err >= ε && k<max_iter && abs(f)>1e-16
-
+		copy!(x,x⁺)
 		his[k] = f
 		x⁺ = proxG(y - ν*g, ν*λ)
 
@@ -218,7 +218,7 @@ function FISTA(Fcn, x,  proxG, options)
 
 		#update parameters
 		f, g = Fcn(y)
-		x = x⁺
+
 		feval+=1
 		k+=1
 	end
@@ -320,13 +320,27 @@ function linesearch(x, zl, zu, s, dzl, dzu,l,u ;mult=.9, tau = .01)
         end
         return α
 end
+function ls(x, s,l,u ;mult=.9, tau = .01)
+	α = 1.0
+	     while(
+            any(x + α*s - l .< (1-tau)*(x-l)) ||
+            any(u - x - α*s .< (1-tau)*(u-x))
+            )
+            α = α*mult
 
+        end
+        return α
+end
 function directsearch(xsl, usx, zkl, zku, s, dzl, dzu; tau = .01) #used to be .01
 	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s; (-tau*zkl)./dzl; (-tau*zku)./dzu]
     temp=filter((a) -> 1>=a>0, temp)
     return minimum(vcat(temp, 1.0))
 end
-
+function ds(xsl, usx, s; tau = .01) #used to be .01
+	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s]
+    temp=filter((a) -> 1>=a>0, temp)
+    return minimum(vcat(temp, 1.0))
+end
 function directsearch!(xsl, usx,α, zkl, zku, s, dzl, dzu; tau = .01) #used to be .01
 	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s; (-tau*zkl)./dzl; (-tau*zku)./dzu]
     temp=filter((a) -> 1>=a>0, temp)
