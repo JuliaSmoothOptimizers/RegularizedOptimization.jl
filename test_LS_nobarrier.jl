@@ -39,7 +39,7 @@ end
 #set all options
 first_order_options_spgslim = spg_options(;optTol=1.0e-1, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
-first_order_options_proj = s_options(1/eigmax(A'*A);maxIter=1000, verbose=0)
+first_order_options_proj = s_options(1/eigmax(A'*A);maxIter=1000, verbose=0, optTol=1.0e-3)
     #need to tighten this because you don't make any progress in the later iterations
 
 
