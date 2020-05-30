@@ -231,7 +231,7 @@ function IntPt_TR(
             dzl = μ ./ (xk - l) - zkl - zkl .* s ./ (xk - l)
             dzu = μ ./ (u - xk) - zku + zku .* s ./ (u - xk)
 
-            @printf("%10.5e   %10.5e %10.5e  %10.5e %10.5e %10.5e\n",α, norm(s), norm(dzl),norm(dzu), norm(s⁻), Gν)
+            @printf("%10.5e   %10.5e %10.5e  %10.5e %10.5e %10.5e\n",α, norm(s), norm(dzl),norm(dzu), norm(s⁻), norm(Gν))
       
             # linesearch for step size?
             # if μ!=0
