@@ -231,12 +231,14 @@ function IntPt_TR(
             dzl = μ ./ (xk - l) - zkl - zkl .* s ./ (xk - l)
             dzu = μ ./ (u - xk) - zku + zku .* s ./ (u - xk)
 
+            @printf("%10.5e   %10.5e %10.5e  %10.5e %10.5e %10.5e\n",α, norm(s), norm(dzl),norm(dzu), norm(s⁻), Gν)
+      
             # linesearch for step size?
-            if μ!=0
-                α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
+            # if μ!=0
+                # α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
                 # α = ls(xk, s,l,u ;mult=mult, tau =tau)
                 # α = linesearch(xk, zkl, zku, s, dzl, dzu,l,u ;mult=mult, tau = tau)
-            end
+            # end
             # @printf("%10.5e   %10.5e %10.5e  %10.5e %10.5e %10.5e\n",α, α1, minimum(xk-l), minimum(xk-u), minimum(zkl*tau + dzl), minimum(zku*tau + dzu))
             #update search direction for
             s = s * α
