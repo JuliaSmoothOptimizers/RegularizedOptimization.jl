@@ -249,6 +249,7 @@ function IntPt_TR(
             mk(d) = qk(d, ϕ, ∇ϕ, ∇²ϕ)[1] + ψk(xk + d) #qk should take barrier terms into account
             # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
             ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
+            @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
             @printf("%10.5e   %10.5e %10.5e %10.5e\n", ρk,(β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4), norm(xk-s), norm(xk))
             if (ρk > eta2)
                 TR_stat = "increase"
@@ -280,8 +281,6 @@ function IntPt_TR(
                 zku = zku + α*dzu
                 Δk = α * norm(s, 1)
             end
-            @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
-            @printf("%10.5e   %10.5e %10.5e %10.5e\n", ρk,(β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4), norm(xk-s), norm(xk))
 
             (fk, ∇fk, Bk) = f_obj(xk)
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
