@@ -251,6 +251,8 @@ function IntPt_TR(
             ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
             @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
             @printf("%10.5e   %10.5e %10.5e %10.5e\n", ρk,(β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4), norm(xk-s), norm(xk))
+            @printf("%10.5e   %10.5e %10.5e %10.5e\n", maximum(s),maximum(xk+s), minimum(s), minimum(xk+s))
+            @printf("%10.5e   %10.5e %10.5e %10.5e\n", norm(s,0), norm(xk+s,0), norm(xk,0),ψk(xk+s))
             if (ρk > eta2)
                 TR_stat = "increase"
                 Δk = max(Δk, gamma * norm(s, 1)) #for safety
