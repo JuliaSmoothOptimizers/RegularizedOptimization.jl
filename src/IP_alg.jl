@@ -280,14 +280,15 @@ function IntPt_TR(
                 zku = zku + α*dzu
                 Δk = α * norm(s, 1)
             end
-            # k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
+            @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
+            @printf("%10.5e   %10.5e %10.5e %10.5e\n", f_obj(xk)[1],f_obj(xk)[1]- μ * sum(log.(xk - l)) - μ * sum(log.(u - xk)), norm(xk-s), norm(xk)
 
             (fk, ∇fk, Bk) = f_obj(xk)
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
             ∇²ϕ = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
 
-            # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
+            @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
             kktNorm = [
                 norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this
                 norm(zkl .* (xk - l) .- μ)
