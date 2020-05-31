@@ -248,7 +248,7 @@ function IntPt_TR(
             #update ρ
             mk(d) = qk(d, ϕ, ∇ϕ, ∇²ϕ)[1] + ψk(xk + d) #qk should take barrier terms into account
             # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
-            ρk = (β(xk) - β(xk + s) +1e-4) / (mk(zeros(size(xk))) - mk(s)+1e-4) 
+            ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4) 
 
             if (ρk > eta2)
                 TR_stat = "increase"

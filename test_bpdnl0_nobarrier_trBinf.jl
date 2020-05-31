@@ -1,7 +1,6 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
 using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra
-include("./src/minconf_spg/oneProjector.jl")
 
 function bpdnNoBarTrl0Binf()
 #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with -10≦x≦10
@@ -64,7 +63,8 @@ X = Variable(n)
 problem = minimize(sumsquares(A * X - b) + λ*norm(X,1))
 solve!(problem, SCS.Optimizer)
 
-x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l = l, u = u, μ = 1.0, BarIter=1000)
+# x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l = l, u = u, μ = 1.0, BarIter=1000)
+x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
 
 
 #print out l2 norm difference and plot the two x values
