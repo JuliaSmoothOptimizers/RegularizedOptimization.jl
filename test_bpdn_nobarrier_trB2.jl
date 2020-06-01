@@ -102,18 +102,18 @@ h_nonsmooth(X.value)/λ,h_nonsmooth(x)/λ, h_nonsmooth(xp)/λ, h_nonsmooth(x0)/�
 plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
 plot!(x, label="tr", marker=2)
 plot!(X.value, label="cvx")
-savefig("figs/bpdn/LS_l1_B2/xcomp.pdf")
+savefig("figs/bpdn/xcomp.pdf")
 
 plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
 plot!(b, label="Observed")
 plot!(A*x, label="A*x: TR", marker=2)
 plot!(A*X.value, label="A*x: CVX")
-savefig("figs/bpdn/LS_l1_B2/bcomp.pdf")
+savefig("figs/bpdn/bcomp.pdf")
 
 plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)")
 plot!(Hhist, label="h(x)")
 plot!(Fhist + Hhist, label="f+h")
-savefig("figs/bpdn/LS_l1_B2/objhist.pdf")
+savefig("figs/bpdn/objhist.pdf")
 
 
 end

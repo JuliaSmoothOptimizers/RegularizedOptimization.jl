@@ -19,8 +19,8 @@ mutable struct s_params
 end
 
 
-function s_options(β;optTol=1f-6, maxIter=10000, verbose=2, restart=10, λ=1.0, η =1.0, η_factor=.9, Δ=1.0,
-     WoptTol=1f-6, ∇fk = Vector{Float64}(undef,0), Bk = Array{Float64}(undef, 0,0), xk=Vector{Float64}(undef,0))
+function s_options(β;optTol=1f-10, maxIter=10000, verbose=2, restart=10, λ=1.0, η =1.0, η_factor=.9, Δ=1.0,
+     WoptTol=1f-10, ∇fk = Vector{Float64}(undef,0), Bk = Array{Float64}(undef, 0,0), xk=Vector{Float64}(undef,0))
 
 	return s_params(optTol, maxIter, verbose, restart, β, λ, η, η_factor,Δ, WoptTol, ∇fk, Bk,xk)
 
@@ -197,7 +197,7 @@ function FISTA(Fcn, x,  proxG, options)
 	f, g = Fcn(y)
 	feval = 1
 	while err >= ε && k<max_iter && abs(f)>1e-16
-		copy!(x,x⁺)
+
 		his[k] = f
 		x⁺ = proxG(y - ν*g, ν*λ)
 
@@ -218,7 +218,7 @@ function FISTA(Fcn, x,  proxG, options)
 
 		#update parameters
 		f, g = Fcn(y)
-
+		x = x⁺
 		feval+=1
 		k+=1
 	end
@@ -320,27 +320,13 @@ function linesearch(x, zl, zu, s, dzl, dzu,l,u ;mult=.9, tau = .01)
         end
         return α
 end
-function ls(x, s,l,u ;mult=.9, tau = .01)
-	α = 1.0
-	     while(
-            any(x + α*s - l .< (1-tau)*(x-l)) ||
-            any(u - x - α*s .< (1-tau)*(u-x))
-            )
-            α = α*mult
 
-        end
-        return α
-end
 function directsearch(xsl, usx, zkl, zku, s, dzl, dzu; tau = .01) #used to be .01
 	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s; (-tau*zkl)./dzl; (-tau*zku)./dzu]
     temp=filter((a) -> 1>=a>0, temp)
     return minimum(vcat(temp, 1.0))
 end
-function ds(xsl, usx, s; tau = .01) #used to be .01
-	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s]
-    temp=filter((a) -> 1>=a>0, temp)
-    return minimum(vcat(temp, 1.0))
-end
+
 function directsearch!(xsl, usx,α, zkl, zku, s, dzl, dzu; tau = .01) #used to be .01
 	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s; (-tau*zkl)./dzl; (-tau*zku)./dzu]
     temp=filter((a) -> 1>=a>0, temp)
