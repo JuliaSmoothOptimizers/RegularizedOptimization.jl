@@ -14,6 +14,11 @@ mutable struct IP_params
     ptf #print every so often
     simple #if you can use spg_minconf with simple projection
     maxIter #maximum amount of inner iterations
+    η1 #ρ lower bound 
+    η2 #ρ upper bound 
+    τ # linesearch buffer parameter 
+    σ #quadratic model linesearch buffer parameter
+    γ #trust region buffer 
 end
 
 mutable struct IP_methods
@@ -34,8 +39,13 @@ function IP_options(
     ptf = 100,
     simple = 1,
     maxIter = 10000,
+    η1 = 1.0e-3, #ρ lower bound
+    η2 = 0.9,  #ρ upper bound
+    τ = 0.01, #linesearch buffer parameter
+    σ = 1.0e-3, # quadratic model linesearch buffer parameter
+    γ = 3.0, #trust region buffer
 ) #default values for trust region parameters in algorithm 4.2
-    return IP_params(ϵD, ϵC, Δk, ptf, simple, maxIter)
+    return IP_params(ϵD, ϵC, Δk, ptf, simple, maxIter,η1, η2, τ, σ, γ)
 end
 
 function IP_struct(
@@ -105,6 +115,12 @@ function IntPt_TR(
     ptf = options.ptf
     simple = options.simple
     maxIter = options.maxIter
+    η1 = options.η1
+    η2 = options.η2 
+    σ = options.σ 
+    γ = options.γ
+    τ = options.τ
+
 
     #other parameters
     FO_options = params.FO_options
@@ -114,13 +130,6 @@ function IntPt_TR(
     InnerFunc = params.InnerFunc
     f_obj = params.f_obj
 
-
-    #internal variabes
-    eta1 = 1.0e-3 #ρ lower bound
-    eta2 = 0.9  #ρ upper bound
-    tau = 0.01 #linesearch buffer parameter
-    sigma = 1.0e-3 # quadratic model linesearch buffer parameter
-    gamma = 3.0 #trust region buffer
 
     #initialize parameters
     xk = copy(x0)
@@ -237,10 +246,10 @@ function IntPt_TR(
             # linesearch for step size?
             if μ!=0
                 α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
-                # α = ls(xk, s,l,u ;mult=mult, tau =tau)
-                # α = linesearch(xk, zkl, zku, s, dzl, dzu,l,u ;mult=mult, tau = tau)
+                # α = ls(xk, s,l,u ;mult=mult, tau =τ)
+                # α = linesearch(xk, zkl, zku, s, dzl, dzu,l,u ;mult=mult, tau = τ)
             end
-            # @printf("%10.5e   %10.5e %10.5e  %10.5e %10.5e %10.5e\n",α, α1, minimum(xk-l), minimum(xk-u), minimum(zkl*tau + dzl), minimum(zku*tau + dzu))
+            # @printf("%10.5e   %10.5e %10.5e  %10.5e %10.5e %10.5e\n",α, α1, minimum(xk-l), minimum(xk-u), minimum(zkl*τ + dzl), minimum(zku*τ + dzu))
             #update search direction for
             s = s * α
             dzl = dzl * α
@@ -251,28 +260,28 @@ function IntPt_TR(
             # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
             ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
             @printf("%10.5e   %10.5e %10.5e %10.5e\n", maximum(s),maximum(xk+s), minimum(s), minimum(xk+s))
-            @printf("%10.5e   %10.5e %10.5e %10.5e\n", norm(s,0), norm(xk+s,0), norm(xk,0),gamma * norm(s, 1))
-            if (ρk > eta2)
+            @printf("%10.5e   %10.5e %10.5e %10.5e\n", norm(s,0), norm(xk+s,0), norm(xk,0),γ * norm(s, 1))
+            if (ρk > η2)
                 TR_stat = "increase"
-                Δk = max(Δk, gamma * norm(s, 1)) #for safety
+                Δk = max(Δk, γ * norm(s, 1)) #for safety
             else
                 TR_stat = "kept"
             end
 
-            if (ρk >= eta1)
+            if (ρk >= η1)
                 x_stat = "update"
                 xk = xk + s
                 zkl = zkl + dzl
                 zku = zku + dzu
             end
 
-            if (ρk < eta1)
+            if (ρk < η1)
 
                 x_stat = "shrink"
 
                 #changed back linesearch
                 # α = 1.0
-                # while(β(xk + α*s) > β(xk) + sigma*α*(∇ϕ + (Gν - ∇qk))'*s) #compute a directional derivative of ψ
+                # while(β(xk + α*s) > β(xk) + σ*α*(∇ϕ + (Gν - ∇qk))'*s) #compute a directional derivative of ψ
                 #     α = α*mult
                 # end
                 α = 0.1 #was 0.1; can be whatever
