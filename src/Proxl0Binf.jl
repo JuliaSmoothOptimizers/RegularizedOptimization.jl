@@ -13,7 +13,7 @@ gk = options.∇fk
 #make the constant
 c = sqrt(2*λ*ν)
 w = xk-gk
-# st = zeros(size(s⁻))
+st = zeros(size(s⁻))
 
 # y = ProjB(w, zeros(size(xk)), Δ)
 # r = (1/(2*ν))*((y - (xk - gk)).^2 - (xk - gk))
