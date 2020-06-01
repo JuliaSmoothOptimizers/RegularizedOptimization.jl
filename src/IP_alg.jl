@@ -250,7 +250,7 @@ function IntPt_TR(
             # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
             ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
             @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
-            @printf("%10.5e   %10.5e %10.5e %10.5e\n", ρk,(β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4), norm(xk-s), norm(xk))
+            @printf("%10.5e   %10.5e %10.5e %10.5e\n", ρk,(β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4), norm(xk+s), norm(xk))
             @printf("%10.5e   %10.5e %10.5e %10.5e\n", maximum(s),maximum(xk+s), minimum(s), minimum(xk+s))
             @printf("%10.5e   %10.5e %10.5e %10.5e\n", norm(s,0), norm(xk+s,0), norm(xk,0),sum(xk)/512)
             if (ρk > eta2)
@@ -296,6 +296,10 @@ function IntPt_TR(
                 norm(zku .* (u - xk) .- μ)
             ]
 
+            plot(xk, xlabel="i^th index", ylabel="x", title="x Progression", label="x_k")
+            plot!(xk-s, label="x_(k-1)", marker=2)
+            filestring = string("figs/bpdn/LS_l0_Binf/xcomp", k, ".pdf")
+            savefig(filestring)       
             #Print values
             k % ptf == 0 && @printf(
                 "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
