@@ -3,6 +3,7 @@
 
 include("minconf_spg/SPGSlim.jl")
 include("minconf_spg/oneProjector.jl")
+using Plots
 export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
 
 
@@ -13,6 +14,11 @@ mutable struct IP_params
     ptf #print every so often
     simple #if you can use spg_minconf with simple projection
     maxIter #maximum amount of inner iterations
+    η1 #ρ lower bound 
+    η2 #ρ upper bound 
+    τ # linesearch buffer parameter 
+    σ #quadratic model linesearch buffer parameter
+    γ #trust region buffer 
 end
 
 mutable struct IP_methods
@@ -33,8 +39,13 @@ function IP_options(
     ptf = 100,
     simple = 1,
     maxIter = 10000,
+    η1 = 1.0e-3, #ρ lower bound
+    η2 = 0.9,  #ρ upper bound
+    τ = 0.01, #linesearch buffer parameter
+    σ = 1.0e-3, # quadratic model linesearch buffer parameter
+    γ = 3.0, #trust region buffer
 ) #default values for trust region parameters in algorithm 4.2
-    return IP_params(ϵD, ϵC, Δk, ptf, simple, maxIter)
+    return IP_params(ϵD, ϵC, Δk, ptf, simple, maxIter,η1, η2, τ, σ, γ)
 end
 
 function IP_struct(
@@ -100,13 +111,16 @@ function IntPt_TR(
     debug = false #turn this on to see debugging information
     ϵD = options.ϵD
     ϵC = options.ϵC
-    if μ==0
-        ϵC = 1.0
-    end
     Δk = options.Δk
     ptf = options.ptf
     simple = options.simple
     maxIter = options.maxIter
+    η1 = options.η1
+    η2 = options.η2 
+    σ = options.σ 
+    γ = options.γ
+    τ = options.τ
+
 
     #other parameters
     FO_options = params.FO_options
@@ -117,30 +131,22 @@ function IntPt_TR(
     f_obj = params.f_obj
 
 
-    #internal variabes
-    eta1 = 1.0e-3 #ρ lower bound
-    eta2 = 0.9  #ρ upper bound
-    tau = 0.01 #linesearch buffer parameter
-    sigma = 1.0e-3 # quadratic model linesearch buffer parameter
-    gamma = 3.0 #trust region buffer
-
     #initialize parameters
     xk = copy(x0)
-    # zkl = copy(x0)
-    # zku = copy(x0)
-    zkl = ones(size(x0))
+    #initialize them to positive values
+    zkl = -ones(size(x0))
     zku = ones(size(x0))
     k = 0
     Fobj_hist = zeros(maxIter * BarIter)
     Hobj_hist = zeros(maxIter * BarIter)
     @printf(
-        "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
+        "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
     )
     @printf(
-        "%10s | %11s | %11s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s    | %10s | %10s\n",
+        "%10s | %11s | %11s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s | %10s\n",
         "Iter",
         "μ",
-        "||(Gν-∇ϕ) + ∇ϕ⁺)-zl+zu||",
+        "||(Gν-∇q) + ∇ϕ⁺)-zl+zu||",
         "||zl(x-l) - μ||",
         "||zu(u-x) - μ||",
         "Ratio: ρk",
@@ -150,12 +156,11 @@ function IntPt_TR(
         "LnSrch: α",
         "||x||",
         "||s||",
-        "β",
         "f(x)",
         "h(x)",
     )
     @printf(
-        "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
+        "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
     )
 
 #Barrier Loop
@@ -166,7 +171,7 @@ function IntPt_TR(
 
         #main algorithm initialization
         (fk, ∇fk, Bk) = f_obj(xk)
-
+        ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
         ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
         ∇²ϕ = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
         #stopping condition
@@ -175,7 +180,6 @@ function IntPt_TR(
         # s = ones(size(∇fk)) #just initialize s
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
-
 
         k_i = 0
         ρk = -1
@@ -193,9 +197,6 @@ function IntPt_TR(
             Fobj_hist[k] = fk
             Hobj_hist[k] = ψk(xk)
 
-            ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
-            ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-            ∇²ϕ = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
 
@@ -209,7 +210,7 @@ function IntPt_TR(
                 funProj(s) = χ_projector(s, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
                 s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
-                Gν = -s * norm(∇²ϕ)^2 #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
+                Gν = -s * eigmax(∇²ϕ) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
                 #this can probably be sped up since we declare new function every time
             else
                 FO_options.β = eigmax(∇²ϕ)
@@ -219,7 +220,7 @@ function IntPt_TR(
                 FO_options.Δ = Δk
                 s⁻ = zeros(size(xk))
                 if simple == 2
-                    FO_options.λ = Δk * norm(∇²ϕ)^2
+                    FO_options.λ = Δk * eigmax(∇²ϕ)
                 end
                 funProj = χ_projector
                 (s, s⁻, fsave, funEvals) = s_alg(
@@ -240,11 +241,15 @@ function IntPt_TR(
             dzl = μ ./ (xk - l) - zkl - zkl .* s ./ (xk - l)
             dzu = μ ./ (u - xk) - zku + zku .* s ./ (u - xk)
 
-            #linesearch for step size
-            # if μ!=0
-            #     α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
-            # end
-
+            # @printf("%10.5e   %10.5e %10.5e  %10.5e %10.5e %10.5e\n",α, norm(s), norm(dzl),norm(dzu), norm(s⁻), norm(Gν))
+      
+            # linesearch for step size?
+            if μ!=0
+                α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
+                # α = ls(xk, s,l,u ;mult=mult, tau =τ)
+                # α = linesearch(xk, zkl, zku, s, dzl, dzu,l,u ;mult=mult, tau = τ)
+            end
+            # @printf("%10.5e   %10.5e %10.5e  %10.5e %10.5e %10.5e\n",α, α1, minimum(xk-l), minimum(xk-u), minimum(zkl*τ + dzl), minimum(zku*τ + dzu))
             #update search direction for
             s = s * α
             dzl = dzl * α
@@ -253,29 +258,30 @@ function IntPt_TR(
             #update ρ
             mk(d) = qk(d, ϕ, ∇ϕ, ∇²ϕ)[1] + ψk(xk + d) #qk should take barrier terms into account
             # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
-            ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s)+1e-4) #test this to make sure it's right (a little variable relative to matlab code)
-
-            if (ρk > eta2)
+            ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
+            # @printf("%10.5e   %10.5e %10.5e %10.5e\n", maximum(s),maximum(xk+s), minimum(s), minimum(xk+s))
+            # @printf("%10.5e   %10.5e %10.5e %10.5e\n", norm(s,0), norm(xk+s,0), norm(xk,0),γ * norm(s, 1))
+            if (ρk > η2)
                 TR_stat = "increase"
-                Δk = max(Δk, gamma * norm(s, 1)) #for safety
+                Δk = max(Δk, γ * norm(s, 1)) #for safety
             else
                 TR_stat = "kept"
             end
 
-            if (ρk >= eta1)
+            if (ρk >= η1)
                 x_stat = "update"
                 xk = xk + s
                 zkl = zkl + dzl
                 zku = zku + dzu
             end
 
-            if (ρk < eta1)
+            if (ρk < η1)
 
                 x_stat = "shrink"
 
                 #changed back linesearch
                 # α = 1.0
-                # while(β(xk + α*s) > β(xk) + sigma*α*∇Phi'*s) #compute a directional derivative of ψ
+                # while(β(xk + α*s) > β(xk) + σ*α*(∇ϕ + (Gν - ∇qk))'*s) #compute a directional derivative of ψ
                 #     α = α*mult
                 # end
                 α = 0.1 #was 0.1; can be whatever
@@ -285,29 +291,37 @@ function IntPt_TR(
                 zku = zku + α*dzu
                 Δk = α * norm(s, 1)
             end
-            # k % ptf ==0 && @printf("%10.5e   %10.5e %10.5e %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
 
             (fk, ∇fk, Bk) = f_obj(xk)
+            ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
+            ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
+            ∇²ϕ = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
+
+            # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
             kktNorm = [
                 norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this
                 norm(zkl .* (xk - l) .- μ)
                 norm(zku .* (u - xk) .- μ)
             ]
 
+            # plot(xk, xlabel="i^th index", ylabel="x", title="x Progression", label="x_k")
+            # plot!(xk-s, label="x_(k-1)", marker=2)
+            # filestring = string("figs/bpdn/LS_l0_Binf/xcomp", k, ".pdf")
+            # savefig(filestring)       
             #Print values
             k % ptf == 0 && @printf(
-                "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
-                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2),FO_options.β, fk, ψk(xk))
+                "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
+                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), fk, ψk(xk))
 
             if k % ptf == 0
                 FO_options.optTol = FO_options.optTol * 0.1
             end
         end
         # mu = norm(zl.*(x.-l)) + norm(zu.*(u.-x))
-        μ = 0.5 * μ
+        μ = 0.1 * μ
         k = k + 1
         ϵD = ϵD * μ
-        # ϵC = ϵC * μ
+        ϵC = ϵC * μ
 
     end
     return xk, k, Fobj_hist, Hobj_hist

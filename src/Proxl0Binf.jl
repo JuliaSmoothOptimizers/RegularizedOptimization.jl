@@ -9,12 +9,16 @@ Bk = options.Bk
 xk = options.xk
 gk = options.∇fk
 Δ = options.Δ
-
 #make the constant
 c = sqrt(2*λ*ν)
-# @printf("sqrt(2*λ*ν) = %5.5e\n",c) #for l0 case, this gradually increases with barrier terms 
 w = xk-gk
 st = zeros(size(s⁻))
+
+# y = ProjB(w, zeros(size(xk)), Δ)
+# r = (1/(2*ν))*((y - (xk - gk)).^2 - (xk - gk))
+# p = sortperm(r, rev=true)
+# y[p[Int(λ)+1:end]].=0
+# s = y - xk
 
 for i = 1:length(s⁻)
     absx = abs(w[i])

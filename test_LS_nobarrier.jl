@@ -7,9 +7,9 @@ using Plots, Convex, SCS, Printf,LinearAlgebra
 # min_x 1/2||Ax - b||^2
 # min_x f(x)
 
-m,n = 200,100 # this is a under determined system
+# m,n = 200,100 # this is a under determined system
 compound=1
-# m,n = compound*200,compound*512
+m,n = compound*200,compound*512
 A = rand(m,n)
 x0  = rand(n,)
 b0 = A*x0
@@ -39,7 +39,7 @@ end
 #set all options
 first_order_options_spgslim = spg_options(;optTol=1.0e-1, progTol=1.0e-10, verbose=0,
     feasibleInit=true, curvilinear=true, bbType=true, memory=1)
-first_order_options_proj = s_options(1/eigmax(A'*A);maxIter=1000, verbose=0)
+first_order_options_proj = s_options(1/eigmax(A'*A);maxIter=1000, verbose=0, optTol=1.0e-3)
     #need to tighten this because you don't make any progress in the later iterations
 
 
@@ -49,8 +49,8 @@ parameters_spgslim = IP_struct(f_obj, h_obj;
 parameters_proj = IP_struct(f_obj, h_obj;
     s_alg = FISTA, FO_options = first_order_options_proj, χ_projector=tr_norm)
 # parameters = IP_struct(f_obj, h_obj;FO_options = first_order_options, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
-options_spgslim = IP_options(;ptf=100, ϵD=1e-5) #print freq, ΔK init, epsC/epsD initialization, maxIter
-options_proj= IP_options(;ptf=1, simple=2, ϵD=1e-5)
+options_spgslim = IP_options(;simple=1, ptf=100, ϵD=1e-5) #print freq, ΔK init, epsC/epsD initialization, maxIter
+options_proj= IP_options(;ptf=1, simple=2, ϵD=1e-6)
 
 #put in your initial guesses
 xi = ones(n,)/2
@@ -60,9 +60,6 @@ problem = minimize(sumsquares(A * X - b))
 solve!(problem, SCS.Optimizer)
 
 
-
-# x, zl, zu = barrier_alg(xi,zl, zu, parameters, options; is_cvx=0, mu_tol=1e-3)
-# x, zl, zu, k = IntPt_TR(x, zl, zu,mu,IterCount, IPparams, IPoptions)
 x_spg, k, Fhist_spg, Hhist_spg = IntPt_TR(xi, parameters_spgslim, options_spgslim)
 x_pr, k, Fhist_pg, Hhist_pg = IntPt_TR(xi, parameters_proj, options_proj)
 
