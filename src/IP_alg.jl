@@ -127,7 +127,7 @@ function IntPt_TR(
     #initialize parameters
     xk = copy(x0)
     zkl = copy(x0)
-    xku = copy(x0)
+    zku = copy(x0)
     # zkl = ones(size(x0))
     # zku = ones(size(x0))
     k = 0
@@ -137,7 +137,7 @@ function IntPt_TR(
         "---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
     )
     @printf(
-        "%10s | %11s | %11s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s | %10s\n",
+        "%10s | %11s | %11s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s | %10s | %10s\n",
         "Iter",
         "μ",
         "||(Gν-∇ϕ) + ∇ϕ⁺)-zl+zu||",
@@ -150,6 +150,7 @@ function IntPt_TR(
         "LnSrch: α",
         "||x||",
         "||s||",
+        "β",
         "f(x)",
         "h(x)",
     )
@@ -295,8 +296,8 @@ function IntPt_TR(
 
             #Print values
             k % ptf == 0 && @printf(
-                "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
-                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), fk, ψk(xk))
+                "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
+                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2),FO_options.β, fk, ψk(xk))
 
             if k % ptf == 0
                 FO_options.optTol = FO_options.optTol * 0.1
