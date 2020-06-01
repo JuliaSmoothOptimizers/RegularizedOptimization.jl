@@ -8,15 +8,21 @@ fval = @(s) norm(s+q)^2/(2*t) + lambda*nnz(x+s);
 projbox = @(y) min(max(y, x-tau),x+tau); % different since through dual 
 w = x - q; 
 
-% idx = abs(w)>=sqrt(2*t*lambda); 
+% idx = abs(w)>sqrt(2*t*lambda); 
 % y = zeros(size(w));
 % y(idx) = w(idx); 
 % s = projbox(y) - x; 
 
-w = projbox(w) - x;
-idx = abs(w)>=sqrt(2*t*lambda);
-s = zeros(size(w)); 
-s(idx) = w(idx); 
+y = projbox(w); 
+r = (1/(2*t))*((y - (x - q)).^2 - (x - q));
+[~, p] = sort(r, 'descend');
+y(p(tau+1:end))=0;
+s = y - x;
+
+% w = projbox(w) - x;
+% idx = abs(w)>=sqrt(2*t*lambda);
+% s = zeros(size(w)); 
+% s(idx) = w(idx); 
  
 
 

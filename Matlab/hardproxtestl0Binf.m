@@ -1,5 +1,5 @@
 % function hardproxtestBinf
-n = 6;
+n = 10;
 % rng(2);
 [A,~] = qr(5*randn(n,n));
 
@@ -34,11 +34,14 @@ cvx_begin
         -t <= s_cvx <= t
 cvx_end
 
-f
-s
-s_cvx
-fc = norm(s_cvx+q)^2/(2*v) + l*norm(s_cvx+x,1)
-normdiff = norm(s_cvx - s)
+% f
+% s
+% s_cvx
+% fc = norm(s_cvx+q)^2/(2*v) + l*norm(s_cvx+x,1)
+% normdiff = norm(s_cvx - s)
+
+fprintf('Us: %1.4f    CVX: %1.4f    s: %1.4f   s_cvx: %1.4f    normdiff: %1.4f\n',...
+    f, sum_square(s_cvx-q)/(2*v) + l*norm(s_cvx+x,1), norm(s)^2, norm(s_cvx)^2, norm(s_cvx - s)); 
 
 
 % end

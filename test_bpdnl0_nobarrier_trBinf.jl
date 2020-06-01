@@ -47,14 +47,14 @@ projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
 
 #set all options
 β = eigmax(A'*A)
-Doptions=s_options(β; maxIter=100, λ=λ, Δ = k)
+Doptions=s_options(β; λ=λ, Δ = k)
 
 # first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
 parameters = IP_struct(f_smooth, h_nonsmooth; 
     FO_options = Doptions, s_alg=hardproxl0Binf, InnerFunc=fval, χ_projector=projbox)
-options = IP_options(;simple=0, ptf=1)
+options = IP_options(;simple=0, ptf=1, ϵD=1e-5)
 # options = IP_options(;simple=0, ptf=1, ϵD = 1e2, ϵC=1e2, maxIter=100000)
 #put in your initial guesses
 xi = ones(n,)/2
