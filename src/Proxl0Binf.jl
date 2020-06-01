@@ -18,7 +18,7 @@ w = xk-gk
 y = ProjB(w, zeros(size(xk)), Δ)
 r = (1/(2*ν))*((y - (xk - gk)).^2 - (xk - gk))
 p = sortperm(r, rev=true)
-y[p[λ+1:end]].=0
+y[p[Δ+1:end]].=0
 s = y - xk
 
 # for i = 1:length(s⁻)
