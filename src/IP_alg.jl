@@ -262,6 +262,8 @@ function IntPt_TR(
             if (ρk >= eta1)
                 x_stat = "update"
                 xk = xk + s
+                zkl = zkl + dzl
+                zku = zku + dzu
             end
 
             if (ρk < eta1)
