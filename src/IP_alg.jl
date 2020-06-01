@@ -126,8 +126,10 @@ function IntPt_TR(
 
     #initialize parameters
     xk = copy(x0)
-    zkl = ones(size(x0))
-    zku = ones(size(x0))
+    zkl = copy(x0)
+    xku = copy(x0)
+    # zkl = ones(size(x0))
+    # zku = ones(size(x0))
     k = 0
     Fobj_hist = zeros(maxIter * BarIter)
     Hobj_hist = zeros(maxIter * BarIter)
@@ -262,8 +264,8 @@ function IntPt_TR(
             if (ρk >= eta1)
                 x_stat = "update"
                 xk = xk + s
-                zkl = zkl + dzl
-                zku = zku + dzu
+                # zkl = zkl + dzl
+                # zku = zku + dzu
             end
 
             if (ρk < eta1)
