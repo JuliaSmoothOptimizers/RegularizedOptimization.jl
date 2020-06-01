@@ -12,7 +12,7 @@ gk = options.∇fk
 
 #make the constant
 c = sqrt(2*λ*ν)
-@printf("sqrt(2*λ*ν) = %5.5e\n",c)
+# @printf("sqrt(2*λ*ν) = %5.5e\n",c) #for l0 case, this gradually increases with barrier terms 
 w = xk-gk
 st = zeros(size(s⁻))
 
