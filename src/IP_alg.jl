@@ -187,6 +187,7 @@ function IntPt_TR(
             x_stat = ""
             Fobj_hist[k] = fk
             Hobj_hist[k] = ψk(xk)
+            @printf("%10.5e\n", FO_options.λ)
 
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
