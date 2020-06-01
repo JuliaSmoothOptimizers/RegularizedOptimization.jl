@@ -203,7 +203,7 @@ function IntPt_TR(
                 Gν = -s * eigmax(∇²ϕ) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
                 #this can probably be sped up since we declare new function every time
             else
-                FO_options.β = eigmax(∇²ϕ)
+                FO_options.β = eigmax(∇²ϕ)/2
                 FO_options.Bk = ∇²ϕ
                 FO_options.∇fk = ∇ϕ
                 FO_options.xk = xk
