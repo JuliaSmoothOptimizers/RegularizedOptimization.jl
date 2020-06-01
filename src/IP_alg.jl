@@ -3,6 +3,7 @@
 
 include("minconf_spg/SPGSlim.jl")
 include("minconf_spg/oneProjector.jl")
+using Plots
 export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
 
 

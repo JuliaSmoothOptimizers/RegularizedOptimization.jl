@@ -53,8 +53,8 @@ Doptions=s_options(β; maxIter=100, λ=λ, Δ = compound*10)
 
 parameters = IP_struct(f_smooth, h_nonsmooth; 
     FO_options = Doptions, s_alg=hardproxl0Binf, InnerFunc=fval, χ_projector=projbox)
-# options = IP_options(;simple=0, ptf=1)
-options = IP_options(;simple=0, ptf=1, ϵD = 1e2, ϵC=1e2, maxIter=100000)
+options = IP_options(;simple=0, ptf=1)
+# options = IP_options(;simple=0, ptf=1, ϵD = 1e2, ϵC=1e2, maxIter=100000)
 #put in your initial guesses
 xi = ones(n,)/2
 
@@ -63,8 +63,8 @@ X = Variable(n)
 problem = minimize(sumsquares(A * X - b) + λ*norm(X,1))
 solve!(problem, SCS.Optimizer)
 
-x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l = l, u = u, μ = 1.0, BarIter=1000)
-# x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
+# x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l = l, u = u, μ = 1.0, BarIter=1000)
+x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
 
 
 #print out l2 norm difference and plot the two x values
