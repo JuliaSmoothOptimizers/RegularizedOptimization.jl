@@ -12,7 +12,7 @@ gk = options.∇fk
 
 #make the constant
 c = sqrt(2*λ*ν)
-@printf("sqrt(2*λ*ν)\n",c)
+@printf("sqrt(2*λ*ν) = %5.5e\n",c)
 w = xk-gk
 st = zeros(size(s⁻))
 
