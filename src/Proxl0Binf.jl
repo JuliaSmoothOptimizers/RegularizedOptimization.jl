@@ -24,7 +24,6 @@ for i = 1:length(s⁻)
     absx = abs(w[i])
     if absx <=c
         st[i] = 0
-        k = k+1; 
     else
         st[i] = w[i]
     end
