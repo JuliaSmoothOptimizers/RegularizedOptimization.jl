@@ -104,7 +104,7 @@ function IntPt_TR(
     l = -1.0e16 * ones(size(x0)),
     u = 1.0e16 * ones(size(x0)),
     μ = 0.0,
-    Iter = 1,
+    BarIter = 1,
 )
 
     #initialize passed options
@@ -137,8 +137,8 @@ function IntPt_TR(
     zkl = -ones(size(x0))
     zku = ones(size(x0))
     k = 0
-    Fobj_hist = zeros(maxIter * Iter)
-    Hobj_hist = zeros(maxIter * Iter)
+    Fobj_hist = zeros(maxIter * BarIter)
+    Hobj_hist = zeros(maxIter * BarIter)
     @printf(
         "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
     )
@@ -165,7 +165,7 @@ function IntPt_TR(
     )
 
 #Barrier Loop
-    while k < Iter && (μ > 1e-6 || μ==0) #create options for this
+    while k < BarIter && (μ > 1e-6 || μ==0) #create options for this
         #make sure you only take the first output of the objective value of the true function you are minimizing
         β(x) = f_obj(x)[1] + ψk(x) - μ*sum(log.((x-l).*(u-x)))# - μ * sum(log.(x - l)) - μ * sum(log.(u - x)) #
         #change this to h not psik
@@ -189,7 +189,7 @@ function IntPt_TR(
         kktInit = kktNorm
         # @printf("%10.5e   %10.5e %10.5e %10.5e\n",kktNorm[1], kktNorm[2], kktNorm[3],k_i)
         # while(norm((Gν - ∇qk)+ ∇fk) > ϵD && k_i<maxIter)
-        while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter && k<Iter
+        while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
             #update count
             k_i = k_i + 1 #inner
             k = k + 1  #outer
@@ -247,7 +247,7 @@ function IntPt_TR(
             # linesearch for step size?
             # if μ!=0
                 # α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
-            α = ls(xk, s,l,u ;mult=mult, tau =τ)
+                α = ls(xk, s,l,u ;mult=mult, tau =τ)
                 # α = linesearch(xk, zkl, zku, s, dzl, dzu,l,u ;mult=mult, tau = τ)
             # end
             # @printf("%10.5e   %10.5e %10.5e  %10.5e %10.5e %10.5e\n",α, α1, minimum(xk-l), minimum(xk-u), minimum(zkl*τ + dzl), minimum(zku*τ + dzu))
