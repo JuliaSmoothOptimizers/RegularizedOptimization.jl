@@ -26,7 +26,6 @@ cutoff = 0.0
 l = -2.0*ones(n,)+cutoff*ones(n,)
 u = 2.0*ones(n,)+cutoff*ones(n,)
 λ = norm(A'*b, Inf)/100
-# λ = norm(A'*b, Inf)/10
 
 
 #define your smooth objective function
@@ -54,18 +53,18 @@ Doptions=s_options(β; λ=λ)
 
 parameters = IP_struct(f_smooth, h_nonsmooth; 
     FO_options = Doptions, s_alg=hardproxl0Binf, InnerFunc=fval, χ_projector=projbox)
-options = IP_options(;simple=0, ptf=1, ϵD=1e-5)
-# options = IP_options(;simple=0, ptf=1, ϵD = 1e2, ϵC=1e2, maxIter=100000)
+# options = IP_options(;simple=0, ptf=1, ϵD=1e-5)
+options = IP_options(;simple=0, ptf=10, ϵD = 1e-1, ϵC=1e-1, maxIter=100)
 #put in your initial guesses
-xi = ones(n,)/2
+xi = zeros(n,)/2
 
 
 X = Variable(n)
 problem = minimize(sumsquares(A * X - b) + λ*norm(X,1))
 solve!(problem, SCS.Optimizer)
 
-# x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l = l, u = u, μ = 1.0, BarIter=1000)
-x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
+x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l = l, u = u, μ = 1.0, BarIter=200)
+# x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
 
 
 #print out l2 norm difference and plot the two x values
