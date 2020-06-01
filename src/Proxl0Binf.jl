@@ -13,6 +13,8 @@ gk = options.∇fk
 #make the constant
 c = sqrt(2*λ*ν)
 w = xk-gk
+w = ProjB(w, xk, Δ) - xk
+
 st = zeros(size(s⁻))
 
 for i = 1:length(s⁻)
@@ -25,7 +27,7 @@ for i = 1:length(s⁻)
 end
 
 
-s = ProjB(st, xk, Δ) - xk
+
 f = sum(Fcn(s, gk, xk, ν))
 # @printf("Y-meth: %s    s-meth: %s    s: %1.4e   y:%1.4e\n", str, str2, s[1], y[1]);
 return s,s⁻, f,1 #funEvals=1 here

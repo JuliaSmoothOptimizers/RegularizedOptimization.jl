@@ -5,16 +5,14 @@ function [s,f] = hardproxl0Binf(q, x, t, lambda, tau)
 fval = @(s) norm(s+q)^2/(2*t) + lambda*nnz(x+s); 
 
 
-% projbox = @(y) min(max(y, x-tau),x+tau); % different since through dual 
-% w = x - q; 
+projbox = @(y) min(max(y, x-tau),x+tau); % different since through dual 
+w = x - q; 
+
 % idx = abs(w)>=sqrt(2*t*lambda); 
 % y = zeros(size(w));
 % y(idx) = w(idx); 
 % s = projbox(y) - x; 
 
-projbox = @(y) min(max(y, x-tau),x+tau); % different since through dual 
-
-w = x - q; 
 w = projbox(w) - x;
 idx = abs(w)>=sqrt(2*t*lambda);
 s = zeros(size(w)); 

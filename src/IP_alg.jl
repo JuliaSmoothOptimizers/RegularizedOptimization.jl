@@ -125,8 +125,8 @@ function IntPt_TR(
     #initialize parameters
     xk = copy(x0)
     #initialize them to positive values
-    zkl = ones(size(x0))
-    zku = -ones(size(x0))
+    zkl = -ones(size(x0))
+    zku = ones(size(x0))
     k = 0
     Fobj_hist = zeros(maxIter * BarIter)
     Hobj_hist = zeros(maxIter * BarIter)
