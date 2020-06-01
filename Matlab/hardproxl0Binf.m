@@ -8,7 +8,7 @@ fval = @(s) norm(s+q)^2/(2*t) + lambda*nnz(x+s);
 projbox = @(y) min(max(y, x-tau),x+tau); % different since through dual 
 w = x - q; 
 
-idx = abs(w)>sqrt(2*t*lambda); 
+idx = abs(w)>sqrt(2*t*lambda);
 y = zeros(size(w));
 y(idx) = w(idx); 
 s = projbox(y) - x; 

@@ -9,7 +9,6 @@ Bk = options.Bk
 xk = options.xk
 gk = options.∇fk
 Δ = options.Δ
-@printf("%10.5e\n", λ)
 #make the constant
 c = sqrt(2*λ*ν)
 w = xk-gk
