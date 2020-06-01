@@ -15,14 +15,14 @@ c = sqrt(2*λ*ν)
 w = xk-gk
 w = ProjB(w, xk, Δ) - xk
 
-st = zeros(size(s⁻))
+s = zeros(size(s⁻))
 
 for i = 1:length(s⁻)
     absx = abs(w[i])
     if absx <=c
-        st[i] = 0
+        s[i] = 0
     else
-        st[i] = w[i]
+        s[i] = w[i]
     end
 end
 
