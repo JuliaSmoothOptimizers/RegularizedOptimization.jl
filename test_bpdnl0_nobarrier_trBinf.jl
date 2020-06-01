@@ -1,7 +1,6 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
 using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra
-include("./src/minconf_spg/oneProjector.jl")
 
 function bpdnNoBarTrl0Binf()
 #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with -10≦x≦10
@@ -47,15 +46,15 @@ projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
 
 #set all options
 β = eigmax(A'*A)
-Doptions=s_options(β; maxIter=100, λ=λ, Δ = k)
+Doptions=s_options(β; maxIter=100, λ=λ, Δ = compound*10)
 
 # first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
-parameters = IP_struct(f_smooth, h_nonsmooth;
-FO_options = Doptions, s_alg=hardproxl0Binf, InnerFunc=fval, χ_projector=projbox)
-# options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
-options = IP_options(;simple=0, ptf=10, ϵD = 1e-1, ϵC=10.0, maxIter=100)
+parameters = IP_struct(f_smooth, h_nonsmooth; 
+    FO_options = Doptions, s_alg=hardproxl0Binf, InnerFunc=fval, χ_projector=projbox)
+options = IP_options(;simple=0, ptf=1)
+# options = IP_options(;simple=0, ptf=1, ϵD = 1e1, ϵC=1e1, maxIter=100000)
 #put in your initial guesses
 xi = ones(n,)/2
 
@@ -64,11 +63,8 @@ X = Variable(n)
 problem = minimize(sumsquares(A * X - b) + λ*norm(X,1))
 solve!(problem, SCS.Optimizer)
 
-
-
-
-# x, zl, zu = barrier_alg(x,zl, zu, parameters, options; mu_tol=1e-4)
-x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l=l, u=u, μ = 1.0, BarIter=1000)
+# x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l = l, u = u, μ = 1.0, BarIter=1000)
+x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
 
 
 #print out l2 norm difference and plot the two x values
@@ -83,16 +79,16 @@ x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l=l, u=u, μ = 1.0, BarIt
 plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
 plot!(x, label="tr", marker=2)
 plot!(X.value, label="cvx")
-savefig("figs/bpdn/xcomp.pdf")
+savefig("figs/bpdn/LS_l0_Binf/xcomp.pdf")
 
 plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
 plot!(b, label="Observed")
 plot!(A*x, label="A*x: TR", marker=2)
 plot!(A*X.value, label="A*x: CVX")
-savefig("figs/bpdn/bcomp.pdf")
+savefig("figs/bpdn/LS_l0_Binf/bcomp.pdf")
 
 plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)")
 plot!(Hhist, label="h(x)")
 plot!(Fhist + Hhist, label="f+h")
-savefig("figs/bpdn/objhist.pdf")
+savefig("figs/bpdn/LS_l0_Binf/objhist.pdf")
 end

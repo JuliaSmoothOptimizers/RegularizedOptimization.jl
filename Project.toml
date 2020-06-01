@@ -1,0 +1,15 @@
+name = "TRNC"
+uuid = "196f2941-2d58-45ba-9f13-43a2532b2fa8"
+author = ["Robert Baraldi <rbaraldi@uw.edu>"]
+version = "0.1.0"
+
+[deps]
+Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PolynomialRoots = "3a141323-8675-5d76-9d11-e1df1406c778"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
+SCS = "c946c3f1-0d1f-5ce8-9dea-7daa1f7e2d13"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
