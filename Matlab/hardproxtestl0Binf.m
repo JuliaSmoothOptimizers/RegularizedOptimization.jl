@@ -1,5 +1,5 @@
 % function hardproxtestBinf
-n = 10;
+n = 4;
 % rng(2);
 [A,~] = qr(5*randn(n,n));
 
