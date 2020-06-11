@@ -7,7 +7,6 @@ include("./src/minconf_spg/oneProjector.jl")
 #######
 function bpdnNoBarTrB2()
 # min_x 1/2||Ax - b||^2 + λ||x||₁
-compound = 1
 #m rows, n columns, k nonzeros
 compound=1
 m,n = compound*200,compound*512
