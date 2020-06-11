@@ -133,9 +133,9 @@ function IntPt_TR(
 
     #initialize parameters
     xk = copy(x0)
-    #initialize them to positive values
-    zkl = -ones(size(x0))
-    zku = ones(size(x0))
+    #initialize them to positive values for x=l and negative for x=u
+    zkl = ones(size(x0))
+    zku = -ones(size(x0))
     k = 0
     Fobj_hist = zeros(maxIter * BarIter)
     Hobj_hist = zeros(maxIter * BarIter)
@@ -175,9 +175,10 @@ function IntPt_TR(
         ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
         ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
         ∇²ϕ = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
+        ∇²ϕ(s) = Bk*s + Diagonal(zkl ./ (xk - l))*s + Diagonal(zku ./ (u - xk))*s
         #stopping condition
         Gν =  ∇fk
-        ∇qk = ∇ϕ + ∇²ϕ * zeros(size(∇fk))
+        ∇qk = ∇ϕ + ∇²ϕ(zeros(size(∇fk)))
         # s = ones(size(∇fk)) #just initialize s
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
@@ -202,7 +203,9 @@ function IntPt_TR(
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
 
             if simple == 1 || simple == 2
-                objInner(s) = qk(s, ϕ, ∇ϕ, ∇²ϕ)[1:2]
+                # objInner(s) = qk(s, ϕ, ∇ϕ, ∇²ϕ)[1:2]
+                objInner(s) = [0.5*(s'*∇²ϕ(s)) + ∇ϕ'*s + fk, ∇²ϕ(s) + ∇ϕ]
+
             else
                 objInner = InnerFunc
             end
@@ -215,7 +218,7 @@ function IntPt_TR(
                 #this can probably be sped up since we declare new function every time
             else
                 FO_options.β = eigmax(∇²ϕ)
-                FO_options.Bk = ∇²ϕ
+                FO_options.Bk = ∇²ϕ(s)
                 FO_options.∇fk = ∇ϕ
                 FO_options.xk = xk
                 FO_options.Δ = Δk
@@ -233,7 +236,7 @@ function IntPt_TR(
                 Gν = (s⁻ - s) * FO_options.β
             end
 
-            ∇qk = ∇ϕ + ∇²ϕ * s⁻
+            ∇qk = ∇ϕ + ∇²ϕ(s⁻)
 
 
             α = 1.0
@@ -257,7 +260,8 @@ function IntPt_TR(
             dzu = dzu * α
 
             #update ρ
-            mk(d) = qk(d, ϕ, ∇ϕ, ∇²ϕ)[1] + ψk(xk + d) #qk should take barrier terms into account
+            # mk(d) = qk(d, ϕ, ∇ϕ, ∇²ϕ)[1] + ψk(xk + d) #qk should take barrier terms into account
+            mk(d) = 0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk
             # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
             ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n", maximum(s),maximum(xk+s), minimum(s), minimum(xk+s))
@@ -297,6 +301,7 @@ function IntPt_TR(
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
             ∇²ϕ = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
+            ∇²ϕ(s) = Bk*s + Diagonal(zkl ./ (xk - l))*s + Diagonal(zku ./ (u - xk))*s
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
             kktNorm = [
