@@ -218,7 +218,7 @@ function IntPt_TR(
                 #this can probably be sped up since we declare new function every time
             else
                 FO_options.β = eigmax(H)
-                FO_options.Bk = ∇²ϕ(s)
+                FO_options.Bk = ∇²ϕ
                 FO_options.∇fk = ∇ϕ
                 FO_options.xk = xk
                 FO_options.Δ = Δk
