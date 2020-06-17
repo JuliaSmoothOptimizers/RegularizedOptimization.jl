@@ -216,18 +216,18 @@ function IntPt_TR(
                 s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
                 # Gν = -s * eigmax(H) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
-                Gν = -s * power_iteration(Bk, randn(size(s)))
+                Gν = -s * power_iteration(Bk, randn(size(s)))[1]
                 #this can probably be sped up since we declare new function every time
             else
                 # FO_options.β = eigmax(H)
-                FO_options.β = power_iteration(Bk, randn(size(s)))
+                FO_options.β = power_iteration(Bk, randn(size(s)))[1]
                 FO_options.Bk = ∇²ϕ
                 FO_options.∇fk = ∇ϕ
                 FO_options.xk = xk
                 FO_options.Δ = Δk
                 s⁻ = zeros(size(xk))
                 if simple == 2
-                    FO_options.λ = Δk * power_iteration(Bk, randn(size(s)))
+                    FO_options.λ = Δk * power_iteration(Bk, randn(size(s)))[1]
                 end
                 funProj = χ_projector
                 (s, s⁻, fsave, funEvals) = s_alg(
@@ -320,7 +320,7 @@ function IntPt_TR(
             #Print values
             k % ptf == 0 && @printf(
                 "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
-                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2),power_iteration(Bk, randn(size(s))), fk, ψk(xk))
+                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2),power_iteration(Bk, randn(size(s)))[1], fk, ψk(xk))
 
             if k % ptf == 0
                 FO_options.optTol = FO_options.optTol * 0.1
