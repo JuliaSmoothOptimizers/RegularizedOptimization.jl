@@ -227,7 +227,7 @@ function IntPt_TR(
                 FO_options.Δ = Δk
                 s⁻ = zeros(size(xk))
                 if simple == 2
-                    FO_options.λ = Δk * power_iteration(Bk, randn(size(s)))[1]
+                    FO_options.λ = Δk * power_iteration(Bk, randn(size(xk)))[1]
                 end
                 funProj = χ_projector
                 (s, s⁻, fsave, funEvals) = s_alg(
