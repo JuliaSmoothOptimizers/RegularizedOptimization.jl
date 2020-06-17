@@ -199,7 +199,7 @@ function IntPt_TR(
             x_stat = ""
             Fobj_hist[k] = fk
             Hobj_hist[k] = ψk(xk)
-
+            s⁻ = s
 
             (fk, ∇fk, Bk) = f_obj(xk)
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
@@ -210,7 +210,7 @@ function IntPt_TR(
 
             k % ptf == 0 && @printf(
                 "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
-                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2),power_iteration(∇²ϕ, randn(size(s)))[1], fk, ψk(xk))
+                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s⁻, 2),power_iteration(∇²ϕ, randn(size(s)))[1], fk, ψk(xk))
 
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
@@ -225,7 +225,6 @@ function IntPt_TR(
 
             if simple == 1
                 funProj(d) = χ_projector(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
-                s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
                 # Gν = -s * eigmax(H) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
                 Gν = -s * power_iteration(∇²ϕ, randn(size(xk)))[1]
@@ -237,7 +236,6 @@ function IntPt_TR(
                 FO_options.∇fk = ∇ϕ
                 FO_options.xk = xk
                 FO_options.Δ = Δk
-                s⁻ = zeros(size(xk))
                 if simple == 2
                     # FO_options.λ = Δk * eigmax(H)
                     FO_options.λ = Δk * power_iteration(∇²ϕ, randn(size(xk)))[1]
@@ -251,7 +249,7 @@ function IntPt_TR(
                 )
                 Gν = (s⁻ - s) * FO_options.β
             end
-
+            # note that s⁻ changes to 2nd to last iteration in inner loop
             ∇qk = ∇ϕ + ∇²ϕ(s⁻)
 
 
