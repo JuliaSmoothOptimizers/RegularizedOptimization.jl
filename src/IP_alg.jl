@@ -175,7 +175,7 @@ function IntPt_TR(
         (fk, ∇fk, Bk) = f_obj(xk)
         ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
         ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-        # H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
+        H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
         ∇²ϕ(s) = Bk(s) + Diagonal(zkl ./ (xk - l))*s + Diagonal(zku ./ (u - xk))*s
         #stopping condition
         Gν =  ∇fk
@@ -216,18 +216,19 @@ function IntPt_TR(
                 s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
                 # Gν = -s * eigmax(H) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
-                Gν = -s * power_iteration(Bk, randn(size(xk)))[1]
+                Gν = -s * power_iteration(∇²ϕ, randn(size(xk)))[1]
                 #this can probably be sped up since we declare new function every time
             else
-                # FO_options.β = eigmax(H)
-                FO_options.β = power_iteration(Bk, randn(size(xk)))[1]
+                FO_options.β = eigmax(H)
+                # FO_options.β = power_iteration(∇²ϕ, randn(size(xk)))[1]
                 FO_options.Bk = ∇²ϕ
                 FO_options.∇fk = ∇ϕ
                 FO_options.xk = xk
                 FO_options.Δ = Δk
                 s⁻ = zeros(size(xk))
                 if simple == 2
-                    FO_options.λ = Δk * power_iteration(Bk, randn(size(xk)))[1]
+                    FO_options.λ = Δk * eigmax(H)
+                    # FO_options.λ = Δk * power_iteration(∇²ϕ, randn(size(xk)))[1]
                 end
                 funProj = χ_projector
                 (s, s⁻, fsave, funEvals) = s_alg(
@@ -303,7 +304,7 @@ function IntPt_TR(
             (fk, ∇fk, Bk) = f_obj(xk)
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-            # H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
+            H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
             ∇²ϕ(s) = Bk(s) + Diagonal(zkl ./ (xk - l))*s + Diagonal(zku ./ (u - xk))*s
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
