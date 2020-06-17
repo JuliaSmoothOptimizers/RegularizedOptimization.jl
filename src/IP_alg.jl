@@ -178,16 +178,15 @@ function IntPt_TR(
         ∇²ϕ(d) = Bk*d + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
         #stopping condition
         Gν =  ∇fk
-        ∇qk = ∇ϕ + ∇²ϕ(zeros(size(∇fk)))
-        # s = ones(size(∇fk)) #just initialize s
+        ∇qk = ∇ϕ 
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
         k_i = 0
         ρk = -1
         α = 1.0
-        kktNorm = [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
-        kktInit = kktNorm
+        kktInit = [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
+        kktNorm = 100*kktInit
         # @printf("%10.5e   %10.5e %10.5e %10.5e\n",kktNorm[1], kktNorm[2], kktNorm[3],k_i)
         # while(norm((Gν - ∇qk)+ ∇fk) > ϵD && k_i<maxIter)
         while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
@@ -203,15 +202,14 @@ function IntPt_TR(
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
 
             if simple == 1 || simple == 2
-                # objInner(s) = qk(s, ϕ, ∇ϕ, ∇²ϕ)[1:2]
-                objInner(s) = [0.5*(s'*∇²ϕ(s)) + ∇ϕ'*s + fk, ∇²ϕ(s) + ∇ϕ]
+                objInner(d) = [0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk, ∇²ϕ(d) + ∇ϕ]
 
             else
                 objInner = InnerFunc
             end
 
             if simple == 1
-                funProj(s) = χ_projector(s, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
+                funProj(d) = χ_projector(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
                 s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
                 Gν = -s * eigmax(H) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
@@ -302,7 +300,7 @@ function IntPt_TR(
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
             H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
-            ∇²ϕ(s) = Bk*s + Diagonal(zkl ./ (xk - l))*s + Diagonal(zku ./ (u - xk))*s
+            ∇²ϕ(d) = Bk*d + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
             kktNorm = [
