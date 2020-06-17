@@ -183,7 +183,7 @@ function IntPt_TR(
         # s = ones(size(∇fk)) #just initialize s
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
-
+        s = zeros(size(xk))
         k_i = 0
         ρk = -1
         α = 1.0
@@ -217,30 +217,30 @@ function IntPt_TR(
 
             if simple == 1 || simple == 2
                 # objInner(s) = qk(s, ϕ, ∇ϕ, ∇²ϕ)[1:2]
-                objInner(s) = [0.5*(s'*∇²ϕ(s)) + ∇ϕ'*s + fk, ∇²ϕ(s) + ∇ϕ]
+                objInner(d) = [0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk, ∇²ϕ(d) + ∇ϕ]
 
             else
                 objInner = InnerFunc
             end
 
             if simple == 1
-                funProj(s) = χ_projector(s, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
+                funProj(d) = χ_projector(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
                 s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
                 # Gν = -s * eigmax(H) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
                 Gν = -s * power_iteration(∇²ϕ, randn(size(xk)))[1]
                 #this can probably be sped up since we declare new function every time
             else
-                FO_options.β = eigmax(H)
-                # FO_options.β = power_iteration(∇²ϕ, randn(size(xk)))[1]
+                # FO_options.β = eigmax(H)
+                FO_options.β = power_iteration(∇²ϕ, randn(size(xk)))[1]
                 FO_options.Bk = ∇²ϕ
                 FO_options.∇fk = ∇ϕ
                 FO_options.xk = xk
                 FO_options.Δ = Δk
                 s⁻ = zeros(size(xk))
                 if simple == 2
-                    FO_options.λ = Δk * eigmax(H)
-                    # FO_options.λ = Δk * power_iteration(∇²ϕ, randn(size(xk)))[1]
+                    # FO_options.λ = Δk * eigmax(H)
+                    FO_options.λ = Δk * power_iteration(∇²ϕ, randn(size(xk)))[1]
                 end
                 funProj = χ_projector
                 (s, s⁻, fsave, funEvals) = s_alg(
