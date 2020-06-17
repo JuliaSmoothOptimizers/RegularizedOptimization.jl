@@ -187,8 +187,8 @@ function IntPt_TR(
         k_i = 0
         ρk = -1
         α = 1.0
-        kktNorm = [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
-        kktInit = kktNorm
+        kktInit= [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
+        kktNorm = 100*kktInit
         # @printf("%10.5e   %10.5e %10.5e %10.5e\n",kktNorm[1], kktNorm[2], kktNorm[3],k_i)
         # while(norm((Gν - ∇qk)+ ∇fk) > ϵD && k_i<maxIter)
         while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
@@ -207,6 +207,11 @@ function IntPt_TR(
             # H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
             ∇²ϕ(d) = Bk(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 
+            kktNorm = [
+                norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this
+                norm(zkl .* (xk - l) .- μ)
+                norm(zku .* (u - xk) .- μ)
+            ]
 
             k % ptf == 0 && @printf(
                 "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
@@ -313,11 +318,6 @@ function IntPt_TR(
             end
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
-            kktNorm = [
-                norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this
-                norm(zkl .* (xk - l) .- μ)
-                norm(zku .* (u - xk) .- μ)
-            ]
 
             # plot(xk, xlabel="i^th index", ylabel="x", title="x Progression", label="x_k")
             # plot!(xk-s, label="x_(k-1)", marker=2)
