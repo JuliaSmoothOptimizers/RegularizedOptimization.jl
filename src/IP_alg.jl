@@ -216,11 +216,11 @@ function IntPt_TR(
                 s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
                 # Gν = -s * eigmax(H) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
-                Gν = -s * power_iteration(Bk, randn(size(s)))[1]
+                Gν = -s * power_iteration(Bk, randn(size(xk)))[1]
                 #this can probably be sped up since we declare new function every time
             else
                 # FO_options.β = eigmax(H)
-                FO_options.β = power_iteration(Bk, randn(size(s)))[1]
+                FO_options.β = power_iteration(Bk, randn(size(xk)))[1]
                 FO_options.Bk = ∇²ϕ
                 FO_options.∇fk = ∇ϕ
                 FO_options.xk = xk
