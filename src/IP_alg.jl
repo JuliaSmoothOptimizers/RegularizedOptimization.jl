@@ -3,7 +3,6 @@
 
 include("minconf_spg/SPGSlim.jl")
 include("minconf_spg/oneProjector.jl")
-include("PowerIter.jl")
 using Plots
 export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
 
@@ -175,20 +174,20 @@ function IntPt_TR(
         (fk, ∇fk, Bk) = f_obj(xk)
         ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
         ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-        # H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
-        # ∇²ϕ(s) = Bk(s) + Diagonal(zkl ./ (xk - l))*s + Diagonal(zku ./ (u - xk))*s
+        H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
+        ∇²ϕ(d) = Bk*d + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
         #stopping condition
         Gν =  ∇fk
-        ∇qk = ∇ϕ
+        ∇qk = ∇ϕ + ∇²ϕ(zeros(size(∇fk)))
         # s = ones(size(∇fk)) #just initialize s
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
-        s = zeros(size(xk))
+
         k_i = 0
         ρk = -1
         α = 1.0
-        kktInit= [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
-        kktNorm = 100*kktInit
+        kktNorm = [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
+        kktInit = kktNorm
         # @printf("%10.5e   %10.5e %10.5e %10.5e\n",kktNorm[1], kktNorm[2], kktNorm[3],k_i)
         # while(norm((Gν - ∇qk)+ ∇fk) > ϵD && k_i<maxIter)
         while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
@@ -199,52 +198,34 @@ function IntPt_TR(
             x_stat = ""
             Fobj_hist[k] = fk
             Hobj_hist[k] = ψk(xk)
-            s⁻ = s
 
-            (fk, ∇fk, Bk) = f_obj(xk)
-            ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
-            ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-            # H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
-            ∇²ϕ(d) = Bk(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
-
-            kktNorm = [
-                norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this
-                norm(zkl .* (xk - l) .- μ)
-                norm(zku .* (u - xk) .- μ)
-            ]
-
-            k % ptf == 0 && @printf(
-                "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
-                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s⁻, 2),power_iteration(∇²ϕ, randn(size(s)))[1], fk, ψk(xk))
-
-            s⁻ = zeros(size(xk))
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
 
             if simple == 1 || simple == 2
                 # objInner(s) = qk(s, ϕ, ∇ϕ, ∇²ϕ)[1:2]
-                objInner(d) = [0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk, ∇²ϕ(d) + ∇ϕ]
+                objInner(s) = [0.5*(s'*∇²ϕ(s)) + ∇ϕ'*s + fk, ∇²ϕ(s) + ∇ϕ]
 
             else
                 objInner = InnerFunc
             end
 
             if simple == 1
-                funProj(d) = χ_projector(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
+                funProj(s) = χ_projector(s, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
+                s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
-                # Gν = -s * eigmax(H) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
-                Gν = -s * power_iteration(∇²ϕ, randn(size(xk)))[1]
+                Gν = -s * eigmax(H) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
+                # Gν = -s * power_iteration(Bk, randn(size(s)))
                 #this can probably be sped up since we declare new function every time
             else
-                # FO_options.β = eigmax(H)
-                FO_options.β = power_iteration(∇²ϕ, randn(size(xk)))[1]
+                FO_options.β = eigmax(H)
                 FO_options.Bk = ∇²ϕ
                 FO_options.∇fk = ∇ϕ
                 FO_options.xk = xk
                 FO_options.Δ = Δk
+                s⁻ = zeros(size(xk))
                 if simple == 2
-                    # FO_options.λ = Δk * eigmax(H)
-                    FO_options.λ = Δk * power_iteration(∇²ϕ, randn(size(xk)))[1]
+                    FO_options.λ = Δk * eigmax(H)
                 end
                 funProj = χ_projector
                 (s, s⁻, fsave, funEvals) = s_alg(
@@ -255,7 +236,7 @@ function IntPt_TR(
                 )
                 Gν = (s⁻ - s) * FO_options.β
             end
-            # note that s⁻ changes to 2nd to last iteration in inner loop
+
             ∇qk = ∇ϕ + ∇²ϕ(s⁻)
 
 
@@ -317,13 +298,27 @@ function IntPt_TR(
                 Δk = α * norm(s, 1)
             end
 
+            (fk, ∇fk, Bk) = f_obj(xk)
+            ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
+            ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
+            H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
+            ∇²ϕ(s) = Bk*s + Diagonal(zkl ./ (xk - l))*s + Diagonal(zku ./ (u - xk))*s
+
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
+            kktNorm = [
+                norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this
+                norm(zkl .* (xk - l) .- μ)
+                norm(zku .* (u - xk) .- μ)
+            ]
 
             # plot(xk, xlabel="i^th index", ylabel="x", title="x Progression", label="x_k")
             # plot!(xk-s, label="x_(k-1)", marker=2)
             # filestring = string("figs/bpdn/LS_l0_Binf/xcomp", k, ".pdf")
             # savefig(filestring)       
             #Print values
+            k % ptf == 0 && @printf(
+                "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
+                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2),eigmax(H), fk, ψk(xk))
 
             if k % ptf == 0
                 FO_options.optTol = FO_options.optTol * 0.1
