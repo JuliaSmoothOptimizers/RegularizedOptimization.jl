@@ -203,7 +203,7 @@ function IntPt_TR(
                 @printf("%d %10.5e\n", ~isempty(methods(Bk)), norm(∇²ϕ(zeros(size(xk)))))
 
             else
-                # ∇²ϕ(d) = Bk*d + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+                ∇²ϕ(d) = Bk*d + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 
             end
 
