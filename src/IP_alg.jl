@@ -181,12 +181,12 @@ function IntPt_TR(
         ∇qk = ∇ϕ 
 
         HessFcnSwitch = ~isempty(methods(Bk))
-        if HessFcnSwitch 
-            H = Bk 
-        else 
-            H(d) = Bk*d
-        end
-        ∇²ϕ(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+        # if HessFcnSwitch 
+        #     H = Bk 
+        # else 
+        #     H(d) = Bk*d
+        # end
+        # ∇²ϕ(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
@@ -206,6 +206,15 @@ function IntPt_TR(
             x_stat = ""
             Fobj_hist[k] = fk
             Hobj_hist[k] = ψk(xk)
+
+
+            if HessFcnSwitch
+                H = Bk 
+            else 
+                H(d) = Bk*d
+            end
+            ∇²ϕ(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+
 
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
@@ -309,12 +318,6 @@ function IntPt_TR(
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
             # H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
-            if HessFcnSwitch
-                H = Bk 
-            else 
-                H(d) = Bk*d
-            end
-            ∇²ϕ(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
             kktNorm = [
