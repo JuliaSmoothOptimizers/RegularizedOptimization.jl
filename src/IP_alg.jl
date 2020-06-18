@@ -179,6 +179,15 @@ function IntPt_TR(
         #stopping condition
         Gν =  ∇fk
         ∇qk = ∇ϕ 
+
+        HessFcnSwitch = ~isempty(methods(Bk))
+        if HessFcnSwitch 
+            H = Bk 
+        else 
+            H(d) = Bk*d
+        end
+        ∇²ϕ(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
@@ -199,40 +208,10 @@ function IntPt_TR(
             Hobj_hist[k] = ψk(xk)
 
 
-            (fk, ∇fk, Bk) = f_obj(xk)
-            ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
-            ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-            # H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
-            # ∇²ϕ(d) = Bk(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
-
-            # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
-            kktNorm = [
-                norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this
-                norm(zkl .* (xk - l) .- μ)
-                norm(zku .* (u - xk) .- μ)
-            ]
-
-            # plot(xk, xlabel="i^th index", ylabel="x", title="x Progression", label="x_k")
-            # plot!(xk-s, label="x_(k-1)", marker=2)
-            # filestring = string("figs/bpdn/LS_l0_Binf/xcomp", k, ".pdf")
-            # savefig(filestring)       
-            #Print values
-            k % ptf == 0 && @printf(
-                "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
-                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), power_iteration(∇²ϕ, randn(size(xk)))[1], fk, ψk(xk))
-
-
-            if ~isempty(methods(Bk))
-                ∇²ϕ(d) = Bk(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
-            else
-                # ∇²ϕ(d) = Bk*d + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
-            end
-
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
 
             if simple == 1 || simple == 2
                 objInner(d) = [0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk, ∇²ϕ(d) + ∇ϕ]
-
             else
                 objInner = InnerFunc
             end
@@ -326,11 +305,16 @@ function IntPt_TR(
                 Δk = α * norm(s, 1)
             end
 
-            # (fk, ∇fk, Bk) = f_obj(xk)
-            # ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
-            # ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
+            (fk, ∇fk, Bk) = f_obj(xk)
+            ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
+            ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
             # H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
-            # ∇²ϕ(d) = Bk(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+            if HessFcnSwitch
+                H = Bk 
+            else 
+                H(d) = Bk*d
+            end
+            ∇²ϕ(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
             kktNorm = [
