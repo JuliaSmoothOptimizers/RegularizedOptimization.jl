@@ -25,8 +25,6 @@ function power_iteration(A, bk; tol=1e-10)
 
         bk = b
 
-
-
     end
 
     return bk'*A(bk), bk

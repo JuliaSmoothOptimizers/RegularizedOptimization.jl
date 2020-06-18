@@ -173,20 +173,15 @@ function IntPt_TR(
 
         #main algorithm initialization
         (fk, ∇fk, Bk) = f_obj(xk)
+        HessFcnSwitch = ~isempty(methods(Bk))
+        # initialize ϕ
         ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
         ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-        # H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
+
         #stopping condition
         Gν =  ∇fk
         ∇qk = ∇ϕ 
 
-        HessFcnSwitch = ~isempty(methods(Bk))
-        # if HessFcnSwitch 
-        #     H = Bk 
-        # else 
-        #     H(d) = Bk*d
-        # end
-        # ∇²ϕ(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
@@ -196,8 +191,7 @@ function IntPt_TR(
         α = 1.0
         kktInit = [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
         kktNorm = 100*kktInit
-        # @printf("%10.5e   %10.5e %10.5e %10.5e\n",kktNorm[1], kktNorm[2], kktNorm[3],k_i)
-        # while(norm((Gν - ∇qk)+ ∇fk) > ϵD && k_i<maxIter)
+
         while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
             #update count
             k_i = k_i + 1 #inner
@@ -217,8 +211,7 @@ function IntPt_TR(
 
 
 
-            # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(∇²ϕ - Bk), norm(∇ϕ - ∇fk), norm(fk - ϕ), norm(∇qk - ∇fk))
-
+            #allow for different cases if the objective is simple -> generalize this later maybe? 
             if simple == 1 || simple == 2
                 objInner(d) = [0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk, ∇²ϕ(d) + ∇ϕ]
             else
@@ -233,7 +226,6 @@ function IntPt_TR(
                 Gν = -s * power_iteration(∇²ϕ,randn(size(xk)))[1]      
                 #this can probably be sped up since we declare new function every time
             else
-                # FO_options.β = eigmax(H)
                 FO_options.β = power_iteration(∇²ϕ,randn(size(xk)))[1]
                 FO_options.Bk = ∇²ϕ
                 FO_options.∇fk = ∇ϕ
@@ -261,28 +253,20 @@ function IntPt_TR(
             # gradient for z
             dzl = μ ./ (xk - l) - zkl - zkl .* s ./ (xk - l)
             dzu = μ ./ (u - xk) - zku + zku .* s ./ (u - xk)
-
-            # @printf("%10.5e   %10.5e %10.5e  %10.5e %10.5e %10.5e\n",α, norm(s), norm(dzl),norm(dzu), norm(s⁻), norm(Gν))
-      
             # linesearch for step size?
             # if μ!=0
                 # α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
-                α = ls(xk, s,l,u ;mult=mult, tau =τ)
+                α = ls(xk, s,l,u; mult=mult, tau =τ)
                 # α = linesearch(xk, zkl, zku, s, dzl, dzu,l,u ;mult=mult, tau = τ)
             # end
-            # @printf("%10.5e   %10.5e %10.5e  %10.5e %10.5e %10.5e\n",α, α1, minimum(xk-l), minimum(xk-u), minimum(zkl*τ + dzl), minimum(zku*τ + dzu))
             #update search direction for
             s = s * α
             dzl = dzl * α
             dzu = dzu * α
 
-            #update ρ
-            # mk(d) = qk(d, ϕ, ∇ϕ, ∇²ϕ)[1] + ψk(xk + d) #qk should take barrier terms into account
+            #define model and update ρ
             mk(d) = 0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk
-            # ρk = (β(xk + s) - β(xk))/(qk(s, ∇Phi,∇²Phi)[1])
             ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
-            # @printf("%10.5e   %10.5e %10.5e %10.5e\n", maximum(s),maximum(xk+s), minimum(s), minimum(xk+s))
-            # @printf("%10.5e   %10.5e %10.5e %10.5e\n", norm(s,0), norm(xk+s,0), norm(xk,0),γ * norm(s, 1))
             if (ρk > η2)
                 TR_stat = "increase"
                 Δk = max(Δk, γ * norm(s, 1)) #for safety
@@ -302,11 +286,11 @@ function IntPt_TR(
                 x_stat = "shrink"
 
                 #changed back linesearch
-                # α = 1.0
-                # while(β(xk + α*s) > β(xk) + σ*α*(∇ϕ + (Gν - ∇qk))'*s) #compute a directional derivative of ψ
-                #     α = α*mult
-                # end
-                α = 0.1 #was 0.1; can be whatever
+                α = 1.0
+                while(β(xk + α*s) > β(xk) + σ*α*(∇ϕ + (Gν - ∇qk))'*s) #compute a directional derivative of ψ
+                    α = α*mult
+                end
+                # α = 0.1 #was 0.1; can be whatever
                 #step should be rejected
                 xk = xk + α*s
                 zkl = zkl + α*dzl
@@ -317,9 +301,7 @@ function IntPt_TR(
             (fk, ∇fk, Bk) = f_obj(xk)
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-            # H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
 
-            # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
             kktNorm = [
                 norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this
                 norm(zkl .* (xk - l) .- μ)

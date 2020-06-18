@@ -19,8 +19,8 @@ cutoff = 0.0
 function f_obj(x)
     f = .5*norm(A*x-b)^2
     g = A'*(A*x - b)
-    h = A'*A #-> BFGS later
-    # h(d) = A'*(A*d)
+    # h = A'*A #-> BFGS later
+    h(d) = A'*(A*d)
     return f, g, h
 end
 
