@@ -301,7 +301,7 @@ function IntPt_TR(
             (fk, ∇fk, Bk) = f_obj(xk)
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-            H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
+            # H = Bk + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
             ∇²ϕ(d) = Bk(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 
             # @printf("%10.5e   %10.5e %10.5e %10.5e\n",norm(Gν), norm(Gν-∇qk), FO_options.β, norm(s⁻ - s))
