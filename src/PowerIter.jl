@@ -16,19 +16,20 @@ function power_iteration(A, bk; tol=1e-10)
         #normalize
         b = b/norm(b)
         # μ = (bk'*b)/(bk'*b)
-        μ = b'*A(bk)/(b'*bk)
+        # μ = b'*A(bk)
 
-        bk = b
-
-        if abs(μ - μ_im1)<tol 
+        # if abs(μ - μ_im1)<tol 
+        if norm(b - bk)<tol
             break
         end
+
+        bk = b
 
 
 
     end
 
-    return μ, bk
+    return bk'*A(bk), bk
 
 
 end
