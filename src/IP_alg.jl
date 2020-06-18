@@ -200,8 +200,10 @@ function IntPt_TR(
 
             if ~isempty(methods(Bk))
                 ∇²ϕ(d) = Bk(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+                @printf("%d %10.5e\n", ~isempty(methods(Bk)), ∇²ϕ(zeros(size(xk))))
+
             else
-                ∇²ϕ(d) = Bk*d + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+                # ∇²ϕ(d) = Bk*d + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 
             end
 
