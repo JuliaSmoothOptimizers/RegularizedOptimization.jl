@@ -19,7 +19,7 @@ end
 function bfgs_update(Bk, sk, yk)
 
     f1b = sk'*Bk*sk 
-    f1t = (Bk*sk)*(s'*Bk)
+    f1t = (Bk*sk)*(sk'*Bk)
 
     f2t = yk*yk'
     f2b = yk'*sk 
