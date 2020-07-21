@@ -178,7 +178,11 @@ function IntPt_TR(
             (fk, ∇fk, Bk) = Fsmth_out
         elseif length(Fsmth_out)==2 && k==0
             (fk, ∇fk) = Fsmth_out
-            Bk = FO_options.β*I(size(xk,1))
+            if simple ==1
+                Bk = I(size(xk, 1))
+            else
+                Bk = FO_options.β*I(size(xk,1))
+            end
         elseif length(Fsmth_out)==2
             (fk, ∇fk) = Fsmth_out
             Bk = bfgs_IP(Bk, s, ∇fk-∇fk⁻)
