@@ -172,8 +172,19 @@ function IntPt_TR(
         #change this to h not psik
 
         #main algorithm initialization
-        (fk, ∇fk, Bk) = f_obj(xk)
-        HessFcnSwitch = ~isempty(methods(Bk))
+        Fsmth_out = f_obj(xk)
+        #test number of outputs to see if user provided a hessian
+        if length(Fsmth_out)==3
+            (fk, ∇fk, Bk) = Fsmth_out
+        elseif length(Fsmth_out)==2 && k==0
+            (fk, ∇fk) = Fsmth_out
+            Bk = FO_options.β*I(size(xk,1))
+        elseif length(Fsmth_out)==2
+            (fk, ∇fk) = Fsmth_out
+            Bk = bfgs_IP(Bk, s, ∇fk-∇fk⁻)
+        else
+            throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
+        end
         # initialize ϕ
         ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
         ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
@@ -182,7 +193,11 @@ function IntPt_TR(
         Gν =  ∇fk
         ∇qk = ∇ϕ 
 
-
+        if ~isempty(methods(Bk))
+            H = Bk 
+        else 
+            H(d) = Bk*d
+        end
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
@@ -200,13 +215,9 @@ function IntPt_TR(
             x_stat = ""
             Fobj_hist[k] = fk
             Hobj_hist[k] = ψk(xk)
+            xk⁻ = xk 
+            ∇fk⁻ = ∇fk
 
-
-            if HessFcnSwitch
-                H = Bk 
-            else 
-                H(d) = Bk*d
-            end
             ∇²ϕ(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 
 
@@ -298,7 +309,17 @@ function IntPt_TR(
                 Δk = α * norm(s, 1)
             end
 
-            (fk, ∇fk, Bk) = f_obj(xk)
+            Fsmth_out = f_obj(xk)
+
+            if length(Fsmth_out)==3
+                (fk, ∇fk, Bk) = Fsmth_out
+            elseif length(Fsmth_out)==2
+                (fk, ∇fk) = Fsmth_out
+                Bk = bfgs_IP(Bk, s, ∇fk-∇fk⁻)
+            else
+                throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
+            end
+
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
 
