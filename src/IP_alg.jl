@@ -185,7 +185,7 @@ function IntPt_TR(
             end
         elseif length(Fsmth_out)==2
             (fk, ∇fk) = Fsmth_out
-            Bk = bfgs_IP(Bk, s, ∇fk-∇fk⁻)
+            Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
         else
             throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
         end
@@ -319,7 +319,7 @@ function IntPt_TR(
                 (fk, ∇fk, Bk) = Fsmth_out
             elseif length(Fsmth_out)==2
                 (fk, ∇fk) = Fsmth_out
-                Bk = bfgs_IP(Bk, s, ∇fk-∇fk⁻)
+                Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
             else
                 throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
             end
