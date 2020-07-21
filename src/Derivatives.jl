@@ -24,6 +24,6 @@ function bfgs_update(Bk, sk, yk)
     f2t = yk*yk'
     f2b = yk'*sk 
 
-    return Bk - f1t/fb1 + f2t/f2b 
+    return Bk - f1t/f1b + f2t/f2b 
 
 end
