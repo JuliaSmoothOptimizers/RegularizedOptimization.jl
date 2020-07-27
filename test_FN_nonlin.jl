@@ -76,4 +76,4 @@ function h_nonsmooth(x)
 end
 
 # du01,dp1 = Zygote.gradient((u0,p)->sum(solve(prob,Tsit5(),u0=u0,p=p,saveat=0.1,sensealg=QuadratureAdjoint())),u0,p)
-dp1 = Zygote.gradient((p)->sum(solve(prob_FH,Tsit5(),p=p,saveat=savetime,sensealg=QuadratureAdjoint())),p)
+dp1 = Zygote.gradient((p)->sum(solve(prob_FH,Tsit5(),p=p,saveat=savetime,sensealg=QuadratureAdjoint())),x0, p)

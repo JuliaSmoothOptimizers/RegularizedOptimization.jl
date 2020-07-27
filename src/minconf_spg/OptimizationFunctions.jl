@@ -42,6 +42,7 @@ function ssbin(A,nmv)
     # x = ssbin(A,nmv,n)
     #   A is a symmetric real matrix or function handle. If it is a
     #     function handle, then v = A(x) returns A*x.
+    
     #   nmv is the number of matrix-vector products to perform.
     #   [n] is the size of the matrix. It is necessary to specify n
     #     only if A is a function handle.
