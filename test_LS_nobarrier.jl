@@ -46,10 +46,10 @@ first_order_options_proj = s_options(1/eigmax(A'*A);maxIter=1000, verbose=0, opt
 
 # Interior Pt Algorithm
 parameters_spgslim = IP_struct(f_obj, h_obj;
-    FO_options = first_order_options_spgslim, χ_projector=tr_norm_spg) #defaults to h=0, spgl1/min_confSPG
+    FO_options = first_order_options_spgslim, Rk=tr_norm_spg) #defaults to h=0, spgl1/min_confSPG
 parameters_proj = IP_struct(f_obj, h_obj;
-    s_alg = PG, FO_options = first_order_options_proj, χ_projector=tr_norm)
-# parameters = IP_struct(f_obj, h_obj;FO_options = first_order_options, χ_projector=tr_norm) #defaults to h=0, spgl1/min_confSPG
+    s_alg = PG, FO_options = first_order_options_proj, Rk=tr_norm)
+# parameters = IP_struct(f_obj, h_obj;FO_options = first_order_options, Rk=tr_norm) #defaults to h=0, spgl1/min_confSPG
 options_spgslim = IP_options(;simple=1, ptf=100, ϵD=1e-5) #print freq, ΔK init, epsC/epsD initialization, maxIter
 options_proj= IP_options(;ptf=1, simple=2, ϵD=1e-6)
 

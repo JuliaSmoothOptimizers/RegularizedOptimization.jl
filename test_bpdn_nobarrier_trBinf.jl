@@ -55,7 +55,7 @@ Doptions=s_options(β; maxIter=1000, λ=λ, verbose=2)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
 parameters = IP_struct(f_smooth, h_nonsmooth;
-FO_options = Doptions, s_alg=hardproxl1Binf, InnerFunc=fval, χ_projector=projbox)
+FO_options = Doptions, s_alg=hardproxl1Binf, InnerFunc=fval, Rk=projbox)
 # options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
 options = IP_options(;simple=0, ptf=1, ϵD=1e-8)
 #put in your initial guesses
