@@ -39,7 +39,7 @@ end
 function OrdDiffProb(ODE, IC, pars; tspan=[0,1]#output times
     )
     return OrdDiffSys(ODE, IC, tspan, pars)
-
+end
 
 #takes in diffeq wrapper, 
 function rk4Solve(Prob; ϵ=1e-6)
