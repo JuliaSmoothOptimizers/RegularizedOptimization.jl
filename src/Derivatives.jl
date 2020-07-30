@@ -72,7 +72,7 @@ function rk4Solve(Prob; ϵ=1e-6)
 
         k4 = Prob.ODE(yend, Prob.pars, tt+ϵ)
 
-        ϕ = (k1 + 2.*(k2 + k3) + k4)./6
+        ϕ = (k1 + 2.0 .*(k2 + k3) + k4)./6
         y[i+1,:] .= yt .+ phi.*ϵ
 
     end
