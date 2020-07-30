@@ -36,6 +36,8 @@ savetime = .5
 # pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7,]
 pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7]
 prob_FH = ODEProblem(FH_ODE, x0, tspan, pars_FH)
+myProb = OrdDiffProb(FH, x0, pars_FH; tspan = Array(0.0:.5:100) )
+(t, y) = rk4Solve(myProb)
 sol_FH = solve(prob_FH, reltol=1e-6, saveat=savetime)
 
 
