@@ -78,7 +78,7 @@ function rk4Solve(Prob; ϵ=1e-6)
     end
 
     #tspan should be nexted in t
-    t_idx = findall(in(t), Prob.tspan)
+    t_idx = findall(in(Prob.tspan), t)
     tspan = t[t_idx]
     yspan = y[t_idx,:]
     return tspan, yspan

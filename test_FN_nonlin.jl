@@ -37,12 +37,13 @@ savetime = .5
 pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7]
 prob_FH = ODEProblem(FH_ODE, x0, tspan, pars_FH)
 myProb = OrdDiffProb(FH, x0, pars_FH; tspan = Array(0.0:.5:100) )
-(t, y) = rk4Solve(myProb)
+(t, y) = rk4Solve(myProb;ϵ =1e-2)
 sol_FH = solve(prob_FH, reltol=1e-6, saveat=savetime)
 
 
 
-# plot(sol_FH, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="FH sol")
+plot(sol_FH, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="FH sol")
+plot!(t, y[:,1], label='V - rk4')
 # plot!(sol_FH, vars=(0,2),label="W")
 # savefig("figs/nonlin/fhn_basic.pdf")
 
@@ -52,14 +53,14 @@ sol_FH = solve(prob_FH, reltol=1e-6, saveat=savetime)
 # #x' = μ(x - x^3/3 - y)
 # #y' = x/μ -> here μ = 12.5
 # #changing the parameters to p = [0, .08, 1.0, 0, 0]
-# pars_VDP = [0, .2, 1.0, 0, 0]
-# prob_VDP = ODEProblem(FH_ODE, x0, tspan, pars_VDP)
-# sol_VDP = solve(prob_VDP,reltol=1e-6, saveat=savetime)
+pars_VDP = [0, .2, 1.0, 0, 0]
+prob_VDP = ODEProblem(FH_ODE, x0, tspan, pars_VDP)
+sol_VDP = solve(prob_VDP,reltol=1e-6, saveat=savetime)
 
 # #also make some noie to fit later
-# b = hcat(sol_VDP.u...)[1,:]
-# noise = .1*randn(size(b))
-# b = noise + b
+b = hcat(sol_VDP.u...)[1,:]
+noise = .1*randn(size(b))
+b = noise + b
 
 # plot(sol_VDP, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="VDP sol")
 # plot!(sol_VDP, vars=(0,2),label="W")
