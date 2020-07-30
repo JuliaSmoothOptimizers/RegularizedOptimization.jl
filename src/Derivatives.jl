@@ -42,7 +42,7 @@ function OrdDiffProb(ODE, IC, pars; tspan=[0,1]#output times
 
 
 #takes in diffeq wrapper, 
-function rk4Solve(Prob; ϵ=1e-6):
+function rk4Solve(Prob; ϵ=1e-6)
 
     #check for increasing stepsize
     if any(diff(Prob.tspan).<0)
