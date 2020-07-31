@@ -282,6 +282,8 @@ function IntPt_TR(
             #define model and update ρ
             mk(d) = 0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk
             ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
+
+            @printf("%10.5e   %10.5e   %10.5e   %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
             if (ρk > η2)
                 TR_stat = "increase"
                 Δk = max(Δk, γ * norm(s, 1)) #for safety

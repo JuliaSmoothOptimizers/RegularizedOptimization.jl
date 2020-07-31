@@ -1,6 +1,6 @@
 # Julia Testing function
 using TRNC
-using LinearAlgebra, DifferentialEquations, Plots, Random, ForwardDiff
+using LinearAlgebra, DifferentialEquations, Plots, Random, Zygote, DiffEqSensitivity
 
 
 #In this example, we demonstrate the capacity of the algorithm to minimize a nonlinear
@@ -30,9 +30,9 @@ savetime = .5
 pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7]
 prob_FH = ODEProblem(FH_ODE, x0, tspan, pars_FH)
 sol_FH = solve(prob_FH, reltol=1e-6, saveat=savetime)
-plot(sol_FH, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="FH sol")
-plot!(sol_FH, vars=(0,2),label="W")
-savefig("figs/nonlin/fhn_basic.pdf")
+# plot(sol_FH, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="FH sol")
+# plot!(sol_FH, vars=(0,2),label="W")
+# savefig("figs/nonlin/LS_l1_B2/fhn_basic.pdf")
 
 
 #So this is all well and good, but we need a cost function and some parameters to fit. First, we take care of the parameters
@@ -49,10 +49,10 @@ b = hcat(sol_VDP.u...)[1,:]
 noise = .1*randn(size(b))
 b = noise + b
 
-plot(sol_VDP, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="VDP sol")
-plot!(sol_VDP, vars=(0,2),label="W")
-plot!(sol_VDP.t, b, label="V-data")
-savefig("figs/nonlin/vdp_basic.pdf")
+# plot(sol_VDP, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="VDP sol")
+# plot!(sol_VDP, vars=(0,2),label="W")
+# plot!(sol_VDP.t, b, label="V-data")
+# savefig("figs/nonlin/LS_l1_B2/vdp_basic.pdf")
 
 
 #so now that we have data, we want to formulate our optimization problem. This is going to be 
@@ -68,12 +68,12 @@ savefig("figs/nonlin/vdp_basic.pdf")
 function f_smooth(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
     odesolve(p::Vector) = norm(hcat(solve(ODEProblem(FH_ODE, x0, tspan,p), reltol=1e-6, saveat=savetime).u...)[1,:] - b)^2
     
-    return odesolve(x), gradient(odesolve, x) #complex step diff
+    return odesolve(x), Zygote.gradient(odesolve, x) #complex step diff
 end
 
 function h_nonsmooth(x)
     return λ*norm(x,0) #, g∈∂h
 end
 
-du01,dp1 = Zygote.gradient((u0,p)->sum(solve(prob,Tsit5(),u0=u0,p=p,saveat=0.1,sensealg=QuadratureAdjoint())),u0,p)
+# du01,dp1 = Zygote.gradient((u0,p)->sum(solve(prob,Tsit5(),u0=u0,p=p,saveat=0.1,sensealg=QuadratureAdjoint())),u0,p)
 # dp1 = Zygote.gradient((p)->sum(solve(prob_FH,Tsit5(),p=p,saveat=savetime,sensealg=QuadratureAdjoint())),x0, p)
