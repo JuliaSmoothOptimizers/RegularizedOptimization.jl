@@ -53,8 +53,13 @@ function rk4Solve(Prob; ϵ=1e-6)
     unique!(sort!(t))
     n = length(t)
 
+    typetest = isa(Prob.pars, Array{Complex{Float64},1}) || isa(Prob.IC, Array{Complex{Float64},1})
 
-    y = zeros(n, length(Prob.IC))
+    if typetest
+        y = zeros(ComplexF64, n, length(Prob.IC))
+    else
+        y = zeros(n, length(Prob.IC))
+    end
     y[1,:] = Prob.IC 
 
     for i = 1:n-1
