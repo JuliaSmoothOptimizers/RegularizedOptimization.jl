@@ -1,8 +1,8 @@
-export gradient, bfgs_update, rk4Solve, OrdDiffProb
+export cmplx_step, bfgs_update, rk4Solve, OrdDiffProb
 
 
 
-function gradient(Fcn, p; ε=1e-6)
+function cmplx_step(Fcn, p; ε=1e-6)
     grad = zeros(size(p))
     p_temp = zeros(ComplexF64, size(p)) + p
     for j = 1:length(p)
