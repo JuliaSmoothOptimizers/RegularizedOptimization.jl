@@ -26,10 +26,11 @@ mutable struct IP_methods
     FO_options #options for minConf_SPG/minimization routine you use for s
     s_alg #algorithm passed that determines descent direction
     Rk # ψ_k + χ_k where χ_k is the Δ - norm ball that you project onto. Note that the basic case is that ψ_k = 0
-    InnerFunc
+    InnerFunc #proximal operator of ||sⱼ - ν∇qk|| + Rk
     ψk #nonsmooth model of h that you are trying to solve - it is possible that ψ=h. Otherwise,
                 #it's the prox_{ξ*λ*ψ}(s - ν*∇q(s))
     f_obj #objective function (unaltered) that you want to minimize
+    h_obj #objective function that is nonsmooth - > only used for evaluation
 end
 
 function IP_options(
@@ -58,7 +59,7 @@ function IP_struct(
     ψk = h,
     InnerFunc = h, #prox_{h + δᵦ(x)} for $B = Indicator of \|s\|_p ≦Δ
 )
-    return IP_methods(FO_options, s_alg, Rk, InnerFunc, ψk, f_obj)
+    return IP_methods(FO_options, s_alg, Rk, InnerFunc, ψk,h, f_obj)
 end
 
 
@@ -130,6 +131,7 @@ function IntPt_TR(
     ψk = params.ψk
     InnerFunc = params.InnerFunc
     f_obj = params.f_obj
+    h_obj = params.h_obj
 
 
     #initialize parameters
@@ -168,7 +170,7 @@ function IntPt_TR(
 #Barrier Loop
     while k < BarIter && (μ > 1e-6 || μ==0) #create options for this
         #make sure you only take the first output of the objective value of the true function you are minimizing
-        β(x) = f_obj(x)[1] + ψk(x) - μ*sum(log.((x-l).*(u-x)))# - μ * sum(log.(x - l)) - μ * sum(log.(u - x)) #
+        β(x) = f_obj(x)[1] + h_obj(x) - μ*sum(log.((x-l).*(u-x)))# - μ * sum(log.(x - l)) - μ * sum(log.(u - x)) #
         #change this to h not psik
 
         #main algorithm initialization
@@ -218,7 +220,7 @@ function IntPt_TR(
             TR_stat = ""
             x_stat = ""
             Fobj_hist[k] = fk
-            Hobj_hist[k] = ψk(xk)
+            Hobj_hist[k] = h_obj(xk)
             xk⁻ = xk 
             ∇fk⁻ = ∇fk
 
