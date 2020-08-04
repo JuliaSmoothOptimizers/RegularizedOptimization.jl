@@ -57,9 +57,9 @@ function IP_struct(
     s_alg = minConf_SPG,
     Rk = oneProjector,
     ψk = h,
-    InnerFunc = h, #prox_{h + δᵦ(x)} for $B = Indicator of \|s\|_p ≦Δ
+    InnerFunc = h, #prox_{ψ_k + δᵦ(x)} for $B = Indicator of \|s\|_p ≦Δ
 )
-    return IP_methods(FO_options, s_alg, Rk, InnerFunc, ψk,h, f_obj)
+    return IP_methods(FO_options, s_alg, Rk, InnerFunc, ψk, f_obj, h)
 end
 
 
@@ -110,7 +110,6 @@ function IntPt_TR(
 )
 
     #initialize passed options
-    debug = false #turn this on to see debugging information
     ϵD = options.ϵD
     ϵC = options.ϵC
     Δk = options.Δk
