@@ -198,10 +198,10 @@ function IntPt_TR(
         Gν =  ∇fk
         ∇qk = ∇ϕ 
 
-        if ~isempty(methods(Bk))
-            H = Bk 
-        else 
+        if isempty(methods(Bk))
             H(d) = Bk*d
+        else 
+            H = Bk 
         end
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
@@ -281,7 +281,8 @@ function IntPt_TR(
             dzu = dzu * α
 
             #define model and update ρ
-            mk(d) = 0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk + ψk(d)
+            mk(d) = 0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
+            # look up how to test if two functions are equivalent? 
             ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
 
             @printf("%10.5e   %10.5e   %10.5e   %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))

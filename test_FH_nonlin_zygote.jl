@@ -87,7 +87,7 @@ fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ.*(.!iszero.(u.+xi))
 projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
 #set all options
 λ = 200.0
-Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ)
+Doptions=s_options(1/eigmax(sens*sens'); maxIter=1000, λ=λ)
 
 parameters = IP_struct(f_smooth, h_nonsmooth;
     FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
