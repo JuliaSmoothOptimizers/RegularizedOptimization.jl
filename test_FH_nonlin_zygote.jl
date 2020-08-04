@@ -23,8 +23,8 @@ end
 
 
 x0 = [2.0; 0.0]
-tspan = (0.0, 100.0)
-savetime = .5
+tspan = (0.0, 10.0)
+savetime = .1
 # pars_FH = [.5, 1/12.5, 0.08, 1.0, 0.8, 0.7]
 # pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7,]
 pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7]
@@ -66,7 +66,7 @@ function Gradprob(p)
     return sum((temp_v - b).^2)/2
 end
 function f_smooth(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
-    return Gradprob(x), Zygote.gradient(Gradprob, x) #complex step diff
+    return Gradprob(x), Zygote.gradient(Gradprob, x)[1] #complex step diff
 end
 
 function h_nonsmooth(x)
@@ -75,19 +75,18 @@ end
 
 
 #put in your initial guesses
-pi = pars_FH
+pi = pars_VDP
 
 (~, sens) = f_smooth(pi)
-
 #all this should be unraveling in the hardproxB# code
 # fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
 # projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi)
-fval(yp, bq, bx, νi) = (yp-bx+bq).^2/(2*νi)+λ*abs.(yp)
-projbox(wp, bx, Δi) = min.(max.(wp,bx.-Δi), bx.+Δi)
-# fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ.*(.!iszero.(u.+xi))
-# projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
+# fval(yp, bq, bx, νi) = (yp-bx+bq).^2/(2*νi)+λ*abs.(yp)
+# projbox(wp, bx, Δi) = min.(max.(wp,bx.-Δi), bx.+Δi)
+fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ.*(.!iszero.(u.+xi))
+projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
 #set all options
-λ = 1.0
+λ = 200.0
 Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ)
 
 parameters = IP_struct(f_smooth, h_nonsmooth;
@@ -99,8 +98,8 @@ options = IP_options(;simple=0, ptf=1, ϵD = 1e-5)
 
 p, k, Fhist, Hhist = IntPt_TR(pi, parameters, options)
 
-myProbTR = OrdDiffProb(FH, x0, p; tspan = Array(0.0:.5:tf) )
-(t, yp) = rk4Solve(myProbFH; ϵ=1e-4)
+myProbFH = remake(prob_FH, p = p)
+sol = solve(myProbFH; reltol=1e-6, saveat = savetime)
 
 #print out l2 norm difference and plot the two x values
 @printf("l2-norm True vs TR: %5.5e\n", norm(pars_VDP - p)/norm(p))

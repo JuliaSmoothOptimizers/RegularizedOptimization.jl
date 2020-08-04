@@ -280,7 +280,7 @@ function IntPt_TR(
             dzu = dzu * α
 
             #define model and update ρ
-            mk(d) = 0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk
+            mk(d) = 0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk + ψk(d)
             ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
 
             @printf("%10.5e   %10.5e   %10.5e   %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
