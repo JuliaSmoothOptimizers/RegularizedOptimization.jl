@@ -109,7 +109,7 @@ parameters = IP_struct(f_smooth, h_nonsmooth;
     s_alg = PG, FO_options = Doptions, Rk = tr_norm) 
 
 # options = IP_options(;simple=0, ptf=1, ϵD = 1e-5)
-options = IP_options(;simple=2, ptf=0, ϵD = 1e-5)
+options = IP_options(;simple=2, ptf=1, ϵD = 1e-5)
 
 
 
@@ -130,9 +130,12 @@ f_smooth(p)[1],  f_smooth(pars_VDP)[1])
 @printf("h(x) -  TR: %5.5e    True: %5.5e\n",
 h_nonsmooth(p)/λ, h_nonsmooth(pars_VDP)/λ)
 
-plot(t, yV[:,1], xlabel="Time", ylabel="Voltage", label="VDP", title="True vs TR")
-plot!(t, yp[:,1], label="tr", marker=2)
-plot!(t, b, label="data")
+plot(sol_VDP, vars=(0,1), xlabel="Time", ylabel="Voltage", label="VDP-V", title="True vs TR")
+plot(sol_VDP, vars=(0,2), label="VDP-W")
+plot!(sol, vars=(0,1), label="tr", marker=2)
+plot!(sol, vars=(0,2), label="tr", marker=2)
+plot!(sol_VDP.t, b[1,:], label="V-data")
+plot!(sol_VDP.t, b[2,:], label="W-data")
 savefig("figs/nonlin/LS_l1_B2/vcomp.pdf")
 
 

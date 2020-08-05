@@ -285,7 +285,7 @@ function IntPt_TR(
             # look up how to test if two functions are equivalent? 
             ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
 
-            @printf("%10.5e   %10.5e   %10.5e   %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
+            # @printf("%10.5e   %10.5e   %10.5e   %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
             if (ρk > η2)
                 TR_stat = "increase"
                 Δk = max(Δk, γ * norm(s, 1)) #for safety
