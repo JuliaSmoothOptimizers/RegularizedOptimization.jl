@@ -75,12 +75,19 @@ function Gradprob(p)
     return tot_loss
 end
 function f_smooth(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
-    return Gradprob(x), Zygote.gradient(Gradprob, x)[1] 
+    fk = Gradprob(x)
+    grad = Zygote.gradient(Gradprob, x)[1] 
+    # @show x
+    # @show grad
+    # if grad==nothing
+    #     grad = Inf*ones(size(x))
+    # end
+    return fk, grad 
 end
 
 function h_nonsmooth(x)
-    # return λ*norm(x,0) #, g∈∂h
-    return 0
+    return λ*norm(x,1) #, g∈∂h
+    # return 0
 end
 
 
@@ -89,31 +96,30 @@ pi = pars_FH
 
 (~, sens) = f_smooth(pi)
 #all this should be unraveling in the hardproxB# code
-# fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
-# projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi)
-# fval(yp, bq, bx, νi) = (yp-bx+bq).^2/(2*νi)+λ*abs.(yp)
-# projbox(wp, bx, Δi) = min.(max.(wp,bx.-Δi), bx.+Δi)
+fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
+projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi)
 # fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ.*(.!iszero.(u.+xi))
 # projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
-function tr_norm(z,σ)
-    return z./max(1, norm(z, 2)/σ)
-end
+# function tr_norm(z,σ)
+#     return z./max(1, norm(z, 2)/σ)
+# end
 
 #set all options
-λ = 100.0
+λ = .10
 Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ, verbose = 0)
 
 
 parameters = IP_struct(f_smooth, h_nonsmooth;
-    # FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
-    s_alg = PG, FO_options = Doptions, Rk = tr_norm) 
+    FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
+    # s_alg = PG, FO_options = Doptions, Rk = tr_norm) 
 
-# options = IP_options(;simple=0, ptf=1, ϵD = 1e-5)
-options = IP_options(;simple=2, ptf=1, ϵD = 1e-5)
+options = IP_options(;simple=0, ptf=1, ϵD = 1e1)
+# options = IP_options(;simple=2, ptf=1, ϵD = 1e-5)
 
+l = zeros(size(pars_FH))
+u = 2.0*ones(size(pars_FH))
 
-
-p, k, Fhist, Hhist = IntPt_TR(pi, parameters, options)
+p, k, Fhist, Hhist = IntPt_TR(pi, parameters, options; u = u, l=l, μ = 100, BarIter = 20)
 
 myProbFH = remake(prob_FH, p = p)
 sol = solve(myProbFH; reltol=1e-6, saveat = savetime)

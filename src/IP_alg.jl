@@ -172,12 +172,17 @@ function IntPt_TR(
         β(x) = f_obj(x)[1] + h_obj(x) - μ*sum(log.((x-l).*(u-x)))# - μ * sum(log.(x - l)) - μ * sum(log.(u - x)) #
         #change this to h not psik
 
+
+        k_i = 0
+        ρk = -1
+        α = 1.0
+
         #main algorithm initialization
         Fsmth_out = f_obj(xk)
         #test number of outputs to see if user provided a hessian
         if length(Fsmth_out)==3
             (fk, ∇fk, Bk) = Fsmth_out
-        elseif length(Fsmth_out)==2 && k==0
+        elseif length(Fsmth_out)==2 && k_i==0
             (fk, ∇fk) = Fsmth_out
             if simple ==1
                 Bk = I(size(xk, 1))
@@ -206,9 +211,7 @@ function IntPt_TR(
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
-        k_i = 0
-        ρk = -1
-        α = 1.0
+
         kktInit = [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
         kktNorm = 100*kktInit
 
