@@ -1,6 +1,6 @@
 # Julia Testing function
 using TRNC
-using LinearAlgebra, DifferentialEquations, Plots, Random, Zygote, DiffEqSensitivity
+using LinearAlgebra, DifferentialEquations, Plots, Random, Zygote, DiffEqSensitivity, Printf
 
 
 #In this example, we demonstrate the capacity of the algorithm to minimize a nonlinear
@@ -22,13 +22,13 @@ function FH_ODE(dx, x, p, t)
 end
 
 
-x0 = [2.0; 0.0]
+u0 = [2.0; 0.0]
 tspan = (0.0, 10.0)
 savetime = .1
 # pars_FH = [.5, 1/12.5, 0.08, 1.0, 0.8, 0.7]
 # pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7,]
 pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7]
-prob_FH = ODEProblem(FH_ODE, x0, tspan, pars_FH)
+prob_FH = ODEProblem(FH_ODE, u0, tspan, pars_FH)
 sol_FH = solve(prob_FH, reltol=1e-6, saveat=savetime)
 plot(sol_FH, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="FH sol")
 plot!(sol_FH, vars=(0,2),label="W")
@@ -41,17 +41,19 @@ savefig("figs/nonlin/LS_l1_B2/fhn_basic.pdf")
 #y' = x/μ -> here μ = 12.5
 #changing the parameters to p = [0, .08, 1.0, 0, 0]
 pars_VDP = [0, .2, 1.0, 0, 0]
-prob_VDP = ODEProblem(FH_ODE, x0, tspan, pars_VDP)
+prob_VDP = ODEProblem(FH_ODE, u0, tspan, pars_VDP)
 sol_VDP = solve(prob_VDP,reltol=1e-6, saveat=savetime)
 
 #also make some noie to fit later
-b = hcat(sol_VDP.u...)[1,:]
+# b = hcat(sol_VDP.u...)[1,:]
+b = hcat(sol_VDP.u...)
 noise = .1*randn(size(b))
 b = noise + b
 
 plot(sol_VDP, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="VDP sol")
 plot!(sol_VDP, vars=(0,2),label="W")
-plot!(sol_VDP.t, b, label="V-data")
+plot!(sol_VDP.t, b[1,:], label="V-data")
+plot!(sol_VDP.t, b[2,:], label="W-data")
 savefig("figs/nonlin/LS_l1_B2/vdp_basic.pdf")
 
 
@@ -62,20 +64,28 @@ savefig("figs/nonlin/LS_l1_B2/vdp_basic.pdf")
 function Gradprob(p)
     temp_prob = remake(prob_FH, p = p)
     temp_sol = solve(temp_prob, reltol=1e-6, saveat=savetime)
-    temp_v = convert(Array, temp_sol)[1,:]
-    return sum((temp_v - b).^2)/2
+    tot_loss = 0.0
+    if any((temp_sol.retcode!= :Success for s in temp_sol))
+        tot_loss = Inf
+    else
+        temp_v = convert(Array, temp_sol)
+        tot_loss = sum((temp_v - b).^2)/2
+    end
+
+    return tot_loss
 end
 function f_smooth(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
-    return Gradprob(x), Zygote.gradient(Gradprob, x)[1] #complex step diff
+    return Gradprob(x), Zygote.gradient(Gradprob, x)[1] 
 end
 
 function h_nonsmooth(x)
-    return λ*norm(x,0) #, g∈∂h
+    # return λ*norm(x,0) #, g∈∂h
+    return 0
 end
 
 
 #put in your initial guesses
-pi = pars_VDP
+pi = pars_FH
 
 (~, sens) = f_smooth(pi)
 #all this should be unraveling in the hardproxB# code
@@ -83,16 +93,23 @@ pi = pars_VDP
 # projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi)
 # fval(yp, bq, bx, νi) = (yp-bx+bq).^2/(2*νi)+λ*abs.(yp)
 # projbox(wp, bx, Δi) = min.(max.(wp,bx.-Δi), bx.+Δi)
-fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ.*(.!iszero.(u.+xi))
-projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
+# fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ.*(.!iszero.(u.+xi))
+# projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
+function tr_norm(z,σ)
+    return z./max(1, norm(z, 2)/σ)
+end
+
 #set all options
-λ = 200.0
-Doptions=s_options(1/eigmax(sens*sens'); maxIter=1000, λ=λ)
+λ = 100.0
+Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ, verbose = 0)
+
 
 parameters = IP_struct(f_smooth, h_nonsmooth;
-    FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
-# options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
-options = IP_options(;simple=0, ptf=1, ϵD = 1e-5)
+    # FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
+    s_alg = PG, FO_options = Doptions, Rk = tr_norm) 
+
+# options = IP_options(;simple=0, ptf=1, ϵD = 1e-5)
+options = IP_options(;simple=2, ptf=0, ϵD = 1e-5)
 
 
 
@@ -106,9 +123,11 @@ sol = solve(myProbFH; reltol=1e-6, saveat = savetime)
 
 @printf("Full Objective -  TR: %5.5e    True: %5.5e\n",
 f_smooth(p)[1]+h_nonsmooth(p), f_smooth(pars_VDP)[1]+h_nonsmooth(pars_VDP))
-@printf("f(x) - CVX: %5.5e     TR: %5.5e    PG: %5.5e   True: %5.5e\n",
-,f_smooth(p)[1],  f_smooth(pars_VDP)[1])
-@printf("h(x) - CVX: %5.5e     TR: %5.5e    PG: %5.5e    True: %5.5e\n",
+
+@printf("f(x) -  TR: %5.5e  True: %5.5e\n",
+f_smooth(p)[1],  f_smooth(pars_VDP)[1])
+
+@printf("h(x) -  TR: %5.5e    True: %5.5e\n",
 h_nonsmooth(p)/λ, h_nonsmooth(pars_VDP)/λ)
 
 plot(t, yV[:,1], xlabel="Time", ylabel="Voltage", label="VDP", title="True vs TR")

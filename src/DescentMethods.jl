@@ -1,4 +1,4 @@
-export s_options, PG, PG!, FISTA, FISTA!, prox_split_1w, prox_split_2w
+export s_options, PG, PG!, FISTA, FISTA!, prox_split_1w, prox_split_2w, linesearch, ls, directsearch, directsearch!
 
 
 mutable struct s_params
