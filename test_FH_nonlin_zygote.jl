@@ -111,7 +111,7 @@ end
 λ = 1.0
 # Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ, verbose = 0)
 @show eigmax(Hessapprox)
-@show power_iteration(Hessapprox,randn(size(pi)))[1]
+@show power_iteration(x -> Hessapprox*x,randn(size(pi)))[1]
 Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ, verbose = 0)
 
 
