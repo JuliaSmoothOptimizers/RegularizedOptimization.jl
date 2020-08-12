@@ -36,6 +36,6 @@ function pwrsub(A, ak, tol, iters)
     end
     μ = ak'*A(ak)
 
-    return μ, bk
+    return μ, ak
 
 end
