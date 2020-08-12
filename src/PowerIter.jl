@@ -3,13 +3,14 @@ export power_iteration
 function power_iteration(A, bk; tol=1e-10)
     
     k = maximum(size(bk))*10000
-    μ, bk = pwrsub(A, bk, tol, k)
+    λ, bk = pwrsub(A, bk, tol, k)
     
-    if μ < 0
+    if λ < 0
         Bk(x) = A(x) + μ*x
         μ, bk = pwrsub(Bk, bk, tol, k)
+        λ = μ - λ
     end
-
+    
     return μ, bk
 
 
