@@ -6,9 +6,9 @@ function power_iteration(A, bk; tol=1e-10)
     λ, bk = pwrsub(A, bk, tol, k)
     
     if λ < 0
-        Bk(x) = A(x) + μ*x
+        Bk(x) = A(x) + λ*x
         μ, bk = pwrsub(Bk, bk, tol, k)
-        λ = μ - λ
+        λ = μ + λ
     end
     
     return μ, bk
