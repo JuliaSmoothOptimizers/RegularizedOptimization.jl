@@ -1,15 +1,23 @@
 export power_iteration
 
-
-
-
 function power_iteration(A, bk; tol=1e-10)
     
     k = maximum(size(bk))*10000
-    μ = norm(bk)
+    μ, bk = pwrsub(A, bk, tol, k)
+    
+    if μ < 0
+        Bk(x) = A(x) + μ*x
+        μ, bk = pwrsub(Bk, bk, tol, k)
+    end
 
-    for i =1:k
-        μ_im1 = μ
+    return μ, bk
+
+
+end
+
+function pwrsub(A, bk, tol, iters)
+
+    for i =1:iters
         #this should be matrix multiplication
         b = A(bk)
 
@@ -26,8 +34,8 @@ function power_iteration(A, bk; tol=1e-10)
         bk = b
 
     end
+    μ = bk'*A(bk)
 
-    return bk'*A(bk), bk
-
+    return μ, bk
 
 end
