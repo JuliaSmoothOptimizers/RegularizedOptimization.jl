@@ -309,7 +309,7 @@ function IntPt_TR(
 
                 #changed back linesearch
                 α = 1.0
-                while(β(xk + α*s) > β(xk) + σ*α*(∇ϕ + (Gν - ∇qk))'*s) #compute a directional derivative of ψ
+                while(β(xk + α*s) > β(xk) + σ*α*(∇ϕ + (Gν - ∇qk))'*s) #compute a directional derivative of ψ CHECK LINESEARCH
                     α = α*mult
                 end
                 # α = 0.1 #was 0.1; can be whatever

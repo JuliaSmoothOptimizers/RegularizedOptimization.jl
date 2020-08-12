@@ -5,7 +5,7 @@ using LinearAlgebra, DifferentialEquations, Plots, Random, Zygote, DiffEqSensiti
 
 #In this example, we demonstrate the capacity of the algorithm to minimize a nonlinear
 #model with a regularizer
-
+function FHNONLIN()
 
 #Here we solve the Fitzhugh-Nagumo (FHN) Model with some extra terms we know to be zero
 #The FHN model is a set of coupled ODE's 
@@ -48,14 +48,13 @@ sol_VDP = solve(prob_VDP,reltol=1e-6, saveat=savetime)
 # b = hcat(sol_VDP.u...)[1,:]
 b = hcat(sol_VDP.u...)
 noise = .1*randn(size(b))
-b = noise + b
+data = noise + b
 
 plot(sol_VDP, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="VDP sol")
 plot!(sol_VDP, vars=(0,2),label="W")
-plot!(sol_VDP.t, b[1,:], label="V-data")
-plot!(sol_VDP.t, b[2,:], label="W-data")
+plot!(sol_VDP.t, data[1,:], label="V-data")
+plot!(sol_VDP.t, data[2,:], label="W-data")
 savefig("figs/nonlin/LS_l1_B2/vdp_basic.pdf")
-
 
 #so now that we have data, we want to formulate our optimization problem. This is going to be 
 #min_p ||f(p) - b||₂^2 + λ||p||₀
@@ -64,12 +63,14 @@ savefig("figs/nonlin/LS_l1_B2/vdp_basic.pdf")
 function Gradprob(p)
     temp_prob = remake(prob_FH, p = p)
     temp_sol = solve(temp_prob, reltol=1e-6, saveat=savetime)
-    tot_loss = 0.0
+    tot_loss = 0.
+
     if any((temp_sol.retcode!= :Success for s in temp_sol))
         tot_loss = Inf
     else
         temp_v = convert(Array, temp_sol)
-        tot_loss = sum((temp_v - b).^2)/2
+
+        tot_loss = sum((temp_v - data).^2)/2
     end
 
     return tot_loss
@@ -77,49 +78,54 @@ end
 function f_smooth(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
     fk = Gradprob(x)
     grad = Zygote.gradient(Gradprob, x)[1] 
+    Hess = Zygote.hessian(Gradprob, x)
     # @show x
     # @show grad
     # if grad==nothing
     #     grad = Inf*ones(size(x))
     # end
-    return fk, grad 
+    return fk, grad, Hess
 end
 
 function h_nonsmooth(x)
-    return λ*norm(x,1) #, g∈∂h
-    # return 0
+    # return λ*norm(x,1) #, g∈∂h
+    return 0
 end
 
 
 #put in your initial guesses
 pi = pars_FH
 
-(~, sens) = f_smooth(pi)
+# (~, sens) = f_smooth(pi)
+(~, ~, Hessapprox) = f_smooth(pi)
 #all this should be unraveling in the hardproxB# code
-fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
-projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi)
+# fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
+# projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi)
 # fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ.*(.!iszero.(u.+xi))
 # projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
-# function tr_norm(z,σ)
-#     return z./max(1, norm(z, 2)/σ)
-# end
+function tr_norm(z,σ)
+    return z./max(1, norm(z, 2)/σ)
+end
 
 #set all options
-λ = .10
-Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ, verbose = 0)
+λ = 1.0
+# Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ, verbose = 0)
+@show eigmax(Hessapprox)
+@show power_iteration(Hessapprox,randn(size(pi)))[1]
+Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ, verbose = 0)
 
 
 parameters = IP_struct(f_smooth, h_nonsmooth;
-    FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
-    # s_alg = PG, FO_options = Doptions, Rk = tr_norm) 
+    # FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
+    s_alg = PG, FO_options = Doptions, Rk = tr_norm) 
 
-options = IP_options(;simple=0, ptf=1, ϵD = 1e1)
-# options = IP_options(;simple=2, ptf=1, ϵD = 1e-5)
+# options = IP_options(;simple=0, ptf=1, ϵD = 1e1)
+options = IP_options(;simple=2, ptf=1, ϵD = 1e-5)
 
-l = zeros(size(pars_FH))
-u = 2.0*ones(size(pars_FH))
+# l = zeros(size(pars_FH))
+# u = 2.0*ones(size(pars_FH))
 
-p, k, Fhist, Hhist = IntPt_TR(pi, parameters, options; u = u, l=l, μ = 100, BarIter = 20)
+p, k, Fhist, Hhist = IntPt_TR(pi, parameters, options);# u = u, l=l, μ = 100, BarIter = 20)
 
 myProbFH = remake(prob_FH, p = p)
 sol = solve(myProbFH; reltol=1e-6, saveat = savetime)
@@ -140,8 +146,8 @@ plot(sol_VDP, vars=(0,1), xlabel="Time", ylabel="Voltage", label="VDP-V", title=
 plot(sol_VDP, vars=(0,2), label="VDP-W")
 plot!(sol, vars=(0,1), label="tr", marker=2)
 plot!(sol, vars=(0,2), label="tr", marker=2)
-plot!(sol_VDP.t, b[1,:], label="V-data")
-plot!(sol_VDP.t, b[2,:], label="W-data")
+plot!(sol_VDP.t, data[1,:], label="V-data")
+plot!(sol_VDP.t, data[2,:], label="W-data")
 savefig("figs/nonlin/LS_l1_B2/vcomp.pdf")
 
 
@@ -149,3 +155,4 @@ plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value
 plot!(Hhist, label="h(x)")
 plot!(Fhist + Hhist, label="f+h")
 savefig("figs/bpdn/LS_l1_B2/objhist.pdf")
+end

@@ -27,8 +27,8 @@ p = 1.5
 
 prob = ODEProblem(LK, u0, tspan, p)
 sol = solve(prob_FH, reltol=1e-6, saveat=savetime)
-plot(sol_FH, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="FH sol")
-plot!(sol_FH, vars=(0,2),label="W")
+plot(sol, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="FH sol")
+plot!(sol, vars=(0,2),label="W")
 
 
 #So this is all well and good, but we need a cost function and some parameters to fit. First, we take care of the parameters
