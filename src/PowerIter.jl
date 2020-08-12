@@ -5,7 +5,7 @@ export power_iteration
 
 function power_iteration(A, bk; tol=1e-10)
     
-    k = max(size(bk))*100
+    k = maximum(size(bk))*100
     μ = norm(bk)
 
     for i =1:k
