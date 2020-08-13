@@ -211,8 +211,9 @@ function IntPt_TR(
         #norm((g_k + gh_k))
         #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
 
-
-        kktInit = [norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
+        #keep track of old subgradient for LnSrch purposes
+        g_old = ((Gν - ∇qk) + ∇ϕ)
+        kktInit = [norm(g_old - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
         kktNorm = 100*kktInit
 
         while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
@@ -309,7 +310,8 @@ function IntPt_TR(
 
                 #changed back linesearch
                 α = 1.0
-                while(β(xk + α*s) > β(xk) + σ*α*(∇ϕ + (Gν - ∇qk))'*s) #compute a directional derivative of ψ CHECK LINESEARCH
+                #this needs to be the previous search direction
+                while(β(xk + α*s) > β(xk) + σ*α*(g_old'*s) #compute a directional derivative of ψ CHECK LINESEARCH
                     α = α*mult
                 end
                 # α = 0.1 #was 0.1; can be whatever
@@ -333,9 +335,9 @@ function IntPt_TR(
 
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-
+            g_old = (Gν - ∇qk) + ∇ϕ
             kktNorm = [
-                norm(((Gν - ∇qk) + ∇ϕ) - zkl + zku) #check this
+                norm(g_old - zkl + zku) #check this
                 norm(zkl .* (xk - l) .- μ)
                 norm(zku .* (u - xk) .- μ)
             ]
