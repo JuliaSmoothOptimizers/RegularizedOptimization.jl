@@ -8,11 +8,11 @@ function power_iteration(A, x; tol=1e-10)
     if λ < 0
         Bk(x) = A(x) - λ*x
         x2 = randn(size(x1))
-        μ, x3 = pwrsub(Bk, x2, tol, k)
+        μ, x1 = pwrsub(Bk, x2, tol, k)
         λ = μ + λ
     end
     
-    return λ, x3
+    return λ, x1
 
 
 end
