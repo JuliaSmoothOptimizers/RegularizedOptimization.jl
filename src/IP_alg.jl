@@ -297,7 +297,7 @@ function IntPt_TR(
                 TR_stat = "kept"
             end
 
-            if (ρk >= η1)
+            if (ρk >= η1 && !(ρk==Inf || isnan(ρk)))
                 x_stat = "update"
                 xk = xk + s
                 zkl = zkl + dzl
