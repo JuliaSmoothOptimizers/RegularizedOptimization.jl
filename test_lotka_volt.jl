@@ -13,22 +13,22 @@ using LinearAlgebra, DifferentialEquations, Plots, Random, Zygote, DiffEqSensiti
 #W' = μ(aV - bW + c) for μ = 0.08,  b = 0.8, c = 0.7
 
 #so we need a model solution, a gradient, and a Hessian of the system (along with some data to fit)
-function LK(dx, x, p, t)
+function LK(du, u, p, t)
     #p is parameter vector [I,μ, a, b, c]
-    du[1] = dx = p[1]*u[1] - u[1]*u[2]
-    du[2] = dy = -3*u[2] + u[1]*u[2]
+    du[1] = dx = p[1]*u[1] - p[2]*u[1]*u[2]
+    du[2] = dy = -p[3]*u[2] + p[4]*u[1]*u[2]
 end
 
 
 u0 = [1.0; 1.0]
 tspan = (0.0, 10.0)
 savetime = .1
-p = 1.5
+p = [1.5,1.0,3.0,1.0]
 
-prob = ODEProblem(LK, u0, tspan, p)
-sol = solve(prob_FH, reltol=1e-6, saveat=savetime)
-plot(sol, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="FH sol")
-plot!(sol, vars=(0,2),label="W")
+prob_LK = ODEProblem(LK, u0, tspan, p)
+sol = solve(prob_LK, reltol=1e-6, saveat=savetime)
+plot(sol, vars=(0,1),xlabel="Time", ylabel="Species Number", label="Prey", title="LK sol")
+plot!(sol, vars=(0,2),label="Pred")
 
 
 #So this is all well and good, but we need a cost function and some parameters to fit. First, we take care of the parameters
@@ -36,19 +36,20 @@ plot!(sol, vars=(0,2),label="W")
 #x' = μ(x - x^3/3 - y)
 #y' = x/μ -> here μ = 12.5
 #changing the parameters to p = [0, .08, 1.0, 0, 0]
-pars_VDP = [0, .2, 1.0, 0, 0]
-prob_VDP = ODEProblem(FH_ODE, x0, tspan, pars_VDP)
-sol_VDP = solve(prob_VDP,reltol=1e-6, saveat=savetime)
+pars_LKs = [1/3,1/9,2/3,1/9]
+prob_LKs = remake(prob_LK, p = pars_LKs)
+sol_LKs = solve(prob_LKs,reltol=1e-6, saveat=savetime)
 
 #also make some noie to fit later
-b = hcat(sol_VDP.u...)[1,:]
+b = hcat(sol_LKs.u...)
 noise = .1*randn(size(b))
-b = noise + b
+data = noise + b
 
-plot(sol_VDP, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="VDP sol")
-plot!(sol_VDP, vars=(0,2),label="W")
-plot!(sol_VDP.t, b, label="V-data")
-savefig("figs/nonlin/LS_l1_B2/vdp_basic.pdf")
+plot(sol_LKs, vars=(0,1),xlabel="Time", ylabel="Species Number", label="Prey", title="LKs sol")
+plot!(sol_LKs, vars=(0,2),label="Pred")
+plot!(sol_LKs.t, data[1,:], label="Prey-data")
+plot!(sol_LKs.t, data[2,:], label="Pred-data")
+# savefig("figs/nonlin/LS_l1_B2/vdp_basic.pdf")
 
 
 #so now that we have data, we want to formulate our optimization problem. This is going to be 

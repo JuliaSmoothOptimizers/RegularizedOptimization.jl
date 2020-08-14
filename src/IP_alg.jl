@@ -304,7 +304,7 @@ function IntPt_TR(
                 zku = zku + dzu
             end
 
-            if (ρk < η1)
+            if (ρk < η1 ||(ρk ==Inf || isnan(ρk))
 
                 x_stat = "shrink"
 

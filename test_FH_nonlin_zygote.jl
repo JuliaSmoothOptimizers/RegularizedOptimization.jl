@@ -77,18 +77,22 @@ function Gradprob(p)
 end
 function f_smooth(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
     fk = Gradprob(x)
-    grad = Zygote.gradient(Gradprob, x)[1] 
-    Hess = Zygote.hessian(Gradprob, x)
-    # @show x
+    # @show fk
+    if fk==Inf 
+        grad = Inf*ones(size(x))
+        Hess = Inf*ones(size(x,1), size(x,1))
+    else
+        grad = Zygote.gradient(Gradprob, x)[1] 
     # @show grad
-    # if grad==nothing
-    #     grad = Inf*ones(size(x))
-    # end
+        Hess = Zygote.hessian(Gradprob, x)
+    # @show Hess
+    end
+
     return fk, grad, Hess
 end
 
 function h_nonsmooth(x)
-    return λ*norm(x,1) #, g∈∂h
+    return λ*norm(x,0) 
     # return 0
 end
 
@@ -98,27 +102,35 @@ pi = pars_FH
 
 # (~, sens) = f_smooth(pi)
 (~, ~, Hessapprox) = f_smooth(pi)
+#set all options
+λ = 100.0
+# Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ, verbose = 0)
+Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ, verbose = 0)
+
 #all this should be unraveling in the hardproxB# code
+#hardproxl1B2
 # fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
-# projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi)
+# projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi) 
+#hardproxl1Binf
+# fval(y, bq, bx, νi) = (y-(bx-bq)).^2/(2*νi)+λ*abs.(y)
+# projbox(w, bx, τi) = min.(max.(w,bx.-τi), bx.+τi)
+#hardproxl0Binf
 fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ.*(.!iszero.(u.+xi))
 projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
+#h = 0
 # function tr_norm(z,σ)
 #     return z./max(1, norm(z, 2)/σ)
 # end
 
-#set all options
-λ = 2.0
-# Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ, verbose = 0)
-Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ, verbose = 0)
-
 
 parameters = IP_struct(f_smooth, h_nonsmooth;
-    FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
+    # FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
+    # FO_options = Doptions, s_alg=hardproxl1Binf, InnerFunc=fval, Rk=projbox)
+    FO_options = Doptions, s_alg=hardproxl0Binf, InnerFunc=fval, Rk=projbox)
     # s_alg = PG, FO_options = Doptions, Rk = tr_norm) 
 
-# options = IP_options(;simple=0, ptf=1, ϵD = 1e1)
-options = IP_options(;simple=2, ptf=1, ϵD = 1e-5)
+options = IP_options(;simple=0, ptf=1, ϵD = 1e-4, Δk = 1e-3)
+# options = IP_options(;simple=2, ptf=1, ϵD = 1e-5)
 
 # l = zeros(size(pars_FH))
 # u = 2.0*ones(size(pars_FH))
