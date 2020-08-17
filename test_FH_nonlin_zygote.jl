@@ -91,7 +91,7 @@ function f_smooth(x) #gradient and hessian info are smooth parts, m also include
 end
 
 
-λ = 1e7
+λ = 1e8
 function h_nonsmooth(x)
     @show x
     return λ*norm(x,0) 

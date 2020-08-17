@@ -353,7 +353,7 @@ function IntPt_TR(
             k % ptf == 0 && 
             @printf(
                 "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
-                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), power_iteration(∇²ϕ, randn(size(xk)))[1], fk, ψk(xk))
+                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), power_iteration(∇²qk, randn(size(xk)))[1], fk, ψk(xk))
 
 
             if k % ptf == 0
