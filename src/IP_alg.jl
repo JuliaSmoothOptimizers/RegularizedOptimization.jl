@@ -315,11 +315,11 @@ function IntPt_TR(
                 #changed back linesearch
                 α = 1.0
                 #this needs to be the previous search direction
-                while(β(xk + α*s) > β(xk) + σ*α*(g_old'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
-                    α = α*mult
-                    @show α
-                end
-                # α = 0.1 #was 0.1; can be whatever
+                # while(β(xk + α*s) > β(xk) + σ*α*(g_old'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
+                #     α = α*mult
+                #     @show α
+                # end
+                α = 0.1 #was 0.1; can be whatever
                 #step should be rejected
                 xk = xk + α*s
                 zkl = zkl + α*dzl

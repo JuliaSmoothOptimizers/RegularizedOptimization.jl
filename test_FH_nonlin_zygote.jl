@@ -91,10 +91,10 @@ function f_smooth(x) #gradient and hessian info are smooth parts, m also include
 end
 
 
-λ = 1e8
+λ = 1.0
 function h_nonsmooth(x)
     @show x
-    return λ*norm(x,0) 
+    return λ*norm(x,1) 
     # return 0
 end
 
@@ -111,14 +111,14 @@ Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ, verbose = 0)
 
 #all this should be unraveling in the hardproxB# code
 #hardproxl1B2
-# fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
-# projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi) 
+fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
+projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi) 
 #hardproxl1Binf
 # fval(y, bq, bx, νi) = (y-(bx-bq)).^2/(2*νi)+λ*abs.(y)
 # projbox(w, bx, τi) = min.(max.(w,bx.-τi), bx.+τi)
 #hardproxl0Binf
-fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ.*(.!iszero.(u.+xi))
-projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
+# fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ.*(.!iszero.(u.+xi))
+# projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
 #h = 0
 # function tr_norm(z,σ)
 #     return z./max(1, norm(z, 2)/σ)
@@ -129,9 +129,9 @@ projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
 
 
 parameters = IP_struct(f_smooth, h_nonsmooth;
-    # FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
+    FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
     # FO_options = Doptions, s_alg=hardproxl1Binf, InnerFunc=fval, Rk=projbox)
-    FO_options = Doptions, s_alg=hardproxl0Binf, InnerFunc=fval, Rk=projbox)
+    # FO_options = Doptions, s_alg=hardproxl0Binf, InnerFunc=fval, Rk=projbox)
     # s_alg = PG, FO_options = Doptions, Rk = tr_norm) 
     # FO_options = Doptions, Rk = tr_norm_spg); 
 
