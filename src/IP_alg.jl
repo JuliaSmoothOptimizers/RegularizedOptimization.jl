@@ -311,7 +311,7 @@ function IntPt_TR(
                 #changed back linesearch
                 α = 1.0
                 #this needs to be the previous search direction
-                while(β(xk + α*s) > β(xk) + σ*α*(g_old'*s)) #compute a directional derivative of ψ CHECK LINESEARCH
+                while(β(xk + α*s) > β(xk) + σ*α*(g_old'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
                     α = α*mult
                     @show α
                 end
@@ -336,23 +336,21 @@ function IntPt_TR(
 
             ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
+
+
             g_old = (Gν - ∇qk) + ∇ϕ
             kktNorm = [
                 norm(g_old - zkl + zku) #check this
                 norm(zkl .* (xk - l) .- μ)
                 norm(zku .* (u - xk) .- μ)
             ]
-
-            # plot(xk, xlabel="i^th index", ylabel="x", title="x Progression", label="x_k")
-            # plot!(xk-s, label="x_(k-1)", marker=2)
-            # filestring = string("figs/bpdn/LS_l0_Binf/xcomp", k, ".pdf")
-            # savefig(filestring)       
+    
             #Print values
-            # k % ptf == 0 && 
+            k % ptf == 0 && 
             @printf(
                 "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
                 k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), power_iteration(∇²ϕ, randn(size(xk)))[1], fk, ψk(xk))
-                # k, μ, kktNorm[1],  kktNorm[2],  kktNorm[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), power_iteration(∇²ϕ, randn(size(xk)))[1], fk, ψk(xk))
+
 
             if k % ptf == 0
                 FO_options.optTol = FO_options.optTol * 0.1
