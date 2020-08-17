@@ -195,13 +195,9 @@ function IntPt_TR(
         else
             throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
         end
-        # initialize ϕ
-        ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
-        ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-
-        #stopping condition
-        Gν =  ∇fk
-        ∇qk = ∇ϕ 
+        # initialize qk
+        qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
+        ∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
 
         if isempty(methods(Bk))
             H(d) = Bk*d
@@ -209,10 +205,13 @@ function IntPt_TR(
             H = Bk 
         end
         #norm((g_k + gh_k))
-        #g_k∈∂h(xk) -> 1/ν(s_k - s_k^+) // subgradient of your moreau envelope/prox gradient
+        #g_k∈∂h(xk) -> 1/ν(s_j - s_{j+1}) // subgradient of your moreau envelope/prox gradient
 
         #keep track of old subgradient for LnSrch purposes
-        g_old = ((Gν - ∇qk) + ∇ϕ)
+        #stopping condition
+        Gν =  ∇fk
+        ∇qksj = copy(∇qk) 
+        g_old = ((Gν - ∇qksj) + ∇qk) #this is just ∇fk at first 
         kktInit = [norm(g_old - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
         kktNorm = 100*kktInit
 
@@ -224,17 +223,22 @@ function IntPt_TR(
             x_stat = ""
             Fobj_hist[k] = fk
             Hobj_hist[k] = h_obj(xk)
+
+            #store previous iterates
             xk⁻ = xk 
             ∇fk⁻ = ∇fk
 
-            ∇²ϕ(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+            #matvec multiplies for hessian 
+            ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 
 
 
             #allow for different cases if the objective is simple -> generalize this later maybe? 
             if simple == 1 || simple == 2
-                objInner(d) = [0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk, ∇²ϕ(d) + ∇ϕ]
+                #when h = 0, this qk and ∇qk 
+                objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk]
             else
+                #if h!=0, then you have to supply the function 
                 objInner = InnerFunc
             end
 
@@ -242,30 +246,30 @@ function IntPt_TR(
                 funProj(d) = Rk(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
                 s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
-                # Gν = -s * eigmax(H) #Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
-                Gν = -s * power_iteration(∇²ϕ,randn(size(xk)))[1]      
-                #this can probably be sped up since we declare new function every time
+                # Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
+                Gν = -s * power_iteration(∇²qk,randn(size(xk)))[1]    #this isn't quite right for spg_minconf since you technically need the previous g output
             else
-                FO_options.β = power_iteration(∇²ϕ,randn(size(xk)))[1]
-                FO_options.Bk = ∇²ϕ
-                FO_options.∇fk = ∇ϕ
+                FO_options.β = power_iteration(∇²qk,randn(size(xk)))[1]
+                FO_options.Bk = ∇²qk
+                FO_options.∇fk = ∇qk
                 FO_options.xk = xk
                 FO_options.Δ = Δk
                 s⁻ = zeros(size(xk))
                 if simple == 2
-                    FO_options.λ = Δk * power_iteration(∇²ϕ,randn(size(xk)))[1]
+                    FO_options.λ = Δk * FO_options.β
                 end
                 funProj = Rk
                 (s, s⁻, fsave, funEvals) = s_alg(
                     objInner,
-                    s⁻,
+                    s⁻, #initialized as zero, output is something else
                     funProj,
                     FO_options,
                 )
                 Gν = (s⁻ - s) * FO_options.β
             end
 
-            ∇qk = ∇ϕ + ∇²ϕ(s⁻)
+            #compute qksj for the previous iterate 
+            ∇qksj = ∇qk + ∇²qk(s⁻)
 
 
             α = 1.0
@@ -285,7 +289,7 @@ function IntPt_TR(
             dzu = dzu * α
 
             #define model and update ρ
-            mk(d) = 0.5*(d'*∇²ϕ(d)) + ∇ϕ'*d + fk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
+            mk(d) = 0.5*(d'*∇²qk(d)) + ∇qk'*d + fk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
             # look up how to test if two functions are equivalent? 
             ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
 
@@ -334,11 +338,11 @@ function IntPt_TR(
                 throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
             end
 
-            ϕ = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
-            ∇ϕ = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
+            qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
+            ∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
 
 
-            g_old = (Gν - ∇qk) + ∇ϕ
+            g_old = (Gν - ∇qksj) + ∇qk
             kktNorm = [
                 norm(g_old - zkl + zku) #check this
                 norm(zkl .* (xk - l) .- μ)
