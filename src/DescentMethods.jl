@@ -77,7 +77,7 @@ function PG(Fcn, s,  proxG, options)
 		his[k] = f
 		#take a gradient step: x-=ν*∇f
 		#prox step
-		s⁺ = proxG(s - ν*g, ν*λ; options...)
+		s⁺ = proxG(s - ν*g, ν*λ, options...)
 		# update function info
 		f, g = Fcn(s⁺)
 		feval+=1
