@@ -44,7 +44,7 @@ end
 		his: descent history
 		feval: number of function evals
 """
-function PG(Fcn, x,  proxG, options)
+function PG(Fcn, s,  proxG, options)
 
 	ε=options.optTol
 	max_iter=options.maxIter
@@ -59,34 +59,34 @@ function PG(Fcn, x,  proxG, options)
 		print_freq = 1
 	end
 	#Problem Initialize
-	m = length(x)
+	m = length(s)
 	ν = 1.0/options.β
 	λ = options.λ
 	k = 1
 	err = 100
 	his = zeros(max_iter)
-	x⁺ = deepcopy(x)
+	s⁺ = deepcopy(s)
 
 
 	# Iteration set up
-	f, g = Fcn(x⁺)
+	f, g = Fcn(s⁺)
 	feval = 1
 		#do iterations
 	while err >= ε && k<max_iter && abs(f)>1e-16
-		x = x⁺
+		s = s⁺
 		his[k] = f
 		#take a gradient step: x-=ν*∇f
 		#prox step
-		x⁺ = proxG(x - ν*g, ν*λ)
+		s⁺ = proxG(s - ν*g, ν*λ; options)
 		# update function info
-		f, g = Fcn(x⁺)
+		f, g = Fcn(s⁺)
 		feval+=1
-		err = norm(x-x⁺)
+		err = norm(s-s⁺)
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 	end
-	return x⁺,x, his[1:k-1], feval
+	return s⁺,s, his[1:k-1], feval
 end
 
 
@@ -107,7 +107,7 @@ end
 		his: descent history
 		feval: number of function evals
 """
-function PG!(Fcn!, x,  proxG!, options)
+function PG!(Fcn!, s,  proxG!, options)
 	ε=options.optTol
 	max_iter=options.maxIter
 
@@ -121,34 +121,34 @@ function PG!(Fcn!, x,  proxG!, options)
 		print_freq = 1
 	end
 	#Problem Initialize
-	m = length(x)
+	m = length(s)
 	ν = 1.0/options.β
 	λ = options.λ
-	x⁻ = copy(x)
+	s⁻ = copy(s)
 	g = zeros(m)
 
 	k = 1
 	err = 100
 	his = zeros(max_iter)
 	# Iteration set up
-	f = Fcn!(x,g)
+	f = Fcn!(s,g)
 	feval = 1
 	#do iterations
 	while err > ε && abs(f)> 1e-16 && k < max_iter
-		copy!(x⁻,x)
+		copy!(s⁻,s)
 		his[k] = f
 		#prox step
-		BLAS.axpy!(-ν,g,x)
-		proxG!(x, ν*λ)
-		err = norm(x-x⁻)
+		BLAS.axpy!(-ν,g,s)
+		proxG!(s, ν*λ; options)
+		err = norm(s-s⁻)
 		# update function info
-		f= Fcn!(x,g)
+		f= Fcn!(s,g)
 		feval+=1
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 	end
-	return x⁻, his[1:k-1], feval
+	return s⁻, his[1:k-1], feval
 end
 
 """
@@ -166,7 +166,7 @@ end
 	Output:
 		x: x update
 """
-function FISTA(Fcn, x,  proxG, options)
+function FISTA(Fcn, s,  proxG, options)
 	ε=options.optTol
 	max_iter=options.maxIter
 	restart = options.restart
@@ -183,9 +183,9 @@ function FISTA(Fcn, x,  proxG, options)
 	end
 
 	#Problem Initialize
-	m = length(x)
-	y = deepcopy(x)
-	x⁺ = zeros(m)
+	m = length(s)
+	y = deepcopy(s)
+	s⁺ = zeros(m)
 	#initialize parameters
 	t = 1.0
 	# Iteration set up
@@ -197,9 +197,9 @@ function FISTA(Fcn, x,  proxG, options)
 	f, g = Fcn(y)
 	feval = 1
 	while err >= ε && k<max_iter && abs(f)>1e-16
-		copy!(x,x⁺)
+		copy!(s,s⁺)
 		his[k] = f
-		x⁺ = proxG(y - ν*g, ν*λ)
+		s⁺ = proxG(y - ν*g, ν*λ; options)
 
 		#update step
 		t⁻ = t
@@ -207,10 +207,10 @@ function FISTA(Fcn, x,  proxG, options)
 		t = (1.0 + sqrt(1.0+4.0*t⁻^2))
 
 		#update y
-		y = x⁺ + ((t⁻ - 1.0)/t)*(x⁺-x)
+		y = s⁺ + ((t⁻ - 1.0)/t)*(s⁺-s)
 
 		#check convergence
-		err = norm(x - x⁺)
+		err = norm(s - s⁺)
 
 
 		#sheet on which to freq
@@ -222,7 +222,7 @@ function FISTA(Fcn, x,  proxG, options)
 		feval+=1
 		k+=1
 	end
-	return x⁺,x, his[1:k-1], feval
+	return s⁺,s, his[1:k-1], feval
 
 end
 
@@ -241,7 +241,7 @@ end
 	Output:
 		x: x update
 """
-function FISTA!(Fcn!, x,  proxG!, options)
+function FISTA!(Fcn!, s,  proxG!, options)
 	ε=options.optTol
 	max_iter=options.maxIter
 	restart = options.restart
@@ -258,9 +258,9 @@ function FISTA!(Fcn!, x,  proxG!, options)
 	end
 
 	#Problem Initialize
-	m = length(x)
+	m = length(s)
 	y = deepcopy(m)
-	x⁻ = zeros(m)
+	s⁻ = zeros(m)
 	gradF = zeros(m)
 
 
@@ -275,33 +275,33 @@ function FISTA!(Fcn!, x,  proxG!, options)
 	f = Fcn!(y, gradF)
 	feval = 1
 	while ε<err && abs(f) >1e-16 && k<max_iter
-		copy!(x⁻, x)
+		copy!(s⁻, s)
 
 		his[k] = f
 		BLAS.axpy!(-ν,gradF,y)
-		copy!(x, y)
-		proxG!(x, ν*λ)
+		copy!(s, y)
+		proxG!(s, ν*λ; options)
 
 		#update step
 		t⁺ = 0.5*(1.0 + sqrt(1.0+4.0*t^2))
 
 		#update y
-		y = x + ((t - 1.0)/t⁺)*(x-x⁻)
+		y = s + ((t - 1.0)/t⁺)*(s-s⁻)
 
 		#check convergence
-		err = norm(x - x⁻)
+		err = norm(s - s⁻)
 
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 		#update parameters
-		f = Fcn!(y, gradF)
+		f = Fcn!(y, gradF; options)
 		copy!(t, t⁺)
 
 		feval+=1
 		k+=1
 	end
 
-	return x⁻, his[1:k-1], feval
+	return s⁻, his[1:k-1], feval
 end
 
 

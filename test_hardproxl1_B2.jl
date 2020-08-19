@@ -1,4 +1,4 @@
-using TRNC,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers, Roots
+using TRNC,Printf, Convex,SCS, Random, LinearAlgebra
 
 
 function hardproxtestl1B2(n)
@@ -25,8 +25,9 @@ Doptions=s_options(1/ν; maxIter=10, λ=λ,
     ∇fk = q, Bk = A'*A, xk=x, Δ = τ)
 
 fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
-projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi) # different since through dual
-(s,s⁻,f,funEvals) = hardproxl1B2(fval, x, projbox, Doptions);
+# projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi) # different since through dual
+# (s,s⁻,f,funEvals) = hardproxl1B2(fval, x, projbox, Doptions);
+(s,s⁻,f,funEvals) = PG(fval, x, projbox, Doptions);
 
 
 s_cvx = Variable(n)
