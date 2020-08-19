@@ -77,7 +77,7 @@ function PG(Fcn, s,  proxG, options)
 		his[k] = f
 		#take a gradient step: x-=ν*∇f
 		#prox step
-		s⁺ = proxG(s - ν*g, ν*λ; options)
+		s⁺ = proxG(s - ν*g, ν*λ; options...)
 		# update function info
 		f, g = Fcn(s⁺)
 		feval+=1
@@ -139,7 +139,7 @@ function PG!(Fcn!, s,  proxG!, options)
 		his[k] = f
 		#prox step
 		BLAS.axpy!(-ν,g,s)
-		proxG!(s, ν*λ; options)
+		proxG!(s, ν*λ; options...)
 		err = norm(s-s⁻)
 		# update function info
 		f= Fcn!(s,g)
@@ -199,7 +199,7 @@ function FISTA(Fcn, s,  proxG, options)
 	while err >= ε && k<max_iter && abs(f)>1e-16
 		copy!(s,s⁺)
 		his[k] = f
-		s⁺ = proxG(y - ν*g, ν*λ; options)
+		s⁺ = proxG(y - ν*g, ν*λ; options...)
 
 		#update step
 		t⁻ = t
@@ -280,7 +280,7 @@ function FISTA!(Fcn!, s,  proxG!, options)
 		his[k] = f
 		BLAS.axpy!(-ν,gradF,y)
 		copy!(s, y)
-		proxG!(s, ν*λ; options)
+		proxG!(s, ν*λ; options...)
 
 		#update step
 		t⁺ = 0.5*(1.0 + sqrt(1.0+4.0*t^2))
@@ -294,7 +294,7 @@ function FISTA!(Fcn!, s,  proxG!, options)
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 		#update parameters
-		f = Fcn!(y, gradF; options)
+		f = Fcn!(y, gradF)
 		copy!(t, t⁺)
 
 		feval+=1
@@ -557,7 +557,7 @@ function test_conv(x, Fcn, proxG,η, critin=1.0)
 	xtest = copy(x)
 	f, gradF = Fcn(xtest, gradF)
 	BLAS.axpy!(-1.0, gradF, xtest)
-	xtest = proxG(xtest, η)
+	xtest = proxG(xtest, η; options...)
 	crit = norm(x - xtest)/critin
 
 	return crit
