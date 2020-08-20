@@ -1,6 +1,6 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
-using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra
+using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra, Roots
 include("./src/minconf_spg/oneProjector.jl")
 
 #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with -10≦x≦10
@@ -43,7 +43,7 @@ function h_nonsmooth(x)
     return λ*norm(x,1) #, g∈∂h
 end
 
-function prox(q, σ, xk, Δ) #s - ν*g, ν*λ - > basically inputs the value you need
+function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need
 
     ProjB(y) = min.(max.(y, q.-σ), q.+σ)
     froot(η) = η - norm(ProjB((-xk).*(η/Δ)))
@@ -67,15 +67,14 @@ function prox(q, σ, xk, Δ) #s - ν*g, ν*λ - > basically inputs the value you
 end 
 #set all options
 β = eigmax(A'*A)
-Doptions=s_options(β; maxIter=1000, λ=λ)
+Doptions=s_options(β;verbose=10, maxIter=1000, λ=λ)
 
 # first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
-parameters = IP_struct(f_smooth, h_nonsmooth;
-FO_options = Doptions, s_alg=PG, Rk=prox)
-# options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
-options = IP_options(;simple=0, ptf=10, ϵD = 1e-5)
+parameters = IP_struct(f_smooth, h_nonsmooth; FO_options = Doptions, s_alg=PG, Rkprox=prox)
+# options = IP_options(;ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
+options = IP_options(;ptf=1, ϵD = 1e-10)
 #put in your initial guesses
 xi = ones(n,)/2
 

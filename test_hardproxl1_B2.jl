@@ -49,6 +49,7 @@ s_cvx = Variable(n)
 problem = minimize(sumsquares(A*(x+s_cvx) - b) + λ*norm(s_cvx+x,1), norm(s_cvx, 2)<=τ);
 solve!(problem, SCS.Optimizer)
 
+@show norm(s - s⁻)
 @show s
 @show s_cvx.value
 

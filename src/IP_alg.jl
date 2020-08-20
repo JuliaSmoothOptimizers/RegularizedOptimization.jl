@@ -38,7 +38,6 @@ function IP_options(
     ϵC = 1e-2,
     Δk = 1.0,
     ptf = 100,
-    simple = 1,
     maxIter = 10000,
     η1 = 1.0e-3, #ρ lower bound
     η2 = 0.9,  #ρ upper bound
@@ -46,7 +45,7 @@ function IP_options(
     σ = 1.0e-3, # quadratic model linesearch buffer parameter
     γ = 3.0, #trust region buffer
 ) #default values for trust region parameters in algorithm 4.2
-    return IP_params(ϵD, ϵC, Δk, ptf, simple, maxIter,η1, η2, τ, σ, γ)
+    return IP_params(ϵD, ϵC, Δk, ptf, maxIter,η1, η2, τ, σ, γ)
 end
 
 function IP_struct(
@@ -112,7 +111,6 @@ function IntPt_TR(
     ϵC = options.ϵC
     Δk = options.Δk
     ptf = options.ptf
-    simple = options.simple
     maxIter = options.maxIter
     η1 = options.η1
     η2 = options.η2 
@@ -210,13 +208,13 @@ function IntPt_TR(
             
 
 
-            #allow for different cases if the objective is simple -> generalize this later maybe? 
+            #define inner function 
             objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
             s⁻ = zeros(size(xk))
             
-            if simple == 0
+            if typeof(FO_options)!=typeof(spg_options())
                 FO_options.β = β
-                if simple == 2
+                if h_obj(xk)==0 #i think this is for h==0? 
                     FO_options.λ = Δk * FO_options.β
                 end
 
@@ -225,8 +223,6 @@ function IntPt_TR(
                 # Gν = (s⁻ - s) * β
                 # @show norm((s⁻ - s))
                 # Gν = (- s) * β
-
-
             else 
                 #projects onto ball of radius Δk, weights of 1.0
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, (d)->Rkprox(d, 1.0, Δk), FO_options)
