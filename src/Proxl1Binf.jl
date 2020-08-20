@@ -8,12 +8,13 @@ function hardproxl1Binf(mkB, s⁻, Rk, options)
     λ = options.λ
     ν = 1.0/options.β
     Δ = options.Δ
+    xk = options.xk
     
     function prox(q, σ)
         Fcn(yp) = (yp-xk-q).^2/(2*ν)+λ*abs.(yp)
         ProjBox(wp) = min.(max.(wp,xk.-Δ), xk.+Δ)
         
-        y1 = zeros(size(x))
+        y1 = zeros(size(xk))
         f1 = Fcn(y1)
         idx = (y1.<xk.-Δ) .| (y1.>xk .+ Δ) #actually do outward since more efficient
         f1[idx] .= Inf
