@@ -343,7 +343,7 @@ function hessdeter(fsmth_output, x, kk, opttype, sdes=zeros(size(x)), gradf_prev
         end
     elseif length(fsmth_output)==2 && kk>0 #if 2 outputs and you're past the first iterate 
         (f, ∇f) = fsmth_output
-        Hess = bfgs_update(Hess*I(size(xk,1)), sdes, ∇f-gradf_prev) #update with previous iterate 
+        Hess = bfgs_update(Hess*I(size(x,1)), sdes, ∇f-gradf_prev) #update with previous iterate 
     else
         throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")) #throw error if 1 output or something 
     end
