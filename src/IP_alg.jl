@@ -178,35 +178,13 @@ function IntPt_TR(
         #main algorithm initialization
         Fsmth_out = f_obj(xk)
         #test number of outputs to see if user provided a hessian
-        if length(Fsmth_out)==3
-            (fk, ∇fk, Bk) = Fsmth_out
-        elseif length(Fsmth_out)==2 && k_i==0
-            (fk, ∇fk) = Fsmth_out
-            if simple ==1
-                Bk = I(size(xk, 1))
-            else
-                Bk = FO_options.β*I(size(xk,1))
-            end
-        elseif length(Fsmth_out)==2
-            (fk, ∇fk) = Fsmth_out
-            Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
-        else
-            throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
-        end
+        (fk, ∇fk, H) = hessdeter(Fsmth_out, xk, k_i, FO_options.β)
+
         # initialize qk
         qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
         ∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-
-        if isempty(methods(Bk))
-            H(d) = Bk*d
-        else 
-            H = Bk 
-        end
-        #norm((g_k + gh_k))
-        #g_k∈∂h(xk) -> 1/ν(s_j - s_{j+1}) // subgradient of your moreau envelope/prox gradient
-
+        
         #keep track of old subgradient for LnSrch purposes
-        #stopping condition
         Gν =  ∇fk
         ∇qksj = copy(∇qk) 
         g_old = ((Gν - ∇qksj) + ∇qk) #this is just ∇fk at first 
@@ -217,7 +195,8 @@ function IntPt_TR(
         kktInit = [norm(g_old - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
         kktNorm = 100*kktInit
 
-        while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
+        # while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
+        while (kktNorm[1] > ϵD || kktNorm[2] > ϵC || kktNorm[3] > ϵC) && k_i < maxIter
             #update count
             k_i = k_i + 1 #inner
             k = k + 1  #outer
@@ -319,14 +298,7 @@ function IntPt_TR(
 
             Fsmth_out = f_obj(xk)
 
-            if length(Fsmth_out)==3
-                (fk, ∇fk, Bk) = Fsmth_out
-            elseif length(Fsmth_out)==2
-                (fk, ∇fk) = Fsmth_out
-                Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
-            else
-                throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
-            end
+            (fk, ∇fk, H) = hessdeter(Fsmth_out, xk, k_i, FO_options.β, s, ∇fk⁻)
 
             #update qk with new direction
             qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
@@ -348,7 +320,8 @@ function IntPt_TR(
             k % ptf == 0 && 
             @printf(
                 "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
-                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
+                # k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
+                k, μ, kktNorm[1],  kktNorm[2],  kktNorm[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
 
                 @show norm(Gν)
                 @show norm(∇qksj - ∇qk)
@@ -364,4 +337,31 @@ function IntPt_TR(
 
     end
     return xk, k, Fobj_hist, Hobj_hist
+end
+
+
+function hessdeter(fsmth_output, x, kk, β, sdes=zeros(size(x)), gradf_prev=zeros(size(x)))
+    if length(fsmth_output)==3 #get regular number of outputs
+        (f, ∇f, Hess) = fsmth_output
+    elseif length(fsmth_output)==2 && kk==0
+        (f, ∇f) = fsmth_output #if 2 outputs and if minconf_spg is in play 
+        if simple ==1
+            Hess = I(size(x, 1))
+        else
+            Hess = β*I(size(x,1))
+        end
+    elseif length(fsmth_output)==2 && kk>0 #if 2 outputs and you're past the first iterate 
+        (f, ∇f) = fsmth_output
+        Hess = bfgs_update(Hess, sdes, ∇f-gradf_prev) #update with previous iterate 
+    else
+        throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")) #throw error if 1 output or something 
+    end
+
+    if isempty(methods(Hess))
+        H(d) = Hess*d
+    else 
+        H = Bk 
+    end
+
+    return f, ∇f, H
 end
