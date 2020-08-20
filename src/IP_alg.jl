@@ -260,6 +260,7 @@ function IntPt_TR(
             ∇qksj = ∇qk + ∇²qk(s⁻)
 
 
+
             α = 1.0
             mult = 0.9
             # gradient for z
@@ -343,7 +344,9 @@ function IntPt_TR(
                 "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
                 k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), power_iteration(∇²qk, randn(size(xk)))[1], fk, ψk(xk))
 
-
+                @show Gν
+                @show ∇qksj
+                @show ∇qk 
             if k % ptf == 0
                 FO_options.optTol = FO_options.optTol * 0.1
             end
