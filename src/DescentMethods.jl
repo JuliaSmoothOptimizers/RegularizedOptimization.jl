@@ -72,7 +72,7 @@ function PG(Fcn, s,  proxG, options)
 	f, g = Fcn(s⁺)
 	feval = 1
 		#do iterations
-	while err >= ε || k<max_iter || abs(f)>1e-16
+	while err >= ε && k<max_iter && abs(f)>1e-16
 		s = s⁺
 		his[k] = f
 
@@ -134,7 +134,7 @@ function PG!(Fcn!, s,  proxG!, options)
 	f = Fcn!(s,g)
 	feval = 1
 	#do iterations
-	while err > ε || abs(f)> 1e-16 || k < max_iter
+	while err > ε && abs(f)> 1e-16 && k < max_iter
 		copy!(s⁻,s)
 		his[k] = f
 		#prox step
@@ -196,7 +196,7 @@ function FISTA(Fcn, s,  proxG, options)
 	#do iterations
 	f, g = Fcn(y)
 	feval = 1
-	while err >= ε || k<max_iter || abs(f)>1e-16
+	while err >= ε && k<max_iter && abs(f)>1e-16
 		copy!(s,s⁺)
 		his[k] = f
 		s⁺ = proxG(y - ν*g, ν*λ)
@@ -274,7 +274,7 @@ function FISTA!(Fcn!, s,  proxG!, options)
 	#do iterations
 	f = Fcn!(y, gradF)
 	feval = 1
-	while ε<err || abs(f) >1e-16 || k<max_iter
+	while ε<err && abs(f) >1e-16 && k<max_iter
 		copy!(s⁻, s)
 
 		his[k] = f
