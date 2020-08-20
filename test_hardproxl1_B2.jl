@@ -11,27 +11,42 @@ A = Array(B)
 # rng(2)
 # vectors
 x = 10*randn(n)
-g = 5*randn(n)
-
+x0 = zeros(n)
+p   = randperm(n)[1:k]
+x0 = zeros(n,)
+x0[p[1:k]]=sign.(randn(k))
+b0 = A*x0
+b = b0 + 0.005*randn(n,)
 # scalars
 ν = 1/norm(A'*A)^2
 λ = 10*rand()
 τ = 3*rand()
 
 # This constructs q = ν∇qᵢ(sⱼ) = Bksⱼ + gᵢ (note that i = k in paper notation)
-q = A'*(A*g) - randn(n) #doesn't really matter tho in the example
+function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
+    r = A*x - b
+    g = A'*r
+    return norm(r)^2/2, g, A'*A
+end
+function h_obj(x)
+    return norm(x,1)
+end
 
-Doptions=s_options(1/ν; maxIter=10, λ=λ,
-    ∇fk = q, Bk = A'*A, xk=x, Δ = τ)
+(qk, ∇qk, H) = f_obj(x)
+Hess(d) = H*d
+
+Doptions=s_options(1/ν; maxIter=100, λ=λ,
+    ∇fk = ∇qk, Bk = A'*A, xk=x, Δ = τ)
 
 fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
+objInner(d) = [0.5*(d'*Hess(d)) + ∇qk'*d + qk, Hess(d) + ∇qk]
 # projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi) # different since through dual
-# (s,s⁻,f,funEvals) = hardproxl1B2(fval, x, projbox, Doptions);
-(s,s⁻,f,funEvals) = PG(fval, x, projbox, Doptions);
+(s,s⁻,f,funEvals) = hardproxl1B2(objInner, x, h_obj, Doptions);
+# (s,s⁻,f,funEvals) = HP_test(objInner, x, h_obj, Doptions);
 
 
 s_cvx = Variable(n)
-problem = minimize(sumsquares(s_cvx+q)/(2*ν) + λ*norm(s_cvx+x,1), norm(s_cvx, 2)<=τ);
+problem = minimize(sumsquares(A*(x+s_cvx) - b) + λ*norm(s_cvx+x,1), norm(s_cvx, 2)<=τ);
 solve!(problem, SCS.Optimizer)
 
 
