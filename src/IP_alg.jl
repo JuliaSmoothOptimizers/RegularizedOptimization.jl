@@ -173,7 +173,7 @@ function IntPt_TR(
         #main algorithm initialization
         Fsmth_out = f_obj(xk)
         #test number of outputs to see if user provided a hessian
-        (fk, ∇fk, H) = hessdeter(Fsmth_out, xk, k_i)
+        (fk, ∇fk, H) = hessdeter(Fsmth_out, xk, k_i, typeof(FO_options))
 
         # initialize qk
         qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
@@ -290,7 +290,7 @@ function IntPt_TR(
 
             Fsmth_out = f_obj(xk)
 
-            (fk, ∇fk, H) = hessdeter(Fsmth_out, xk, k_i, s, ∇fk⁻)
+            (fk, ∇fk, H) = hessdeter(Fsmth_out, xk, k_i,typeof(FO_options), s, ∇fk⁻)
 
             #update qk with new direction
             qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
@@ -331,12 +331,12 @@ function IntPt_TR(
 end
 
 
-function hessdeter(fsmth_output, x, kk, sdes=zeros(size(x)), gradf_prev=zeros(size(x)))
+function hessdeter(fsmth_output, x, kk, opttype, sdes=zeros(size(x)), gradf_prev=zeros(size(x)))
     if length(fsmth_output)==3 #get regular number of outputs
         (f, ∇f, Hess) = fsmth_output
     elseif length(fsmth_output)==2 && kk==0
         (f, ∇f) = fsmth_output #if 2 outputs and if minconf_spg is in play; simple and β should stay in scope 
-        if simple ==1
+        if opttype==typeof(spg_options())
             Hess = I(size(x, 1))
         else
             Hess = β*I(size(x,1))
