@@ -36,7 +36,7 @@ function hardproxtestl0Binf(n)
     (qk, ∇qk, H) = f_obj(x)
     Hess(d) = H*d
     
-    Doptions=s_options(1/ν; maxIter=2, λ=λ,
+    Doptions=s_options(1/ν; maxIter=100, λ=λ,
         ∇fk = ∇qk, Bk = A'*A, xk=x, Δ = τ)
     
     objInner(d) = [0.5*(d'*Hess(d)) + ∇qk'*d + qk, Hess(d) + ∇qk]

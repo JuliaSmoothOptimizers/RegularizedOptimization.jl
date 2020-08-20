@@ -5,13 +5,12 @@ function hardproxl1Binf(mkB, s⁻, Rk, options)
     # HARDPROX computes the prox of the sum of shifted 1-norm and interval
     # constraint for a scalar variables
     
-    λ = options.λ
-    ν = 1.0/options.β
     Δ = options.Δ
     xk = options.xk
     
     function prox(q, σ)
-        Fcn(yp) = (yp-xk-q).^2/(2*ν)+λ*abs.(yp)
+        # Fcn(yp) = (yp-xk-q).^2/(2*ν)+λ*abs.(yp)
+        Fcn(yp) = (yp-xk-q).^2/2+σ*abs.(yp)
         ProjB(wp) = min.(max.(wp,xk.-Δ), xk.+Δ)
         
         y1 = zeros(size(xk))
