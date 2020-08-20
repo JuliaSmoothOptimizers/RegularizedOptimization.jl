@@ -234,33 +234,27 @@ function IntPt_TR(
             #allow for different cases if the objective is simple -> generalize this later maybe? 
             objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
             s⁻ = zeros(size(xk))
-
-            # if simple == 0
-                FO_options.β = power_iteration(∇²qk,randn(size(xk)))[1]
-                # FO_options.Bk = ∇²qk
-                # FO_options.∇fk = ∇qk
-                # FO_options.xk = xk
-                # FO_options.Δ = Δk
-                s⁻ = zeros(size(xk))
+            β = power_iteration(∇²qk,randn(size(xk)))[1]
+            if simple == 0
+                FO_options.β = β
                 if simple == 2
                     FO_options.λ = Δk * FO_options.β
                 end
                 funProj(d, λν)= Rkprox(d, λν, xk, Δk)
 
-
                 (s, s⁻, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
 
-                # Gν = (s⁻ - s) * FO_options.β
-                @show norm((s⁻ - s))
-                Gν = (- s) * FO_options.β
+                # Gν = (s⁻ - s) * β
+                # @show norm((s⁻ - s))
+                # Gν = (- s) * β
 
 
-            # else 
-            #     funProj(d) = Rkprox(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
-            #     (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
-            #     # Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
-            #     Gν = -s * power_iteration(∇²qk,randn(size(xk)))[1]    #this isn't quite right for spg_minconf since you technically need the previous g output
-            # end
+            else 
+                funProj(d) = Rkprox(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
+                (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
+                # Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
+                # Gν = -s * β   #this isn't quite right for spg_minconf since you technically need the previous g output
+            end
 
             #compute qksj for the previous iterate 
             ∇qksj = ∇qk + ∇²qk(s⁻)
@@ -333,10 +327,12 @@ function IntPt_TR(
                 throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
             end
 
+            #update qk with new direction
             qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
 
-
+            #update Gν with new direction
+            Gν = (s⁻ - s) * β #is affine scaling of s (αs) still in the subgradient? 
             g_old = (Gν - ∇qksj) + ∇qk
             kktNorm = [
                 norm(g_old - zkl + zku) #check this
