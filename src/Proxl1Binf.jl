@@ -30,7 +30,8 @@ function hardproxl1Binf(mkB, s⁻, Rk, options)
         idx = argmin(fvec, dims=2)
         s = smat[idx]-xk
     
-    return dropdims(s, dims=2)
+        return dropdims(s, dims=2)
+    end
     
     s,s⁻, his, funEvals = PG(mkB, s⁻,  prox, options)
     f = his[end] + Rk(xk + s)
