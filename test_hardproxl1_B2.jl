@@ -12,6 +12,7 @@ A = Array(B)
 # vectors
 x = 10*randn(n)
 x0 = zeros(n)
+k = 4
 p   = randperm(n)[1:k]
 x0 = zeros(n,)
 x0[p[1:k]]=sign.(randn(k))

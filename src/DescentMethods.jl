@@ -75,9 +75,9 @@ function PG(Fcn, s,  proxG, options)
 	while err >= ε && k<max_iter && abs(f)>1e-16
 		s = s⁺
 		his[k] = f
-		#take a gradient step: x-=ν*∇f
+
 		#prox step
-		s⁺ = proxG(s - ν*g, ν*λ, options...)
+		s⁺ = proxG(s - ν*g, ν*λ)
 		# update function info
 		f, g = Fcn(s⁺)
 		feval+=1
@@ -199,7 +199,7 @@ function FISTA(Fcn, s,  proxG, options)
 	while err >= ε && k<max_iter && abs(f)>1e-16
 		copy!(s,s⁺)
 		his[k] = f
-		s⁺ = proxG(y - ν*g, ν*λ; options...)
+		s⁺ = proxG(y - ν*g, ν*λ)
 
 		#update step
 		t⁻ = t
@@ -280,7 +280,7 @@ function FISTA!(Fcn!, s,  proxG!, options)
 		his[k] = f
 		BLAS.axpy!(-ν,gradF,y)
 		copy!(s, y)
-		proxG!(s, ν*λ; options...)
+		proxG!(s, ν*λ)
 
 		#update step
 		t⁺ = 0.5*(1.0 + sqrt(1.0+4.0*t^2))
@@ -557,7 +557,7 @@ function test_conv(x, Fcn, proxG,η, critin=1.0)
 	xtest = copy(x)
 	f, gradF = Fcn(xtest, gradF)
 	BLAS.axpy!(-1.0, gradF, xtest)
-	xtest = proxG(xtest, η; options...)
+	xtest = proxG(xtest, η)
 	crit = norm(x - xtest)/critin
 
 	return crit
