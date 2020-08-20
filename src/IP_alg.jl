@@ -25,7 +25,7 @@ end
 mutable struct IP_methods
     FO_options #options for minConf_SPG/minimization routine you use for s
     s_alg #algorithm passed that determines descent direction
-    Rk # ψ_k + χ_k where χ_k is the Δ - norm ball that you project onto. Note that the basic case is that ψ_k = 0
+    Rkprox # ψ_k + χ_k where χ_k is the Δ - norm ball that you project onto. Note that the basic case is that ψ_k = 0
     ψk #nonsmooth model of h that you are trying to solve - it is possible that ψ=h. Otherwise,
                 #it's the prox_{ξ*λ*ψ}(s - ν*∇q(s))
     f_obj #objective function (unaltered) that you want to minimize
@@ -54,11 +54,11 @@ function IP_struct(
     h;
     FO_options = spg_options(),
     s_alg = minConf_SPG,
-    Rk = oneProjector,
+    Rkprox = oneProjector,
     ψk = h,
     InnerFunc = h, #prox_{ψ_k + δᵦ(x)} for $B = Indicator of \|s\|_p ≦Δ
 )
-    return IP_methods(FO_options, s_alg, Rk, ψk, f_obj, h)
+    return IP_methods(FO_options, s_alg, Rkprox, ψk, f_obj, h)
 end
 
 
@@ -85,7 +85,7 @@ options : mutable struct IP_methods
     --
     -FO_options, options for first order algorithm, see DescentMethods.jl for more
     -s_alg, algorithm for descent direction, see DescentMethods.jl for more
-    -Rk, function projecting onto the trust region ball or ψ+χ
+    -Rkprox, function projecting onto the trust region ball or ψ+χ
     -InnerFunc, inner objective or proximal operator of ψk+χk+1/2||u - sⱼ + ∇qk|²
 l : Vector{Float64} size of x, defaults to -Inf
 u : Vector{Float64} size of x, defaults to Inf
@@ -125,7 +125,7 @@ function IntPt_TR(
     #other parameters
     FO_options = params.FO_options
     s_alg = params.s_alg
-    Rk = params.Rk
+    Rkprox = params.Rkprox
     ψk = params.ψk
     f_obj = params.f_obj
     h_obj = params.h_obj
@@ -235,7 +235,7 @@ function IntPt_TR(
             objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
 
             if simple == 1
-                funProj(d) = Rk(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
+                funProj(d) = Rkprox(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
                 s⁻ = zeros(size(xk))
                 (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
                 # Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
@@ -250,7 +250,9 @@ function IntPt_TR(
                 if simple == 2
                     FO_options.λ = Δk * FO_options.β
                 end
-                funProj(d, σ) = Rk(d, σ, xk, Δk)
+
+                funProj(d, σ) = Rkprox(d, σ, xk, Δk)
+                @show funProj
                 (s, s⁻, fsave, funEvals) = s_alg(
                     objInner,
                     s⁻, #initialized as zero, output is something else
