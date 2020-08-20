@@ -250,9 +250,9 @@ function IntPt_TR(
                 if simple == 2
                     FO_options.λ = Δk * FO_options.β
                 end
-
-                funProj(d, σ) = Rkprox(d, σ, xk, Δk)
-                @show funProj
+                function funProj(d,σ)
+                    return Rkprox(d, σ, xk, Δk)
+                end
                 (s, s⁻, fsave, funEvals) = s_alg(
                     objInner,
                     s⁻, #initialized as zero, output is something else
