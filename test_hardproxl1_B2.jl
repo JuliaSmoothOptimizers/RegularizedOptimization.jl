@@ -30,7 +30,7 @@ function f_obj(x) #gradient and hessian info are smooth parts, m also includes n
     return norm(r)^2/2, g, A'*A
 end
 function h_obj(x)
-    return norm(x,1)
+    return λ*norm(x,1)
 end
 
 (qk, ∇qk, H) = f_obj(x)

@@ -1,4 +1,4 @@
-using TRNC,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers, Roots
+using TRNC,Printf, Convex,SCS, Random, LinearAlgebra
 
 
 function hardproxtestl1Binf(n)
@@ -30,7 +30,7 @@ function hardproxtestl1Binf(n)
         return norm(r)^2/2, g, A'*A
     end
     function h_obj(x)
-        return norm(x,1)
+        return λ*norm(x,1)
     end
     
     (qk, ∇qk, H) = f_obj(x)
@@ -45,7 +45,7 @@ function hardproxtestl1Binf(n)
     
     
     s_cvx = Variable(n)
-    problem = minimize(sumsquares(A*(x+s_cvx) - b) + λ*norm(s_cvx+x,1), norm(s_cvx, 2)<=τ);
+    problem = minimize(sumsquares(A*(x+s_cvx) - b) + λ*norm(s_cvx+x,1), norm(s_cvx, Inf)<=τ);
     solve!(problem, SCS.Optimizer)
     
     @show s
