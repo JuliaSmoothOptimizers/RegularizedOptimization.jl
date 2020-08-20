@@ -55,8 +55,7 @@ function IP_struct(
     FO_options = spg_options(),
     s_alg = minConf_SPG,
     Rkprox = oneProjector,
-    ψk = h,
-    InnerFunc = h, #prox_{ψ_k + δᵦ(x)} for $B = Indicator of \|s\|_p ≦Δ
+    ψk = h
 )
     return IP_methods(FO_options, s_alg, Rkprox, ψk, f_obj, h)
 end
@@ -220,9 +219,8 @@ function IntPt_TR(
                 if simple == 2
                     FO_options.λ = Δk * FO_options.β
                 end
-                funProj(d, λν)= Rkprox(d, λν, xk, Δk)
 
-                (s, s⁻, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
+                (s, s⁻, fsave, funEvals) = s_alg(objInner, s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
 
                 # Gν = (s⁻ - s) * β
                 # @show norm((s⁻ - s))
@@ -230,8 +228,8 @@ function IntPt_TR(
 
 
             else 
-                funProj(d) = Rkprox(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
-                (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
+                #projects onto ball of radius Δk, weights of 1.0
+                (s, fsave, funEvals) = s_alg(objInner, s⁻, (d)->Rkprox(d, 1.0, Δk), FO_options)
                 # Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
                 # Gν = -s * β   #this isn't quite right for spg_minconf since you technically need the previous g output
             end
