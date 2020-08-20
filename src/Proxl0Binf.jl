@@ -3,17 +3,14 @@ export hardproxl0Binf
 function hardproxl0Binf(mkB, s⁻, Rk, options)
 # %hardproxl0Binf computes the prox of the sum of shifted l0-norm and linf
 # %constraint for a scalar variable
-λ = options.λ
-ν = 1.0/options.β
 xk = options.xk
 Δ = options.Δ
-#make the constant
 
 function prox(q, σ)
 
         ProjB(y) = min.(max.(y, xk.-Δ),xk.+Δ) # define outside? 
         c = sqrt(2*σ)
-        w = xk-q
+        w = xk+q
         st = zeros(size(w))
 
         for i = 1:length(w)
