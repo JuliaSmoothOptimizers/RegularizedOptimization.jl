@@ -43,10 +43,28 @@ function h_nonsmooth(x)
     return λ*norm(x,1) #, g∈∂h
 end
 
-#all this should be unraveling in the hardproxB# code
-fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
-projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi)
+function prox(q, σ, xk, Δ) #s - ν*g, ν*λ - > basically inputs the value you need
 
+    ProjB(y) = min.(max.(y, q.-σ), q.+σ)
+    froot(η) = η - norm(ProjB((-xk).*(η/Δ)))
+
+
+    # %do the 2 norm projection
+    y1 = ProjB(-xk) #start with eta = tau
+    if (norm(y1)<= Δ)
+        y = y1  # easy case
+    else
+        η = fzero(froot, 1e-10, Inf)
+        y = ProjB((-xk).*(η/Δ))
+    end
+
+    if (norm(y)<=Δ)
+        snew = y
+    else
+        snew = Δ.*y./norm(y)
+    end
+    return snew
+end 
 #set all options
 β = eigmax(A'*A)
 Doptions=s_options(β; maxIter=1000, λ=λ)
@@ -55,7 +73,7 @@ Doptions=s_options(β; maxIter=1000, λ=λ)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
 parameters = IP_struct(f_smooth, h_nonsmooth;
-FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
+FO_options = Doptions, s_alg=PG, Rk=prox)
 # options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
 options = IP_options(;simple=0, ptf=10, ϵD = 1e-5)
 #put in your initial guesses

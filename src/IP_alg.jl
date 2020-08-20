@@ -26,7 +26,6 @@ mutable struct IP_methods
     FO_options #options for minConf_SPG/minimization routine you use for s
     s_alg #algorithm passed that determines descent direction
     Rk # ψ_k + χ_k where χ_k is the Δ - norm ball that you project onto. Note that the basic case is that ψ_k = 0
-    InnerFunc #proximal operator of ||sⱼ - ν∇qk|| + Rk
     ψk #nonsmooth model of h that you are trying to solve - it is possible that ψ=h. Otherwise,
                 #it's the prox_{ξ*λ*ψ}(s - ν*∇q(s))
     f_obj #objective function (unaltered) that you want to minimize
@@ -59,7 +58,7 @@ function IP_struct(
     ψk = h,
     InnerFunc = h, #prox_{ψ_k + δᵦ(x)} for $B = Indicator of \|s\|_p ≦Δ
 )
-    return IP_methods(FO_options, s_alg, Rk, InnerFunc, ψk, f_obj, h)
+    return IP_methods(FO_options, s_alg, Rk, ψk, f_obj, h)
 end
 
 
@@ -128,7 +127,6 @@ function IntPt_TR(
     s_alg = params.s_alg
     Rk = params.Rk
     ψk = params.ψk
-    InnerFunc = params.InnerFunc
     f_obj = params.f_obj
     h_obj = params.h_obj
 
@@ -234,13 +232,7 @@ function IntPt_TR(
 
 
             #allow for different cases if the objective is simple -> generalize this later maybe? 
-            if simple == 1 || simple == 2
-                #when h = 0, this qk and ∇qk 
-                objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk]
-            else
-                #if h!=0, then you have to supply the function 
-                objInner = InnerFunc
-            end
+            objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
 
             if simple == 1
                 funProj(d) = Rk(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
@@ -250,15 +242,15 @@ function IntPt_TR(
                 Gν = -s * power_iteration(∇²qk,randn(size(xk)))[1]    #this isn't quite right for spg_minconf since you technically need the previous g output
             else
                 FO_options.β = power_iteration(∇²qk,randn(size(xk)))[1]
-                FO_options.Bk = ∇²qk
-                FO_options.∇fk = ∇qk
-                FO_options.xk = xk
-                FO_options.Δ = Δk
+                # FO_options.Bk = ∇²qk
+                # FO_options.∇fk = ∇qk
+                # FO_options.xk = xk
+                # FO_options.Δ = Δk
                 s⁻ = zeros(size(xk))
                 if simple == 2
                     FO_options.λ = Δk * FO_options.β
                 end
-                funProj = Rk
+                funProj(d, σ) = Rk(d, σ, xk, Δk)
                 (s, s⁻, fsave, funEvals) = s_alg(
                     objInner,
                     s⁻, #initialized as zero, output is something else
