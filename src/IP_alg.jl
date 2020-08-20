@@ -167,7 +167,7 @@ function IntPt_TR(
 #Barrier Loop
     while k < BarIter && (μ > 1e-6 || μ==0) #create options for this
         #make sure you only take the first output of the objective value of the true function you are minimizing
-        β(x) = f_obj(x)[1] + h_obj(x) - μ*sum(log.((x-l).*(u-x)))# - μ * sum(log.(x - l)) - μ * sum(log.(u - x)) #
+        ObjOuter(x) = f_obj(x)[1] + h_obj(x) - μ*sum(log.((x-l).*(u-x)))# - μ * sum(log.(x - l)) - μ * sum(log.(u - x)) #
         #change this to h not psik
 
 
@@ -210,6 +210,10 @@ function IntPt_TR(
         Gν =  ∇fk
         ∇qksj = copy(∇qk) 
         g_old = ((Gν - ∇qksj) + ∇qk) #this is just ∇fk at first 
+        #matvec multiplies for hessian 
+        ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+        β = power_iteration(∇²qk,randn(size(xk)))[1]
+
         kktInit = [norm(g_old - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
         kktNorm = 100*kktInit
 
@@ -226,15 +230,13 @@ function IntPt_TR(
             xk⁻ = xk 
             ∇fk⁻ = ∇fk
 
-            #matvec multiplies for hessian 
-            ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
-
+            
 
 
             #allow for different cases if the objective is simple -> generalize this later maybe? 
             objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
             s⁻ = zeros(size(xk))
-            β = power_iteration(∇²qk,randn(size(xk)))[1]
+            
             if simple == 0
                 FO_options.β = β
                 if simple == 2
@@ -278,11 +280,10 @@ function IntPt_TR(
             dzu = dzu * α
 
             #define model and update ρ
-            mk(d) = 0.5*(d'*∇²qk(d)) + ∇qk'*d + fk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
+            mk(d) = 0.5*(d'*∇²qk(d)) + ∇qk'*d + qk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
             # look up how to test if two functions are equivalent? 
-            ρk = (β(xk) - β(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
+            ρk = (ObjOuter(xk) - ObjOuter(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
 
-            # @printf("%10.5e   %10.5e   %10.5e   %10.5e\n", β(xk), β(xk + s), mk(zeros(size(xk))), mk(s))
             if (ρk > η2)
                 TR_stat = "increase"
                 Δk = max(Δk, γ * norm(s, 1)) #for safety
@@ -304,7 +305,7 @@ function IntPt_TR(
                 #changed back linesearch
                 α = 1.0
                 #this needs to be the previous search direction
-                while(β(xk + α*s) > β(xk) + σ*α*(g_old'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
+                while(ObjOuter(xk + α*s) > ObjOuter(xk) + σ*α*(g_old'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
                     α = α*mult
                     @show α
                 end
@@ -330,8 +331,11 @@ function IntPt_TR(
             #update qk with new direction
             qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
+            ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+
 
             #update Gν with new direction
+            β = power_iteration(∇²qk,randn(size(xk)))[1]
             Gν = (s⁻ - s) * β #is affine scaling of s (αs) still in the subgradient? 
             g_old = (Gν - ∇qksj) + ∇qk
             kktNorm = [
@@ -344,7 +348,7 @@ function IntPt_TR(
             k % ptf == 0 && 
             @printf(
                 "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
-                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), power_iteration(∇²qk, randn(size(xk)))[1], fk, ψk(xk))
+                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
 
                 @show norm(Gν)
                 @show norm(∇qksj - ∇qk)
