@@ -13,7 +13,6 @@ mutable struct IP_params
     ϵC #dual termination criteria
     Δk #trust region radius
     ptf #print every so often
-    simple #if you can use spg_minconf with simple projection
     maxIter #maximum amount of inner iterations
     η1 #ρ lower bound 
     η2 #ρ upper bound 
