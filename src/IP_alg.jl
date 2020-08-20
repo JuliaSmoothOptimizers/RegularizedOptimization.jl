@@ -339,6 +339,7 @@ function hessdeter(fsmth_output, x, kk, FOopt, sdes=zeros(size(x)), gradf_prev=z
         (f, ∇f) = fsmth_output #if 2 outputs and if minconf_spg is in play; simple and β should stay in scope 
         if typeof(FOopt)!=typeof(spg_options())
             Hess = FOopt.β*Hess
+            @show FOopt.β   
         end
     elseif length(fsmth_output)==2 && kk>0 #if 2 outputs and you're past the first iterate 
         (f, ∇f) = fsmth_output
