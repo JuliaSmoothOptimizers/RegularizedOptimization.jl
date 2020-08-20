@@ -43,16 +43,16 @@ fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
 objInner(d) = [0.5*(d'*Hess(d)) + ∇qk'*d + qk, Hess(d) + ∇qk]
 # projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi) # different since through dual
 (s,s⁻,f,funEvals) = hardproxl1B2(objInner, x, h_obj, Doptions);
-# (s,s⁻,f,funEvals) = HP_test(objInner, x, h_obj, Doptions);
 
 
 s_cvx = Variable(n)
 problem = minimize(sumsquares(A*(x+s_cvx) - b) + λ*norm(s_cvx+x,1), norm(s_cvx, 2)<=τ);
 solve!(problem, SCS.Optimizer)
 
+@show s
+@show s_cvx.value
 
-
-@printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", sum(f), norm(s_cvx.value.-q)^2/(2*ν) + λ*norm(s_cvx.value.+x,1), norm(s)^2, norm(s_cvx.value)^2, norm(s_cvx.value .- s));
+@printf("Us: %1.4e    CVX: %1.4e    s: %1.4e   s_cvx: %1.4e    normdiff: %1.4e\n", f_obj(x+s)[1]+h_obj(x+s),f_obj(x+s_cvx.value)[1] + h_obj(s_cvx.value.+x), norm(s)^2, norm(s_cvx.value)^2, norm(s_cvx.value .- s));
 
 
 
