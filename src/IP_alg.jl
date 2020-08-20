@@ -188,7 +188,7 @@ function IntPt_TR(
         ∇qksj = copy(∇qk) 
         g_old = ((Gν - ∇qksj) + ∇qk) #this is just ∇fk at first 
         #matvec multiplies for hessian 
-        ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+        ∇²qk = hessmatvec(H, xk, zkl,zku)
         β = power_iteration(∇²qk,randn(size(xk)))[1]
 
         kktInit = [norm(g_old - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
@@ -302,7 +302,8 @@ function IntPt_TR(
             #update qk with new direction
             qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-            ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+            # ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+            ∇²qk = hessmatvec(H, xk, zkl,zku)
 
 
             #update Gν with new direction
@@ -359,8 +360,13 @@ function hessdeter(fsmth_output, x, kk, sdes=zeros(size(x)), gradf_prev=zeros(si
     if isempty(methods(Hess))
         H(d) = Hess*d
     else 
-        H = Bk 
+        H = Hess
     end
 
     return f, ∇f, H
+end
+
+function hessmatvec(Hess,x, zl,zu) #l and u should remain in scope here 
+    Hessian(d) = Hess(d) + Diagonal(zl ./ (x - l))*d + Diagonal(zu ./ (u - x))*d
+    return Hessian 
 end
