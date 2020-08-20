@@ -12,7 +12,7 @@ function hardproxl1Binf(mkB, s⁻, Rk, options)
     
     function prox(q, σ)
         Fcn(yp) = (yp-xk-q).^2/(2*ν)+λ*abs.(yp)
-        ProjBox(wp) = min.(max.(wp,xk.-Δ), xk.+Δ)
+        ProjB(wp) = min.(max.(wp,xk.-Δ), xk.+Δ)
         
         y1 = zeros(size(xk))
         f1 = Fcn(y1)
