@@ -234,13 +234,13 @@ function IntPt_TR(
             #allow for different cases if the objective is simple -> generalize this later maybe? 
             objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
 
-            if simple == 1
-                funProj(d) = Rkprox(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
-                s⁻ = zeros(size(xk))
-                (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
-                # Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
-                Gν = -s * power_iteration(∇²qk,randn(size(xk)))[1]    #this isn't quite right for spg_minconf since you technically need the previous g output
-            else
+            # if simple == 1
+            #     funProj(d) = Rkprox(d, 1.0, Δk) #projects onto ball of radius Δk, weights of 1.0
+            #     s⁻ = zeros(size(xk))
+            #     (s, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
+            #     # Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
+            #     Gν = -s * power_iteration(∇²qk,randn(size(xk)))[1]    #this isn't quite right for spg_minconf since you technically need the previous g output
+            # else
                 FO_options.β = power_iteration(∇²qk,randn(size(xk)))[1]
                 # FO_options.Bk = ∇²qk
                 # FO_options.∇fk = ∇qk
@@ -250,11 +250,11 @@ function IntPt_TR(
                 if simple == 2
                     FO_options.λ = Δk * FO_options.β
                 end
-                funProj(d)= Rkprox(d, FO_options.λ/FO_options.β, xk, Δk)
+                funProj(d, σ)= Rkprox(d, σ, xk, Δk)
                 (s, s⁻, fsave, funEvals) = s_alg(objInner, s⁻, funProj, FO_options)
 
                 Gν = (s⁻ - s) * FO_options.β
-            end
+            # end
 
             #compute qksj for the previous iterate 
             ∇qksj = ∇qk + ∇²qk(s⁻)

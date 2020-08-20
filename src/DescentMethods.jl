@@ -77,7 +77,7 @@ function PG(Fcn, s,  proxG, options)
 		his[k] = f
 
 		#prox step
-		s⁺ = proxG(s - ν*g)
+		s⁺ = proxG(s - ν*g, λ*ν)
 		# update function info
 		f, g = Fcn(s⁺)
 		feval+=1
