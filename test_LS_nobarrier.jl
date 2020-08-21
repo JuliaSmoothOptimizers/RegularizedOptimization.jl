@@ -40,7 +40,7 @@ function LSnobar()
     #set all options
     first_order_options_spgslim = spg_options(;optTol=1.0e-1, progTol=1.0e-10, verbose=0,
         feasibleInit=true, curvilinear=true, bbType=true, memory=1)
-    first_order_options_proj = s_options(1/eigmax(A'*A);maxIter=1000, verbose=1, optTol=1.0e-3)
+    first_order_options_proj = s_options(1/eigmax(A'*A);maxIter=1000, verbose=0, optTol=1.0e-3)
         #need to tighten this because you don't make any progress in the later iterations
 
 
@@ -51,7 +51,7 @@ function LSnobar()
         s_alg = PG, FO_options = first_order_options_proj, Rkprox=tr_norm)
     # parameters = IP_struct(f_obj, h_obj;FO_options = first_order_options, Rk=tr_norm) #defaults to h=0, spgl1/min_confSPG
     options_spgslim = IP_options(; ptf=100, ϵD=1e-4) #print freq, ΔK init, epsC/epsD initialization, maxIter
-    options_proj= IP_options(;ptf=2, ϵD=1e-4)
+    options_proj= IP_options(;ptf=1, ϵD=1e-4)
 
     #put in your initial guesses
     xi = ones(n,)/2

@@ -130,8 +130,13 @@ function IntPt_TR(
     #initialize parameters
     xk = copy(x0)
     #initialize them to positive values for x=l and negative for x=u
-    zkl = ones(size(x0))
-    zku = -ones(size(x0))
+    if μ ==0.0
+        zkl = zeros(size(x0))
+        zku = zeros(size(x0))
+    else
+        zkl = ones(size(x0))
+        zku = -ones(size(x0))
+    end
     k = 0
     Fobj_hist = zeros(maxIter * BarIter)
     Hobj_hist = zeros(maxIter * BarIter)
@@ -303,19 +308,13 @@ function IntPt_TR(
                 #this needs to be the previous search direction
                 while(ObjOuter(xk + α*s) > ObjOuter(xk) + σ*α*(g_old'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
                     α = α*mult
-                    @show α
+                    # @show α
                 end
                 # α = 0.1 #was 0.1; can be whatever
                 #step should be rejected
                 xk = xk + α*s
-                #set barrier terms to zero, change later 
-                if μ ==0 
-                    zkl = zeros(size(dzl))
-                    zku = zeros(size(dzu))
-                else
-                    zkl = zkl + α*dzl
-                    zku = zku + α*dzu
-                end
+                zkl = zkl + α*dzl
+                zku = zku + α*dzu
                 Δk = α * norm(s, 1)
             end
 
