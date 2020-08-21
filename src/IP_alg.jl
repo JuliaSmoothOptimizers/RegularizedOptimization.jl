@@ -212,8 +212,8 @@ function IntPt_TR(
         kktInit = [norm(g_old - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
         kktNorm = 100*kktInit
 
-        # while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
-        while (kktNorm[1] > ϵD || kktNorm[2] > ϵC || kktNorm[3] > ϵC) && k_i < maxIter
+        while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
+        # while (kktNorm[1] > ϵD || kktNorm[2] > ϵC || kktNorm[3] > ϵC) && k_i < maxIter
             #update count
             k_i = k_i + 1 #inner
             k = k + 1  #outer
@@ -228,7 +228,7 @@ function IntPt_TR(
 
             #define the Hessian 
             ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
-
+            β = power_iteration(∇²qk,randn(size(xk)))[1]
 
 
             #define inner function 
@@ -332,7 +332,6 @@ function IntPt_TR(
 
 
             #update Gν with new direction
-            β = power_iteration(∇²qk,randn(size(xk)))[1]
             # Gν = (s⁻ - s) * β #is affine scaling of s (αs) still in the subgradient? 
             g_old = (Gν - ∇qksj) + ∇qk
             kktNorm = [
@@ -345,8 +344,8 @@ function IntPt_TR(
             k % ptf == 0 && 
             @printf(
                 "%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
-                # k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
-                k, μ, kktNorm[1],  kktNorm[2],  kktNorm[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
+                k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
+                # k, μ, kktNorm[1],  kktNorm[2],  kktNorm[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
 
             if k % ptf == 0
                 FO_options.optTol = FO_options.optTol * 0.1
