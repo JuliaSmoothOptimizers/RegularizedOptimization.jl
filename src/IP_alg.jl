@@ -206,8 +206,8 @@ function IntPt_TR(
         ∇qksj = copy(∇qk) 
         g_old = ((Gν - ∇qksj) + ∇qk) #this is just ∇fk at first 
         #matvec multiplies for hessian 
-        ∇²qk = hessmatvec(H, xk, zkl,zku, l, u)
-        β = power_iteration(∇²qk,randn(size(xk)))[1]
+        # ∇²qk = hessmatvec(H, xk, zkl,zku, l, u)
+        # β = power_iteration(∇²qk,randn(size(xk)))[1]
 
         kktInit = [norm(g_old - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
         kktNorm = 100*kktInit
@@ -226,7 +226,9 @@ function IntPt_TR(
             xk⁻ = xk 
             ∇fk⁻ = ∇fk
 
-            
+            #define the Hessian 
+            ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+
 
 
             #define inner function 
@@ -320,21 +322,18 @@ function IntPt_TR(
             else
                 throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
             end
-            if isempty(methods(Bk))
-                H(d) = Bk*d
-            else 
-                H = Bk 
-            end
+
+
             #update qk with new direction
             qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
             # ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
-            ∇²qk = hessmatvec(H, xk, zkl,zku, l, u)
+            # ∇²qk = hessmatvec(H, xk, zkl,zku, l, u)
 
 
             #update Gν with new direction
-            β = power_iteration(∇²qk,randn(size(xk)))[1]
-            Gν = (s⁻ - s) * β #is affine scaling of s (αs) still in the subgradient? 
+            # β = power_iteration(∇²qk,randn(size(xk)))[1]
+            # Gν = (s⁻ - s) * β #is affine scaling of s (αs) still in the subgradient? 
             g_old = (Gν - ∇qksj) + ∇qk
             kktNorm = [
                 norm(g_old - zkl + zku) #check this
