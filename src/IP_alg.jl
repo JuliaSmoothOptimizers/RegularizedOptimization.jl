@@ -263,6 +263,10 @@ function IntPt_TR(
             # gradient for z
             dzl = μ ./ (xk - l) - zkl - zkl .* s ./ (xk - l)
             dzu = μ ./ (u - xk) - zku + zku .* s ./ (u - xk)
+            @show norm(dzl)
+            @show norm(xk- l)
+            @show norm(zkl)
+            @show norm(s)
             # linesearch for step size?
             # if μ!=0
                 # α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
@@ -387,7 +391,7 @@ end
 #     return f, ∇f, H
 # end
 
-function hessmatvec(Hess,x, zl,zu,lb,ub) #l and u should remain in scope here 
-    Hessian(d) = Hess(d) + Diagonal(zl ./ (x - lb))*d + Diagonal(zu ./ (ub - x))*d
-    return Hessian 
-end
+# function hessmatvec(Hess,x, zl,zu,lb,ub) #l and u should remain in scope here 
+#     Hessian(d) = Hess(d) + Diagonal(zl ./ (x - lb))*d + Diagonal(zu ./ (ub - x))*d
+#     return Hessian 
+# end
