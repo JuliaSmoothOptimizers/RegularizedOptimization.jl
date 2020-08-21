@@ -5,111 +5,132 @@ include("./src/minconf_spg/oneProjector.jl")
 
 function bpdnNoBarTrBinf()
 
-#Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with -10≦x≦10
-#######
-# min_x 1/2||Ax - b||^2 + λ||x||₁
-compound=1
-m,n = compound*200,compound*512
-p = randperm(n)
-k = compound*10
-#initialize x
-x0 = zeros(n)
-p   = randperm(n)[1:k]
-x0 = zeros(n,)
-x0[p[1:k]]=sign.(randn(k))
+    #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with -10≦x≦10
+    #######
+    # min_x 1/2||Ax - b||^2 + λ||x||₁
+    compound=1
+    m,n = compound*200,compound*512
+    p = randperm(n)
+    k = compound*10
+    #initialize x
+    x0 = zeros(n)
+    p   = randperm(n)[1:k]
+    x0 = zeros(n,)
+    x0[p[1:k]]=sign.(randn(k))
 
-A,_ = qr(randn(n,m))
-B = Array(A)'
-A = Array(B)
+    A,_ = qr(randn(n,m))
+    B = Array(A)'
+    A = Array(B)
 
-b0 = A*x0
-b = b0 + 0.005*randn(m,)
-cutoff = 0.0
-# l = -2.0*ones(n,)+cutoff*ones(n,)
-# u = 2.0*ones(n,)+cutoff*ones(n,)
-λ = norm(A'*b, Inf)/100
-# λ_O = norm(A'*b, Inf)/2
+    b0 = A*x0
+    b = b0 + 0.005*randn(m,)
+    cutoff = 0.0
+    # l = -2.0*ones(n,)+cutoff*ones(n,)
+    # u = 2.0*ones(n,)+cutoff*ones(n,)
+    λ = norm(A'*b, Inf)/100
+    # λ_O = norm(A'*b, Inf)/2
 
-#define your smooth objective function
-#merit function isn't just this though right?
-function f_smooth(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
-    r = A*x - b
-    g = A'*r
-    return norm(r)^2/2, g, A'*A
-end
+    #define your smooth objective function
+    #merit function isn't just this though right?
+    function f_smooth(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
+        r = A*x - b
+        g = A'*r
+        return norm(r)^2/2, g, A'*A
+    end
 
-function h_nonsmooth(x)
-    return λ*norm(x,1) #, g∈∂h
-end
+    function h_nonsmooth(x)
+        return λ*norm(x,1) #, g∈∂h
+    end
 
-#all this should be unraveling in the hardproxB# code
-fval(yp, bq, bx, νi) = (yp-bx+bq).^2/(2*νi)+λ*abs.(yp)
-projbox(wp, bx, Δi) = min.(max.(wp,bx.-Δi), bx.+Δi)
+    #all this should be unraveling in the hardproxB# code
+    function prox(q, σ, xk, Δ)
+        # Fcn(yp) = (yp-xk-q).^2/(2*ν)+λ*abs.(yp)
+        Fcn(yp) = (yp-xk-q).^2/2+σ*abs.(yp)
+        ProjB(wp) = min.(max.(wp,xk.-Δ), xk.+Δ)
+        
+        y1 = zeros(size(xk))
+        f1 = Fcn(y1)
+        idx = (y1.<xk.-Δ) .| (y1.>xk .+ Δ) #actually do outward since more efficient
+        f1[idx] .= Inf
 
-#set all options
-β = eigmax(A'*A)
-# Doptions=s_options(β; maxIter=1000, λ=λ, verbose=1)
-Doptions=s_options(β; maxIter=1000, λ=λ, verbose=2)
+        y2 = ProjB(xk+q.-σ)
+        f2 = Fcn(y2)
+        y3 = ProjB(xk+q.+σ)
+        f3 = Fcn(y3)
 
-# first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
-#note that for the above, default λ=1.0, η=1.0, η_factor=.9
+        smat = hcat(y1, y2, y3) #to get dimensions right
+        fvec = hcat(f1, f2, f3)
 
-parameters = IP_struct(f_smooth, h_nonsmooth;
-FO_options = Doptions, s_alg=hardproxl1Binf, InnerFunc=fval, Rk=projbox)
-# options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
-options = IP_options(;simple=0, ptf=1, ϵD=1e-8)
-#put in your initial guesses
-xi = ones(n,)/2
+        f = minimum(fvec, dims=2)
+        idx = argmin(fvec, dims=2)
+        s = smat[idx]-xk
 
-X = Variable(n)
-problem = minimize(sumsquares(A * X - b) + λ*norm(X,1))
-solve!(problem, SCS.Optimizer)
+        return dropdims(s, dims=2)
+    end
 
-function funcF(x)
-    r = A*x - b
-    g = A'*r
-    return norm(r)^2, g
-end
-function proxp(z, α)
-    return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
-end
+    #set all options
+    β = eigmax(A'*A)
+    # Doptions=s_options(β; maxIter=1000, λ=λ, verbose=1)
+    Doptions=s_options(β; maxIter=1000, λ=λ, verbose=2, optTol=1e-3)
 
-(xp, xp⁻, fsave, funEvals) =PG(
-    funcF,
-    xi,
-    proxp,
-    Doptions,
-)
+    # first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
+    #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
-x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
+    parameters = IP_struct(f_smooth, h_nonsmooth;
+    FO_options = Doptions, s_alg=PG, Rkprox=prox)
+    options = IP_options(;ptf=1, ϵD=1e-8)
+    #put in your initial guesses
+    xi = ones(n,)/2
+
+    X = Variable(n)
+    problem = minimize(sumsquares(A * X - b) + λ*norm(X,1))
+    solve!(problem, SCS.Optimizer)
+
+    function funcF(x)
+        r = A*x - b
+        g = A'*r
+        return norm(r)^2, g
+    end
+    function proxp(z, α)
+        return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
+    end
+
+    (xp, xp⁻, fsave, funEvals) =PG(
+        funcF,
+        xi,
+        proxp,
+        Doptions,
+    )
+
+    x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
 
 
-#print out l2 norm difference and plot the two x values
-@printf("l2-norm CVX vs TR: %5.5e\n", norm(X.value - x))
-@printf("l2-norm CVX vs True: %5.5e\n", norm(X.value - x0)/norm(x0))
-@printf("l2-norm TR vs True: %5.5e\n", norm(x0 - x)/norm(x0))
-@printf("l2-norm PG vs True: %5.5e\n", norm(x0 - xp)/norm(x0))
+    #print out l2 norm difference and plot the two x values
+    @printf("l2-norm CVX vs TR: %5.5e\n", norm(X.value - x))
+    @printf("l2-norm CVX vs True: %5.5e\n", norm(X.value - x0)/norm(x0))
+    @printf("l2-norm TR vs True: %5.5e\n", norm(x0 - x)/norm(x0))
+    @printf("l2-norm PG vs True: %5.5e\n", norm(x0 - xp)/norm(x0))
 
-@printf("Full Objective - CVX: %5.5e     TR: %5.5e     PG: %5.5e   True: %5.5e\n",
-f_smooth(X.value)[1] + h_nonsmooth(X.value), f_smooth(x)[1]+h_nonsmooth(x),f_smooth(xp)[1]+h_nonsmooth(xp), f_smooth(x0)[1]+h_nonsmooth(x0))
-@printf("f(x) - CVX: %5.5e     TR: %5.5e    PG: %5.5e   True: %5.5e\n",
-f_smooth(X.value)[1],f_smooth(x)[1], f_smooth(xp)[1], f_smooth(x0)[1])
-@printf("h(x) - CVX: %5.5e     TR: %5.5e    PG: %5.5e    True: %5.5e\n",
-h_nonsmooth(X.value)/λ,h_nonsmooth(x)/λ, h_nonsmooth(xp)/λ, h_nonsmooth(x0)/λ)
+    @printf("Full Objective - CVX: %5.5e     TR: %5.5e     PG: %5.5e   True: %5.5e\n",
+    f_smooth(X.value)[1] + h_nonsmooth(X.value), f_smooth(x)[1]+h_nonsmooth(x),f_smooth(xp)[1]+h_nonsmooth(xp), f_smooth(x0)[1]+h_nonsmooth(x0))
+    @printf("f(x) - CVX: %5.5e     TR: %5.5e    PG: %5.5e   True: %5.5e\n",
+    f_smooth(X.value)[1],f_smooth(x)[1], f_smooth(xp)[1], f_smooth(x0)[1])
+    @printf("h(x) - CVX: %5.5e     TR: %5.5e    PG: %5.5e    True: %5.5e\n",
+    h_nonsmooth(X.value)/λ,h_nonsmooth(x)/λ, h_nonsmooth(xp)/λ, h_nonsmooth(x0)/λ)
 
-plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
-plot!(x, label="tr", marker=2)
-plot!(X.value, label="cvx")
-savefig("figs/bpdn/LS_l1_Binf/xcomp.pdf")
+    plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
+    plot!(x, label="tr", marker=2)
+    plot!(X.value, label="cvx")
+    savefig("figs/bpdn/LS_l1_Binf/xcomp.pdf")
 
-plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
-plot!(b, label="Observed")
-plot!(A*x, label="A*x: TR", marker=2)
-plot!(A*X.value, label="A*x: CVX")
-savefig("figs/bpdn/LS_l1_Binf/bcomp.pdf")
+    plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
+    plot!(b, label="Observed")
+    plot!(A*x, label="A*x: TR", marker=2)
+    plot!(A*X.value, label="A*x: CVX")
+    savefig("figs/bpdn/LS_l1_Binf/bcomp.pdf")
 
-plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)")
-plot!(Hhist, label="h(x)")
-plot!(Fhist+ Hhist, label="f+h")
-savefig("figs/bpdn/LS_l1_Binf/objhist.pdf")
+    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)")
+    plot!(Hhist, label="h(x)")
+    plot!(Fhist+ Hhist, label="f+h")
+    savefig("figs/bpdn/LS_l1_Binf/objhist.pdf")
 end

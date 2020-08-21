@@ -67,7 +67,7 @@ function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs t
 end 
 #set all options
 β = eigmax(A'*A)
-Doptions=s_options(β;verbose=10, maxIter=1000, λ=λ)
+Doptions=s_options(β;maxIter=1000, verbose =0, λ=λ)
 
 # first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
 #note that for the above, default λ=1.0, η=1.0, η_factor=.9

@@ -1,16 +1,13 @@
 # Julia Testing function
 using TRNC
-using LinearAlgebra, DifferentialEquations, Plots, Random, Zygote, DiffEqSensitivity, Printf
+using LinearAlgebra, DifferentialEquations, Plots, Random, Zygote, DiffEqSensitivity, Printf, Roots
 
 
 #In this example, we demonstrate the capacity of the algorithm to minimize a nonlinear
 #model with a regularizer
 
 
-#Here we solve the Fitzhugh-Nagumo (FHN) Model with some extra terms we know to be zero
-#The FHN model is a set of coupled ODE's 
-#V' = (f(V) - W + I)/μ for f(V) = V - V^3 / 3
-#W' = μ(aV - bW + c) for μ = 0.08,  b = 0.8, c = 0.7
+function LotkaVolt()
 
 #so we need a model solution, a gradient, and a Hessian of the system (along with some data to fit)
 function LK(du, u, p, t)
@@ -49,7 +46,7 @@ plot(sol_LKs, vars=(0,1),xlabel="Time", ylabel="Species Number", label="Prey", t
 plot!(sol_LKs, vars=(0,2),label="Pred")
 plot!(sol_LKs.t, data[1,:], label="Prey-data")
 plot!(sol_LKs.t, data[2,:], label="Pred-data")
-# savefig("figs/nonlin/LS_l1_B2/vdp_basic.pdf")
+savefig("figs/nonlin/lotka/basic.pdf")
 
 
 #so now that we have data, we want to formulate our optimization problem. This is going to be 
@@ -57,74 +54,111 @@ plot!(sol_LKs.t, data[2,:], label="Pred-data")
 #define your smooth objective function
 #First, make the function you are going to manipulate
 function Gradprob(p)
-    temp_prob = remake(prob_FH, p = p)
+    temp_prob = remake(prob_LK, p = p)
     temp_sol = solve(temp_prob, reltol=1e-6, saveat=savetime)
     tot_loss = 0.0
     if any((temp_sol.retcode!= :Success for s in temp_sol))
         tot_loss = Inf
     else
-        temp_v = convert(Array, temp_sol)[1,:]
+        temp_v = convert(Array, temp_sol)
         tot_loss = sum((temp_v - b).^2)/2
     end
 
     return tot_loss
 end
 function f_smooth(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
-    return Gradprob(x), Zygote.gradient(Gradprob, x)[1] #complex step diff
+    fk = Gradprob(x)
+    # @show fk
+    if fk==Inf 
+        grad = Inf*ones(size(x))
+        Hess = Inf*ones(size(x,1), size(x,1))
+    else
+        grad = Zygote.gradient(Gradprob, x)[1] 
+        Hess = Zygote.hessian(Gradprob, x)
+    end
+
+    return fk, grad, Hess
 end
 
+λ = 1.0
 function h_nonsmooth(x)
-    return λ*norm(x,0) #, g∈∂h
+    return λ*norm(x,1) #, g∈∂h
+    # return 0
 end
 
 
 #put in your initial guesses
-pi = pars_FH
+pi = .25*ones(size(p))
 
-(~, sens) = f_smooth(pi)
+# (~, sens) = f_smooth(pi)
+(~, ~, Hessapprox) = f_smooth(pi)
 #all this should be unraveling in the hardproxB# code
-# fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
-# projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi)
-fval(yp, bq, bx, νi) = (yp-bx+bq).^2/(2*νi)+λ*abs.(yp)
-projbox(wp, bx, Δi) = min.(max.(wp,bx.-Δi), bx.+Δi)
-# fval(u, bq, xi, νi) = (u.+bq).^2/(2*νi) + λ.*(.!iszero.(u.+xi))
-# projbox(y, bq, τi) = min.(max.(y, bq.-τi),bq.+τi)
+function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need
+
+    ProjB(y) = min.(max.(y, q.-σ), q.+σ)
+    froot(η) = η - norm(ProjB((-xk).*(η/Δ)))
+
+
+    # %do the 2 norm projection
+    y1 = ProjB(-xk) #start with eta = tau
+    if (norm(y1)<= Δ)
+        y = y1  # easy case
+    else
+        η = fzero(froot, 1e-10, Inf)
+        y = ProjB((-xk).*(η/Δ))
+    end
+
+    if (norm(y)<=Δ)
+        snew = y
+    else
+        snew = Δ.*y./norm(y)
+    end
+    return snew
+end 
+
 #set all options
-λ = 100.0
-Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ)
+# Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ, verbose = 0)
+Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ, verbose = 0)
 
 
 parameters = IP_struct(f_smooth, h_nonsmooth;
-    FO_options = Doptions, s_alg=hardproxl1B2, InnerFunc=fval, Rk=projbox)
-# options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
-options = IP_options(;simple=0, ptf=1, ϵD = 1e-5)
+    FO_options = Doptions, s_alg=PG, Rkprox=prox)
+    # s_alg = PG, FO_options = Doptions, Rk = tr_norm);
+
+
+options = IP_options(;ptf=1, ϵD = 1e-7, Δk = .1)
+# options = IP_options(;simple=2, ptf=1, ϵD = 1e-5)
 
 
 
 p, k, Fhist, Hhist = IntPt_TR(pi, parameters, options)
 
-myProbFH = remake(prob_FH, p = p)
-sol = solve(myProbFH; reltol=1e-6, saveat = savetime)
+myProbLK = remake(prob_LK, p = p)
+sol = solve(myProbLK; reltol=1e-6, saveat = savetime)
 
 #print out l2 norm difference and plot the two x values
-@printf("l2-norm True vs TR: %5.5e\n", norm(pars_VDP - p)/norm(p))
+@printf("l2-norm True vs TR: %5.5e\n", norm(pars_LKs - p)/norm(p))
 
 @printf("Full Objective -  TR: %5.5e    True: %5.5e\n",
-f_smooth(p)[1]+h_nonsmooth(p), f_smooth(pars_VDP)[1]+h_nonsmooth(pars_VDP))
+f_smooth(p)[1]+h_nonsmooth(p), f_smooth(pars_LKs)[1]+h_nonsmooth(pars_LKs))
 
 @printf("f(x) -  TR: %5.5e  True: %5.5e\n",
-f_smooth(p)[1],  f_smooth(pars_VDP)[1])
+f_smooth(p)[1],  f_smooth(pars_LKs)[1])
 
 @printf("h(x) -  TR: %5.5e    True: %5.5e\n",
-h_nonsmooth(p)/λ, h_nonsmooth(pars_VDP)/λ)
+h_nonsmooth(p)/λ, h_nonsmooth(pars_LKs)/λ)
 
-plot(t, yV[:,1], xlabel="Time", ylabel="Voltage", label="VDP", title="True vs TR")
-plot!(t, yp[:,1], label="tr", marker=2)
-plot!(t, b, label="data")
-savefig("figs/nonlin/LS_l1_B2/vcomp.pdf")
+plot(sol_LKs, vars=(0,1), xlabel="Time", ylabel="Species Number", label="Prey", title="True vs TR")
+plot(sol_LKs, vars=(0,2), label="Pred")
+plot!(sol, vars=(0,1), label="tr-Prey", marker=2)
+plot!(sol, vars=(0,2), label="tr-Pred", marker=2)
+plot!(sol_LKs.t, data[1,:], label="Prey-data")
+plot!(sol_LKs.t, data[2,:], label="Pred-data")
+savefig("figs/nonlin/lotka/solcomp.pdf")
 
 
 plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)")
 plot!(Hhist, label="h(x)")
 plot!(Fhist + Hhist, label="f+h")
-savefig("figs/bpdn/LS_l1_B2/objhist.pdf")
+savefig("figs/nonlin/lotka/objhist.pdf")
+end
