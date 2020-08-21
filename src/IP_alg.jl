@@ -332,7 +332,7 @@ function IntPt_TR(
 
 
             #update Gν with new direction
-            # β = power_iteration(∇²qk,randn(size(xk)))[1]
+            β = power_iteration(∇²qk,randn(size(xk)))[1]
             # Gν = (s⁻ - s) * β #is affine scaling of s (αs) still in the subgradient? 
             g_old = (Gν - ∇qksj) + ∇qk
             kktNorm = [
