@@ -173,11 +173,33 @@ function IntPt_TR(
         #main algorithm initialization
         Fsmth_out = f_obj(xk)
         #test number of outputs to see if user provided a hessian
-        (fk, ∇fk, H) = hessdeter(Fsmth_out, xk, k_i, FO_options)
+        # (fk, ∇fk, H) = hessdeter(Fsmth_out, xk, k_i, FO_options)
+        if length(Fsmth_out)==3
+            (fk, ∇fk, Bk) = Fsmth_out
+        elseif length(Fsmth_out)==2 && k_i==0
+            (fk, ∇fk) = Fsmth_out
+            if typeof(FO_options)==typeof(spg_options())
+                Bk = I(size(xk, 1))
+            else
+                Bk = FO_options.β*I(size(xk,1))
+            end
+        elseif length(Fsmth_out)==2
+            (fk, ∇fk) = Fsmth_out
+            Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
+        else
+            throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
+        end
 
         # initialize qk
         qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
         ∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
+
+        #restored
+        if isempty(methods(Bk))
+            H(d) = Bk*d
+        else 
+            H = Bk 
+        end
         
         #keep track of old subgradient for LnSrch purposes
         Gν =  ∇fk
@@ -289,10 +311,20 @@ function IntPt_TR(
             end
 
             Fsmth_out = f_obj(xk)
-            
-
-            (fk, ∇fk, H) = hessdeter(Fsmth_out, xk, k_i, FO_options, s, ∇fk⁻, H)
-
+            # (fk, ∇fk, H) = hessdeter(Fsmth_out, xk, k_i, FO_options, s, ∇fk⁻, H)
+            if length(Fsmth_out)==3
+                (fk, ∇fk, Bk) = Fsmth_out
+            elseif length(Fsmth_out)==2
+                (fk, ∇fk) = Fsmth_out
+                Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
+            else
+                throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
+            end
+            if isempty(methods(Bk))
+                H(d) = Bk*d
+            else 
+                H = Bk 
+            end
             #update qk with new direction
             qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
             ∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
@@ -332,30 +364,30 @@ function IntPt_TR(
 end
 
 
-function hessdeter(fsmth_output, x, kk, FOopt, sdes=zeros(size(x)), gradf_prev=zeros(size(x)), Hess=I(size(x,1)))
-    if length(fsmth_output)==3 #get regular number of outputs
-        (f, ∇f, Hess) = fsmth_output
-    elseif length(fsmth_output)==2 && kk==0
-        (f, ∇f) = fsmth_output #if 2 outputs and if minconf_spg is in play; simple and β should stay in scope 
-        if typeof(FOopt)!=typeof(spg_options())
-            Hess = FOopt.β*Hess
-            @show FOopt.β   
-        end
-    elseif length(fsmth_output)==2 && kk>0 #if 2 outputs and you're past the first iterate 
-        (f, ∇f) = fsmth_output
-        Hess = bfgs_update(Hess(I(size(x,1))), sdes, ∇f-gradf_prev) #update with previous iterate 
-    else
-        throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")) #throw error if 1 output or something 
-    end
+# function hessdeter(fsmth_output, x, kk, FOopt, sdes=zeros(size(x)), gradf_prev=zeros(size(x)), Hess=I(size(x,1)))
+#     if length(fsmth_output)==3 #get regular number of outputs
+#         (f, ∇f, Hess) = fsmth_output
+#     elseif length(fsmth_output)==2 && kk==0
+#         (f, ∇f) = fsmth_output #if 2 outputs and if minconf_spg is in play; simple and β should stay in scope 
+#         if typeof(FOopt)!=typeof(spg_options())
+#             Hess = FOopt.β*Hess
+#             @show FOopt.β   
+#         end
+#     elseif length(fsmth_output)==2 && kk>0 #if 2 outputs and you're past the first iterate 
+#         (f, ∇f) = fsmth_output
+#         Hess = bfgs_update(Hess(I(size(x,1))), sdes, ∇f-gradf_prev) #update with previous iterate 
+#     else
+#         throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")) #throw error if 1 output or something 
+#     end
 
-    if isempty(methods(Hess))
-        H(d) = Hess*d
-    else 
-        H = Hess
-    end
+#     if isempty(methods(Hess))
+#         H(d) = Hess*d
+#     else 
+#         H = Hess
+#     end
 
-    return f, ∇f, H
-end
+#     return f, ∇f, H
+# end
 
 function hessmatvec(Hess,x, zl,zu,lb,ub) #l and u should remain in scope here 
     Hessian(d) = Hess(d) + Diagonal(zl ./ (x - lb))*d + Diagonal(zu ./ (ub - x))*d
