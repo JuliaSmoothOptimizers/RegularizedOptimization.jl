@@ -364,7 +364,7 @@ function IntPt_TR(
         ϵC = ϵC * μ
 
     end
-    return xk, k, Fobj_hist, Hobj_hist
+    return xk, k, Fobj_hist[Fobj_hist.!=0], Hobj_hist[Hobj_hist.!=0]
 end
 
 

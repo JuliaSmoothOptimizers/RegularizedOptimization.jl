@@ -22,8 +22,8 @@ function FHNONLIN()
 
 
     u0 = [2.0; 0.0]
-    tspan = (0.0, 10.0)
-    savetime = .1
+    tspan = (0.0, 20.0)
+    savetime = .2
     # pars_FH = [.5, 1/12.5, 0.08, 1.0, 0.8, 0.7]
     # pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7,]
     pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7]
@@ -31,7 +31,7 @@ function FHNONLIN()
     sol_FH = solve(prob_FH, reltol=1e-6, saveat=savetime)
     plot(sol_FH, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="FH sol")
     plot!(sol_FH, vars=(0,2),label="W")
-    savefig("figs/nonlin/LS_l1_B2/fhn_basic.pdf")
+    savefig("figs/nonlin/FH/fhn_basic.pdf")
 
 
     #So this is all well and good, but we need a cost function and some parameters to fit. First, we take care of the parameters
@@ -53,7 +53,7 @@ function FHNONLIN()
     plot!(sol_VDP, vars=(0,2),label="W")
     plot!(sol_VDP.t, data[1,:], label="V-data")
     plot!(sol_VDP.t, data[2,:], label="W-data")
-    savefig("figs/nonlin/LS_l1_B2/vdp_basic.pdf")
+    savefig("figs/nonlin/FH/vdp_basic.pdf")
 
     #so now that we have data, we want to formulate our optimization problem. This is going to be 
     #min_p ||f(p) - b||₂^2 + λ||p||₀
@@ -130,6 +130,7 @@ function FHNONLIN()
     #     end
     #     return snew
     # end 
+    #this is for l0 norm 
     function prox(q, σ, xk, Δ)
 
         ProjB(y) = min.(max.(y, xk.-Δ),xk.+Δ) # define outside? 
@@ -187,11 +188,11 @@ function FHNONLIN()
     plot!(sol, vars=(0,2), label="tr", marker=2)
     plot!(sol_VDP.t, data[1,:], label="V-data")
     plot!(sol_VDP.t, data[2,:], label="W-data")
-    savefig("figs/nonlin/LS_l1_B2/vcomp.pdf")
+    savefig("figs/nonlin/FH/vcomp.pdf")
 
 
     plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)")
     plot!(Hhist, label="h(x)")
     plot!(Fhist + Hhist, label="f+h")
-    savefig("figs/nonlin/LS_l1_B2/objhist.pdf")
+    savefig("figs/nonlin/FH/objhist.pdf")
 end

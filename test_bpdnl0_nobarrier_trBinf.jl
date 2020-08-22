@@ -37,7 +37,7 @@ function bpdnNoBarTrl0Binf()
     end
 
     function h_nonsmooth(x)
-        return λ*norm(x,0) #, g∈∂h
+        return λ*norm(x,1) #, g∈∂h
     end
 
     #all this should be unraveling in the hardproxB# code
