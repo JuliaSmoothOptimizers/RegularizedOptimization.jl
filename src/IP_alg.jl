@@ -140,6 +140,7 @@ function IntPt_TR(
     k = 0
     Fobj_hist = zeros(maxIter * BarIter)
     Hobj_hist = zeros(maxIter * BarIter)
+    Complex_hist = zeros(maxIter * BarIter)
     @printf(
         "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
     )
@@ -226,6 +227,7 @@ function IntPt_TR(
             x_stat = ""
             Fobj_hist[k] = fk
             Hobj_hist[k] = h_obj(xk)
+            Complex_hist[k]+=1
 
             #store previous iterates
             xk⁻ = xk 
@@ -257,6 +259,9 @@ function IntPt_TR(
                 # Gν = (s⁻ - s)/ν = 1/(1/β)(-s) = -(s)β
                 # Gν = -s * β   #this isn't quite right for spg_minconf since you technically need the previous g output
             end
+
+            #update Complexity history 
+            Complex_hist[k]+=funEvals
 
             #compute qksj for the previous iterate 
             Gν = (s⁻ - s) * β
@@ -364,7 +369,7 @@ function IntPt_TR(
         ϵC = ϵC * μ
 
     end
-    return xk, k, Fobj_hist[Fobj_hist.!=0], Hobj_hist[Hobj_hist.!=0]
+    return xk, k, Fobj_hist[Fobj_hist.!=0], Hobj_hist[Hobj_hist.!=0], Complex_hist[Complex_hist.!=0]
 end
 
 

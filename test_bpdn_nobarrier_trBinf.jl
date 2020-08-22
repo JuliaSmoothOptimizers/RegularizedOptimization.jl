@@ -102,7 +102,7 @@ function bpdnNoBarTrBinf()
         Doptions,
     )
 
-    x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
+    x, k, Fhist, Hhist, Comp = IntPt_TR(xi, parameters, options)
 
 
     #print out l2 norm difference and plot the two x values
@@ -110,6 +110,7 @@ function bpdnNoBarTrBinf()
     @printf("l2-norm CVX vs True: %5.5e\n", norm(X.value - x0)/norm(x0))
     @printf("l2-norm TR vs True: %5.5e\n", norm(x0 - x)/norm(x0))
     @printf("l2-norm PG vs True: %5.5e\n", norm(x0 - xp)/norm(x0))
+    @printf("TR - Fevals: %5.5e vs PG - Fevals: %5.5e\n", sum(Comp), funEvals)
 
     @printf("Full Objective - CVX: %5.5e     TR: %5.5e     PG: %5.5e   True: %5.5e\n",
     f_smooth(X.value)[1] + h_nonsmooth(X.value), f_smooth(x)[1]+h_nonsmooth(x),f_smooth(xp)[1]+h_nonsmooth(xp), f_smooth(x0)[1]+h_nonsmooth(x0))
@@ -133,4 +134,7 @@ function bpdnNoBarTrBinf()
     plot!(Hhist, label="h(x)")
     plot!(Fhist+ Hhist, label="f+h")
     savefig("figs/bpdn/LS_l1_Binf/objhist.pdf")
+    
+    plot(Comp, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
+    savefig("figs/bpdn/LS_l1_Binf/complexity.pdf")
 end

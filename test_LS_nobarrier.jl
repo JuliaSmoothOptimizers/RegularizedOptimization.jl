@@ -61,8 +61,8 @@ function LSnobar()
     solve!(problem, SCS.Optimizer)
 
 
-    x_spg, k, Fhist_spg, Hhist_spg = IntPt_TR(xi, parameters_spgslim, options_spgslim)
-    x_pr, k, Fhist_pg, Hhist_pg = IntPt_TR(xi, parameters_proj, options_proj)
+    x_spg, k, Fhist_spg, Hhist_spg, Comp_spg = IntPt_TR(xi, parameters_spgslim, options_spgslim)
+    x_pr, k, Fhist_pg, Hhist_pg, Comp_pg = IntPt_TR(xi, parameters_proj, options_proj)
 
 
     #print out l2 norm difference and plot the two x values
@@ -71,6 +71,10 @@ function LSnobar()
     @printf("l2-norm CVX vs True: %5.5e\n", norm(X.value - x0))
     @printf("TR (SPGSlim) vs CVX relative error: %5.5e\n", norm(X.value - x_spg)/norm(X.value))
     @printf("TR (PG) vs CVX relative error: %5.5e\n", norm(X.value - x_pr)/norm(X.value))
+    @printf("TR - Fevals: %5.5e vs SPG - Fevals: %5.5e\n", sum(Comp_pg), sum(Comp_spg))
+   
+    
+    
     plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
     plot!(x_spg, label="tr-spg", marker=2)
     plot!(x_pr, label="tr-pr", marker=3)
@@ -91,5 +95,9 @@ function LSnobar()
     plot!(Fhist_pg, label="f(x) (Prox-grad)")
     plot!(Fhist_pg+ Hhist_pg, label="f+h (Prox-grad)")
     savefig("figs/ls/objhist.pdf")
+
+    plot(Comp_pg, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
+    plot!(Comp_spg, label="SPG")
+    savefig("figs/ls/complexity.pdf")  
 
 end

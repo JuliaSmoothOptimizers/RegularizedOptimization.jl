@@ -81,7 +81,11 @@ function bpdnNoBarTrl0Binf()
     solve!(problem, SCS.Optimizer)
 
     # x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l = l, u = u, μ = 1.0, BarIter=200)
-    x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options)
+    x, k, Fhist, Hhist, Comp = IntPt_TR(xi, parameters, options)
+
+    @printf("TR - Fevals: %5.5e\n", sum(Comp))
+
+
 
 
     #print out l2 norm difference and plot the two x values
@@ -108,4 +112,7 @@ function bpdnNoBarTrl0Binf()
     plot!(Hhist, label="h(x)")
     plot!(Fhist + Hhist, label="f+h")
     savefig("figs/bpdn/LS_l0_Binf/objhist.pdf")
+
+    plot(Comp, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
+    savefig("figs/bpdn/LS_l0_Binf/complexity.pdf")
 end

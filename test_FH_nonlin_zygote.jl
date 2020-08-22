@@ -165,7 +165,7 @@ function FHNONLIN()
     # options = IP_options(; ptf=1, ϵD = 1e-4)
     options = IP_options(; ptf=1, ϵD = 1e-5)
 
-    p, k, Fhist, Hhist = IntPt_TR(pi, parameters, options);# u = u, l=l, μ = 100, BarIter = 20)
+    p, k, Fhist, Hhist, Comp = IntPt_TR(pi, parameters, options);# u = u, l=l, μ = 100, BarIter = 20)
 
     myProbFH = remake(prob_FH, p = p)
     sol = solve(myProbFH; reltol=1e-6, saveat = savetime)
@@ -182,6 +182,8 @@ function FHNONLIN()
     @printf("h(x) -  TR: %5.5e    True: %5.5e\n",
     h_nonsmooth(p)/λ, h_nonsmooth(pars_VDP)/λ)
 
+    @printf("TR - Fevals: %5.5e\n", sum(Comp))
+
     plot(sol_VDP, vars=(0,1), xlabel="Time", ylabel="Voltage", label="VDP-V", title="True vs TR")
     plot(sol_VDP, vars=(0,2), label="VDP-W")
     plot!(sol, vars=(0,1), label="tr", marker=2)
@@ -195,4 +197,7 @@ function FHNONLIN()
     plot!(Hhist, label="h(x)")
     plot!(Fhist + Hhist, label="f+h")
     savefig("figs/nonlin/FH/objhist.pdf")
+
+    plot(Comp, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
+    savefig("figs/nonlin/FH/complexity.pdf")
 end
