@@ -84,12 +84,12 @@ function LSnobarBFGS()
     plot!(A*X.value, label="A*x: CVX")
     savefig("figs/ls_bfgs/bcomp.pdf")
 
-    plot(Fhist_spg, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)")
+    plot(Fhist_spg, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)", yaxis=:log)
     plot!(Hhist_spg, label="h(x) (SPGSlim)")
-    plot!(Fhist_spg+ Hhist_spg, label="f+h (SPGSlim)")
+    plot!(Fhist_spg + zeros(size(Fhist_spg)), label="f+h (SPGSlim)")
     plot!(Hhist_pg, label="h(x) (Prox-grad)")
     plot!(Fhist_pg, label="f(x) (Prox-grad)")
-    plot!(Fhist_pg+ Hhist_pg, label="f+h (Prox-grad)")
+    plot!(Fhist_pg+ zeros(size(Fhist_pg)), label="f+h (Prox-grad)")
     savefig("figs/ls_bfgs/objhist.pdf")
 
 

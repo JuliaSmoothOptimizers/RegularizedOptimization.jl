@@ -108,7 +108,7 @@ function bpdnNoBarTrl0Binf()
     plot!(A*X.value, label="A*x: CVX")
     savefig("figs/bpdn/LS_l0_Binf/bcomp.pdf")
 
-    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)")
+    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)", yaxis=:log)
     plot!(Hhist, label="h(x)")
     plot!(Fhist + Hhist, label="f+h")
     savefig("figs/bpdn/LS_l0_Binf/objhist.pdf")

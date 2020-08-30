@@ -54,8 +54,8 @@ function bpdnNoBarTrB0Binf()
 
     parameters = IP_struct(f_smooth, h_nonsmooth;
     FO_options = Doptions, s_alg=hardproxB0Binf, InnerFunc=fval, Rk=projbox)
-    # options = IP_options(;simple=0, ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
-    options = IP_options(;simple=0, ptf=10, ϵD = 1e-8)
+    # options = IP_options(;ptf=50, Δk = k, epsC=.2, epsD=.2, maxIter=100)
+    options = IP_options(;ptf=10, ϵD = 1e-8)
     #put in your initial guesses
     xi = ones(n,)/2
 
@@ -88,7 +88,7 @@ function bpdnNoBarTrB0Binf()
     plot!(A*X.value, label="A*x: CVX")
     savefig("figs/bpdn/LS_B0_Binf/bcomp.pdf")
 
-    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)")
+    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)", yaxis=:log)
     plot!(Hhist, label="h(x)")
     plot!(Fhist + Hhist, label="f+h")
     savefig("figs/bpdn/LS_B0_Binf/objhist.pdf")

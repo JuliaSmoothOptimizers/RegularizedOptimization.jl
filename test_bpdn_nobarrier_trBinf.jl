@@ -130,11 +130,11 @@ function bpdnNoBarTrBinf()
     plot!(A*X.value, label="A*x: CVX")
     savefig("figs/bpdn/LS_l1_Binf/bcomp.pdf")
 
-    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)")
+    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)", yaxis=:log)
     plot!(Hhist, label="h(x)")
     plot!(Fhist+ Hhist, label="f+h")
     savefig("figs/bpdn/LS_l1_Binf/objhist.pdf")
-    
+
     plot(Comp, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
     savefig("figs/bpdn/LS_l1_Binf/complexity.pdf")
 end

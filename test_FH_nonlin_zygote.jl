@@ -193,7 +193,7 @@ function FHNONLIN()
     savefig("figs/nonlin/FH/vcomp.pdf")
 
 
-    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)")
+    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)", xaxis=:log, yaxis=:log)
     plot!(Hhist, label="h(x)")
     plot!(Fhist + Hhist, label="f+h")
     savefig("figs/nonlin/FH/objhist.pdf")

@@ -127,7 +127,7 @@ plot!(A*x, label="A*x: TR", marker=2)
 plot!(A*X.value, label="A*x: CVX")
 savefig("figs/bpdn/LS_l1_B2/bcomp.pdf")
 
-plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)")
+plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)", yaxis=:log)
 plot!(Hhist, label="h(x)")
 plot!(Fhist + Hhist, label="f+h")
 savefig("figs/bpdn/LS_l1_B2/objhist.pdf")

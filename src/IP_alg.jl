@@ -4,7 +4,7 @@
 include("minconf_spg/SPGSlim.jl")
 include("minconf_spg/oneProjector.jl")
 include("PowerIter.jl")
-using Plots
+using Plots, LinearOperators
 export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
 
 
@@ -184,16 +184,19 @@ function IntPt_TR(
             (fk, ∇fk, Bk) = Fsmth_out
         elseif length(Fsmth_out)==2 && k_i==0
             (fk, ∇fk) = Fsmth_out
-            if typeof(FO_options)==typeof(spg_options())
-                Bk = I(size(xk, 1))
-            else
-                Bk = FO_options.β*I(size(xk,1))
-            end
+            Bk = LBFGSOperator(size(xk,1))
+            # if typeof(FO_options)==typeof(spg_options())
+            #     Bk = I(size(xk, 1))
+            # else
+            #     Bk = FO_options.β*I(size(xk,1))
+            # end
         elseif length(Fsmth_out)==2
             (fk, ∇fk) = Fsmth_out
-            Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
+            # Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
+            push!(Bk, s,  ∇fk-∇fk⁻)
         else
-            throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
+            # throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
+            error("Smooth Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
         end
 
         # initialize qk
@@ -329,9 +332,11 @@ function IntPt_TR(
                 (fk, ∇fk, Bk) = Fsmth_out
             elseif length(Fsmth_out)==2
                 (fk, ∇fk) = Fsmth_out
-                Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
+                push!(Bk, s, ∇fk-∇fk⁻)
+                # Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
             else
-                throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
+                # throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
+                error("Smooth function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
             end
 
 

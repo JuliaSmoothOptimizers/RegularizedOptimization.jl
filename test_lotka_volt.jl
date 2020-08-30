@@ -159,7 +159,7 @@ function LotkaVolt()
     savefig("figs/nonlin/lotka/solcomp.pdf")
 
 
-    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)")
+    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)", xaxis=:log, yaxis=:log)
     plot!(Hhist, label="h(x)")
     plot!(Fhist + Hhist, label="f+h")
     savefig("figs/nonlin/lotka/objhist.pdf")
