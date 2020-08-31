@@ -59,8 +59,11 @@ function PG(Fcn, s,  proxG, options)
 		print_freq = 1
 	end
 	#Problem Initialize
+	# vartype = typeof(s[1])
+	# R = real(vartype)
+
 	m = length(s)
-	ν = 1.0/options.β
+	ν = options.β^(-1)
 	λ = options.λ
 	k = 1
 	err = 100
@@ -122,7 +125,7 @@ function PG!(Fcn!, s,  proxG!, options)
 	end
 	#Problem Initialize
 	m = length(s)
-	ν = 1.0/options.β
+	ν = options.β^(-1)
 	λ = options.λ
 	s⁻ = copy(s)
 	g = zeros(m)
@@ -139,7 +142,7 @@ function PG!(Fcn!, s,  proxG!, options)
 		his[k] = f
 		#prox step
 		BLAS.axpy!(-ν,g,s)
-		proxG!(s, ν*λ; options...)
+		proxG!(s, ν*λ)
 		err = norm(s-s⁻)
 		# update function info
 		f= Fcn!(s,g)
@@ -182,15 +185,19 @@ function FISTA(Fcn, s,  proxG, options)
 		print_freq = 1
 	end
 
+	#get types
+	T = typeof(s[1])
+	R = real(T)
+
 	#Problem Initialize
 	m = length(s)
 	y = deepcopy(s)
 	s⁺ = zeros(m)
 	#initialize parameters
-	t = 1.0
+	t = R(1.0)
 	# Iteration set up
 	k = 1
-	err = 100.0
+	err = R(100.0)
 	his = zeros(max_iter)
 
 	#do iterations
@@ -204,10 +211,10 @@ function FISTA(Fcn, s,  proxG, options)
 		#update step
 		t⁻ = t
 		# t = 0.5*(1.0 + sqrt(1.0+4.0*t⁻^2))
-		t = (1.0 + sqrt(1.0+4.0*t⁻^2))
+		t = R(0.5)*(R(1.0) + sqrt(R(1.0)+R(4.0)*t⁻^2))
 
 		#update y
-		y = s⁺ + ((t⁻ - 1.0)/t)*(s⁺-s)
+		y = s⁺ + ((t⁻ - R(1.0))/t)*(s⁺-s)
 
 		#check convergence
 		err = norm(s - s⁺)
@@ -257,6 +264,11 @@ function FISTA!(Fcn!, s,  proxG!, options)
 		print_freq = 1
 	end
 
+	#get types
+	T = typeof(s[1])
+	R = real(T)
+
+
 	#Problem Initialize
 	m = length(s)
 	y = deepcopy(m)
@@ -265,10 +277,10 @@ function FISTA!(Fcn!, s,  proxG!, options)
 
 
 	#initialize parameters
-	t = 1.0
+	t = R(1.0)
 	# Iteration set up
 	k = 1
-	err = 100.0
+	err = R(100.0)
 	his = zeros(max_iter)
 
 	#do iterations
@@ -283,10 +295,10 @@ function FISTA!(Fcn!, s,  proxG!, options)
 		proxG!(s, ν*λ)
 
 		#update step
-		t⁺ = 0.5*(1.0 + sqrt(1.0+4.0*t^2))
+		t⁺ = R(0.5)*(R(1.0) + sqrt(R(1.0)+R(4.0)*t^2))
 
 		#update y
-		y = s + ((t - 1.0)/t⁺)*(s-s⁻)
+		y = s + ((t - R(1.0))/t⁺)*(s-s⁻)
 
 		#check convergence
 		err = norm(s - s⁻)

@@ -1,21 +1,25 @@
 
 using Test
+using LinearAlgebra, Random
 
-# include("definitions/arraypartition.jl")
+Random.seed!(0)
 
-# include("utilities/iterationtools.jl")
-# include("utilities/conjugate.jl")
+@testset "TRNC" begin
 
-# include("accel/lbfgs.jl")
-# include("accel/anderson.jl")
-# include("accel/nesterov.jl")
-# include("accel/broyden.jl")
+@testset "Descent Methods" begin
+  include("test_proxalgs.jl")
+end
 
-# include("problems/test_elasticnet.jl")
-# include("problems/test_lasso_small.jl")
-# include("problems/test_lasso_small_v_split.jl")
-# include("problems/test_lasso_small_h_split.jl")
-# include("problems/test_linear_programs.jl")
-# include("problems/test_sparse_logistic_small.jl")
-# include("problems/test_verbose.jl")
-# include("problems/test_nonconvex_qp.jl")
+# @testset "LASSO" begin
+#   include("test_variables.jl")
+#   include("test_expressions.jl")
+#   include("test_AbstractOp_binding.jl")
+#   include("test_terms.jl")
+# end
+
+# @testset "Nonlinear Problems" begin
+#   include("test_problem.jl")
+#   include("test_build_minimize.jl")
+# end
+
+end
