@@ -121,7 +121,7 @@ function PG!(Fcn!, s,  proxG!, options)
 		print_freq = 1
 	end
 	#get types 
-	T = typeof(s[1])
+	T = eltype(s)
 	R = real(T)
 	#Problem Initialize
 	m = length(s)
@@ -186,7 +186,7 @@ function FISTA(Fcn, s,  proxG, options)
 	end
 
 	#get types
-	T = typeof(s[1])
+	T = eltype(s)
 	R = real(T)
 
 	#Problem Initialize
@@ -265,14 +265,14 @@ function FISTA!(Fcn!, s,  proxG!, options)
 	end
 
 	#get types
-	T = typeof(s[1])
+	T = eltype(s)
 	R = real(T)
 
 
 	#Problem Initialize
 	m = length(s)
-	y = deepcopy(m)
-	s⁻ = zeros(m)
+	y = deepcopy(s)
+	s⁻ = zeros(T, m)
 	gradF = zeros(T, m)
 
 

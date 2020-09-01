@@ -34,8 +34,7 @@
     function proxp!(z, α)
         n = length(z);
         for i = 1:n
-            z[i] > α ? z[i] -= α :
-            z[i] <-α ? z[i] += α : z[i] = T(0.0)
+            abs(z[i]) > α ? z[i]-= sign(z[i])*α : z[i] = T(0.0)
         end
     end
 
@@ -45,13 +44,14 @@
         BLAS.gemv!('T', T(1.0), A, r, T(0.0), g)
         return r'*r
     end
+
     function funcF(x)
         r = A*x - b
         g = A'*r
         return norm(r)^2, g
     end
     function proxp(z, α)
-        return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
+        return sign.(z).*max.(abs.(z).-(α)*ones(T, size(z)), zeros(T, size(z)))
     end
 
     TOL = R(1e-6)
@@ -59,7 +59,7 @@
     @testset "PG" begin
 
         ## PG and PG! (in place)
-        pg_options=s_options(β; maxIter=1000, verbose=0, λ=λ, optTol=TOL)
+        pg_options=s_options(β; maxIter=5000, verbose=0, λ=λ, optTol=TOL)
         x = zeros(T, n)
 
         x_out, x⁻_out, hispg_out, fevalpg_out = PG(funcF, x, proxp, pg_options)
@@ -72,18 +72,18 @@
         @test eltype(x⁻) == T
 
         #check func evals less than maxIter 
-        @test fevalpg_out < 1000
-        @test fevalpg < 1000
+        @test fevalpg_out <= 5000
+        @test fevalpg <= 5000
 
         #check overall accuracy
-        @test norm(x - x0, Inf) <= TOL
-        @test norm(x_out - x0, Inf) <= TOL
+        @test norm(x - x0, 2) <= TOL
+        @test norm(x_out - x0, 2) <= TOL
 
         #check relative accuracy 
-        @test norm(x_out - x⁻_out, Inf) <= TOL
-        @test norm(x - x⁻, Inf) <= TOL
-        @test norm(x_out - x, Inf) <= TOL
-        @test norm(x⁻_out - x⁻, Inf) <= TOL
+        @test norm(x_out - x⁻_out, 2) <= TOL
+        @test norm(x - x⁻, 2) <= TOL
+        @test norm(x_out - x, 2) <= TOL
+        @test norm(x⁻_out - x⁻, 2) <= TOL
         
 
 
@@ -91,7 +91,7 @@
 
     @testset "FISTA" begin
         ## FISTA and FISTA! (in place)
-        fista_options=s_options(β; maxIter=1000, verbose=0, λ=λ, optTol=TOL)
+        fista_options=s_options(β; maxIter=5000, verbose=0, λ=λ, optTol=TOL)
         x = zeros(T, n)
 
         x_out, x⁻_out, hisf_out, fevalf_out = FISTA(funcF, x, proxp, fista_options)
@@ -105,8 +105,8 @@
         @test eltype(x⁻) == T
 
         #check func evals less than maxIter 
-        @test fevalpg_out < 1000
-        @test fevalpg < 1000
+        @test fevalpg_out <= 5000
+        @test fevalpg <= 5000
 
         #check overall accuracy
         @test norm(x - x0, Inf) <= TOL
