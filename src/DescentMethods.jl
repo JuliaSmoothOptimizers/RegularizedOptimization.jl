@@ -59,9 +59,6 @@ function PG(Fcn, s,  proxG, options)
 		print_freq = 1
 	end
 	#Problem Initialize
-	# vartype = typeof(s[1])
-	# R = real(vartype)
-
 	m = length(s)
 	ν = options.β^(-1)
 	λ = options.λ
@@ -123,12 +120,15 @@ function PG!(Fcn!, s,  proxG!, options)
 	else
 		print_freq = 1
 	end
+	#get types 
+	T = typeof(s[1])
+	R = real(T)
 	#Problem Initialize
 	m = length(s)
 	ν = options.β^(-1)
 	λ = options.λ
 	s⁻ = copy(s)
-	g = zeros(m)
+	g = zeros(T, m)
 
 	k = 1
 	err = 100
@@ -273,7 +273,7 @@ function FISTA!(Fcn!, s,  proxG!, options)
 	m = length(s)
 	y = deepcopy(m)
 	s⁻ = zeros(m)
-	gradF = zeros(m)
+	gradF = zeros(T, m)
 
 
 	#initialize parameters
