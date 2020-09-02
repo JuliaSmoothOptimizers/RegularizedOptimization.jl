@@ -1,4 +1,4 @@
-using TRNC,Printf, Convex,SCS, Random, LinearAlgebra, IterativeSolvers, Roots
+using TRNC,Printf, Convex,SCS, Random, LinearAlgebra, Roots
 
 
 function hardproxtestB0Binf(n)
@@ -24,16 +24,33 @@ function hardproxtestB0Binf(n)
 
 # This constructs q = ν∇qᵢ(sⱼ) = Bksⱼ + gᵢ (note that i = k in paper notation)
 #but it's first order tho so sⱼ = 0 and it's just ∇f(x_k)
-q = randn(size(x)) #A'*(A*x - b) #doesn't really matter tho in the example
 
-Doptions=s_options(1/ν; maxIter=10, λ=δ,
-    ∇fk = q, Bk = A'*A, xk=x, Δ = τ)
+function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
+    r = A*x - b
+    g = A'*r
+    return norm(r)^2/2, g, A'*A
+end
+function h_obj(x)
+    if norm(x,0) ≤ δ
+        h = 0
+    else
+        h = Inf 
+    end
+    return λ*h 
+end
 
-fval(sb, bq, bx, νi) = (sb.+bq).^2/(2*νi)
-projbox(w, bx, τi) = min.(max.(w,-τi), +τi)
+
+(qk, ∇qk, H) = f_obj(x)
+Hess(d) = H*d
 
 
-(s,s⁻, f, funEvals) = hardproxB0Binf(fval, zeros(size(x)), projbox, Doptions)
+Doptions=s_options(1/ν; maxIter=100, λ=δ,
+    ∇fk = ∇qk, Bk = A'*A, xk=x, Δ = τ)
+
+objInner(d) = [0.5*(d'*Hess(d)) + ∇qk'*d + qk, Hess(d) + ∇qk]
+
+
+(s,s⁻, f, funEvals) = hardproxB0Binf(objInner, zeros(size(x)), h_obj, Doptions)
 
 
 s_cvx = Variable(n)

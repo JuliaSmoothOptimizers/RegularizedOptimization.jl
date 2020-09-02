@@ -39,7 +39,7 @@ Hess(d) = H*d
 Doptions=s_options(1/ν; maxIter=100, λ=λ,
     ∇fk = ∇qk, Bk = A'*A, xk=x, Δ = τ)
 
-fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
+# fval(s, bq, xi, νi) = (s.+bq).^2/(2*νi) + λ*abs.(s.+xi)
 objInner(d) = [0.5*(d'*Hess(d)) + ∇qk'*d + qk, Hess(d) + ∇qk]
 # projbox(y, bq, νi) = min.(max.(y, -bq.-λ*νi),-bq.+λ*νi) # different since through dual
 (s,s⁻,f,funEvals) = hardproxl1B2(objInner, x, h_obj, Doptions);

@@ -1,13 +1,14 @@
-@testset "Lasso ($T) Descent Methods" for T in [Float32, Float64, ComplexF32, ComplexF64]
+@testset "Lasso ($T) Descent Methods" for T in [Float32, Float64]#, ComplexF32, ComplexF64]
     using LinearAlgebra
     using TRNC 
     using Plots, Printf
-    # using Convex, SCS
+    using Convex, SCS
 
-    compound = 1
-    m,n = compound*200, compound*512
+    # compound = 1
+    compound = 10
+    m,n = compound*25, compound*64
     p = randperm(n)
-    k = compound*10
+    k = compound*2
 
     #initialize x 
     x0 = zeros(T,n)
@@ -30,9 +31,14 @@
 
     β = eigmax(A'*A)
 
+    S = Variable(n)
+    opt = () -> SCS.Optimizer(verbose=false)
+    problem = minimize(sumsquares(A*S - b)/2+λ*norm(vec(S), 1))
+    solve!(problem, opt)
+
 
     function proxp!(z, α)
-        n = length(z);
+        n = length(z)
         for i = 1:n
             abs(z[i]) > α ? z[i]-= sign(z[i])*α : z[i] = T(0.0)
         end
@@ -51,6 +57,12 @@
         return norm(r)^2, g
     end
     function proxp(z, α)
+        # y = copy(z)
+        # for i in eachindex(z)
+        #     aux = max(abs(z[i]) - α,0)
+        #     y[i] = aux/(aux+α)*z[i]
+        # end
+        # return y
         return sign.(z).*max.(abs.(z).-(α)*ones(T, size(z)), zeros(T, size(z)))
     end
 
@@ -76,8 +88,10 @@
         @test fevalpg <= 5000
 
         #check overall accuracy
-        @test norm(x - x0, 2) <= TOL
-        @test norm(x_out - x0, 2) <= TOL
+        @test norm(x - x0)/norm(x0) <= .15
+        @test norm(x_out - x0)/norm(x0) <= .15 
+        @test norm(S.value - x)/norm(S.value) <=TOL*compound
+        @test norm(S.value - x_out)/norm(S.value) <=TOL*compound 
 
         #check relative accuracy 
         @test norm(x_out - x⁻_out, 2) <= TOL
@@ -105,12 +119,14 @@
         @test eltype(x⁻) == T
 
         #check func evals less than maxIter 
-        @test fevalpg_out <= 5000
-        @test fevalpg <= 5000
+        @test fevalf_out <= 5000
+        @test fevalf <= 5000
 
         #check overall accuracy
-        @test norm(x - x0, Inf) <= TOL
-        @test norm(x_out - x0, Inf) <= TOL
+        @test norm(x - x0)/norm(x0) <= .15
+        @test norm(x_out - x0)/norm(x0) <= .15 
+        @test norm(S.value - x)/norm(S.value) <=TOL*compound
+        @test norm(S.value - x_out)/norm(S.value) <=TOL*compound
 
         #check relative accuracy 
         @test norm(x_out - x⁻_out, Inf) <= TOL
