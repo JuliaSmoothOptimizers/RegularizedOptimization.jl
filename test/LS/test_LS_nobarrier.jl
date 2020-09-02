@@ -54,15 +54,6 @@ function LSnobar(A, x0, b, b0)
 
     x_spg, k, Fhist_spg, Hhist_spg, Comp_spg = IntPt_TR(xi, parameters_spgslim, options_spgslim)
     x_pr, k, Fhist_pg, Hhist_pg, Comp_pg = IntPt_TR(xi, parameters_proj, options_proj)
-
-
-    # #print out l2 norm difference and plot the two x values
-    # @printf("l2-norm TR (SPGSlim) vs True: %5.5e\n", )
-    # @printf("l2-norm TR (PG) vs True: %5.5e\n", )
-    # @printf("l2-norm CVX vs True: %5.5e\n", )
-    # @printf("TR (SPGSlim) vs CVX relative error: %5.5e\n", )
-    # @printf("TR (PG) vs CVX relative error: %5.5e\n", )
-    # @printf("TR - Fevals: %5.5e vs SPG - Fevals: %5.5e\n", )
    
     
     
@@ -70,14 +61,14 @@ function LSnobar(A, x0, b, b0)
     plot!(x_spg, label="tr-spg", marker=2)
     plot!(x_pr, label="tr-pr", marker=3)
     plot!(X.value, label="cvx")
-    savefig("figs/ls/xcomp.pdf")
+    savefig(string("figs/ls/xcomp",compound,".pdf"))
 
     plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
     plot!(b, label="Observed")
     plot!(A*x_spg, label="A*x: TR-spg", marker=2)
     plot!(A*x_pr, label="A*x: TR-pr", marker=3)
     plot!(A*X.value, label="A*x: CVX")
-    savefig("figs/ls/bcomp.pdf")
+    savefig(string("figs/ls/bcomp",compound,".pdf"))
 
     plot(Fhist_spg, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)",  yaxis=:log)
     plot!(Hhist_spg, label="h(x) (SPGSlim)")
@@ -85,11 +76,11 @@ function LSnobar(A, x0, b, b0)
     plot!(Hhist_pg, label="h(x) (Prox-grad)")
     plot!(Fhist_pg, label="f(x) (Prox-grad)")
     plot!(Fhist_pg + zeros(size(Fhist_pg)), label="f+h (Prox-grad)")
-    savefig("figs/ls/objhist.pdf")
+    savefig(string("figs/ls/objhist", compound,".pdf"))
 
     plot(Comp_pg, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
     plot!(Comp_spg, label="SPG")
-    savefig("figs/ls/complexity.pdf")  
+    savefig(string("figs/ls/complexity",compound,".pdf"))
 
     return norm(x_spg - x0)/norm(x0), norm(x_pr - x0)/norm(x0), norm(X.value - x0)/norm(x0), norm(X.value - x_spg), norm(X.value - x_pr) #, sum(Comp_pg), sum(Comp_spg) 
 
