@@ -5,18 +5,19 @@ function hardproxB0Binf(mkB, s⁻, Rk, options)
 
     xk = options.xk
     Δ = options.Δ
+    λ = options.λ 
 
 
     function prox(q, σ)
         ProjB(w) = min.(max.(w, -Δ), Δ)
 
-        w = xk - gk
+        w = xk - q
         p = sortperm(w,rev=true)
         w[p[λ+1:end]].=0
         s = ProjB(w) - xk
-        # w = xk - gk
-        # y = ProjB(w, zeros(size(xk)), Δ)
-        # r = (1/(2*ν))*((y - (xk - gk)).^2 - (xk - gk))
+        # w = xk - q
+        # y = ProjB(w)
+        # r = (1/2)*β*((y - (xk - q)).^2 - (xk - q))
         # p = sortperm(r, rev=true)
         # y[p[λ+1:end]].=0
         # s = y - xk

@@ -126,6 +126,13 @@
         #test function outputs
         @test f_obj(xk+s_out)[1]+h_obj(xk+s_out) < qk + hk 
         @test f_obj(xk+s)[1]+h_obj(xk+s) < qk + hk #check for decrease 
+        
+        #test for relative descent 
+        @test (f_obj(xk+s⁻_out)[1]+h_obj(xk+s⁻_out) >= f_obj(xk+s_out)[1]+h_obj(xk+s_out)) || norm(f_obj(xk+s⁻_out)[1]+h_obj(xk+s⁻_out) - (f_obj(xk+s_out)[1]+h_obj(xk+s_out)))<.001
+        @test (f_obj(xk+s⁻)[1]+h_obj(xk+s⁻) >= f_obj(xk+s)[1]+h_obj(xk+s)) || norm(f_obj(xk+s⁻)[1]+h_obj(xk+s⁻) - (f_obj(xk+s)[1]+h_obj(xk+s)))<.001
+
+
+        #test for relative accuracy 
         @test (f_obj(xk+s_out)[1]+h_obj(xk+s_out) -(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk)))/(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk))<.01
         @test (f_obj(xk+s)[1]+h_obj(xk+s) -(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk)))/(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk))<.01
 
@@ -202,8 +209,16 @@
         @test norm(s_out .- s⁻_out) <= TOL
         @test norm(s .- s⁻) <= TOL
         
+        #test for descent 
         @test f_obj(xk+s_out)[1]+h_obj(xk+s_out) < qk + hk 
         @test f_obj(xk+s)[1]+h_obj(xk+s) < qk + hk 
+
+        #test for relative descent 
+        @test (f_obj(xk+s⁻_out)[1]+h_obj(xk+s⁻_out) >= f_obj(xk+s_out)[1]+h_obj(xk+s_out)) || norm(f_obj(xk+s⁻_out)[1]+h_obj(xk+s⁻_out) - (f_obj(xk+s_out)[1]+h_obj(xk+s_out)))<.001
+        @test (f_obj(xk+s⁻)[1]+h_obj(xk+s⁻) >= f_obj(xk+s)[1]+h_obj(xk+s)) || norm(f_obj(xk+s⁻)[1]+h_obj(xk+s⁻) - (f_obj(xk+s)[1]+h_obj(xk+s)))<.001
+
+
+        #relative accuracy 
         @test (f_obj(xk+s_out)[1]+h_obj(xk+s_out) -(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk)))/(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk))<.05
         @test (f_obj(xk+s)[1]+h_obj(xk+s) -(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk)))/(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk))<.05
 
@@ -275,13 +290,87 @@ end
         @test norm(s_out .- s⁻_out) <= TOL
         @test norm(s .- s⁻) <= TOL
         
+        #test for decent 
         @test f_obj(xk+s_out)[1]+h_obj(xk+s_out) < qk + hk 
         @test f_obj(xk+s)[1]+h_obj(xk+s) < qk + hk 
+        #test for relative descent 
+        @test (f_obj(xk+s⁻_out)[1]+h_obj(xk+s⁻_out) >= f_obj(xk+s_out)[1]+h_obj(xk+s_out)) || norm(f_obj(xk+s⁻_out)[1]+h_obj(xk+s⁻_out) - (f_obj(xk+s_out)[1]+h_obj(xk+s_out)))<.001
+        @test (f_obj(xk+s⁻)[1]+h_obj(xk+s⁻) >= f_obj(xk+s)[1]+h_obj(xk+s)) || norm(f_obj(xk+s⁻)[1]+h_obj(xk+s⁻) - (f_obj(xk+s)[1]+h_obj(xk+s)))<.001
+
+        #test for accuracy 
         @test (f_obj(xk+s_out)[1]+h_obj(xk+s_out) -(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk)))/(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk))<.05
         @test (f_obj(xk+s)[1]+h_obj(xk+s) -(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk)))/(f_obj(xk+s_cvx.value)[1] + h_obj(s_cvx.value.+xk))<.05
 
 
 end
 
+δ = k 
+Doptions.λ = δ
+function h_objb0(x)
+    if norm(x,0) ≤ δ
+        h = 0
+    else
+        h = Inf 
+    end
+    return λ*h 
+end
 
+function proxB0binf(q, σ)
+    ProjB(w) = min.(max.(w, -Δ), Δ)
+
+    w = xk - q
+    p = sortperm(w,rev=true)
+    w[p[δ+1:end]].=0
+    s = ProjB(w) - xk
+    # w = xk - gk
+    # y = ProjB(w, zeros(size(xk)), Δ)
+    # r = (1/(2*ν))*((y - (xk - gk)).^2 - (xk - gk))
+    # p = sortperm(r, rev=true)
+    # y[p[λ+1:end]].=0
+    # s = y - xk
+    return s 
+end
+
+function proxB0binf!(q, σ)
+    ProjB(y) = min.(max.(y, -Δ), Δ)
+
+    w = xk - q
+    pp = sortperm(w,rev=true)
+    w[pp[δ+1:end]].=0
+    w = ProjB(w) - xk
+
+    q[:] = w[:]
+end
+
+@testset "S: l0 - δB0" begin #this can give you oscillatory behavior, especially in the PG! case 
+
+        s⁻ = zeros(n)
+        s = deepcopy(s⁻)
+        s_out, s⁻_out, _, feval = PG(objInner, s⁻, proxB0binf, Doptions)
+        # s⁻, _, fevals = PG!(objInner!, s, proxB0binf!, Doptions)
+
+        s_cvx = Variable(n)
+        problem = minimize(sumsquares(A*(xk+s_cvx) - b), [norm(s_cvx+xk,1)<=δ, norm(s_cvx, Inf)<=Δ]);
+        solve!(problem, opt)
+
+        #check func evals less than maxIter 
+        @test feval <= 5000
+        # @test fevals <= 5000
+
+        #check overall accuracy - new test because s_cvx is unreliable for large problems 
+            # @test norm(s_cvx.value .- s_out) <= .01
+        #     @test norm(s_cvx.value .- s) <= .01
+
+        
+        #check relative accuracy 
+        @test norm(s_out .- s⁻_out) <= TOL
+        #problem is nonconvex
+        # @test norm(s .- s⁻) <= TOL || norm(s - s_out)<TOL 
+        
+        @test f_obj(xk+s_out)[1]+h_obj(xk+s_out) < qk + hk 
+        # @test f_obj(xk+s)[1]+h_obj(xk+s) < qk + hk 
+        @test f_obj(xk+s⁻_out)[1]+h_obj(xk+s⁻_out) >= f_obj(xk+s_out)[1]+h_obj(xk+s_out) 
+        # @test f_obj(xk+s⁻)[1]+h_obj(xk+s⁻) >= f_obj(xk+s)[1]+h_obj(xk+s)
+
+end
 end

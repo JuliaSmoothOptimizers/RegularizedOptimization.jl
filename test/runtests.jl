@@ -15,7 +15,7 @@ end
 end
 
 @testset "LASSO" begin
-  include("test_variables.jl")
+  include("test_tr.jl")
 end
 
 # @testset "Nonlinear Problems" begin
