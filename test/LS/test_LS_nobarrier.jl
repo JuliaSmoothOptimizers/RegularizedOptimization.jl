@@ -1,12 +1,11 @@
 # Julia Testing function
-using TRNC
-using Plots, Convex, SCS, Printf,LinearAlgebra
+using Plots
 
 #Here we just try to solve the l2-norm Problem over the l1 trust region
 #######
 # min_x 1/2||Ax - b||^2
 function LSnobar(A, x0, b, b0)
-
+    m,n= size(A)
     function f_obj(x)
         f = .5*norm(A*x-b)^2
         g = A'*(A*x - b)
@@ -41,15 +40,16 @@ function LSnobar(A, x0, b, b0)
     parameters_proj = IP_struct(f_obj, h_obj;
         s_alg = PG, FO_options = first_order_options_proj, Rkprox=tr_norm)
     # parameters = IP_struct(f_obj, h_obj;FO_options = first_order_options, Rk=tr_norm) #defaults to h=0, spgl1/min_confSPG
-    options_spgslim = IP_options(; ptf=100, ϵD=1e-4) #print freq, ΔK init, epsC/epsD initialization, maxIter
-    options_proj= IP_options(;ptf=1, ϵD=1e-4)
+    options_spgslim = IP_options(; verbose=0, ϵD=1e-4) #print freq, ΔK init, epsC/epsD initialization, maxIter
+    options_proj= IP_options(;verbose=0, ϵD=1e-4)
 
+    opt = () -> SCS.Optimizer(verbose=false)
     #put in your initial guesses
     xi = ones(n,)/2
 
     X = Variable(n)
     problem = minimize(sumsquares(A * X - b))
-    solve!(problem, SCS.Optimizer)
+    solve!(problem, opt)
 
 
     x_spg, k, Fhist_spg, Hhist_spg, Comp_spg = IntPt_TR(xi, parameters_spgslim, options_spgslim)
@@ -70,14 +70,14 @@ function LSnobar(A, x0, b, b0)
     plot!(x_spg, label="tr-spg", marker=2)
     plot!(x_pr, label="tr-pr", marker=3)
     plot!(X.value, label="cvx")
-    savefig("../figs/ls/xcomp.pdf")
+    savefig("figs/ls/xcomp.pdf")
 
     plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
     plot!(b, label="Observed")
     plot!(A*x_spg, label="A*x: TR-spg", marker=2)
     plot!(A*x_pr, label="A*x: TR-pr", marker=3)
     plot!(A*X.value, label="A*x: CVX")
-    savefig("../figs/ls/bcomp.pdf")
+    savefig("figs/ls/bcomp.pdf")
 
     plot(Fhist_spg, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x) (SPGSlim)",  yaxis=:log)
     plot!(Hhist_spg, label="h(x) (SPGSlim)")
@@ -85,12 +85,12 @@ function LSnobar(A, x0, b, b0)
     plot!(Hhist_pg, label="h(x) (Prox-grad)")
     plot!(Fhist_pg, label="f(x) (Prox-grad)")
     plot!(Fhist_pg + zeros(size(Fhist_pg)), label="f+h (Prox-grad)")
-    savefig("../figs/ls/objhist.pdf")
+    savefig("figs/ls/objhist.pdf")
 
     plot(Comp_pg, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
     plot!(Comp_spg, label="SPG")
-    savefig("../figs/ls/complexity.pdf")  
+    savefig("figs/ls/complexity.pdf")  
 
-    return norm(x_spg - x0), norm(x_pr - x0), norm(X.value - x0), norm(X.value - x_spg), norm(X.value - x_pr) #, sum(Comp_pg), sum(Comp_spg) 
+    return norm(x_spg - x0)/norm(x0), norm(x_pr - x0)/norm(x0), norm(X.value - x0)/norm(x0), norm(X.value - x_spg), norm(X.value - x_pr) #, sum(Comp_pg), sum(Comp_spg) 
 
 end

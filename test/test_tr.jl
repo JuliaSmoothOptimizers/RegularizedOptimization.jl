@@ -17,7 +17,7 @@
         b = b0 + 0.5*rand(m,)
         cutoff = 0.0
 
-        include("test_LS_nobarrier.jl")
+        include("LS/test_LS_nobarrier.jl")
         trslim, tr, cvx, trs_v_cvx, tr_v_cvx = LSnobar(A, x0, b, b0)
 
         # test against true values 

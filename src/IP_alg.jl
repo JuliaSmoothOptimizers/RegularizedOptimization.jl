@@ -12,7 +12,7 @@ mutable struct IP_params
     ϵD #termination criteria
     ϵC #dual termination criteria
     Δk #trust region radius
-    ptf #print every so often
+    verbose #print every so often
     maxIter #maximum amount of inner iterations
     η1 #ρ lower bound 
     η2 #ρ upper bound 
@@ -36,7 +36,7 @@ function IP_options(
     ϵD = 1e-2,
     ϵC = 1e-2,
     Δk = 1.0,
-    ptf = 100,
+    verbose = 0,
     maxIter = 10000,
     η1 = 1.0e-3, #ρ lower bound
     η2 = 0.9,  #ρ upper bound
@@ -44,7 +44,7 @@ function IP_options(
     σ = 1.0e-3, # quadratic model linesearch buffer parameter
     γ = 3.0, #trust region buffer
 ) #default values for trust region parameters in algorithm 4.2
-    return IP_params(ϵD, ϵC, Δk, ptf, maxIter,η1, η2, τ, σ, γ)
+    return IP_params(ϵD, ϵC, Δk, verbose, maxIter,η1, η2, τ, σ, γ)
 end
 
 function IP_struct(
@@ -73,8 +73,7 @@ params : mutable structure IP_params with:
     -ϵD, tolerance for primal convergence
     -ϵC, tolerance for dual convergence
     -Δk Float64, trust region radius
-    -ptf Int, print every # iterations
-    -simple, 1 for h=0, 0 for other
+    -verbose Int, print every # options
     -maxIter Float64, maximum number of inner iterations (note: does not influence TotalCount)
 options : mutable struct IP_methods
     -f_obj, smooth objective function; takes in x and outputs [f, g, Bk]
@@ -109,7 +108,7 @@ function IntPt_TR(
     ϵD = options.ϵD
     ϵC = options.ϵC
     Δk = options.Δk
-    ptf = options.ptf
+    verbose = options.verbose
     maxIter = options.maxIter
     η1 = options.η1
     η2 = options.η2 
@@ -117,6 +116,15 @@ function IntPt_TR(
     γ = options.γ
     τ = options.τ
 
+	if verbose==0
+		ptf = Inf
+	elseif verbose==1
+		ptf = round(maxIter/10)
+	elseif verbose==2
+		ptf = round(maxIter/100)
+	else
+		ptf = 1
+	end
 
     #other parameters
     FO_options = params.FO_options
@@ -141,10 +149,10 @@ function IntPt_TR(
     Fobj_hist = zeros(maxIter * BarIter)
     Hobj_hist = zeros(maxIter * BarIter)
     Complex_hist = zeros(maxIter * BarIter)
-    @printf(
+    verbose==0 && @printf(
         "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
     )
-    @printf(
+    verbose==0 && @printf(
         "%10s | %11s | %11s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s   | %10s | %10s\n",
         "Iter",
         "μ",
@@ -162,7 +170,7 @@ function IntPt_TR(
         "f(x)",
         "h(x)",
     )
-    @printf(
+    verbose==0 && @printf(
         "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
     )
 
