@@ -2,29 +2,11 @@
 # Generate Compressive Sensing Data
 using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra
 
-function bpdnNoBarTrl0Binf()
+function bpdnNoBarTrl0Binf(A, x0, b, b0, compound)
     #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with -10≦x≦10
     #######
     # min_x 1/2||Ax - b||^2 + λ||x||₀
-    compound=1
-    m,n = compound*200,compound*512
-    p = randperm(n)
-    k = compound*10
-    #initialize x
-    x0 = zeros(n)
-    p   = randperm(n)[1:k]
-    x0 = zeros(n,)
-    x0[p[1:k]]=sign.(randn(k))
-
-    A,_ = qr(randn(n,m))
-    B = Array(A)'
-    A = Array(B)
-
-    b0 = A*x0
-    b = b0 + 0.005*randn(m,)
-    cutoff = 0.0
-    l = -2.0*ones(n,)+cutoff*ones(n,)
-    u = 2.0*ones(n,)+cutoff*ones(n,)
+    m,n = size(A)
     λ = norm(A'*b, Inf)/10
 
 
@@ -63,56 +45,61 @@ function bpdnNoBarTrl0Binf()
 
     #set all options
     β = eigmax(A'*A)
-    Doptions=s_options(β; λ=λ)
+    Doptions=s_options(β; λ=λ, verbose=0, maxIter=1000)
 
     # first_order_options = s_options(norm(A'*A)^(2.0) ;optTol=1.0e-3, λ=λ_T, verbose=22, maxIter=5, restart=20, η = 1.0, η_factor=.9)
     #note that for the above, default λ=1.0, η=1.0, η_factor=.9
 
     parameters = IP_struct(f_smooth, h_nonsmooth; 
         FO_options = Doptions, s_alg=PG, Rkprox=prox)
-    options = IP_options(;ptf=1, ϵD=1e-10)
-    # options = IP_options(; ptf=10, ϵD = 1e-1, ϵC=1e-1, maxIter=100)
+    options = IP_options(; ϵD=1e-10)
+
     #put in your initial guesses
-    xi = ones(n,)/2
+    xi = zeros(n,)/2
 
 
     X = Variable(n)
+    opt = () -> SCS.Optimizer(verbose=false)
     problem = minimize(sumsquares(A * X - b) + λ*norm(X,1))
-    solve!(problem, SCS.Optimizer)
+    solve!(problem, opt)
 
-    # x, k, Fhist, Hhist = IntPt_TR(xi, parameters, options; l = l, u = u, μ = 1.0, BarIter=200)
+
     x, k, Fhist, Hhist, Comp = IntPt_TR(xi, parameters, options)
 
-    @printf("TR - Fevals: %5.5e\n", sum(Comp))
 
 
 
 
     #print out l2 norm difference and plot the two x values
-    @printf("l2-norm CVX vs TR: %5.5e\n", norm(X.value - x)/norm(X.value))
-    @printf("l2-norm CVX vs True: %5.5e\n", norm(X.value - x0)/norm(x0))
-    @printf("l2-norm TR vs True: %5.5e\n", norm(x0 - x)/norm(x0))
+    xcompmat = [norm(x0 - x)/opnorm(A)^2, norm(X.value - x)/opnorm(A)^2, norm(X.value - x0)/opnorm(A)^2]
+    fullmat = [f_smooth(x)[1]+h_nonsmooth(x), f_smooth(X.value)[1] + h_nonsmooth(X.value), f_smooth(x0)[1]+h_nonsmooth(x0) ]
+    fmat = [f_smooth(x)[1], f_smooth(X.value)[1],  f_smooth(x0)[1]]
+    hmat = [h_nonsmooth(x)/λ, h_nonsmooth(X.value)/λ,  h_nonsmooth(x0)/λ]
 
-    @printf("Full Objective - CVX: %5.5e     TR: %5.5e   True: %5.5e\n", f_smooth(X.value)[1] + h_nonsmooth(X.value), f_smooth(x)[1]+h_nonsmooth(x), f_smooth(x0)[1]+h_nonsmooth(x0))
-    @printf("f(x) - CVX: %5.5e     TR: %5.5e   True: %5.5e\n", f_smooth(X.value)[1],f_smooth(x)[1], f_smooth(x0)[1])
-    @printf("h(x) - CVX: %5.5e     TR: %5.5e   True: %5.5e\n", h_nonsmooth(X.value)/λ,h_nonsmooth(x)/λ, h_nonsmooth(x0)/λ)
+
+
 
     plot(x0, xlabel="i^th index", ylabel="x", title="TR vs True x", label="True x")
     plot!(x, label="tr", marker=2)
     plot!(X.value, label="cvx")
-    savefig("figs/bpdn/LS_l0_Binf/xcomp.pdf")
+    savefig(string("figs/bpdn/LS_l0_Binf/xcomp", compound, ".pdf"))
 
     plot(b0, xlabel="i^th index", ylabel="b", title="TR vs True x", label="True b")
     plot!(b, label="Observed")
     plot!(A*x, label="A*x: TR", marker=2)
     plot!(A*X.value, label="A*x: CVX")
-    savefig("figs/bpdn/LS_l0_Binf/bcomp.pdf")
+    savefig(string("figs/bpdn/LS_l0_Binf/bcomp", compound, ".pdf"))
 
     plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)", yaxis=:log)
     plot!(Hhist, label="h(x)")
+    @show Fhist 
+    @show Hhist 
     plot!(Fhist + Hhist, label="f+h")
-    savefig("figs/bpdn/LS_l0_Binf/objhist.pdf")
+    savefig(string("figs/bpdn/LS_l0_Binf/objhist", compound, ".pdf"))
 
     plot(Comp, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
-    savefig("figs/bpdn/LS_l0_Binf/complexity.pdf")
+    savefig(string("figs/bpdn/LS_l0_Binf/complexity", compound, ".pdf"))
+    
+
+    return xcompmat, fullmat, fmat, hmat
 end

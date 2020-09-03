@@ -4,7 +4,7 @@ using Plots
 #Here we just try to solve the l2-norm Problem over the l1 trust region
 #######
 # min_x 1/2||Ax - b||^2
-function LSnobar(A, x0, b, b0)
+function LSnobar(A, x0, b, b0, compound)
     m,n= size(A)
     function f_obj(x)
         f = .5*norm(A*x-b)^2
@@ -82,6 +82,6 @@ function LSnobar(A, x0, b, b0)
     plot!(Comp_spg, label="SPG")
     savefig(string("figs/ls/complexity",compound,".pdf"))
 
-    return norm(x_spg - x0)/norm(x0), norm(x_pr - x0)/norm(x0), norm(X.value - x0)/norm(x0), norm(X.value - x_spg), norm(X.value - x_pr) #, sum(Comp_pg), sum(Comp_spg) 
+    return norm(x_spg - x0)/opnorm(A)^2, norm(x_pr - x0)/opnorm(A)^2, norm(X.value - x0)/opnorm(A)^2, norm(X.value - x_spg)/opnorm(A)^2, norm(X.value - x_pr)/opnorm(A)^2 #, sum(Comp_pg), sum(Comp_spg) 
 
 end
