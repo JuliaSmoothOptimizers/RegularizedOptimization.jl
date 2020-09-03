@@ -1,6 +1,6 @@
 
 using Test
-using LinearAlgebra, Random
+using LinearAlgebra, Random, Printf
 
 Random.seed!(0)
 

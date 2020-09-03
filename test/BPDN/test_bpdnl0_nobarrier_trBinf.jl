@@ -1,6 +1,6 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
-using TRNC, Plots,Printf, Convex,SCS, Random, LinearAlgebra
+using Plots
 
 function bpdnNoBarTrl0Binf(A, x0, b, b0, compound)
     #Here we just try to solve the l2-norm^2 data misfit + l1 norm regularization over the l1 trust region with -10≦x≦10
@@ -55,7 +55,7 @@ function bpdnNoBarTrl0Binf(A, x0, b, b0, compound)
     options = IP_options(; ϵD=1e-10)
 
     #put in your initial guesses
-    xi = zeros(n,)/2
+    xi = ones(n,)/2
 
 
     X = Variable(n)
@@ -92,8 +92,6 @@ function bpdnNoBarTrl0Binf(A, x0, b, b0, compound)
 
     plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)", yaxis=:log)
     plot!(Hhist, label="h(x)")
-    @show Fhist 
-    @show Hhist 
     plot!(Fhist + Hhist, label="f+h")
     savefig(string("figs/bpdn/LS_l0_Binf/objhist", compound, ".pdf"))
 

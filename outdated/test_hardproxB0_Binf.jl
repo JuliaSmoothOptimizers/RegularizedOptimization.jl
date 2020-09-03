@@ -21,7 +21,7 @@ function hardproxtestB0Binf(compound)
     b0 = A*x0
     b = b0 + .005*randn(m)
     λ = 0.1*norm(A'*b, Inf)
-    Δ = 3*rand()
+    Δ = .3*rand()
 
 
     β = eigmax(A'*A)
@@ -39,7 +39,7 @@ function h_obj(x)
     if norm(x,0) ≤ δ
         h = 0
     else
-        h = Inf 
+        h = 1 
     end
     return λ*h 
 end
