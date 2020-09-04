@@ -97,7 +97,7 @@ function FHNONLINl1()
 
     (~, ~, Hessapprox) = f_smooth(pi)
     #set all options
-    Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ, verbose = 0)
+    Doptions=s_options(eigmax(Hessapprox); maxIter=5000, λ=λ, verbose = 0)
     
     #all this should be unraveling in the hardproxB# code
     function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need
@@ -137,9 +137,9 @@ function FHNONLINl1()
 
 
     plot(sol_VDP, vars=(0,1), xlabel="Time", ylabel="Voltage", label="VDP-V", title="True vs TR")
-    plot(sol_VDP, vars=(0,2), label="VDP-W")
-    plot!(sol, vars=(0,1), label="tr", marker=2)
-    plot!(sol, vars=(0,2), label="tr", marker=2)
+    plot!(sol_VDP, vars=(0,2), label="VDP-W")
+    plot!(sol, vars=(0,1), label="TR-V", marker=2)
+    plot!(sol, vars=(0,2), label="TR-W", marker=2)
     plot!(sol_VDP.t, data[1,:], label="V-data")
     plot!(sol_VDP.t, data[2,:], label="W-data")
     savefig("figs/nonlin/FH/l1/vcomp.pdf")
@@ -154,9 +154,12 @@ function FHNONLINl1()
     savefig("figs/nonlin/FH/l1/complexity.pdf")
 
 
-    objtest = (f_smooth(p)[1]+h_nonsmooth(p) - (f_smooth(pars_VDP)[1]+h_nonsmooth(pars_VDP)))/(f_smooth(pars_VDP)[1]+h_nonsmooth(pars_VDP))
+
+    fp = f_smooth(p)[1]+h_nonsmooth(p)
+    fpt =  (f_smooth(pars_VDP)[1]+h_nonsmooth(pars_VDP))
+    objtest = (fp - fpt)/(f_smooth(pars_VDP)[1]+h_nonsmooth(pars_VDP))
     ftest = (f_smooth(p)[1] - f_smooth(pars_VDP)[1])/f_smooth(pars_VDP)[1]
     htest = (h_nonsmooth(p)/λ - h_nonsmooth(pars_VDP)/λ)/(h_nonsmooth(pars_VDP)/λ)
 
-    return p, pars_VDP, objtest, ftest, htest
+    return p, pars_VDP, objtest, ftest, htest, fp, fpt
 end

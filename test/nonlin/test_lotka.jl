@@ -111,7 +111,7 @@ function LotkaVolt()
     end 
 
     #set all options
-    Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ, verbose = 0)
+    Doptions=s_options(eigmax(Hessapprox); maxIter=5000, λ=λ, verbose = 0)
 
 
     parameters = IP_struct(f_smooth, h_nonsmooth;
@@ -130,9 +130,9 @@ function LotkaVolt()
     #print out l2 norm difference and plot the two x values
 
     plot(sol_LKs, vars=(0,1), xlabel="Time", ylabel="Species Number", label="Prey", title="True vs TR")
-    plot(sol_LKs, vars=(0,2), label="Pred")
-    plot!(sol, vars=(0,1), label="tr-Prey", marker=2)
-    plot!(sol, vars=(0,2), label="tr-Pred", marker=2)
+    plot!(sol_LKs, vars=(0,2), label="Pred")
+    plot!(sol, vars=(0,1), label="TR-Prey", marker=2)
+    plot!(sol, vars=(0,2), label="TR-Pred", marker=2)
     plot!(sol_LKs.t, data[1,:], label="Prey-data")
     plot!(sol_LKs.t, data[2,:], label="Pred-data")
     savefig("figs/nonlin/lotka/solcomp.pdf")
@@ -146,10 +146,14 @@ function LotkaVolt()
     plot(Comp, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
     savefig("figs/nonlin/lotka/complexity.pdf")
 
-    objtest = (f_smooth(p)[1]+h_nonsmooth(p) - (f_smooth(pars_LKs)[1]+h_nonsmooth(pars_LKs)))/(f_smooth(pars_LKs)[1]+h_nonsmooth(pars_LKs))
+
+    fp = f_smooth(p)[1]+h_nonsmooth(p)
+    fpt =  (f_smooth(pars_LKs)[1]+h_nonsmooth(pars_LKs))
+
+    objtest = (fp - fpt)/(f_smooth(pars_LKs)[1]+h_nonsmooth(pars_LKs))
     ftest = (f_smooth(p)[1] - f_smooth(pars_LKs)[1])/f_smooth(pars_LKs)[1]
     htest = (h_nonsmooth(p)/λ - h_nonsmooth(pars_LKs)/λ)/(h_nonsmooth(pars_LKs)/λ)
 
-    return p, pars_LKs, objtest, ftest, htest
+    return p, pars_LKs, objtest, ftest, htest, fp, fpt 
 
 end
