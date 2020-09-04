@@ -128,7 +128,7 @@ function FHNONLINl1LBFGS()
     parameters = IP_struct(f_smooth, h_nonsmooth;
         s_alg = FISTA, FO_options = Doptions, Rkprox = prox) 
 
-    options = IP_options(; verbose=0, ϵD = 1e-1)
+    options = IP_options(; verbose=2, ϵD = 1e-1)
 
     p, k, Fhist, Hhist, Comp = IntPt_TR(pi, parameters, options);# u = u, l=l, μ = 100, BarIter = 20)
 
