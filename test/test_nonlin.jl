@@ -61,7 +61,7 @@ using Printf, Roots, Plots
         # test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
 
         @test num_runs < 9
-        @test norm(ptrue - p) < .05 #5% error i guess 
+        @test norm(ptrue - p) < .1 #10% error I guess 
 
         @test abs(objtest) < .05
 
