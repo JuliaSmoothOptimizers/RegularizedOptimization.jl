@@ -1,8 +1,3 @@
-# Julia Testing function
-using TRNC
-using LinearAlgebra, DifferentialEquations, Plots, Random, Zygote, DiffEqSensitivity, Printf, Roots
-
-
 #In this example, we demonstrate the capacity of the algorithm to minimize a nonlinear
 #model with a regularizer
 
@@ -61,7 +56,7 @@ function LotkaVolt()
             tot_loss = Inf
         else
             temp_v = convert(Array, temp_sol)
-            tot_loss = sum((temp_v - b).^2)/2
+            tot_loss = sum((temp_v - data).^2)/2
         end
 
         return tot_loss
@@ -82,8 +77,7 @@ function LotkaVolt()
 
     λ = 1.0
     function h_nonsmooth(x)
-        return λ*norm(x,1) #, g∈∂h
-        # return 0
+        return λ*norm(x,1)
     end
 
 
@@ -117,17 +111,14 @@ function LotkaVolt()
     end 
 
     #set all options
-    # Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ, verbose = 0)
     Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ, verbose = 0)
 
 
     parameters = IP_struct(f_smooth, h_nonsmooth;
-        FO_options = Doptions, s_alg=PG, Rkprox=prox)
-        # s_alg = PG, FO_options = Doptions, Rk = tr_norm);
+        FO_options = Doptions, s_alg=FISTA, Rkprox=prox)
 
+    options = IP_options(;verbose=0, ϵD = 1e-1, Δk = .1)
 
-    options = IP_options(;ptf=1, ϵD = 1e-7, Δk = .1)
-    # options = IP_options(;simple=2, ptf=1, ϵD = 1e-5)
 
 
 
@@ -137,18 +128,6 @@ function LotkaVolt()
     sol = solve(myProbLK; reltol=1e-6, saveat = savetime)
 
     #print out l2 norm difference and plot the two x values
-    @printf("l2-norm True vs TR: %5.5e\n", norm(pars_LKs - p)/norm(p))
-
-    @printf("Full Objective -  TR: %5.5e    True: %5.5e\n",
-    f_smooth(p)[1]+h_nonsmooth(p), f_smooth(pars_LKs)[1]+h_nonsmooth(pars_LKs))
-
-    @printf("f(x) -  TR: %5.5e  True: %5.5e\n",
-    f_smooth(p)[1],  f_smooth(pars_LKs)[1])
-
-    @printf("h(x) -  TR: %5.5e    True: %5.5e\n",
-    h_nonsmooth(p)/λ, h_nonsmooth(pars_LKs)/λ)
-
-    @printf("TR - Fevals: %5.5e\n", sum(Comp))
 
     plot(sol_LKs, vars=(0,1), xlabel="Time", ylabel="Species Number", label="Prey", title="True vs TR")
     plot(sol_LKs, vars=(0,2), label="Pred")
@@ -166,5 +145,11 @@ function LotkaVolt()
 
     plot(Comp, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
     savefig("figs/nonlin/lotka/complexity.pdf")
+
+    objtest = (f_smooth(p)[1]+h_nonsmooth(p) - (f_smooth(pars_LKs)[1]+h_nonsmooth(pars_LKs)))/(f_smooth(pars_LKs)[1]+h_nonsmooth(pars_LKs))
+    ftest = (f_smooth(p)[1] - f_smooth(pars_LKs)[1])/f_smooth(pars_LKs)[1]
+    htest = (h_nonsmooth(p)/λ - h_nonsmooth(pars_LKs)/λ)/(h_nonsmooth(pars_LKs)/λ)
+
+    return p, pars_LKs, objtest, ftest, htest
 
 end

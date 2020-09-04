@@ -1,10 +1,8 @@
 # Julia Testing function
-using TRNC
-using LinearAlgebra, DifferentialEquations, Plots, Random, Zygote, DiffEqSensitivity, Printf, Roots
 
 #In this example, we demonstrate the capacity of the algorithm to minimize a nonlinear
 #model with a regularizer
-function FHNONLIN()
+function FHNONLINl0()
     
     #Here we solve the Fitzhugh-Nagumo (FHN) Model with some extra terms we know to be zero
     #The FHN model is a set of coupled ODE's 
@@ -25,13 +23,12 @@ function FHNONLIN()
     tspan = (0.0, 20.0)
     savetime = .2
     # pars_FH = [.5, 1/12.5, 0.08, 1.0, 0.8, 0.7]
-    # pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7,]
     pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7]
     prob_FH = ODEProblem(FH_ODE, u0, tspan, pars_FH)
     sol_FH = solve(prob_FH, reltol=1e-6, saveat=savetime)
     plot(sol_FH, vars=(0,1),xlabel="Time", ylabel="Voltage", label="V", title="FH sol")
     plot!(sol_FH, vars=(0,2),label="W")
-    savefig("figs/nonlin/FH/fhn_basic.pdf")
+    savefig("figs/nonlin/FH/l0/fhn_basic.pdf")
 
 
     #So this is all well and good, but we need a cost function and some parameters to fit. First, we take care of the parameters
@@ -53,7 +50,7 @@ function FHNONLIN()
     plot!(sol_VDP, vars=(0,2),label="W")
     plot!(sol_VDP.t, data[1,:], label="V-data")
     plot!(sol_VDP.t, data[2,:], label="W-data")
-    savefig("figs/nonlin/FH/vdp_basic.pdf")
+    savefig("figs/nonlin/FH/l0/vdp_basic.pdf")
 
     #so now that we have data, we want to formulate our optimization problem. This is going to be 
     #min_p ||f(p) - b||₂^2 + λ||p||₀
@@ -61,7 +58,7 @@ function FHNONLIN()
     #First, make the function you are going to manipulate
     function Gradprob(p)
         temp_prob = remake(prob_FH, p = p)
-        temp_sol = solve(temp_prob, reltol=1e-6, saveat=savetime)
+        temp_sol = solve(temp_prob, reltol=1e-6, saveat=savetime, verbose=false)
         tot_loss = 0.
 
         if any((temp_sol.retcode!= :Success for s in temp_sol))
@@ -89,11 +86,9 @@ function FHNONLIN()
     end
 
 
-    λ = 1.0
+    λ = 10.0
     function h_nonsmooth(x)
-        # @show x
         return λ*norm(x,0) 
-        # return 0
     end
 
 
@@ -103,33 +98,8 @@ function FHNONLIN()
     # (~, sens) = f_smooth(pi)
     (~, ~, Hessapprox) = f_smooth(pi)
     #set all options
-    # Doptions=s_options(eigmax(sens*sens'); maxIter=1000, λ=λ, verbose = 0)
     Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ, verbose = 0)
-    # Doptions = spg_options(;optTol=1.0e-1, progTol=1.0e-10, verbose=0, feasibleInit=true, curvilinear=true, bbType=true, memory=1); 
 
-    #all this should be unraveling in the hardproxB# code
-    # function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need
-
-    #     ProjB(y) = min.(max.(y, q.-σ), q.+σ)
-    #     froot(η) = η - norm(ProjB((-xk).*(η/Δ)))
-
-
-    #     # %do the 2 norm projection
-    #     y1 = ProjB(-xk) #start with eta = tau
-    #     if (norm(y1)<= Δ)
-    #         y = y1  # easy case
-    #     else
-    #         η = fzero(froot, 1e-10, Inf)
-    #         y = ProjB((-xk).*(η/Δ))
-    #     end
-
-    #     if (norm(y)<=Δ)
-    #         snew = y
-    #     else
-    #         snew = Δ.*y./norm(y)
-    #     end
-    #     return snew
-    # end 
     #this is for l0 norm 
     function prox(q, σ, xk, Δ)
 
@@ -149,40 +119,18 @@ function FHNONLIN()
         s = ProjB(st) - xk
         return s 
     end
-    #h = 0
-    function tr_norm(z,σ)
-        return z./max(1, norm(z, 2)/σ)
-    end
-    # function tr_norm_spg(z,α,σ)
-    #     return z./max(1, norm(z, 2)/σ)
-    # end
-
 
     parameters = IP_struct(f_smooth, h_nonsmooth;
-        s_alg = PG, FO_options = Doptions, Rkprox = prox) 
-        # FO_options = Doptions, Rk = tr_norm_spg); 
+        s_alg = FISTA, FO_options = Doptions, Rkprox = prox) 
 
-    # options = IP_options(; ptf=1, ϵD = 1e-4)
-    options = IP_options(; ptf=1, ϵD = 1e-5)
+
+    options = IP_options(; verbose=0, ϵD = 1e1)
 
     p, k, Fhist, Hhist, Comp = IntPt_TR(pi, parameters, options);# u = u, l=l, μ = 100, BarIter = 20)
 
     myProbFH = remake(prob_FH, p = p)
     sol = solve(myProbFH; reltol=1e-6, saveat = savetime)
 
-    #print out l2 norm difference and plot the two x values
-    @printf("l2-norm True vs TR: %5.5e\n", norm(pars_VDP - p)/norm(p))
-
-    @printf("Full Objective -  TR: %5.5e    True: %5.5e\n",
-    f_smooth(p)[1]+h_nonsmooth(p), f_smooth(pars_VDP)[1]+h_nonsmooth(pars_VDP))
-
-    @printf("f(x) -  TR: %5.5e  True: %5.5e\n",
-    f_smooth(p)[1],  f_smooth(pars_VDP)[1])
-
-    @printf("h(x) -  TR: %5.5e    True: %5.5e\n",
-    h_nonsmooth(p)/λ, h_nonsmooth(pars_VDP)/λ)
-
-    @printf("TR - Fevals: %5.5e\n", sum(Comp))
 
     plot(sol_VDP, vars=(0,1), xlabel="Time", ylabel="Voltage", label="VDP-V", title="True vs TR")
     plot(sol_VDP, vars=(0,2), label="VDP-W")
@@ -190,14 +138,21 @@ function FHNONLIN()
     plot!(sol, vars=(0,2), label="tr", marker=2)
     plot!(sol_VDP.t, data[1,:], label="V-data")
     plot!(sol_VDP.t, data[2,:], label="W-data")
-    savefig("figs/nonlin/FH/vcomp.pdf")
+    savefig("figs/nonlin/FH/l0/vcomp.pdf")
 
 
     plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)", xaxis=:log, yaxis=:log)
     plot!(Hhist, label="h(x)")
     plot!(Fhist + Hhist, label="f+h")
-    savefig("figs/nonlin/FH/objhist.pdf")
+    savefig("figs/nonlin/FH/l0/objhist.pdf")
 
     plot(Comp, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
-    savefig("figs/nonlin/FH/complexity.pdf")
+    savefig("figs/nonlin/FH/l0/complexity.pdf")
+
+
+    objtest = (f_smooth(p)[1]+h_nonsmooth(p) - (f_smooth(pars_VDP)[1]+h_nonsmooth(pars_VDP)))/(f_smooth(pars_VDP)[1]+h_nonsmooth(pars_VDP))
+    ftest = (f_smooth(p)[1] - f_smooth(pars_VDP)[1])/f_smooth(pars_VDP)[1]
+    htest = (h_nonsmooth(p)/λ - h_nonsmooth(pars_VDP)/λ)/(h_nonsmooth(pars_VDP)/λ)
+
+    return p, pars_VDP, objtest, ftest, htest
 end
