@@ -3,41 +3,41 @@
 using TRNC
 using LinearAlgebra
 using DifferentialEquations, Zygote, DiffEqSensitivity
-using Printf, Roots
+using Printf, Roots, Plots
 
-    @testset "Lotka-Volterra: ||F(p) - b||² + λ||p||₁; ||⋅||₂≤Δ" begin
+    # @testset "Lotka-Volterra: ||F(p) - b||² + λ||p||₁; ||⋅||₂≤Δ" begin
 
-        include("nonlin/test_lotka.jl")
-        p, ptrue, objtest, ftest, htest = LotkaVolt()
+    #     include("nonlin/test_lotka.jl")
+    #     p, ptrue, objtest, ftest, htest = LotkaVolt()
 
-        # test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-        @test norm(ptrue - p) < .05 #5% error i guess 
+    #     # test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
+    #     @test norm(ptrue - p) < .05 #5% error i guess 
 
-        @test abs(objtest) < .05
+    #     @test abs(objtest) < .05
     
-        @test abs(ftest) < .05
+    #     @test abs(ftest) < .05
     
-        @test abs(htest)<.05
+    #     @test abs(htest)<.05
 
 
-    end
+    # end
 
-    @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₁; ||⋅||₂  ≤Δ" begin
+    # @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₁; ||⋅||₂  ≤Δ" begin
 
-        include("nonlin/test_FH_l1.jl")
-        p, ptrue, objtest, ftest, htest = FHNONLINl1()
+    #     include("nonlin/test_FH_l1.jl")
+    #     p, ptrue, objtest, ftest, htest = FHNONLINl1()
 
-        # test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-        @test norm(ptrue - p) < .05 #5% error i guess 
+    #     # test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
+    #     @test norm(ptrue - p) < .05 #5% error i guess 
 
-        @test abs(objtest) < .05
+    #     @test abs(objtest) < .05
 
-        @test abs(ftest) < .05
+    #     @test abs(ftest) < .05
 
-        @test abs(htest)<.05
+    #     @test abs(htest)<.05
 
 
-    end
+    # end
 
 
     @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₀; ||⋅||_∞  ≤Δ" begin
@@ -57,20 +57,20 @@ using Printf, Roots
 
     end
 
-    @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₁; ||⋅||₂  ≤Δ" begin
+    # @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₁; ||⋅||₂  ≤Δ" begin
 
-        include("nonlin/test_FH_l1_bfgs.jl")
-        p, ptrue, objtest, ftest, htest = FHNONLINl1LBFGS()
+    #     include("nonlin/test_FH_l1_bfgs.jl")
+    #     p, ptrue, objtest, ftest, htest = FHNONLINl1LBFGS()
 
-        # test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-        @test norm(ptrue - p) < .05 #5% error i guess 
+    #     # test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
+    #     @test norm(ptrue - p) < .05 #5% error i guess 
 
-        @test abs(objtest) < .05
+    #     @test abs(objtest) < .05
 
-        @test abs(ftest) < .05
+    #     @test abs(ftest) < .05
 
-        @test abs(htest)<.05
+    #     @test abs(htest)<.05
 
 
-    end
+    # end
 end

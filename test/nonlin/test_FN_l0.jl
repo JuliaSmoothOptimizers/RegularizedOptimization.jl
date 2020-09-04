@@ -124,7 +124,7 @@ function FHNONLINl0()
         s_alg = FISTA, FO_options = Doptions, Rkprox = prox) 
 
 
-    options = IP_options(; verbose=0, ϵD = 1e1)
+    options = IP_options(; verbose=0, ϵD = 1e-1)
 
     p, k, Fhist, Hhist, Comp = IntPt_TR(pi, parameters, options);# u = u, l=l, μ = 100, BarIter = 20)
 
