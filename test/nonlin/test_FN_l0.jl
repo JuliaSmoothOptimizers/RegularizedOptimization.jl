@@ -104,6 +104,7 @@ function FHNONLINl0()
     function prox(q, σ, xk, Δ)
 
         ProjB(y) = min.(max.(y, xk.-Δ),xk.+Δ) # define outside? 
+        @show σ/λ, λ
         c = sqrt(2*σ)
         w = xk+q
         st = zeros(size(w))
@@ -124,7 +125,7 @@ function FHNONLINl0()
         s_alg = PG, FO_options = Doptions, Rkprox = prox) 
 
 
-    options = IP_options(; verbose=2, ϵD = 1e-1, maxIter = 200)
+    options = IP_options(; verbose=10, ϵD = 1e-1, maxIter = 200)
 
     p, k, Fhist, Hhist, Comp = IntPt_TR(pi, parameters, options);# u = u, l=l, μ = 100, BarIter = 20)
 
