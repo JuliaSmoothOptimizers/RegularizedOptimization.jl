@@ -247,7 +247,6 @@ function IntPt_TR(
             #define the Hessian 
             ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
             β = power_iteration(∇²qk,randn(size(xk)))[1]
-            @show β
 
             #define inner function 
             objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)

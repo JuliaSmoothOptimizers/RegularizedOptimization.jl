@@ -97,7 +97,7 @@ function FHNONLINl1LBFGS()
 
     (~, sens)= f_smooth(pi)
     #set all options
-    Doptions=s_options(eigmax(sens'*sens); maxIter=5000, λ=λ, verbose = 0)
+    Doptions=s_options(eigmax(sens'*sens); maxIter=1000, λ=λ, verbose = 0)
     
     #all this should be unraveling in the hardproxB# code
     function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need

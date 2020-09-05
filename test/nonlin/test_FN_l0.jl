@@ -98,13 +98,13 @@ function FHNONLINl0()
     # (~, sens) = f_smooth(pi)
     (~, ~, Hessapprox) = f_smooth(pi)
     #set all options
-    Doptions=s_options(eigmax(Hessapprox); maxIter=5000, λ=λ, verbose = 0)
+    Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ, verbose = 0)
 
     #this is for l0 norm 
     function prox(q, σ, xk, Δ)
 
         ProjB(y) = min.(max.(y, xk.-Δ),xk.+Δ) # define outside? 
-        @show σ/λ, λ
+        # @show σ/λ, λ
         c = sqrt(2*σ)
         w = xk+q
         st = zeros(size(w))

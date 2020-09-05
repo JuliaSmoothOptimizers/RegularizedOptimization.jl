@@ -97,7 +97,7 @@ function FHNONLINl1()
 
     (~, ~, Hessapprox) = f_smooth(pi)
     #set all options
-    Doptions=s_options(eigmax(Hessapprox); maxIter=5000, λ=λ, verbose = 0)
+    Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ)
     
     #all this should be unraveling in the hardproxB# code
     function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need
