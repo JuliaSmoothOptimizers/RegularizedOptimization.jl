@@ -97,7 +97,7 @@ function FHNONLINl1()
 
     (~, ~, Hessapprox) = f_smooth(pi)
     #set all options
-    Doptions=s_options(eigmax(Hessapprox); maxIter=1000, λ=λ)
+    Doptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 0)
     
     #all this should be unraveling in the hardproxB# code
     function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need
@@ -128,7 +128,7 @@ function FHNONLINl1()
     parameters = IP_struct(f_smooth, h_nonsmooth;
         s_alg = PG, FO_options = Doptions, Rkprox = prox) 
 
-    options = IP_options(; verbose=2, ϵD = 1e-1)
+    options = IP_options(; verbose=10, ϵD = 1e-1)
 
     p, k, Fhist, Hhist, Comp = IntPt_TR(pi, parameters, options);# u = u, l=l, μ = 100, BarIter = 20)
 

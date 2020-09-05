@@ -15,11 +15,11 @@ end
 end
 
 @testset "LASSO" begin
-#   include("test_tr.jl")
+  include("test_tr.jl")
 end
 
 @testset "Nonlinear Problems" begin
-  include("test_nonlin.jl")
+  # include("test_nonlin.jl")
 end
 
 # @testset "Various Utilities" begin 

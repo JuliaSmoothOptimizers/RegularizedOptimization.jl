@@ -1,4 +1,4 @@
-@testset "TRNC - Linear/BPDN Examples ($compound)" for compound=1:3
+@testset "TRNC - Linear/BPDN Examples ($compound)" for compound=1
     using LinearAlgebra
     using TRNC 
     using Plots, Roots
@@ -24,6 +24,12 @@
         @test trs_v_cvx<.001
         @test tr_v_cvx < .001
 
+        @show trslim
+        @show tr
+        @show cvx
+        @show trs_v_cvx
+        @show tr_v_cvx
+
 
     end
 
@@ -38,7 +44,11 @@
         @test cvx > tr && cvx > trslim 
         @test trs_v_cvx<.001
         @test tr_v_cvx < .001
-
+        @show trslim
+        @show tr
+        @show cvx
+        @show trs_v_cvx
+        @show tr_v_cvx
 
     end
 
@@ -89,7 +99,10 @@
         @test abs(hcomp[1] - hcomp[4]) <1 #tr close to true
         @test abs(hcomp[2] - hcomp[1]) <1 #should be close to PG
         @test abs(hcomp[3] - hcomp[1]) <1*compound #should be close to CVX (scaled by number of data points)
-
+        @show xcomp
+        @show objcomp
+        @show fcomp
+        @show hcomp
 
     end
 
@@ -119,7 +132,10 @@
         @test abs(hcomp[1] - hcomp[4]) <1 #tr close to true
         @test abs(hcomp[2] - hcomp[1]) <1 #should be close to PG
         @test abs(hcomp[3] - hcomp[1]) <1*compound #should be close to CVX 
-
+        @show xcomp
+        @show objcomp
+        @show fcomp
+        @show hcomp
 
     end
 
@@ -157,6 +173,10 @@
 
         #test objective values 
         @test abs(hcomp[1] - hcomp[3]) <.1 #tr close to true
+        @show xcomp
+        @show objcomp
+        @show fcomp
+        @show hcomp
 
 
     end
