@@ -1,7 +1,6 @@
 #In this example, we demonstrate the capacity of the algorithm to minimize a nonlinear
 #model with a regularizer
 
-
 function LotkaVolt()
 
     #so we need a model solution, a gradient, and a Hessian of the system (along with some data to fit)
@@ -15,13 +14,6 @@ function LotkaVolt()
     u0 = [1.0; 1.0]
     tspan = (0.0, 10.0)
     savetime = .1
-    p = [1.5,1.0,3.0,1.0]
-
-    prob_LK = ODEProblem(LK, u0, tspan, p)
-    sol = solve(prob_LK, reltol=1e-6, saveat=savetime)
-    plot(sol, vars=(0,1),xlabel="Time", ylabel="Species Number", label="Prey", title="LK sol")
-    plot!(sol, vars=(0,2),label="Pred")
-
 
     #So this is all well and good, but we need a cost function and some parameters to fit. First, we take care of the parameters
     #We start by noting that the FHN model is actually the van-der-pol oscillator with some parameters set to zero
@@ -29,19 +21,21 @@ function LotkaVolt()
     #y' = x/μ -> here μ = 12.5
     #changing the parameters to p = [0, .08, 1.0, 0, 0]
     pars_LKs = [1/3,1/9,2/3,1/9]
-    prob_LKs = remake(prob_LK, p = pars_LKs)
+    prob_LKs = ODEProblem(LK, u0, tspan, pars_LKs)
     sol_LKs = solve(prob_LKs,reltol=1e-6, saveat=savetime)
 
     #also make some noie to fit later
     b = hcat(sol_LKs.u...)
-    noise = .1*randn(size(b))
+    noise = .5*randn(size(b))
     data = noise + b
 
-    plot(sol_LKs, vars=(0,1),xlabel="Time", ylabel="Species Number", label="Prey", title="LKs sol")
-    plot!(sol_LKs, vars=(0,2),label="Pred")
-    plot!(sol_LKs.t, data[1,:], label="Prey-data")
-    plot!(sol_LKs.t, data[2,:], label="Pred-data")
-    savefig("figs/nonlin/lotka/basic.pdf")
+    plts = plot(sol_LKs, vars=(0,1),xlabel="Time", linewidth = 4, ylabel="Species Number", label="Prey", title="LKs sol")
+    plot!(plts, sol_LKs, vars=(0,2),label="Pred", linewidth = 4)
+    plot!(plts, sol_LKs.t, data[1,:], label="Prey-data", seriestype = :scatter)
+    plot!(plts, sol_LKs.t, data[2,:], label="Pred-data", seriestype = :scatter)
+    # savefig("figs/nonlin/lotka/basic.pdf")
+    savefig(plts, "figs/nonlin/lotka/basic.tikz")
+    run(`mv figs/nonlin/lotka/basic.tex figs/nonlin/lotka/basic.tikz`)
 
 
     #so now that we have data, we want to formulate our optimization problem. This is going to be 
@@ -49,7 +43,7 @@ function LotkaVolt()
     #define your smooth objective function
     #First, make the function you are going to manipulate
     function Gradprob(p)
-        temp_prob = remake(prob_LK, p = p)
+        temp_prob = remake(prob_LKs, p = p)
         temp_sol = solve(temp_prob, reltol=1e-6, saveat=savetime)
         tot_loss = 0.0
         if any((temp_sol.retcode!= :Success for s in temp_sol))
@@ -82,10 +76,10 @@ function LotkaVolt()
 
 
     #put in your initial guesses
-    pi = .25*ones(size(p))
+    pinit = .25*ones(size(pars_LKs))
 
     # (~, sens) = f_smooth(pi)
-    (~, ~, Hessapprox) = f_smooth(pi)
+    (~, ~, Hessapprox) = f_smooth(pinit)
     #all this should be unraveling in the hardproxB# code
     function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need
 
@@ -111,49 +105,70 @@ function LotkaVolt()
     end 
 
     #set all options
-    Doptions=s_options(eigmax(Hessapprox); maxIter=5000, λ=λ, verbose = 0)
+    Doptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 0)
 
 
-    parameters = IP_struct(f_smooth, h_nonsmooth;
+    params= IP_struct(f_smooth, h_nonsmooth;
         FO_options = Doptions, s_alg=FISTA, Rkprox=prox)
 
-    options = IP_options(; verbose=2, ϵD = 1e-1, Δk = .1)
+    options = IP_options(; verbose=10, ϵD = 1e-3, Δk = .1)
 
 
 
+    #solve our problem 
+    p, k, Fhist, Hhist, Comp = IntPt_TR(pinit, params, options)
 
-    p, k, Fhist, Hhist, Comp = IntPt_TR(pi, parameters, options)
 
-    myProbLK = remake(prob_LK, p = p)
-    sol = solve(myProbLK; reltol=1e-6, saveat = savetime)
+    #create our cost function to compare 
+    cost_function = build_loss_objective(prob_LKs,Tsit5(),L2Loss(sol_LKs.t,data), maxiters=10000,verbose=false, regularizer = L1Penalty())
+    optim_result = Optim.optimize(cost_function, pinit)
+    po = optim_result.minimizer
+
+    sol = solve(remake(prob_LKs, p = p); reltol=1e-6, saveat = savetime)
+    soloptim = solve(remake(prob_LKs, p = po); reltol=1e-6, saveat = savetime)
 
     #print out l2 norm difference and plot the two x values
 
-    plot(sol_LKs, vars=(0,1), xlabel="Time", ylabel="Species Number", label="Prey", title="True vs TR")
-    plot!(sol_LKs, vars=(0,2), label="Pred")
-    plot!(sol, vars=(0,1), label="TR-Prey", marker=2)
-    plot!(sol, vars=(0,2), label="TR-Pred", marker=2)
-    plot!(sol_LKs.t, data[1,:], label="Prey-data")
-    plot!(sol_LKs.t, data[2,:], label="Pred-data")
-    savefig("figs/nonlin/lotka/solcomp.pdf")
+    plot(sol_LKs, vars=(0,1), xlabel="Time", ylabel="Species Number", label="Prey", title="True vs TR", linewidth = 4)
+    plot!(sol_LKs, vars=(0,2), label="Pred", linewidth = 4)
+    plot!(sol, vars=(0,1), label="TR-Prey", marker=2, linewidth = 4)
+    plot!(sol, vars=(0,2), label="TR-Pred", marker=2, linewidth = 4)
+    plot!(soloptim, vars=(0,1), label="TR-Prey", marker=2, linewidth = 4)
+    plot!(soloptim, vars=(0,2), label="TR-Pred", marker=2, linewidth = 4)
+    plot!(sol_LKs.t, data[1,:], label="Prey-data",  marker=2)
+    plot!(sol_LKs.t, data[2,:], label="Pred-data",  marker=2)
+    savefig("figs/nonlin/lotka/solcomp.tikz")
+    run(`mv figs/nonlin/lotka/solcomp.tex figs/nonlin/lotka/solcomp.tikz`)
 
+    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)", xaxis=:log, yaxis=:log, linewidth = 4)
+    plot!(Hhist, label="h(x)", linewidth = 4)
+    plot!(Fhist + Hhist, label="f+h", linewidth = 4)
+    savefig("figs/nonlin/lotka/objhist.tikz")
+    run(`mv figs/nonlin/lotka/objhist.tex figs/nonlin/lotka/objhist.tikz`)
 
-    plot(Fhist, xlabel="k^th index", ylabel="Function Value", title="Objective Value History", label="f(x)", xaxis=:log, yaxis=:log)
-    plot!(Hhist, label="h(x)")
-    plot!(Fhist + Hhist, label="f+h")
-    savefig("figs/nonlin/lotka/objhist.pdf")
-
-    plot(Comp, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR")
-    savefig("figs/nonlin/lotka/complexity.pdf")
+    plot(Comp, xlabel="k^th index", ylabel="Function Calls per Iteration", title="Complexity History", label="TR", linewidth = 4)
+    savefig("figs/nonlin/lotka/complexity.tikz")
+    run(`mv figs/nonlin/lotka/complexity.tex figs/nonlin/lotka/complexity.tikz`)
 
 
     fp = f_smooth(p)[1]+h_nonsmooth(p)
     fpt =  (f_smooth(pars_LKs)[1]+h_nonsmooth(pars_LKs))
+    fpo =  (f_smooth(po)[1]+h_nonsmooth(po))
 
-    objtest = (fp - fpt)/(f_smooth(pars_LKs)[1]+h_nonsmooth(pars_LKs))
-    ftest = (f_smooth(p)[1] - f_smooth(pars_LKs)[1])/f_smooth(pars_LKs)[1]
-    htest = (h_nonsmooth(p)/λ - h_nonsmooth(pars_LKs)/λ)/(h_nonsmooth(pars_LKs)/λ)
+    objtest = abs(fp - fpt)
+    partest = norm(p - pars_LKs)
 
-    return p, pars_LKs, objtest, ftest, htest, fp, fpt 
+
+    ftab = [f_smooth(p)[1], f_smooth(pars_LKs)[1], f_smooth(po)[1]]'
+    htab = [h_nonsmooth(p)/λ, h_nonsmooth(po)/λ, h_nonsmooth(pars_LKs)/λ ]'
+    objtab = [fpt, fp, fpo]'
+    vals = vcat(objtab, ftab, htab, [partest, norm(po - pars_LKs), 0 ]')
+    pars = hcat(pars_LKs, p, po)
+
+    dp, df = show_table(pars, vals)
+    _ = write_table(dp, df, "figs/nonlin/lotka/lotka")
+
+
+    return partest, objtest
 
 end

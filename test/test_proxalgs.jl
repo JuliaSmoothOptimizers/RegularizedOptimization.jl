@@ -2,7 +2,6 @@
     using LinearAlgebra
     using TRNC 
     using Plots, Printf
-    using Convex, SCS
 
     # compound = 1
     compound = 10
@@ -30,11 +29,6 @@
 
 
     β = eigmax(A'*A)
-
-    S = Variable(n)
-    opt = () -> SCS.Optimizer(verbose=false)
-    problem = minimize(sumsquares(A*S - b)/2+λ*norm(vec(S), 1))
-    solve!(problem, opt)
 
 
     function proxp!(z, α)
@@ -66,6 +60,10 @@
         return sign.(z).*max.(abs.(z).-(α)*ones(T, size(z)), zeros(T, size(z)))
     end
 
+    function funcH(x)
+        return λ*norm(x,1)
+    end
+
     TOL = R(1e-6)
 
     @testset "PG" begin
@@ -74,30 +72,43 @@
         pg_options=s_options(β; maxIter=5000, verbose=0, λ=λ, optTol=TOL)
         x = zeros(T, n)
 
-        x_out, x⁻_out, hispg_out, fevalpg_out = PG(funcF, x, proxp, pg_options)
-        x⁻, hispg, fevalpg = PG!(funcF!, x, proxp!,pg_options)
+        x_out, x⁻_out, hispg_out, fevalpg_out = PG(funcF,funcH, x, proxp, pg_options)
+        x_d, x⁻_d, hispg_d, fevalpg_d = PGLnsch(funcF, funcH, x, proxp, fista_options)
+        x⁻, hispg, fevalpg = PG!(funcF!,funcH, x, proxp!,pg_options)
 
         #check types
         @test eltype(x) == T
         @test eltype(x_out) == T
         @test eltype(x⁻_out) == T
         @test eltype(x⁻) == T
+        @test eltype(x_d) == T
+        @test eltype(x⁻_d) == T
 
         #check func evals less than maxIter 
         @test fevalpg_out <= 5000
         @test fevalpg <= 5000
+        @test fevalpg_d <= 5000
 
         #check overall accuracy
         @test norm(x - x0)/norm(x0) <= .15
         @test norm(x_out - x0)/norm(x0) <= .15 
-        @test norm(S.value - x)/norm(S.value) <=TOL*compound
-        @test norm(S.value - x_out)/norm(S.value) <=TOL*compound 
+        @test norm(x_d - x0)/norm(x0) <= .15
 
         #check relative accuracy 
-        @test norm(x_out - x⁻_out, 2) <= TOL
-        @test norm(x - x⁻, 2) <= TOL
-        @test norm(x_out - x, 2) <= TOL
-        @test norm(x⁻_out - x⁻, 2) <= TOL
+        @test norm(x_out - x⁻_out, Inf) <= TOL
+        @test norm(x - x⁻, Inf) <= TOL
+        @test norm(x⁻_d - x_d, Inf) <=TOL
+
+        @test norm(x_out - x, Inf) <= TOL
+        @test norm(x⁻_out - x⁻, Inf) <= TOL
+        @test norm(x_d - x_out, Inf) <= TOL 
+        @test norm(x_d - x, Inf) <= TOL 
+        
+
+        #test monotonicity
+        @test sum(diff(hispg_out)>.0)==length(diff(hispg_out))
+        @test sum(diff(hispg_d)>.0)==length(diff(hispg_d))
+        @test sum(diff(hispg)>.0)==length(diff(hispg))
         
 
 
@@ -108,8 +119,10 @@
         fista_options=s_options(β; maxIter=5000, verbose=0, λ=λ, optTol=TOL)
         x = zeros(T, n)
 
-        x_out, x⁻_out, hisf_out, fevalf_out = FISTA(funcF, x, proxp, fista_options)
-        x⁻, hispf, fevalf = FISTA!(funcF!, x, proxp!,fista_options)
+        x_out, x⁻_out, hisf_out, fevalf_out = FISTA(funcF,funcH, x, proxp, fista_options)
+        x_d, x⁻_d, hisf_d, fevalf_d = FISTAD(funcF, funcH, x, proxp, fista_options)
+        x⁻, hispf, fevalf = FISTA!(funcF!,funchH, x, proxp!,fista_options)
+        
 
 
         #check types
@@ -117,23 +130,34 @@
         @test eltype(x_out) == T
         @test eltype(x⁻_out) == T
         @test eltype(x⁻) == T
+        @test eltype(x_d) == T
+        @test eltype(x⁻_d) == T
 
         #check func evals less than maxIter 
         @test fevalf_out <= 5000
         @test fevalf <= 5000
+        @test fevalf_d <= 5000
 
         #check overall accuracy
         @test norm(x - x0)/norm(x0) <= .15
-        @test norm(x_out - x0)/norm(x0) <= .15 
-        @test norm(S.value - x)/norm(S.value) <=TOL*compound
-        @test norm(S.value - x_out)/norm(S.value) <=TOL*compound
+        @test norm(x_out - x0)/norm(x0) <= .15
+        @test norm(x_d - x0)/norm(x0) <= .15 
+
 
         #check relative accuracy 
         @test norm(x_out - x⁻_out, Inf) <= TOL
         @test norm(x - x⁻, Inf) <= TOL
+        @test norm(x_d - x⁻_d, Inf) <= TOL
+
+
         @test norm(x_out - x, Inf) <= TOL
         @test norm(x⁻_out - x⁻, Inf) <= TOL
+        @test norm(x_d - x_out, Inf) <= TOL 
+        @test norm(x_d - x, Inf) <= TOL
         
+        #test monotonicity
+        temp = diff(hisf_d)
+        @test sum(temp>.0)==length(temp)
 
     end
 

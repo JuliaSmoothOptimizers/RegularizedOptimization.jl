@@ -4,8 +4,11 @@ using LinearAlgebra, Printf, Roots, Random
 export TRNCPATH
 TRNCPATH = dirname(@__DIR__)
 
-include("minconf_spg/SLIM_optim.jl")
-include("DescentMethods.jl")
+include("descentopts.jl")
+include("proxgrad.jl")
+include("fista.jl")
+include("splitting.jl")
+include("linesearch.jl")
 include("Derivatives.jl")
 include("IP_alg.jl")
 
