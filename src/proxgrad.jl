@@ -144,7 +144,7 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
 		#prox step
         s⁺ = proxG(s - ν*g, λ*ν)
         #linesearch
-        while Fcn(s⁺) ≥ f + g'*(s⁺ - s) + 1/(ν*2)*norm(s⁺ - s)^2
+        while Fcn(s⁺)[1] ≥ f + g'*(s⁺ - s) + 1/(ν*2)*norm(s⁺ - s)^2
             ν *= α*ν
             s⁺ = proxG(s - ν*g, λ*ν)
             feval+=1
