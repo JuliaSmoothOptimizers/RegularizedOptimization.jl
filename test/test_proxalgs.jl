@@ -64,7 +64,7 @@
         return λ*norm(x,1)
     end
 
-    TOL = R(1e-6)
+    TOL = R(1e-10)
 
     @testset "PG" begin
 
@@ -72,8 +72,8 @@
         pg_options=s_options(β; maxIter=5000, verbose=0, λ=λ, optTol=TOL)
         x = zeros(T, n)
 
-        x_out, x⁻_out, hispg_out, fevalpg_out = PG(funcF,funcH, x, proxp, pg_options)
-        x_d, x⁻_d, hispg_d, fevalpg_d = PGLnsch(funcF, funcH, x, proxp, pg_options)
+        x_out, x⁻_out, hispg_out, fevalpg_out = PG(funcF,funcH, zeros(T, n), proxp, pg_options)
+        x_d, x⁻_d, hispg_d, fevalpg_d = PGLnsch(funcF, funcH, zeros(T, n), proxp, pg_options)
         x⁻, hispg, fevalpg = PG!(funcF!,funcH, x, proxp!,pg_options)
 
         #check types
@@ -119,8 +119,8 @@
         fista_options=s_options(β; maxIter=5000, verbose=0, λ=λ, optTol=TOL)
         x = zeros(T, n)
 
-        x_out, x⁻_out, hisf_out, fevalf_out = FISTA(funcF,funcH, x, proxp, fista_options)
-        x_d, x⁻_d, hisf_d, fevalf_d = FISTAD(funcF, funcH, x, proxp, fista_options)
+        x_out, x⁻_out, hisf_out, fevalf_out = FISTA(funcF,funcH, zeros(T, n), proxp, fista_options)
+        x_d, x⁻_d, hisf_d, fevalf_d = FISTAD(funcF, funcH, zeros(T, n), proxp, fista_options)
         x⁻, hispf, fevalf = FISTA!(funcF!,funcH, x, proxp!,fista_options)
         
 
@@ -157,7 +157,7 @@
         
         #test monotonicity
         temp = diff(hisf_d)
-        @test sum(temp>.0)==length(temp)
+        @test sum(temp.>0)==length(temp)
 
     end
 

@@ -94,7 +94,7 @@ function PG!(Fcn!,Gcn!, s,  proxG!, options)
 	#do iterations
 	while err > ε && abs(f)> 1e-16 && k < max_iter
 		copy!(s⁻,s)
-		his[k] = f + Gcn!(s⁺) #shouldn't actually modify anything, just produce output 
+		his[k] = f + Gcn!(s) #shouldn't actually modify anything, just produce output 
 		#prox step
 		BLAS.axpy!(-ν,g,s)
 		proxG!(s, ν*λ)
