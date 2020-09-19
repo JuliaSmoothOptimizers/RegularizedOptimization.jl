@@ -175,7 +175,7 @@ function FISTAD(Fcn, Gcn, s,  proxG, options)
 	#initialize parameters
 	t = R(1.0)
 	# Iteration set up
-	k = R(1.0)
+	k = 1
 	err = R(100.0)
 	his = zeros(max_iter)
 
