@@ -96,28 +96,28 @@
 
 
 	@testset "S: l1 - B2" begin
-		s⁻ = zeros(n)
-		s = deepcopy(s⁻)
+		si⁻ = zeros(n)
+		si = deepcopy(si⁻)
 
 		s_out, s⁻_out, hispg_out, feval = PG(objInner,h_obj, zeros(n), proxl1b2, Doptions)
-		# s⁻, hispg, fevals = PG!(objInner!, h_obj, s⁻, proxl1b2!, Doptions)
+		si⁻, hispg, fevals = PG!(objInner!, h_obj, si⁻, proxl1b2!, Doptions)
 
 		#check func evals less than maxIter 
 		@test feval <= 5000
-		# @test fevals <= 5000
+		@test fevals <= 5000
 
 		#check relative accuracy 
 		@test norm(s_out - s⁻_out, 2) <= TOL
-		# @test norm(s - s⁻, 2) <= TOL
+		@test norm(si - si⁻, 2) <= TOL
 
 
 		#test function outputs
 		@test hispg_out[end] < qk + hk 
-		# @test hispg[end] < qk + hk #check for decrease 
+		@test hispg[end] < qk + hk #check for decrease 
 		
 		#test for relative descent 
 		@test (hispg_out[end-1] >= hispg_out[end]) || norm(hispg_out[end-1] - hispg_out[end-1])<.001
-		# @test (hispg[end-1] >=hispg[end]) || norm(hispg[end-1] - hispg[end])<.001
+		@test (hispg[end-1] >=hispg[end]) || norm(hispg[end-1] - hispg[end])<.001
 
 	end
 
@@ -171,11 +171,11 @@
 	@testset "S: l1 - Binf" begin
 
 		
-		s⁻ = zeros(n)
-		s = copy(s⁻)
+		si⁻ = zeros(n)
+		si = copy(si⁻)
 
 		s_out, s⁻_out, hisf_out, feval = PG(objInner,h_obj, zeros(n), proxl1binf, Doptions)
-		s⁻, hisf_s, fevals = PG!(objInner!,h_obj, s⁻, proxl1binf!, Doptions)
+		si⁻, hisf_s, fevals = PG!(objInner!,h_obj, si⁻, proxl1binf!, Doptions)
 
 		#check func evals less than maxIter 
 		@test feval <= 5000
@@ -183,7 +183,7 @@
 
 		#check relative accuracy 
 		@test norm(s_out .- s⁻_out) <= TOL
-		@test norm(s .- s⁻) <= TOL
+		@test norm(si .- si⁻) <= TOL
 		
 		#test for descent 
 		@test hisf_out[end] < qk + hk 
