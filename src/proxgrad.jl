@@ -122,7 +122,12 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
 		print_freq = round(max_iter/100)
 	else
 		print_freq = 1
-	end
+    end
+    
+    T = eltype(s)
+    R = real(T)
+    
+    
 	#Problem Initialize
     m = length(s)
     α = options.α
