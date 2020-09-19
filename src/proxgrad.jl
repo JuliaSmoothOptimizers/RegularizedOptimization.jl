@@ -126,7 +126,7 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
 	#Problem Initialize
     m = length(s)
     α = options.α
-	ν = 1.0
+	ν = R(1.0)
 	λ = options.λ
 	k = 1
 	err = 100
@@ -150,7 +150,7 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
             feval+=1
         end
         # update function info
-        ν = 1.0
+        ν = R(1.0)
         f, g = Fcn(s⁺)
 
 		feval+=1

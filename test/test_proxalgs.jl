@@ -64,12 +64,12 @@
         return λ*norm(x,1)
     end
 
-    TOL = R(1e-10)
+    TOL = R(1e-6)
 
     @testset "PG" begin
 
         ## PG and PG! (in place)
-        pg_options=s_options(β; maxIter=5000, verbose=0, λ=λ, optTol=TOL)
+        pg_options=s_options(β; maxIter=100, verbose=0, λ=λ, optTol=TOL, α = R(.95))
         x = zeros(T, n)
 
         x_out, x⁻_out, hispg_out, fevalpg_out = PG(funcF,funcH, zeros(T, n), proxp, pg_options)
@@ -85,9 +85,9 @@
         @test eltype(x⁻_d) == T
 
         #check func evals less than maxIter 
-        @test fevalpg_out <= 5000
-        @test fevalpg <= 5000
-        @test fevalpg_d <= 5000
+        @test fevalpg_out <= 100
+        @test fevalpg <= 100
+        @test fevalpg_d <= 100
 
         #check overall accuracy
         @test norm(x - x0)/norm(x0) <= .15
@@ -99,16 +99,16 @@
         @test norm(x - x⁻, Inf) <= TOL
         @test norm(x⁻_d - x_d, Inf) <=TOL
 
-        @test norm(x_out - x, Inf) <= TOL
-        @test norm(x⁻_out - x⁻, Inf) <= TOL
-        @test norm(x_d - x_out, Inf) <= TOL 
-        @test norm(x_d - x, Inf) <= TOL 
+        @test norm(x_out - x, 2) <= TOL*10
+        @test norm(x⁻_out - x⁻, 2) <= TOL*10
+        @test norm(x_d - x_out, 2) <= TOL*10
+        @test norm(x_d - x, 2) <= TOL*10
         
 
         #test monotonicity
-        @test sum(diff(hispg_out)>.0)==length(diff(hispg_out))
-        @test sum(diff(hispg_d)>.0)==length(diff(hispg_d))
-        @test sum(diff(hispg)>.0)==length(diff(hispg))
+        @test sum(diff(hispg_out).<=0)==length(diff(hispg_out))
+        @test sum(diff(hispg_d).<=0)==length(diff(hispg_d))
+        @test sum(diff(hispg).<=0)==length(diff(hispg))
         
 
 
@@ -116,7 +116,7 @@
 
     @testset "FISTA" begin
         ## FISTA and FISTA! (in place)
-        fista_options=s_options(β; maxIter=5000, verbose=0, λ=λ, optTol=TOL)
+        fista_options=s_options(β; maxIter=100, verbose=0, λ=λ, optTol=TOL)
         x = zeros(T, n)
 
         x_out, x⁻_out, hisf_out, fevalf_out = FISTA(funcF,funcH, zeros(T, n), proxp, fista_options)
@@ -134,9 +134,9 @@
         @test eltype(x⁻_d) == T
 
         #check func evals less than maxIter 
-        @test fevalf_out <= 5000
-        @test fevalf <= 5000
-        @test fevalf_d <= 5000
+        @test fevalf_out <= 100
+        @test fevalf <= 100
+        @test fevalf_d <= 100
 
         #check overall accuracy
         @test norm(x - x0)/norm(x0) <= .15
@@ -145,19 +145,19 @@
 
 
         #check relative accuracy 
-        @test norm(x_out - x⁻_out, Inf) <= TOL
-        @test norm(x - x⁻, Inf) <= TOL
-        @test norm(x_d - x⁻_d, Inf) <= TOL
+        @test norm(x_out - x⁻_out, Inf) <= TOL*10
+        @test norm(x - x⁻, Inf) <= TOL*10
+        @test norm(x_d - x⁻_d, Inf) <= TOL*10
 
 
-        @test norm(x_out - x, Inf) <= TOL
-        @test norm(x⁻_out - x⁻, Inf) <= TOL
-        @test norm(x_d - x_out, Inf) <= TOL 
-        @test norm(x_d - x, Inf) <= TOL
+        @test norm(x_out - x, 2) <= TOL*10
+        @test norm(x⁻_out - x⁻, 2) <= TOL*10
+        @test norm(x_d - x_out, 2) <= TOL*10
+        @test norm(x_d - x, 2) <= TOL*10
         
         #test monotonicity
         temp = diff(hisf_d)
-        @test sum(temp.>0)==length(temp)
+        @test sum(temp.<=0)==length(temp)
 
     end
 
