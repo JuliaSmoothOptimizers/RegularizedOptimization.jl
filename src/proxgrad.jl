@@ -93,13 +93,13 @@ function PG!(Fcn!,Gcn!, s,  proxG!, options)
 	feval = 1
 	#do iterations
 	while err > ε && abs(f)> 1e-16 && k < max_iter
+		copy!(s⁻,s)
 		his[k] = f + Gcn!(s) #shouldn't actually modify anything, just produce output 
 		#prox step
 		BLAS.axpy!(-ν,g,s)
 		proxG!(s, ν*λ)
 		err = norm(s-s⁻)
 		# update function info
-		copy!(s⁻,s)
 		f= Fcn!(s,g)
 		feval+=1
 		k+=1

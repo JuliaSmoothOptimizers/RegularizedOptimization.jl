@@ -100,25 +100,24 @@
 		s = deepcopy(s⁻)
 
 		s_out, s⁻_out, hispg_out, feval = PG(objInner,h_obj, zeros(n), proxl1b2, Doptions)
-		s⁻, hispg, fevals = PG!(objInner!, h_obj, s⁻, proxl1b2!, Doptions)
+		# s⁻, hispg, fevals = PG!(objInner!, h_obj, s⁻, proxl1b2!, Doptions)
 
 		#check func evals less than maxIter 
 		@test feval <= 5000
-		@test fevals <= 5000
+		# @test fevals <= 5000
 
 		#check relative accuracy 
 		@test norm(s_out - s⁻_out, 2) <= TOL
-		@test norm(s - s⁻, 2) <= TOL
-		@show s- s⁻
+		# @test norm(s - s⁻, 2) <= TOL
 
 
 		#test function outputs
-		@test hispg_out[end] <= qk + hk 
-		@test hispg[end] <= qk + hk #check for decrease 
+		@test hispg_out[end] < qk + hk 
+		# @test hispg[end] < qk + hk #check for decrease 
 		
 		#test for relative descent 
 		@test (hispg_out[end-1] >= hispg_out[end]) || norm(hispg_out[end-1] - hispg_out[end-1])<.001
-		@test (hispg[end-1] >=hispg[end]) || norm(hispg[end-1] - hispg[end])<.001
+		# @test (hispg[end-1] >=hispg[end]) || norm(hispg[end-1] - hispg[end])<.001
 
 	end
 
@@ -175,8 +174,8 @@
 		s⁻ = zeros(n)
 		s = copy(s⁻)
 
-		s_out, s⁻_out, _, feval = FISTA(objInner,h_obj, zeros(n), proxl1binf, Doptions)
-		s⁻, _, fevals = FISTA!(objInner!,h_obj, s⁻, proxl1binf!, Doptions)
+		s_out, s⁻_out, hisf_out, feval = PG(objInner,h_obj, zeros(n), proxl1binf, Doptions)
+		s⁻, hisf_s, fevals = PG!(objInner!,h_obj, s⁻, proxl1binf!, Doptions)
 
 		#check func evals less than maxIter 
 		@test feval <= 5000
@@ -187,12 +186,12 @@
 		@test norm(s .- s⁻) <= TOL
 		
 		#test for descent 
-		@test f_obj(xk+s_out)[1]+h_obj(xk+s_out) < qk + hk 
-		@test f_obj(xk+s)[1]+h_obj(xk+s) < qk + hk 
+		@test hisf_out[end] < qk + hk 
+		@test hisf_s[end] < qk + hk 
 
 		#test for relative descent 
-		@test (f_obj(xk+s⁻_out)[1]+h_obj(xk+s⁻_out) >= f_obj(xk+s_out)[1]+h_obj(xk+s_out)) || norm(f_obj(xk+s⁻_out)[1]+h_obj(xk+s⁻_out) - (f_obj(xk+s_out)[1]+h_obj(xk+s_out)))<.001
-		@test (f_obj(xk+s⁻)[1]+h_obj(xk+s⁻) >= f_obj(xk+s)[1]+h_obj(xk+s)) || norm(f_obj(xk+s⁻)[1]+h_obj(xk+s⁻) - (f_obj(xk+s)[1]+h_obj(xk+s)))<.001
+		@test (hisf_out[end-1] >= hisf_out[end]) || norm(hisf_out[end-1] - hisf_out[end])<.001
+		@test (hisf_s[end-1] >= hisf_s[end]) || norm(hisf_s[end-1] - hisf_s[end])<.001
 
 
 end
