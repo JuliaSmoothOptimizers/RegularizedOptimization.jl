@@ -175,12 +175,12 @@ function FISTAD(Fcn, Gcn, s,  proxG, options)
 	#initialize parameters
 	t = R(1.0)
 	# Iteration set up
-	k = 1
+	k = R(1.0)
 	err = R(100.0)
 	his = zeros(max_iter)
 
 	#do iterations
-	y = (1-t)*s + t*v
+	y = (R(1.0)-t)*s + t*v
 	f, g = Fcn(y) 
 
 	feval = 1
@@ -200,12 +200,12 @@ function FISTAD(Fcn, Gcn, s,  proxG, options)
 		#update step
 		# t⁻ = t
 		# t = R(0.5)*(R(1.0) + sqrt(R(1.0)+R(4.0)*t⁻^2))
-		t = 2/(k + 1)
+		t = R(2/(k + 1))
 
 		#update y
 		# v = s⁺ + ((t⁻ - R(1.0))/t)*(s⁺-s)
-		v = s⁺ + (1/t)*(u - s⁺)
-		y = (1-t)*s⁺ + t*v #I think this shold be s⁺ since it's at the end of the loop 
+		v = s⁺ + (R(1.0)/t)*(u - s⁺)
+		y = (R(1.0)-t)*s⁺ + t*v #I think this shold be s⁺ since it's at the end of the loop 
 
 		#check convergence
 		err = norm(s - s⁺)

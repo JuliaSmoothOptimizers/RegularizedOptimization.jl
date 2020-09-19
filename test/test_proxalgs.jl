@@ -90,9 +90,9 @@
         @test fevalpg_d <= 100
 
         #check overall accuracy
-        @test norm(x - x0)/norm(x0) <= .15
-        @test norm(x_out - x0)/norm(x0) <= .15 
-        @test norm(x_d - x0)/norm(x0) <= .15
+        @test norm(x - x0)/norm(x0) <= .2
+        @test norm(x_out - x0)/norm(x0) <= .2 
+        @test norm(x_d - x0)/norm(x0) <= .2
 
         #check relative accuracy 
         @test norm(x_out - x⁻_out, Inf) <= TOL
@@ -139,9 +139,9 @@
         @test fevalf_d <= 100
 
         #check overall accuracy
-        @test norm(x - x0)/norm(x0) <= .15
-        @test norm(x_out - x0)/norm(x0) <= .15
-        @test norm(x_d - x0)/norm(x0) <= .15 
+        @test norm(x - x0)/norm(x0) <= .2
+        @test norm(x_out - x0)/norm(x0) <= .2
+        @test norm(x_d - x0)/norm(x0) <= .2 
 
 
         #check relative accuracy 
