@@ -106,9 +106,9 @@
         
 
         #test monotonicity
-        @test sum(diff(hispg_out).<=0)==length(diff(hispg_out))
-        @test sum(diff(hispg_d).<=0)==length(diff(hispg_d))
-        @test sum(diff(hispg).<=0)==length(diff(hispg))
+        @test sum(diff(hispg_out).<=TOL)==length(diff(hispg_out))
+        @test sum(diff(hispg_d).<=TOL)==length(diff(hispg_d))
+        @test sum(diff(hispg).<=TOL)==length(diff(hispg))
         
 
 
@@ -157,7 +157,7 @@
         
         #test monotonicity
         temp = diff(hisf_d)
-        @test sum(temp.<=0)==length(temp)
+        @test sum(temp.<=TOL)==length(temp)
 
     end
 
