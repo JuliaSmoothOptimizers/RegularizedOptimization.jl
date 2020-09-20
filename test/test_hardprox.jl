@@ -100,7 +100,7 @@
 		si = deepcopy(si⁻)
 
 		s_out, s⁻_out, hispg_out, feval = PG(objInner,h_obj, zeros(n), proxl1b2, Doptions)
-		si⁻, hispg, fevals = PG!(objInner!, h_obj, si⁻, proxl1b2!, Doptions)
+		si⁻, hispg, fevals = PG!(objInner!, h_obj, si, proxl1b2!, Doptions)
 
 		#check func evals less than maxIter 
 		@test feval <= 5000
@@ -175,7 +175,7 @@
 		si = copy(si⁻)
 
 		s_out, s⁻_out, hisf_out, feval = PG(objInner,h_obj, zeros(n), proxl1binf, Doptions)
-		si⁻, hisf_s, fevals = PG!(objInner!,h_obj, si⁻, proxl1binf!, Doptions)
+		si⁻, hisf_s, fevals = PG!(objInner!,h_obj, si, proxl1binf!, Doptions)
 
 		#check func evals less than maxIter 
 		@test feval <= 5000

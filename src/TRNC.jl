@@ -10,6 +10,7 @@ include("fista.jl")
 include("splitting.jl")
 include("linesearch.jl")
 include("Derivatives.jl")
+include("PowerIter.jl")
 include("IP_alg.jl")
 
 
