@@ -4,7 +4,7 @@ using TRNC
 using DifferentialEquations, Zygote, DiffEqSensitivity
 using Roots
 using DataFrames
-include("nonlintable.jl")
+include("nonlin/nonlintable.jl")
 
 	@testset "Lotka-Volterra: ||F(p) - b||² + λ||p||₁; ||⋅||₂≤Δ" begin
 

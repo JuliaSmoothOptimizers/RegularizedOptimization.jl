@@ -69,7 +69,7 @@
     @testset "PG" begin
 
         ## PG and PG! (in place)
-        pg_options=s_options(β; maxIter=100, verbose=0, λ=λ, optTol=TOL, α = R(.95))
+        pg_options=s_options(β; maxIter=100, verbose=10, λ=λ, optTol=TOL, α = R(.95))
         x = zeros(T, n)
 
         x_out, x⁻_out, hispg_out, fevalpg_out = PG(funcF,funcH, zeros(T, n), proxp, pg_options)
