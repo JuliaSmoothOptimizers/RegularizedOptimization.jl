@@ -3,21 +3,21 @@
 using TRNC
 using DifferentialEquations, Zygote, DiffEqSensitivity
 using Roots
-using DiffEqParamEstim, Optim, PenaltyFunctions, DataFrames
+using DataFrames
 include("nonlintable.jl")
 
-    @testset "Lotka-Volterra: ||F(p) - b||² + λ||p||₁; ||⋅||₂≤Δ" begin
+	@testset "Lotka-Volterra: ||F(p) - b||² + λ||p||₁; ||⋅||₂≤Δ" begin
 
-        println("Testing Lotka-Volterra; ||⋅||² + λ||⋅||₁; ||⋅||₂≤Δ")
-        include("nonlin/test_lotka.jl")
-        partest, objtest = LotkaVolt()
+		println("Testing Lotka-Volterra; ||⋅||² + λ||⋅||₁; ||⋅||₂≤Δ")
+		include("nonlin/test_lotka.jl")
+		partest, objtest = LotkaVolt()
 
-        # test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-        @test partest < .15 #15% error i guess 
-        @test objtest < .15
+		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
+		@test partest < .15 #15% error i guess 
+		@test objtest < .15
 
 
-    end
+	end
 
 
 #     @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₁; ||⋅||₂  ≤Δ" begin

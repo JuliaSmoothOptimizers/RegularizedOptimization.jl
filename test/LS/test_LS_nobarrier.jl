@@ -1,5 +1,4 @@
 # Julia Testing function
-using Plots
 include("lstable.jl")
 #Here we just try to solve the l2-norm Problem over the l1 trust region
 #######
@@ -11,7 +10,7 @@ function LSnobar(A, x0, b, b0, compound)
         g = A'*(A*x - b)
         # h = A'*A #-> BFGS later
         h(d) = A'*(A*d)
-        return f, g, h
+        return f, g
     end
     function f_pg(x)
         f = .5*norm(A*x-b)^2
@@ -20,12 +19,14 @@ function LSnobar(A, x0, b, b0, compound)
         return f, g
     end
 
-
+    λ = 1.0 
     #SPGSlim version
     function tr_norm(z,σ, x, Δ)
         return z./max(1, norm(z, 2)/σ)
     end
-
+    function proxp(z,σ)
+        return z
+    end
     function h_obj(x)
         return 0
     end
@@ -43,50 +44,49 @@ function LSnobar(A, x0, b, b0, compound)
     xi = ones(n,)/2
 
     x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, parameters_proj, options_proj)
-    xpg, xpg⁻, histpg, fevals = PGLnsrch(f_pg, h_obj, xi, (z, σ) -> tr_norm(z, σ, 1, 2), first_order_options_proj)
+    xpg, xpg⁻, histpg, fevals = PGLnsch(f_pg, h_obj, xi, proxp, first_order_options_proj)
    
     
 
-
-
+    folder = string("figs/ls/", compound, "/")
 
 
     fp = f_obj(x_pr)[1]+h_obj(p_pr)
     fpt =  (f_obj(x0)[1]+h_obj(x0))
     fpo =  (f_obj(xpg)[1]+h_obj(xpg))
 
-    objtest = abs(fp - fpt)
-    partest = norm(x_pr - x0)
+    objtest = abs(fp - fpt)/norm(A,2)
+    partest = norm(x_pr - x0)/norm(A,2)
 
 
-    ftab = [f_obj(x_pr)[1], f_obj(x0)[1], f_obj(xpg)[1]]'
-    htab = [h_obj(x_pr)/λ, h_obj(x0)/λ, h_obj(xpg)/λ ]'
-    objtab = [fpt, fp, fpo]'
+    ftab = [f_obj(x_pr)[1], f_obj(xpg)[1], f_obj(x0)[1]]'
+    htab = [h_obj(x_pr)/λ, h_obj(xpg)/λ, h_obj(x0)/λ ]'
+    objtab = [fp,fpo, fpt]'
     vals = vcat(objtab, ftab, htab, [partest, norm(xpg - x0), 0 ]')
     pars = hcat(x0, x_pr, xpg)
 
 
     xvars = [x_pr, x0, xpg]; xlabs = ["TR", "True", "PG"]
     titles = ["Basis Comparison", "ith Index", " "]
-    figen(xvars, labs, "figs/ls/xcomp", ["Basis Comparison", "ith Index", " "], 1)
+    figen(xvars, xlabs, string(folder,"xcomp"), ["Basis Comparison", "ith Index", " "], 1)
 
 
 
 
-    bvars = [A*x_pr, A*x0, A*xpg]; 
-    figen(bvars, labs, "figs/ls/bcomp", ["Signal Comparison", "ith Index", " "], 1)
+    bvars = [A*x_pr, b0, A*xpg]; 
+    figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1)
     
     
     hist = [Fhist + zeros(size(Fhist)), Fhist, zeros(size(Fhist)), 
             histpg, histpg, zeros(size(histpg))] 
     labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG", "f: PG", "h: PG"]
-    figen(hist, labs, "figs/ls/objcomp", ["Objective History", "kth Iteration", " Objective Value "], 3)
+    figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3)
  
+    figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1)
 
-    figen(hist, labs, "figs/ls/complexity", ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1)
-
+    
     dp, df = show_table(pars, vals)
-    _ = write_table(dp, df, "figs/ls/ls")
+    _ = write_table(dp, df, string(folder,"ls"))
 
 
 
