@@ -9,7 +9,7 @@ include("fig_gen.jl")
 @testset "TRNC" begin
 
 @testset "Descent Methods" begin
-	include("test_proxalgs.jl")
+	# include("test_proxalgs.jl")
 end
 
 @testset "Hard Prox Computations" begin 
@@ -21,7 +21,7 @@ end
 end
 
 @testset "Nonlinear Problems" begin
-	# include("test_nonlin.jl")
+	include("test_nonlin.jl")
 end
 
 # @testset "Various Utilities" begin 

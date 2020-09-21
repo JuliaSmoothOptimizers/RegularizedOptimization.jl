@@ -110,7 +110,7 @@ function LotkaVolt()
 
 	params= IP_struct(f_obj, h_obj; FO_options = Doptions, s_alg=PG, Rkprox=prox)
 
-	options = IP_options(; verbose=10, ϵD = 1e-3, Δk = .1)
+	options = IP_options(; verbose=0, ϵD = 1e-3, Δk = .1)
 
 
 
