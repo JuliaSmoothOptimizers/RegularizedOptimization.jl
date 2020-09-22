@@ -13,7 +13,7 @@ function LotkaVolt()
 
 	u0 = [1.0; 1.0]
 	tspan = (0.0, 10.0)
-	savetime = .1
+	savetime = .2
 
 	#So this is all well and good, but we need a cost function and some parameters to fit. First, we take care of the parameters
 	#We start by noting that the FHN model is actually the van-der-pol oscillator with some parameters set to zero
@@ -105,12 +105,12 @@ function LotkaVolt()
 	end 
 
 	#set all options
-	Doptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 10, optTol=1e-6)
+	Doptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 0, optTol=1e-6)
 
 
 	params= IP_struct(f_obj, h_obj; FO_options = Doptions, s_alg=PG, Rkprox=prox)
 
-	options = IP_options(; verbose=0, ϵD = 1e-3, Δk = .1)
+	options = IP_options(; verbose=0, ϵD = 5e-1, Δk = .1)
 
 
 
@@ -133,9 +133,11 @@ function LotkaVolt()
 
 	x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, params, options)
 
-	xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, Doptions)
 
+	poptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 0, optTol=1e-2)
+	xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, poptions)
 
+	folder = "figs/nonlin/lotka/"
 
 	probx = remake(prob_LKs, p = x_pr)
 	temp_solx = solve(probx, reltol=1e-6, saveat=savetime)
@@ -147,12 +149,36 @@ function LotkaVolt()
 	#print out l2 norm difference and plot the two x values
 	sol = hcat(sol_LKs.u...)
 	solx = hcat(temp_solx.u...)
+	solp = hcat(temp_solp.u...)
+
+	fp = f_obj(x_pr)[1]
+	fpt = f_obj(x0)[1]
+	fpo = f_obj(xpg)[1]
+
+	ftab = [fp, fpo, fpt]
+	htab = [h_obj(x_pr)/λ, h_obj(xpg)/λ, h_obj(x0)/λ ]
+
+
+	objtest = abs(fp - fpt)
+	partest = norm(x_pr - x0)
+
+	yvars = [sol[1,:], sol[2,:], solx[1,:], solx[2,:], solp[1,:], solp[2,:], data[1,:], data[2,:]]
+	labs = ["True-Pred", "True-Prey", "TR-Pred", "TR-Prey", "PG-Pred", "PG-Prey", "Data-Pred", "Data-Prey"]
+	figen_non(t, yvars, labs, string(folder, "xcomp"), ["Solution Comparison", "Time", "Population"],2)
 
 	
 
-	objtab = [fpt, fp, fpo]'
-	vals = vcat(objtab, ftab, htab, [partest, norm(po - pars_LKs), 0 ]')
-	pars = hcat(pars_LKs, p, po)
+	hist = [Fhist + Hhist, Fhist, Hhist, histpg] 
+	labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG"]
+	figen_non(1:length(hist), hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3)
+ 
+	figen_non(1:length(hist), [Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1)
+	
+	
+	
+	objtab = ftab + htab 
+	vals = vcat(objtab', ftab', htab', [partest, norm(xpg - x0), 0 ]')
+	pars = hcat(x0, x_pr, xpg)
 
 	dp, df = show_table(pars, vals)
 	_ = write_table(dp, df, "figs/nonlin/lotka/lotka")

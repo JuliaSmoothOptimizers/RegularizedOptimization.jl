@@ -104,9 +104,9 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 	figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1)
 	
 	
-	hist = [Fhist + zeros(size(Fhist)), Fhist, zeros(size(Fhist)), 
-			histpg, histpg, zeros(size(histpg))] 
-	labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG", "f: PG", "h: PG"]
+	hist = [Fhist + Hhist, Fhist, Hhist, 
+			histpg] 
+	labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG"]
 	figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3)
  
 	figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1)

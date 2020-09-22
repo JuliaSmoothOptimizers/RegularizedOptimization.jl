@@ -1,7 +1,7 @@
 using Plots
 
 
-function figen(xvars, labels, savestring, titles, typeswitch)
+function figen_non(xvars, yvars, labels, savestring, titles, typeswitch)
 
     if typeswitch == 1
 
@@ -15,11 +15,11 @@ function figen(xvars, labels, savestring, titles, typeswitch)
     end
     marks = [:circle, :cross, :rect, :xcross, :diamond, :hline, :ltriangle, :utriangle, :vline, :rect]
 
-    plot(xvars[1], label=labels[1], linewidth = 2, marker=2, linestyle = lstyle[1], markershape = marks[1], title = titles[1], xlabel=titles[2], ylabel=titles[3])
+    plot(xvars,yvars[1], label=labels[1], linewidth = 2, marker=2, linestyle = lstyle[1], markershape = marks[1], title = titles[1], xlabel=titles[2], ylabel=titles[3])
 
-    for i = 2:length(xvars)
+    for i = 2:length(yvars)
 
-        plot!(xvars[i],linestyle = lstyle[i], markershape = marks[i], label=labels[i])
+        plot!(xvars,yvars[i],linestyle = lstyle[i], markershape = marks[i], label=labels[i])
 
     end
     tkstring = string(savestring, ".tikz")

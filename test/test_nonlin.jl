@@ -5,6 +5,7 @@ using DifferentialEquations, Zygote, DiffEqSensitivity
 using Roots
 using DataFrames
 include("nonlin/nonlintable.jl")
+include("nonlinfig_gen.jl")
 
 	@testset "Lotka-Volterra: ||F(p) - b||² + λ||p||₁; ||⋅||₂≤Δ" begin
 
@@ -12,7 +13,7 @@ include("nonlin/nonlintable.jl")
 		include("nonlin/test_lotka.jl")
 		partest, objtest = LotkaVolt()
 
-		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
+		# test against true values - note that these are operator-weighted (norm(x - x0))
 		@test partest < .15 #15% error i guess 
 		@test objtest < .15
 
@@ -20,28 +21,17 @@ include("nonlin/nonlintable.jl")
 	end
 
 
-#     @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₁; ||⋅||₂  ≤Δ" begin
+    @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₁; ||⋅||₂  ≤Δ" begin
 
-#         println("Testing Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₁; ||⋅||₂  ≤Δ")
-#         include("nonlin/test_FH_l1.jl")
-#         p, ptrue, objtest, ftest, htest, fp, fpt  = FHNONLINl1()
-
-#         # test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-#         @test norm(ptrue - p) < .1 #10% error i guess 
-#         @show p
-#         @show ptrue
-#         @show fp 
-#         @show fpt 
-#         @show norm(ptrue - p)
-
-#         @test abs(objtest) < .05
-
-#         @test abs(ftest) < .05
-
-#         @test abs(htest)<.1
+        println("Testing Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₁; ||⋅||₂  ≤Δ")
+        include("nonlin/test_FH_l1.jl")
+		partest, objtest = FHNONLINl1()
+				# test against true values - note that these are operator-weighted (norm(x - x0))
+		@test partest < .15 #15% error i guess 
+		@test objtest < .15
 
 
-#     end
+    end
 
 
 #     @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₀; ||⋅||_∞  ≤Δ" begin
