@@ -110,7 +110,7 @@ function LotkaVolt()
 
 	params= IP_struct(f_obj, h_obj; FO_options = Doptions, s_alg=PG, Rkprox=prox)
 
-	options = IP_options(; verbose=0, ϵD = 5e-1, Δk = .1)
+	options = IP_options(; verbose=10, ϵD = 5e-1, Δk = .1)
 
 
 
@@ -134,7 +134,7 @@ function LotkaVolt()
 	x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, params, options)
 
 
-	poptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 0, optTol=1e-2)
+	poptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 10, optTol=1e-3)
 	xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, poptions)
 
 	folder = "figs/nonlin/lotka/"
@@ -170,9 +170,9 @@ function LotkaVolt()
 
 	hist = [Fhist + Hhist, Fhist, Hhist, histpg] 
 	labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG"]
-	figen_non(1:length(hist), hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3)
+	figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3)
  
-	figen_non(1:length(hist), [Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1)
+	figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1)
 	
 	
 	
