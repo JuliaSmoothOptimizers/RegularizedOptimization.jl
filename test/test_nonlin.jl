@@ -16,7 +16,7 @@ include("fig_gen.jl")
 
 		# test against true values - note that these are operator-weighted (norm(x - x0))
 		@test partest < .2 #20% error i guess 
-		@test objtest < .15
+		@test objtest < .2
 
 
 	end

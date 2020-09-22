@@ -246,7 +246,7 @@ function IntPt_TR(
 				(s, s⁻, _, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
 
 			#update Complexity history 
-			Complex_hist[k]+=funEvals
+			# Complex_hist[k]+=funEvals # doesn't really count because of quadratic model 
 
 			#compute qksj for the previous iterate 
 			Gν = (s⁻ - s) * β

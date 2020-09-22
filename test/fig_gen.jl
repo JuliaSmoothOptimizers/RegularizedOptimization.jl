@@ -22,9 +22,10 @@ function figen(xvars, labels, savestring, titles, typeswitch)
         plot!(xvars[i],linestyle = lstyle[i], markershape = marks[i], label=labels[i])
 
     end
-    tkstring = string(savestring, ".tikz")
-    texstring = string(savestring, ".tex")
+    tkstring = string(savestring, ".pdf")
+    # tkstring = string(savestring, ".tikz")
+    # texstring = string(savestring, ".tex")
     savefig(tkstring)
-    run(`mv $texstring $tkstring`)
+    # run(`mv $texstring $tkstring`)
 
 end
