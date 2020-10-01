@@ -84,7 +84,7 @@
 	Hess(d) = H*d
 
 	TOL = 1e-10
-	Doptions=s_options(β; maxIter=5000, verbose =10, λ=λ, optTol = TOL, xk = xk, Δ = Δ, ∇fk = ∇qk, Bk = A'*A)
+	Doptions=s_options(β; maxIter=5000, verbose =0, λ=λ, optTol = TOL, xk = xk, Δ = Δ, ∇fk = ∇qk, Bk = A'*A)
 	objInner(d) = [0.5*(d'*Hess(d)) + ∇qk'*d + qk, Hess(d) + ∇qk]
 
 	function objInner!(d, g)
@@ -191,7 +191,8 @@
 
 		#test for relative descent 
 		@test (hisf_out[end-1] >= hisf_out[end]) || norm(hisf_out[end-1] - hisf_out[end])<.001
-		@test (hisf_s[end-1] >= hisf_s[end]) || norm(hisf_s[end-1] - hisf_s[end])<.001
+		@test (hisf_s[end-1] >= hisf_s[end]) || norm(hisf_s[end-1] - hisf_s[end])<.01
+
 
 
 end
@@ -264,61 +265,67 @@ end
 
 end
 
-# δ = k 
-# Doptions.λ = δ
-# function h_objb0(x)
-# 	if norm(x,0) ≤ δ
-# 		h = 0
-# 	else
-# 		h = Inf 
-# 	end
-# 	return λ*h 
-# end
+δ = k 
+Doptions.λ = δ
+function h_objb0(x)
+	if norm(x,0) ≤ δ
+		h = 0
+	else
+		h = Inf 
+	end
+	return λ*h 
+end
 
-# function proxB0binf(q, σ)
-# 	ProjB(w) = min.(max.(w, -Δ), Δ)
+function proxB0binf(q, σ)
+	ProjB(w) = min.(max.(w, -Δ), Δ)
 
-# 	w = xk - q
-# 	p = sortperm(w,rev=true)
-# 	w[p[δ+1:end]].=0
-# 	s = ProjB(w) - xk
-# 	# w = xk - gk
-# 	# y = ProjB(w, zeros(size(xk)), Δ)
-# 	# r = (1/(2*ν))*((y - (xk - gk)).^2 - (xk - gk))
-# 	# p = sortperm(r, rev=true)
-# 	# y[p[λ+1:end]].=0
-# 	# s = y - xk
-# 	return s 
-# end
+	w = xk - q
+	p = sortperm(abs.(w),rev=true)
+	w[p[δ+1:end]].=0
+	s = ProjB(w) - xk
+	# w = xk - gk
+	# y = ProjB(w, zeros(size(xk)), Δ)
+	# r = (1/(2*ν))*((y - (xk - gk)).^2 - (xk - gk))
+	# p = sortperm(r, rev=true)
+	# y[p[λ+1:end]].=0
+	# s = y - xk
+	return s 
+end
 
 # function proxB0binf!(q, σ)
 # 	ProjB(y) = min.(max.(y, -Δ), Δ)
 
 # 	w = xk - q
-# 	pp = sortperm(w,rev=true)
+# 	pp = sortperm(abs.(w),rev=true)
 # 	w[pp[δ+1:end]].=0
-# 	w = ProjB(w) - xk
+# 	s = ProjB(w) - xk
 
-# 	q[:] = w[:]
+# 	q[:] = s[:]
 # end
 
-# @testset "S: l0 - δB0" begin #this can give you oscillatory behavior, especially in the PG! case 
+@testset "S: l0 - δB0" begin #this can give you oscillatory behavior, especially in the PG! case 
 
-# 		s⁻ = zeros(n)
-# 		s = deepcopy(s⁻)
-# 		s_out, s⁻_out, _, feval = PG(objInner,h_objb0, s⁻, proxB0binf, Doptions)
+		s⁻ = zeros(n)
+		si = deepcopy(s⁻)
+		s_out, s⁻_out, _, feval = PG(objInner,h_objb0, s⁻, proxB0binf, Doptions)
+		# si⁻, _, fevals = PG!(objInner!,h_obj, si, proxl1binf!, Doptions)
 
-# 		#check func evals less than maxIter 
-# 		@test feval <= 5000
+		#check func evals less than maxIter 
+		@test feval <= 5000
 
 		
-# 		#check relative accuracy 
-# 		@test norm(s_out .- s⁻_out) <= TOL
-# 		#problem is nonconvex
-# 		# @test norm(s .- s⁻) <= TOL || norm(s - s_out)<TOL 
+		#check relative accuracy 
+		@test norm(s_out .- s⁻_out) <= TOL
+		#problem is nonconvex
+		# @test norm(si .- si⁻) <= TOL 
+		# @test norm(si .- s_out)<TOL 
 		
-# 		@test f_obj(xk+s_out)[1]+h_obj(xk+s_out) < qk + hk 
-# 		@test f_obj(xk+s⁻_out)[1]+h_obj(xk+s⁻_out) >= f_obj(xk+s_out)[1]+h_obj(xk+s_out) 
+		@test f_obj(xk+s_out)[1]+h_obj(xk+s_out) < qk + hk 
+		# @test f_obj(xk+si)[1]+h_obj(xk+si) < qk + hk 
 
-# end
+
+		@test f_obj(xk+s⁻_out)[1]+h_obj(xk+s⁻_out) >= f_obj(xk+s_out)[1]+h_obj(xk+s_out) 
+		# @test (f_obj(xk+si⁻)[1]+h_obj(xk+si⁻) >= f_obj(xk+si)[1]+h_obj(xk+si)) || norm(f_obj(xk+si⁻)[1]+h_obj(xk+si⁻) - (f_obj(xk+si)[1]+h_obj(xk+si)))<.001
+
+end
 end

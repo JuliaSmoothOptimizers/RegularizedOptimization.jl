@@ -37,20 +37,11 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 		ProjB(w) = min.(max.(w, xk.-Δ), xk.+Δ)
 		y = q + xk 
 		#find largest entries
-		p = sortperm(y, rev = true)
+		p = sortperm(abs.(y), rev = true)
 		y[p[δ+1:end]].=0 #set smallest to zero 
 		y = ProjB(y)#put all entries in projection
 		s = y - xk 
 
-		# w = xk + q
-		# p = sortperm(w,rev=true)
-		# w[p[δ+1:end]].=0
-		# s = ProjB(w) - xk
-		# y = ProjB(w)
-		# r = (λ/σ)*.5*((y - (xk + q)).^2 - (xk + q))
-		# p = sortperm(r, rev=true)
-		# y[p[δ+1:end]].=0
-		# s = y - xk
 		return s 
 	end
 
@@ -95,21 +86,21 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 
 	xvars = [x_pr, x0, xpg]; xlabs = ["TR", "True", "PG"]
 	titles = ["Basis Comparison", "ith Index", " "]
-	figen(xvars, xlabs, string(folder,"xcomp"), ["Basis Comparison", "ith Index", " "], 1)
+	figen(xvars, xlabs, string(folder,"xcomp"), ["Basis Comparison", "ith Index", " "], 1, 0)
 
 
 
 
 	bvars = [A*x_pr, b0, A*xpg]; 
-	figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1)
+	figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1, 0)
 	
 	
 	hist = [Fhist + Hhist, Fhist, Hhist, 
 			histpg] 
 	labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG"]
-	figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3)
+	figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3, 1)
  
-	figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1)
+	figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 1)
 
 	
 	dp, df = show_table(pars, vals)

@@ -89,21 +89,21 @@ function bpdnNoBarTrl0Binf(A, x0, b, b0, compound)
 
 	xvars = [x_pr, x0, xpg]; xlabs = ["TR", "True", "PG"]
 	titles = ["Basis Comparison", "ith Index", " "]
-	figen(xvars, xlabs, string(folder,"xcomp"), ["Basis Comparison", "ith Index", " "], 1)
+	figen(xvars, xlabs, string(folder,"xcomp"), ["Basis Comparison", "ith Index", " "], 1, 0)
 
 
 
 
 	bvars = [A*x_pr, b0, A*xpg]; 
-	figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1)
+	figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1, 0)
 	
 	
 	hist = [Fhist + Hhist, Fhist, Hhist, 
 			histpg] 
 	labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG"]
-	figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3)
+	figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3, 0)
  
-	figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1)
+	figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 0)
 
 	
 	dp, df = show_table(pars, vals)

@@ -68,21 +68,21 @@ function LSnobar(A, x0, b, b0, compound)
 
     xvars = [x_pr, x0, xpg]; xlabs = ["TR", "True", "PG"]
     titles = ["Basis Comparison", "ith Index", " "]
-    figen(xvars, xlabs, string(folder,"xcomp"), ["Basis Comparison", "ith Index", " "], 1)
+    figen(xvars, xlabs, string(folder,"xcomp"), ["Basis Comparison", "ith Index", " "], 1, 0)
 
 
 
 
     bvars = [A*x_pr, b0, A*xpg]; 
-    figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1)
+    figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1, 0)
     
     
     hist = [Fhist + zeros(size(Fhist)), Fhist, zeros(size(Fhist)), 
             histpg, histpg, zeros(size(histpg))] 
     labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG", "f: PG", "h: PG"]
-    figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3)
+    figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3, 1)
  
-    figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1)
+    figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 1)
 
     
     dp, df = show_table(pars, vals)
