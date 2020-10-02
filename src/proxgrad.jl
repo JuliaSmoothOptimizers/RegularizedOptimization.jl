@@ -58,7 +58,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 	end
-	return s⁺,s, his[1:k], feval
+	return s⁺,s, his[1:k-1], feval
 end
 
 
@@ -106,7 +106,7 @@ function PG!(Fcn!,Gcn!, s,  proxG!, options)
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 	end
-	return s⁻, his[1:k], feval
+	return s⁻, his[1:k-1], feval
 end
 
 function PGLnsch(Fcn,Gcn, s,  proxG, options)
@@ -164,5 +164,5 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 	end
-	return s⁺,s, his[1:k], feval
+	return s⁺,s, his[1:k-1], feval
 end
