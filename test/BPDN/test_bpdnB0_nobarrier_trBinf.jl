@@ -1,6 +1,5 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
-using Plots
 include("bpdntable.jl")
 
 function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
@@ -24,7 +23,7 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 		if norm(x,0) ≤ δ
 			h = 0
 		else
-			h = Inf 
+			h = 1 
 		end
 		return λ*h 
 	end
@@ -58,7 +57,7 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 	function proxp(z, α)
 		y = zeros(size(z))
 		#find largest entries
-		p = sortperm(z, rev = true)
+		p = sortperm(abs.(z), rev = true)
 		y[p[δ+1:end]].=0 #set smallest to zero 
 		return y 
 	end
@@ -94,7 +93,7 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 	bvars = [A*x_pr, b0, A*xpg]; 
 	figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1, 0)
 	
-	
+	@show Fhist, Hhist
 	hist = [Fhist + Hhist, Fhist, Hhist, 
 			histpg] 
 	labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG"]

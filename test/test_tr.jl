@@ -102,27 +102,27 @@
 
 	end
 
-	# @testset "LS, h=B0; binf" begin
+	@testset "LS, h=B0; binf" begin
 
 
-	# 	include("BPDN/test_bpdnB0_nobarrier_trBinf.jl")
-	# 	ncvx_test = 0
-	# 	num_runs = 0
-	# 	partest = Array{Float64, 1}
-	# 	objtest = Array{Float64, 1}
-	# 	while ncvx_test==0 && num_runs < 9
-	# 		partest, objtest = bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
-	# 		if partest < .1
-	# 			ncvx_test=1
-	# 		end
-	# 		num_runs+=1
-	# 	end
-	# 	@printf("Non-CVX problem required %1.2d runs\n", num_runs)
-	# 	@test num_runs < 9 
-	# 	@test partest < .01 #15% error i guess 
-	# 	@test objtest < .01
+		include("BPDN/test_bpdnB0_nobarrier_trBinf.jl")
+		ncvx_test = 0
+		num_runs = 0
+		partest = Array{Float64, 1}
+		objtest = Array{Float64, 1}
+		while ncvx_test==0 && num_runs < 9
+			partest, objtest = bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
+			if partest < .1
+				ncvx_test=1
+			end
+			num_runs+=1
+		end
+		@printf("Non-CVX problem required %1.2d runs\n", num_runs)
+		@test num_runs < 9 
+		@test partest < .01 #15% error i guess 
+		@test objtest < .01
 
 
 
-	# end
+	end
 end

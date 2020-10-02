@@ -77,8 +77,8 @@ function LSnobar(A, x0, b, b0, compound)
     figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1, 0)
     
     
-    hist = [Fhist + zeros(size(Fhist)), Fhist, zeros(size(Fhist)), 
-            histpg, histpg, zeros(size(histpg))] 
+    hist = [Fhist + zeros(size(Fhist)), Fhist, ones(size(Fhist)).*(1e-16), 
+        histpg, histpg, ones(size(histpg)).*(1e-16)] 
     labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG", "f: PG", "h: PG"]
     figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3, 1)
  

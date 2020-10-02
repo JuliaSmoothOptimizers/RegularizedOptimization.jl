@@ -18,7 +18,7 @@ function figen(xvars, labels, savestring, titles, typeswitch, yax)
     if yax==0
         plot(xvars[1], label=labels[1], linewidth = 2, marker=2, linestyle = lstyle[1], markershape = marks[1], title = titles[1], xlabel=titles[2], ylabel=titles[3])
     else
-        plot(xvars[1], label=labels[1], linewidth = 2, marker=2, linestyle = lstyle[1], markershape = marks[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], yscale = :log)
+        plot(xvars[1], label=labels[1], linewidth = 2, marker=2, linestyle = lstyle[1], markershape = marks[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], yscale = :log10)
     end
 
     for i = 2:length(xvars)
@@ -26,9 +26,9 @@ function figen(xvars, labels, savestring, titles, typeswitch, yax)
         plot!(xvars[i],linestyle = lstyle[i], markershape = marks[i], label=labels[i])
 
     end
-    # tkstring = string(savestring, ".pdf")
-    tkstring = string(savestring, ".tikz")
-    texstring = string(savestring, ".tex")
+    tkstring = string(savestring, ".pdf")
+    # tkstring = string(savestring, ".tikz")
+    # texstring = string(savestring, ".tex")
     savefig(tkstring)
     # run(`mv $texstring $tkstring`)
 
