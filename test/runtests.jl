@@ -1,19 +1,22 @@
 
 using Test
-using LinearAlgebra, Random, Printf, Plots
+using LinearAlgebra, Random, Printf, Plots, Roots
+using DataFrames
+using TRNC
 pgfplotsx()
+include("nonlinfig_gen.jl")
 include("fig_gen.jl")
 
 Random.seed!(0)
 
 @testset "TRNC" begin
 
-@testset "Descent Methods" begin
-	# include("test_proxalgs.jl")
-end
+# @testset "Descent Methods" begin
+# 	# include("test_proxalgs.jl")
+# end
 
 @testset "Hard Prox Computations" begin 
-		# include("test_hardprox.jl")
+	include("test_hardprox.jl")
 end
 
 @testset "LASSO" begin
@@ -21,7 +24,7 @@ end
 end
 
 @testset "Nonlinear Problems" begin
-	# include("test_nonlin.jl")
+	include("test_nonlin.jl")
 end
 
 # @testset "Various Utilities" begin 

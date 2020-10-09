@@ -2,8 +2,8 @@
 using DataFrames
 
 function show_table(mp, vals)
-    dp = DataFrame(True = mp[:,1], TR = mp[:,2], PG = mp[:,3])
-    df = DataFrame(Function = ["\$ (f + h)(x) \$", "\$ f(x) \$", "\$ h(x) \$", "\$ ||x - x_0||_2 \$", "Obj-Evals"], TR = vals[:,1], PG = vals[:,2], True = vals[:,3])
+    dp = DataFrame(True = mp[:,1], TR = mp[:,2], MC = mp[:,3])
+    df = DataFrame(Function = ["\$ (f + h)(x) \$", "\$ f(x) \$", "\$ h(x) \$", "\$ ||x - x_0||_2 \$", "Obj-Evals"], TR = vals[:,1], MC = vals[:,2], True = vals[:,3])
     # d = crossjoin(dp, df )
     return dp, df
 end

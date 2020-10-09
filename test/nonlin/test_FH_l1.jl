@@ -95,9 +95,9 @@ function FHNONLINl1()
 
 
 	#put in your initial guesses
-	xi = pars_FH
+	xi = ones(size(pars_FH))
 
-	(~, ~, Hessapprox) = f_obj(xi)
+	(_, _, Hessapprox) = f_obj(xi)
 
 	
 	#all this should be unraveling in the hardproxB# code
@@ -129,7 +129,7 @@ function FHNONLINl1()
 
 	params= IP_struct(f_obj, h_obj; FO_options = Doptions, s_alg=PG, Rkprox=prox)
 
-	options = IP_options(; verbose=10, ϵD = 5e-1, Δk = .1)
+	options = IP_options(; verbose=10, ϵD = 1e-1, Δk = .1, maxIter = 500)
 
 
 	#solve our problem 
@@ -151,8 +151,14 @@ function FHNONLINl1()
 	x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, params, options)
 
 
-	poptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 10, optTol=1e-6)
-	xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, poptions)
+	# poptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 10, optTol=1e-6)
+	# xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, poptions)
+	popt = spg_options(;optTol=1e-1, progTol=1.0e-6, verbose=0,maxIter = 1000, memory=5)
+	# w = [10.0, 1, 1, 10.0, 10.0]
+	# w = w/norm(w)
+	funproj(d) = oneProjector(d, ones(size(xi)), 1.2)
+	# funproj(d) = proxp(d, 0.01)
+	(xpg, fsave, fevals,_,histpg) = minConf_SPG(funcF, ones(size(xi)), funproj, popt)
 
 	folder = "figs/nonlin/FH/l1/"
 
@@ -180,16 +186,21 @@ function FHNONLINl1()
 	partest = norm(x_pr - x0)
 
 	yvars = [sol[1,:], sol[2,:], solx[1,:], solx[2,:], solp[1,:], solp[2,:], data[1,:], data[2,:]]
-	labs = ["True-V", "True-W", "TR-V", "TR-W", "PG-V", "PG-W", "Data-V", "Data-W"]
-	figen_non(t, yvars, labs, string(folder, "xcomp"), ["Solution Comparison", "Time", "Voltage"],2)
+	xvars = [t, t, t, t, t, t, t, t]
+	labs = ["True-V", "True-W", "TR-V", "TR-W", "MC-V", "MC-W", "Data-V", "Data-W"]
+	figen_non(xvars, yvars, labs, string(folder, "xcomp"), ["Solution Comparison", "Time", "Voltage"],2, 1)
 
 	
 
-	hist = [Fhist + Hhist, Fhist, Hhist, histpg] 
-	labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG"]
-	figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3)
+	# hist = [Fhist + Hhist, Fhist, Hhist, histpg] 
+	# labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG"]
+	# figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3)
+	hist = [Fhist, histpg[1,:]]
+	histx = [Array(1:length(Fhist)), histpg[2,:]] 
+	labs = ["f+h: TR", "f+h: MC"]
+	figen_non(histx, hist, labs, string(folder,"objcomp"), ["Objective History", "kth Objective Evaluation", " Objective Value "], 3, 0)
  
-	figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1)
+	figen([Comp_pg], ["TR"], string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 0)
 	
 	
 	

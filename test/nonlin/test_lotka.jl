@@ -1,6 +1,5 @@
 #In this example, we demonstrate the capacity of the algorithm to minimize a nonlinear
 #model with a regularizer
-
 function LotkaVolt()
 
 	#so we need a model solution, a gradient, and a Hessian of the system (along with some data to fit)
@@ -27,7 +26,7 @@ function LotkaVolt()
 	#also make some noie to fit later
 	t = sol_LKs.t
 	b = hcat(sol_LKs.u...)
-	noise = .5*randn(size(b))
+	noise = .1*randn(size(b))
 	data = noise + b
 
 	# plts = plot(sol_LKs, vars=(0,1),xlabel="Time", linewidth = 4, ylabel="Species Number", label="Prey", title="LKs sol")
@@ -77,9 +76,9 @@ function LotkaVolt()
 
 
 	#put in your initial guesses
-	xi = .25*ones(size(x0))
+	xi = .5*ones(size(x0))
 
-	(~, ~, Hessapprox) = f_obj(xi)
+	(_, _, Hessapprox) = f_obj(xi)
 	#all this should be unraveling in the hardproxB# code
 	function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need
 
@@ -110,7 +109,7 @@ function LotkaVolt()
 
 	params= IP_struct(f_obj, h_obj; FO_options = Doptions, s_alg=PG, Rkprox=prox)
 
-	options = IP_options(; verbose=10, ϵD = 5e-1, Δk = .1)
+	options = IP_options(;verbose=0, ϵD = 1e-5, Δk = .1, maxIter = 1000)
 
 
 
@@ -130,12 +129,15 @@ function LotkaVolt()
 		return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
 	end
 
-
 	x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, params, options)
 
 
-	poptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 10, optTol=1e-3)
-	xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, poptions)
+	# poptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 10, optTol=1e-3)
+	# xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, poptions)
+	popt = spg_options(;optTol=1.0e-5, progTol=1.0e-10, verbose=0,maxIter = 1000, memory=5)
+	funproj(d) = oneProjector(d, 1.0, 1.0)
+	# funproj(d) = proxp(d, .1)
+	(xpg, fsave, funEvals,_,histpg) = minConf_SPG(funcF, xi, funproj, popt)
 
 	folder = "figs/nonlin/lotka/"
 
@@ -163,16 +165,19 @@ function LotkaVolt()
 	partest = norm(x_pr - x0)
 
 	yvars = [sol[1,:], sol[2,:], solx[1,:], solx[2,:], solp[1,:], solp[2,:], data[1,:], data[2,:]]
-	labs = ["True-Pred", "True-Prey", "TR-Pred", "TR-Prey", "PG-Pred", "PG-Prey", "Data-Pred", "Data-Prey"]
-	figen_non(t, yvars, labs, string(folder, "xcomp"), ["Solution Comparison", "Time", "Population"],2)
+	xvars = [t, t, t, t, t, t, t, t]
+	labs = ["True-Pred", "True-Prey", "TR-Pred", "TR-Prey", "MC-Pred", "MC-Prey", "Data-Pred", "Data-Prey"]
+	figen_non(xvars, yvars, labs, string(folder, "xcomp"), ["Solution Comparison", "Time", "Population"],2, 1)
 
-	
 
-	hist = [Fhist + Hhist, Fhist, Hhist, histpg] 
-	labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG"]
-	figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3)
+	# hist = [Fhist + Hhist, Fhist, Hhist, histpg] 
+	# labs = ["f+h: TR", "f: TR", "h: TR", "f+h: MC"]
+	hist = [Fhist, histpg[1,:]]
+	histx = [Array(1:length(Fhist)), histpg[2,:]] 
+	labs = ["f+h: TR", "f+h: MC"]
+	figen_non(histx, hist, labs, string(folder,"objcomp"), ["Objective History", "kth Objective Evaluation", " Objective Value "], 3, 0)
  
-	figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1)
+	figen([Comp_pg], ["TR"], string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 0)
 	
 	
 	

@@ -9,7 +9,7 @@ function LSnobar(A, x0, b, b0, compound)
         f = .5*norm(A*x-b)^2
         g = A'*(A*x - b)
         # h = A'*A #-> BFGS later
-        h(d) = A'*(A*d)
+        # h(d) = A'*(A*d)
         return f, g
     end
     function f_pg(x)
@@ -38,13 +38,17 @@ function LSnobar(A, x0, b, b0, compound)
 
     # Interior Pt Algorithm
     parameters_proj = IP_struct(f_obj, h_obj; s_alg = PG, FO_options = first_order_options_proj, Rkprox=tr_norm)
-    options_proj= IP_options(;verbose=0, ϵD=1e-4)
+    options_proj= IP_options(;verbose=0, ϵD=1e-10)
 
     #put in your initial guesses
     xi = ones(n,)/2
 
     x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, parameters_proj, options_proj)
-    xpg, xpg⁻, histpg, fevals = PGLnsch(f_pg, h_obj, xi, proxp, first_order_options_proj)
+    # xpg, xpg⁻, histpg, fevals = PGLnsch(f_pg, h_obj, xi, proxp, first_order_options_proj)
+    popt = spg_options(;optTol=1.0e-10, progTol=1.0e-10, verbose=0, memory=5, maxIter = 1000)
+	funproj(d) = oneProjector(d, 1.0, 1.0)
+	# funproj(d) = proxp(d, λ)
+	(xpg, fsave, funEvals,_,histpg) = minConf_SPG(f_pg, xi, (d)->proxp(d, 1.0), popt)
    
     
 
@@ -55,18 +59,18 @@ function LSnobar(A, x0, b, b0, compound)
     fpt =  (f_obj(x0)[1]+h_obj(x0))
     fpo =  (f_obj(xpg)[1]+h_obj(xpg))
 
-    objtest = abs(fp - fpt)/norm(A,2)
-    partest = norm(x_pr - x0)/norm(A,2)
+    objtest = abs(fp - fpt)/opnorm(A)
+    partest = norm(x_pr - x0)/opnorm(A)
 
 
     ftab = [f_obj(x_pr)[1], f_obj(xpg)[1], f_obj(x0)[1]]'
     htab = [h_obj(x_pr)/λ, h_obj(xpg)/λ, h_obj(x0)/λ ]'
     objtab = [fp,fpo, fpt]'
-    vals = vcat(objtab, ftab, htab, [partest, norm(xpg - x0), 0 ]')
+    vals = vcat(objtab, ftab, htab, [partest, norm(xpg - x0)/opnorm(A), 0 ]')
     pars = hcat(x0, x_pr, xpg)
 
 
-    xvars = [x_pr, x0, xpg]; xlabs = ["TR", "True", "PG"]
+    xvars = [x_pr, x0, xpg]; xlabs = ["TR", "True", "MC"]
     titles = ["Basis Comparison", "ith Index", " "]
     figen(xvars, xlabs, string(folder,"xcomp"), ["Basis Comparison", "ith Index", " "], 1, 0)
 
@@ -77,12 +81,15 @@ function LSnobar(A, x0, b, b0, compound)
     figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1, 0)
     
     
-    hist = [Fhist + zeros(size(Fhist)), Fhist, ones(size(Fhist)).*(1e-16), 
-        histpg, histpg, ones(size(histpg)).*(1e-16)] 
-    labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG", "f: PG", "h: PG"]
-    figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3, 1)
+    # hist = [Fhist + zeros(size(Fhist)), Fhist, ones(size(Fhist)).*(1e-16), 
+        # histpg, histpg, ones(size(histpg)).*(1e-16)] 
+    # labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG", "f: PG", "h: PG"]
+    hist = [Fhist, histpg[1,:]]
+    histx = [Array(1:length(Fhist)), histpg[2,:]] 
+    labs = ["f+h: TR", "f+h: MC"]
+    figen_non(histx, hist, labs, string(folder,"objcomp"), ["Objective History", "kth Objective Evaluation", " Objective Value "], 3, 1)
  
-    figen([Comp_pg], "TR", string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 1)
+    figen([Comp_pg], ["TR"], string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 0)
 
     
     dp, df = show_table(pars, vals)

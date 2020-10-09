@@ -1,8 +1,11 @@
 using LinearAlgebra, Random, Plots
-include("pgtest.jl")
+# include("pgtest.jl")
+# include("pgtest2.jl")
+include("panoc.jl")
+# using ProximalAlgorithms, ProximalOperators
 
 compound = 10
-T = Float32
+T = Float64
 
 
 m,n = compound*25, compound*64
@@ -34,24 +37,27 @@ m,n = compound*25, compound*64
         g = A'*r
         return norm(r)^2, g
     end
-    function proxp(z, α)
-        # y = copy(z)
-        # for i in eachindex(z)
-        #     aux = max(abs(z[i]) - α,0)
-        #     y[i] = aux/(aux+α)*z[i]
-        # end
-        # return y
-        return sign.(z).*max.(abs.(z).-(α)*ones(T, size(z)), zeros(T, size(z)))
+    function funch(x)
+        return λ*norm(x,1)
     end
 
-    problem = GD_problem(funcF, proxp, zeros(T,size(x0)), β, λ)
+    function proxp(v, α)
+        return sign.(v).*max.(abs.(v).-(α*λ)*ones(size(v)), zeros(size(v)))
+    end
 
-    setting = GD_setting(verbose = true, tol = 1e-2, maxit = 1000, freq = 1)
+    # problem = GD_problem(funcF, proxp, zeros(T,size(x0)), β, λ)
 
-    final_state_GD = GD_solver(problem, setting)
+    # setting = GD_setting(verbose = true, tol = 1e-2, maxit = 1000, freq = 1)
 
-    @show norm(final_state_GD.x - x0)
+    # final_state_GD = GD_solver(problem, setting)
+    # @show norm(final_state_GD.x - x0)
+
+    # solver = ForwardBackward(tol = 1e-15, freq = 1, verbose=true)
+    solver = PANOC(freq = 1, verbose = true)
+    x, it = solver(zeros(size(x0)), f = funcF, g = funch, prox = proxp, L = Float64(opnorm(A)^2))
+
+    @show norm(x - x0)
 
     plot(x0)
-    plot!(final_state_GD.x) #compared to other pg, seems right 
-    # plot!(x_out)
+    # plot!(final_state_GD.x) #compared to other pg, seems right 
+    plot!(x)

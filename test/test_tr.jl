@@ -1,7 +1,6 @@
 @testset "TRNC - Linear/BPDN Examples ($compound)" for compound=1
-	using LinearAlgebra
-	using TRNC 
-	using Plots, Roots
+	include("minconf_spg/SPGSlim.jl")
+	include("minconf_spg/oneProjector.jl")
 
 	# # m,n = compound*25, compound*64
 	m,n = compound*200,compound*512
@@ -9,16 +8,17 @@
 	A = 5*randn(m,n)
 	x0  = rand(n,)
 	b0 = A*x0
-	b = b0 + 0.05*randn(m,)
+	α = .01
+	b = b0 + α*randn(m,)
 
 	@testset "LS, h=0; full hessian" begin
 
 		include("LS/test_LS_nobarrier.jl")
 		partest, objtest = LSnobar(A, x0, b, b0, compound)
 
-		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-		@test partest < .01 #15% error i guess 
-		@test objtest < .01
+		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A))
+		@test partest < 5*α #same as noise levels 
+		@test objtest < α
 
 
 	end
@@ -28,9 +28,9 @@
 		include("LS/test_LS_nobarrier_lbfgs.jl")
 		partest, objtest = LSnobarBFGS(A, x0, b, b0, compound)
 
-		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-		@test partest < .01 #15% error i guess 
-		@test objtest < .01
+		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A))
+		@test partest < 5*α #50% x noise?  
+		@test objtest < α
 
 	end
 
@@ -48,7 +48,7 @@
 	A = Array(B)
 
 	b0 = A*x0
-	b = b0 + 0.005*randn(m,)
+	b = b0 + α*randn(m,)
 
 
 	@testset "LS, h=l1; binf" begin
@@ -61,9 +61,9 @@
 		include("BPDN/test_bpdn_nobarrier_trBinf.jl")
 		partest, objtest  = bpdnNoBarTrBinf(A, x0, b, b0, compound)
 
-		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-		@test partest < .01 #15% error i guess 
-		@test objtest < .01
+		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A))
+		@test partest < 10*α
+		@test objtest < α
 
 	end
 
@@ -73,9 +73,9 @@
 		include("BPDN/test_bpdn_nobarrier_trB2.jl")
 		partest, objtest = bpdnNoBarTrB2(A, x0, b, b0, compound)
 
-		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-		@test partest < .01 #15% error i guess 
-		@test objtest < .01
+		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A))
+		@test partest < 20*α #5x noise
+		@test objtest < α
 
 	end
 
@@ -96,8 +96,8 @@
 		end
 		@printf("Non-CVX problem required %1.2d runs\n", num_runs)
 		@test num_runs < 9 
-		@test partest < .01 #15% error i guess 
-		@test objtest < .01
+		@test partest < 5*α #5x noise
+		@test objtest < α
 
 
 	end
@@ -119,8 +119,8 @@
 		end
 		@printf("Non-CVX problem required %1.2d runs\n", num_runs)
 		@test num_runs < 9 
-		@test partest < .01 #15% error i guess 
-		@test objtest < .01
+		@test partest < α 
+		@test objtest < α
 
 
 
