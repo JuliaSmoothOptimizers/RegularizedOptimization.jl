@@ -65,7 +65,7 @@ function bpdnNoBarTrBinf(A, x0, b, b0, compound)
 		return norm(r)^2, g
 	end
 	function proxp(z, α)
-		return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
+		return sign.(z).*max.(abs.(z).-(λ*α)*ones(size(z)), zeros(size(z)))
 	end
 
 
@@ -73,7 +73,7 @@ function bpdnNoBarTrBinf(A, x0, b, b0, compound)
 	# xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, Doptions)
 	popt = spg_options(;optTol=1.0e-10, progTol=1.0e-10, verbose=0, memory=5, maxIter = 1000)
 	# funproj(d) = oneProjector(d, λ, sum(x0.!=0))
-	funproj(d) = proxp(d, .1)
+	funproj(d, σ) = proxp(d, σ)
 	(xpg, fsave, funEvals,_,histpg) = minConf_SPG(f_obj, xi, funproj, popt)
 
 	folder = string("figs/bpdn/LS_l1_Binf/", compound, "/")

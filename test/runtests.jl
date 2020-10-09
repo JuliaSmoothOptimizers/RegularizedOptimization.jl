@@ -16,7 +16,7 @@ Random.seed!(0)
 # end
 
 @testset "Hard Prox Computations" begin 
-	include("test_hardprox.jl")
+	# include("test_hardprox.jl")
 end
 
 @testset "LASSO" begin
@@ -24,7 +24,7 @@ end
 end
 
 @testset "Nonlinear Problems" begin
-	include("test_nonlin.jl")
+	# include("test_nonlin.jl")
 end
 
 # @testset "Various Utilities" begin 

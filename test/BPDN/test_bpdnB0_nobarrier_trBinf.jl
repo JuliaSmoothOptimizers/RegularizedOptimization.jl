@@ -66,7 +66,7 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 	# xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, Doptions)
 	popt = spg_options(;optTol=1.0e-10, progTol=1.0e-10, verbose=0, memory=5, maxIter = 1000)
 	# funproj(d) = oneProjector(d, 1.0, 1.0)
-	funproj(d) = proxp(d, δ)
+	funproj(d, δ) = proxp(d, δ)
 	(xpg, fsave, funEvals,_,histpg) = minConf_SPG(f_obj, zeros(size(xi)), funproj, popt)
 
 

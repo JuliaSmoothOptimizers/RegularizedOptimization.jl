@@ -46,7 +46,7 @@ function LSnobar(A, x0, b, b0, compound)
     x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, parameters_proj, options_proj)
     # xpg, xpg⁻, histpg, fevals = PGLnsch(f_pg, h_obj, xi, proxp, first_order_options_proj)
     popt = spg_options(;optTol=1.0e-10, progTol=1.0e-10, verbose=0, memory=5, maxIter = 1000)
-	funproj(d) = oneProjector(d, 1.0, 1.0)
+	# funproj(d) = oneProjector(d, 1.0, 1.0)
 	# funproj(d) = proxp(d, λ)
 	(xpg, fsave, funEvals,_,histpg) = minConf_SPG(f_pg, xi, (d)->proxp(d, 1.0), popt)
    
