@@ -54,11 +54,11 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 		g = A'*r
 		return norm(r)^2, g
 	end
-	function proxp(z, α)
+	function proxp(z, α) #stepsize doesn't really matter here 
 		y = z
 		#find largest entries
 		p = sortperm(abs.(z), rev = true)
-		y[p[α+1:end]].=0 #set smallest to zero
+		y[p[δ+1:end]].=0 #set smallest to zero
 		return y 
 	end
 
@@ -66,7 +66,7 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 	# xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, Doptions)
 	popt = spg_options(;optTol=1.0e-10, progTol=1.0e-10, verbose=0, memory=5, maxIter = 1000)
 	# funproj(d) = oneProjector(d, 1.0, 1.0)
-	funproj(d, δ) = proxp(d, δ)
+	funproj(d, σ) = proxp(d, σ)
 	(xpg, fsave, funEvals,_,histpg) = minConf_SPG(f_obj, zeros(size(xi)), funproj, popt)
 
 
@@ -76,8 +76,8 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 	fpt =  (f_obj(x0)[1]+h_obj(x0))
 	fpo =  (f_obj(xpg)[1]+h_obj(xpg))
 
-	objtest = abs(fp - fpt)/norm(A,2)
-	partest = norm(x_pr - x0)/norm(A,2)
+	objtest = abs(fp - fpt)/opnorm(A)
+	partest = norm(x_pr - x0)/opnorm(A)
 
 
 	ftab = [f_obj(x_pr)[1], f_obj(xpg)[1], f_obj(x0)[1]]'
@@ -89,13 +89,13 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 
 	xvars = [x_pr, x0, xpg]; xlabs = ["TR", "True", "MC"]
 	titles = ["Basis Comparison", "ith Index", " "]
-	figen(xvars, xlabs, string(folder,"xcomp"), ["Basis Comparison", "ith Index", " "], 1, 0)
+	figen(xvars, xlabs, string(folder,"xcomp"), [" ", "x - index", "  "], 1, 0)
 
 
 
 
 	bvars = [A*x_pr, b0, A*xpg]; 
-	figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1, 0)
+	figen(bvars, xlabs,string(folder,"bcomp"), [" ", "b - index", " "], 1, 0)
 	
 	# hist = [Fhist + Hhist, Fhist, Hhist, histpg] 
 	# labs = ["f+g: TR", "f: TR", "h: TR", "f+g: PG"]
@@ -105,9 +105,9 @@ function bpdnNoBarTrB0Binf(A, x0, b, b0, compound, k)
 	hist = [Fhist, histpg[1,:]]
     histx = [Array(1:length(Fhist)), histpg[2,:]] 
     labs = ["f+h: TR", "f+h: MC"]
-    figen_non(histx, hist, labs, string(folder,"objcomp"), ["Objective History", "kth Objective Evaluation", " Objective Value "], 3, 0)
+    figen_non(histx, hist, labs, string(folder,"objcomp"), [" ", "kth Objective Evaluation", "Value "], 3, 0)
  
-	figen([Comp_pg], ["TR"], string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 0)
+	figen([Comp_pg], ["TR"], string(folder,"complexity"), [" ", "kth Iteration", " Inner Prox Evaluations "], 1, 0)
 
 	
 	dp, df = show_table(pars, vals)

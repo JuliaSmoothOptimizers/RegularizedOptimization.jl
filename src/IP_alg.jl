@@ -246,7 +246,7 @@ function IntPt_TR(
 				(s, s⁻, _, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
 
 			#update Complexity history 
-			# Complex_hist[k]+=funEvals # doesn't really count because of quadratic model 
+			Complex_hist[k]+=funEvals # doesn't really count because of quadratic model 
 
 			#compute qksj for the previous iterate 
 			Gν = (s⁻ - s) * β
@@ -255,7 +255,7 @@ function IntPt_TR(
 
 
 			α = 1.0
-			mult = 0.9
+			mult = 0.5
 			# gradient for z
 			dzl = μ ./ (xk - l) - zkl - zkl .* s ./ (xk - l)
 			dzu = μ ./ (u - xk) - zku + zku .* s ./ (u - xk)

@@ -62,7 +62,7 @@
 		partest, objtest  = bpdnNoBarTrBinf(A, x0, b, b0, compound)
 
 		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A))
-		@test partest < 10*α
+		@test partest < 20*α
 		@test objtest < α
 
 	end

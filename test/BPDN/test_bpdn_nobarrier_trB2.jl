@@ -51,7 +51,7 @@ function bpdnNoBarTrB2(A, x0, b, b0, compound)
 	Doptions=s_options(β;maxIter=1000, verbose =0, λ=λ)
 
 
-	parameters = IP_struct(f_obj, h_obj; FO_options = Doptions, s_alg=FISTA, Rkprox=prox)
+	parameters = IP_struct(f_obj, h_obj; FO_options = Doptions, s_alg=PG, Rkprox=prox)
 	options = IP_options(;ϵD = 1e-10)
 	#put in your initial guesses
 	xi = ones(n,)/2
@@ -62,7 +62,7 @@ function bpdnNoBarTrB2(A, x0, b, b0, compound)
 		return norm(r)^2, g
 	end
 	function proxp(z, α)
-		return sign.(z).*max.(abs.(z).-(λ*α)*ones(size(z)), zeros(size(z)))
+		return sign.(z).*max.(abs.(z).-(α*λ*10)*ones(size(z)), zeros(size(z)))
 	end
 	# function proxp(z, α)
 	# 	x = A*z - b
@@ -83,8 +83,8 @@ function bpdnNoBarTrB2(A, x0, b, b0, compound)
 	folder = string("figs/bpdn/LS_l1_B2/", compound, "/")
 
 	fp = f_obj(x_pr)[1]+h_obj(x_pr)
-	fpt =  (f_obj(x0)[1]+h_obj(x0))
-	fpo =  (f_obj(xpg)[1]+h_obj(xpg))
+	fpt =  f_obj(x0)[1]+h_obj(x0)
+	fpo =  f_obj(xpg)[1]+h_obj(xpg)
 
 	objtest = abs(fp - fpt)/opnorm(A)
     partest = norm(x_pr - x0)/opnorm(A)
@@ -97,14 +97,13 @@ function bpdnNoBarTrB2(A, x0, b, b0, compound)
     pars = hcat(x0, x_pr, xpg)
 
 	xvars = [x_pr, x0, xpg]; xlabs = ["TR", "True", "MC"]
-	titles = ["Basis Comparison", "ith Index", " "]
-	figen(xvars, xlabs, string(folder,"xcomp"), ["Basis Comparison", "ith Index", " "], 1, 0)
+	figen(xvars, xlabs, string(folder,"xcomp"), [" ", "x - index", "  "], 1, 0)
 
 
 
 
 	bvars = [A*x_pr, b0, A*xpg]; 
-	figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1, 0)
+	figen(bvars, xlabs,string(folder,"bcomp"), [" ", "b - index", " "], 1, 0)
 
 
 	# hist = [Fhist + Hhist, histpg] 
@@ -112,11 +111,11 @@ function bpdnNoBarTrB2(A, x0, b, b0, compound)
 	hist = [Fhist, histpg[1,:]]
     histx = [Array(1:length(Fhist)), histpg[2,:]] 
     labs = ["f+h: TR", "f+h: MC"]
-    figen_non(histx, hist, labs, string(folder,"objcomp"), ["Objective History", "kth Objective Evaluation", " Objective Value "], 3, 0)
+    figen_non(histx, hist, labs, string(folder,"objcomp"), [" ", "kth Objective Evaluation", "Value "], 3, 0)
  
 	# figen(hist, labs, string(folder,"objcomp"), ["Objective History", "kth Iteration", " Objective Value "], 3, 1)
 
-	figen([Comp_pg], ["TR"], string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 0)
+	figen([Comp_pg], ["TR"], string(folder,"complexity"), [" ", "kth Iteration", " Inner Prox Evaluations "], 1, 0)
 
 
 	dp, df = show_table(pars, vals)

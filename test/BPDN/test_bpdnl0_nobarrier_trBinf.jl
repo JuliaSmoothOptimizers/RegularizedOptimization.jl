@@ -58,7 +58,7 @@ function bpdnNoBarTrl0Binf(A, x0, b, b0, compound)
     function proxp(z, α)
         y = zeros(size(z))
         for i = 1:length(z)
-            if abs(z[i])>sqrt(2*α)
+            if abs(z[i])>sqrt(2*α*λ)
                 y[i] = z[i]
             end
         end
@@ -82,7 +82,7 @@ function bpdnNoBarTrl0Binf(A, x0, b, b0, compound)
 	fpo =  (f_obj(xpg)[1]+h_obj(xpg))
 
 	objtest = abs(fp - fpt)/opnorm(A)
-	partest = norm(x_pr - x0)/opnorm(A,2)
+	partest = norm(x_pr - x0)/opnorm(A)
 
 
 	ftab = [f_obj(x_pr)[1], f_obj(xpg)[1], f_obj(x0)[1]]'
@@ -93,14 +93,14 @@ function bpdnNoBarTrl0Binf(A, x0, b, b0, compound)
 
 
 	xvars = [x_pr, x0, xpg]; xlabs = ["TR", "True", "MC"]
-	titles = ["Basis Comparison", "ith Index", " "]
-	figen(xvars, xlabs, string(folder,"xcomp"), ["Basis Comparison", "ith Index", " "], 1, 0)
+	# titles = ["Basis Comparison", "ith Index", " "]
+	figen(xvars, xlabs, string(folder,"xcomp"), [" ", "x - index", "  "], 1, 0)
 
 
 
 
 	bvars = [A*x_pr, b0, A*xpg]; 
-	figen(bvars, xlabs,string(folder,"bcomp"), ["Signal Comparison", "ith Index", " "], 1, 0)
+	figen(bvars, xlabs,string(folder,"bcomp"), [" ", "b - index", " "], 1, 0)
 	
 	
 	# hist = [Fhist + Hhist, Fhist, Hhist, histpg] 
@@ -109,10 +109,10 @@ function bpdnNoBarTrl0Binf(A, x0, b, b0, compound)
 	hist = [Fhist, histpg[1,:]]
 	histx = [Array(1:length(Fhist)), histpg[2,:]] 
 	labs = ["f+h: TR", "f+h: MC"]
-	figen_non(histx, hist, labs, string(folder,"objcomp"), ["Objective History", "kth Objective Evaluation", " Objective Value "], 3, 0)
+	figen_non(histx, hist, labs, string(folder,"objcomp"), [" ", "kth Objective Evaluation", "Value "], 3, 0)
  
 
-	figen([Comp_pg], ["TR"], string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 0)
+	figen([Comp_pg], ["TR"], string(folder,"complexity"), [" ", "kth Iteration", " Inner Prox Evaluations "], 1, 0)
 
 	
 	dp, df = show_table(pars, vals)

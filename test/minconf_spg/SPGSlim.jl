@@ -44,7 +44,7 @@ function minConf_SPG(funObj, x, funProj, options)
     #   min funObj(x) s.t. x in C
     #
     #   @funObj(x): function to minimize (returns gradient as second argument)
-    #   @funProj(x, t): function that returns projection of x onto C
+    #   @funProj(x): function that returns projection of x onto C
     #
     #   options:
     #       verbose: level of verbosity (0: no output, 1: final, 2: iter (default), 3:
@@ -97,12 +97,9 @@ function minConf_SPG(funObj, x, funProj, options)
     # Make objective function (if using numerical derivatives)
     funEvalMultiplier = 1
 
-    # Select Initial Guess to step length
-    t = options.iniStep
-
     # Evaluate Initial Point
     if ~options.feasibleInit
-        x = funProj(x, t)
+        x = funProj(x,options.iniStep)
     end
     f, g = funObj(x)
     hist = [f,1]
@@ -115,7 +112,7 @@ function minConf_SPG(funObj, x, funProj, options)
     # Optionally check optimality
     if options.testOpt && options.testInit
         projects = projects+1
-        if norm(funProj(x-g, t)-x,options.optNorm) < optTol
+        if norm(funProj(x-g, 1.0)-x,options.optNorm) < optTol
             if verbose >= 1
                 @printf("First-Order Optimality Conditions Below optTol at Initial Point, norm g is %5.4f \n", norm(g))
             end
@@ -148,11 +145,7 @@ function minConf_SPG(funObj, x, funProj, options)
 
         # Compute Projected Step
         if ~options.curvilinear
-            if i==1
-                d = funProj(x+t*d, t)-x
-            else
-                d = funProj(x+t*d, t)-x
-            end
+            d = funProj(x+d, 1.0)-x
             projects = projects+1
         end
         # Check that Progress can be made along the direction
@@ -164,6 +157,8 @@ function minConf_SPG(funObj, x, funProj, options)
             break
         end
 
+        # Select Initial Guess to step length
+        t = options.iniStep
 
         # Compute reference function for non-monotone condition
 
@@ -183,7 +178,7 @@ function minConf_SPG(funObj, x, funProj, options)
         end
         # Evaluate the Objective and Gradient at the Initial Step
         if options.curvilinear
-            x_new = funProj(x + Float32(t)*d)
+            x_new = funProj(x + Float32(t)*d, Float32(t))
             projects = projects+1
         else
             x_new = x + Float32(t)*d
@@ -235,7 +230,7 @@ function minConf_SPG(funObj, x, funProj, options)
             f_prev = f_new
             t_prev = temp
             if options.curvilinear
-                x_new = funProj(x + Float32(t)*d,Float32(t))
+                x_new = funProj(x + Float32(t)*d, Float32(t))
                 projects = projects+1
             else
                 x_new = x + Float32(t)*d
@@ -276,7 +271,7 @@ function minConf_SPG(funObj, x, funProj, options)
         end
 
         if options.testOpt
-            optCond = norm(funProj(x-g,Float32(t))-x,options.optNorm)
+            optCond = norm(funProj(x-g, 1.0)-x,options.optNorm)
             projects = projects+1
         end
         # Output Log

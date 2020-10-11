@@ -133,18 +133,18 @@ function FHNONLINl1LBFGS()
 		return fk, grad
 	end
 	function proxp(z, α)
-		return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
+		return sign.(z).*max.(abs.(z).-(α*λ/β)*ones(size(z)), zeros(size(z)))
 	end
 
 	x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, params, options)
 
 	# poptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 10, optTol=1e-6)
 	# xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, poptions)
-	popt = spg_options(;optTol=1e-1, progTol=1.0e-6, verbose=2,maxIter = 10000, memory=5)
+	popt = spg_options(;optTol=1e-1, progTol=1.0e-6, verbose=2,maxIter = 10000, memory=5, curvilinear=true)
 	# w = [10.0, 1, 1, 10.0, 10.0]
 	# w = w/norm(w)
-	funproj(d) = oneProjector(d, ones(size(xi)), 1.2)
-	# funproj(d) = proxp(d, 0.01)
+	# funproj(d) = oneProjector(d, ones(size(xi)), 1.2)
+	funproj(d, σ) = proxp(d, σ)
 	(xpg, fsave, fevals,_,histpg) = minConf_SPG(funcF, ones(size(xi)), funproj, popt)
 
 	folder = "figs/nonlin/FH/l1bfgs/"

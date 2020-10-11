@@ -87,7 +87,7 @@ function FHNONLINl0()
 	xi = ones(size(pars_FH))
 
 	(_, _, Hessapprox) = f_obj(xi)
-
+	β = eigmax(Hessapprox)
 	#this is for l0 norm 
 	function prox(q, σ, xk, Δ)
 
@@ -127,22 +127,14 @@ function FHNONLINl0()
 
 		return fk, grad
 	end
-	# function proxp(z, α)
-	# 	y = zeros(size(z))
-	# 	for i = 1:length(z)
-	# 		if abs(z[i])>sqrt(2*α)
-	# 			y[i] = z[i]
-	# 		end
-	# 	end
-	# 	return y
-	# end
-
 	function proxp(z, α)
-		y = z
-		#find largest entries
-		p = sortperm(abs.(z), rev = true)
-		y[p[α+1:end]].=0 #set smallest to zero
-		return y 
+		y = zeros(size(z))
+		for i = 1:length(z)
+			if abs(z[i])>sqrt(2*α*λ/β)
+				y[i] = z[i]
+			end
+		end
+		return y
 	end
 
 
@@ -151,9 +143,9 @@ function FHNONLINl0()
 
 	# poptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 10, optTol=1e-6)
 	# xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, poptions)
-	popt = spg_options(;optTol=1e-1, progTol=1.0e-6, verbose=2, maxIter = 10000, memory=5)
+	popt = spg_options(;optTol=1e-1, progTol=1.0e-6, verbose=2, maxIter = 1000, memory=5, curvilinear = true)
 	# funproj(d) = oneProjector(d, ones(size(xi)), 1.2)
-	funproj(d) = proxp(d, 3)
+	funproj(d, σ) = proxp(d, σ)
 	(xpg, fsave, fevals,_,histpg) = minConf_SPG(funcF, ones(size(xi)), funproj, popt)
 
 
@@ -187,7 +179,7 @@ function FHNONLINl0()
 	yvars = [sol[1,:], sol[2,:], solx[1,:], solx[2,:], solp[1,:], solp[2,:], data[1,:], data[2,:]]
 	xvars = [t, t, t, t, t, t, t, t]
 	labs = ["True-V", "True-W", "TR-V", "TR-W", "MC-V", "MC-W", "Data-V", "Data-W"]
-	figen_non(xvars, yvars, labs, string(folder, "xcomp"), ["Solution Comparison", "Time", "Voltage"],2, 1)
+	figen_non(xvars, yvars, labs, string(folder, "xcomp"), [" ", "Time", "Voltage"],2, 1)
 
 	
 	
@@ -198,9 +190,9 @@ function FHNONLINl0()
 	hist = [Fhist, histpg[1,:]]
 	histx = [Array(1:length(Fhist)), histpg[2,:]] 
 	labs = ["f+h: TR", "f+h: MC"]
-	figen_non(histx, hist, labs, string(folder,"objcomp"), ["Objective History", "kth Objective Evaluation", " Objective Value "], 3, 0)
+	figen_non(histx, hist, labs, string(folder,"objcomp"), [" ", "kth Objective Evaluation", " Value "], 3, 0)
  
-	figen([Comp_pg], ["TR"], string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 0)
+	figen([Comp_pg], ["TR"], string(folder,"complexity"), [" ", "kth Iteration", " Inner Prox Evaluations "], 1, 0)
 	
 	
 	objtab = ftab + htab 

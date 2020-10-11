@@ -126,7 +126,7 @@ function LotkaVolt()
 		return fk, grad
 	end
 	function proxp(z, α)
-		return sign.(z).*max.(abs.(z).-(α)*ones(size(z)), zeros(size(z)))
+		return sign.(z).*max.(abs.(z).-(α*λ/eigmax(Hessapprox))*ones(size(z)), zeros(size(z)))
 	end
 
 	x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, params, options)
@@ -134,8 +134,8 @@ function LotkaVolt()
 
 	# poptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 10, optTol=1e-3)
 	# xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, poptions)
-	popt = spg_options(;optTol=1.0e-5, progTol=1.0e-10, verbose=0,maxIter = 1000, memory=5)
-	funproj(d) = oneProjector(d, 1.0, 1.0)
+	popt = spg_options(;optTol=1.0e-5, progTol=1.0e-10, verbose=10,maxIter = 1000, memory=5, curvilinear=true)
+	funproj(d, σ) = proxp(d, σ)
 	# funproj(d) = proxp(d, .1)
 	(xpg, fsave, funEvals,_,histpg) = minConf_SPG(funcF, xi, funproj, popt)
 
@@ -167,7 +167,7 @@ function LotkaVolt()
 	yvars = [sol[1,:], sol[2,:], solx[1,:], solx[2,:], solp[1,:], solp[2,:], data[1,:], data[2,:]]
 	xvars = [t, t, t, t, t, t, t, t]
 	labs = ["True-Pred", "True-Prey", "TR-Pred", "TR-Prey", "MC-Pred", "MC-Prey", "Data-Pred", "Data-Prey"]
-	figen_non(xvars, yvars, labs, string(folder, "xcomp"), ["Solution Comparison", "Time", "Population"],2, 1)
+	figen_non(xvars, yvars, labs, string(folder, "xcomp"), [" ", "Time", "Population"],2, 1)
 
 
 	# hist = [Fhist + Hhist, Fhist, Hhist, histpg] 
@@ -175,9 +175,9 @@ function LotkaVolt()
 	hist = [Fhist, histpg[1,:]]
 	histx = [Array(1:length(Fhist)), histpg[2,:]] 
 	labs = ["f+h: TR", "f+h: MC"]
-	figen_non(histx, hist, labs, string(folder,"objcomp"), ["Objective History", "kth Objective Evaluation", " Objective Value "], 3, 0)
+	figen_non(histx, hist, labs, string(folder,"objcomp"), [" ", "kth Objective Evaluation", " Value "], 3, 0)
  
-	figen([Comp_pg], ["TR"], string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 0)
+	figen([Comp_pg], ["TR"], string(folder,"complexity"), [" ", "kth Iteration", " Inner Prox Evaluations "], 1, 0)
 	
 	
 	
