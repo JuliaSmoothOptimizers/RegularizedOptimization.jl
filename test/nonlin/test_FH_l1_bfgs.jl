@@ -192,7 +192,7 @@ function FHNONLINl1LBFGS()
 	
 	
 	objtab = ftab + htab 
-	vals = vcat(objtab', ftab', htab', [partest, norm(xpg - x0), 0 ]', [sum(Comp_pg), fevals, 0]')
+	vals = vcat(objtab', ftab', htab', [partest, norm(xpg - x0), 0 ]', [length(Fhist), fevals, 0]')
 	pars = hcat(x0, x_pr, xpg)
 
 	dp, df = show_table(pars, vals)
