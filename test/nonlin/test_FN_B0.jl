@@ -80,9 +80,9 @@ function FHNONLINB0()
 	λ = 1.0
 	function h_obj(x)
 		if norm(x,0) ≤ 2
-			h = 1
+			h = 0
 		else
-			h = 2 
+			h = 1 
 		end
 		return λ*h 
 	end
@@ -111,7 +111,7 @@ function FHNONLINB0()
 
 	params= IP_struct(f_obj, h_obj; FO_options = Doptions, s_alg=PG, Rkprox=prox)
 
-	options = IP_options(; maxIter = 500, verbose=10, ϵD = 1e-1, Δk = .1)
+	options = IP_options(; maxIter = 500, verbose=10, ϵD = 1e-1, Δk = .01)
 	#solve our problem 
 	function funcF(x)
 		fk = Gradprob(x)

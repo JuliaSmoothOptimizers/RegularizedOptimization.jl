@@ -16,11 +16,11 @@ Random.seed!(0)
 # end
 
 @testset "Hard Prox Computations" begin 
-	include("test_hardprox.jl")
+	# include("test_hardprox.jl")
 end
 
 @testset "LASSO" begin
-	include("test_tr.jl")
+	# include("test_tr.jl")
 end
 
 @testset "Nonlinear Problems" begin

@@ -209,7 +209,7 @@ function IntPt_TR(
 		end
 
 		if length(Fsmth_out)==2
-			H = FO_Options.β*H 
+			H = FO_options.β*H 
 		end 
 		
 		#keep track of old subgradient for LnSrch purposes

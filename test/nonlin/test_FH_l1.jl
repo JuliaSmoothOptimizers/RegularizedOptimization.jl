@@ -125,7 +125,7 @@ function FHNONLINl1()
 	end 
 
 	#set all options
-	Doptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 0, optTol = 1e-6)
+	Doptions=s_options(β; λ=λ, verbose = 0, optTol = 1e-6)
 
 	params= IP_struct(f_obj, h_obj; FO_options = Doptions, s_alg=PG, Rkprox=prox)
 
@@ -145,7 +145,7 @@ function FHNONLINl1()
 		return fk, grad
 	end
 	function proxp(z, α)
-		return sign.(z).*max.(abs.(z).-(α*λ/β)*ones(size(z)), zeros(size(z)))
+		return sign.(z).*max.(abs.(z).-(α*λ/β/10.0)*ones(size(z)), zeros(size(z)))
 	end
 
 	x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, params, options)
@@ -153,7 +153,7 @@ function FHNONLINl1()
 
 	# poptions=s_options(eigmax(Hessapprox); λ=λ, verbose = 10, optTol=1e-6)
 	# xpg, xpg⁻, histpg, fevals = PGLnsch(funcF, h_obj, xi, proxp, poptions)
-	popt = spg_options(;optTol=1e-1, progTol=1.0e-6, verbose=0,maxIter = 1000, memory=5, curvilinear=true)
+	popt = spg_options(;optTol=1e-1, progTol=1.0e-6, verbose=10,maxIter = 1000, memory=5, curvilinear=true)
 	# w = [10.0, 1, 1, 10.0, 10.0]
 	# w = w/norm(w)
 	# funproj(d) = oneProjector(d, ones(size(xi)), 1.2)
@@ -188,7 +188,7 @@ function FHNONLINl1()
 	yvars = [sol[1,:], sol[2,:], solx[1,:], solx[2,:], solp[1,:], solp[2,:], data[1,:], data[2,:]]
 	xvars = [t, t, t, t, t, t, t, t]
 	labs = ["True-V", "True-W", "TR-V", "TR-W", "MC-V", "MC-W", "Data-V", "Data-W"]
-	figen_non(xvars, yvars, labs, string(folder, "xcomp"), ["Solution Comparison", "Time", "Voltage"],2, 1)
+	figen_non(xvars, yvars, labs, string(folder, "xcomp"), [" ", "Time", "Voltage"],2, 1)
 
 	
 
@@ -198,9 +198,9 @@ function FHNONLINl1()
 	hist = [Fhist, histpg[1,:]]
 	histx = [Array(1:length(Fhist)), histpg[2,:]] 
 	labs = ["f+h: TR", "f+h: MC"]
-	figen_non(histx, hist, labs, string(folder,"objcomp"), ["Objective History", "kth Objective Evaluation", " Objective Value "], 3, 0)
+	figen_non(histx, hist, labs, string(folder,"objcomp"), [" ", "kth Objective Evaluation", " Value "], 3, 0)
  
-	figen([Comp_pg], ["TR"], string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 0)
+	figen([Comp_pg], ["TR"], string(folder,"complexity"), [" ", "kth Iteration", " Inner Prox Evaluations "], 1, 0)
 	
 	
 	

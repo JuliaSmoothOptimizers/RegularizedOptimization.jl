@@ -78,7 +78,7 @@ function FHNONLINl1LBFGS()
 	end
 
 
-	λ = .1
+	λ = .5
 	function h_obj(x)
 		return λ*norm(x,1) 
 	end
@@ -117,7 +117,7 @@ function FHNONLINl1LBFGS()
 
 	params= IP_struct(f_obj, h_obj; FO_options = Doptions, s_alg=PG, Rkprox=prox)
 
-	options = IP_options(;maxIter = 500, verbose=10, ϵD = 1e-1, Δk = .1)
+	options = IP_options(;maxIter = 250, verbose=10, ϵD = 1e-1, Δk = .01)
 
 
 	#solve our problem 
@@ -133,7 +133,7 @@ function FHNONLINl1LBFGS()
 		return fk, grad
 	end
 	function proxp(z, α)
-		return sign.(z).*max.(abs.(z).-(α*λ/β)*ones(size(z)), zeros(size(z)))
+		return sign.(z).*max.(abs.(z).-(α*λ*.1)*ones(size(z)), zeros(size(z)))
 	end
 
 	x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, params, options)
@@ -184,7 +184,7 @@ function FHNONLINl1LBFGS()
 	hist = [Fhist, histpg[1,:]]
 	histx = [Array(1:length(Fhist)), histpg[2,:]] 
 	labs = ["f+h: TR", "f+h: MC"]
-	figen_non(histx, hist, labs, string(folder,"objcomp"), ["Objective History", "kth Objective Evaluation", " Objective Value "], 3, 0)
+	figen_non(histx, hist, labs, string(folder,"objcomp"), ["Objective History", "kth Objective Evaluation", " Value "], 3, 0)
  
 	figen([Comp_pg], ["TR"], string(folder,"complexity"), ["Complexity History", "kth Iteration", " Objective Function Evaluations "], 1, 0)
 	

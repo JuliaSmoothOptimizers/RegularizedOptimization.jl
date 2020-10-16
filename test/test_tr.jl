@@ -119,7 +119,7 @@
 		end
 		@printf("Non-CVX problem required %1.2d runs\n", num_runs)
 		@test num_runs < 9 
-		@test partest < α 
+		@test partest < 5*α 
 		@test objtest < α
 
 
