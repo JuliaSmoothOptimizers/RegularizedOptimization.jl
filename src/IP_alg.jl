@@ -208,9 +208,6 @@ function IntPt_TR(
 			H = Bk 
 		end
 
-		if length(Fsmth_out)==2
-			H = FO_options.β*H 
-		end 
 		
 		#keep track of old subgradient for LnSrch purposes
 		Gν =  ∇fk
