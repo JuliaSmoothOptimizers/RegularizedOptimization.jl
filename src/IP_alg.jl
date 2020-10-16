@@ -187,7 +187,7 @@ function IntPt_TR(
 			(fk, ∇fk, Bk) = Fsmth_out
 		elseif length(Fsmth_out)==2 && k_i==0
 			(fk, ∇fk) = Fsmth_out
-			Bk = LBFGSOperator(size(xk,1))
+			Bk = FO_options.β*LBFGSOperator(size(xk,1))
 		elseif length(Fsmth_out)==2
 			(fk, ∇fk) = Fsmth_out
 			# Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
@@ -233,7 +233,7 @@ function IntPt_TR(
 
 			#define the Hessian 
 			∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
-			β = power_iteration(∇²qk,randn(size(xk)))[1]
+			β = power_iteration(∇²qk,randn(size(xk)))[1] #computes ||B_k||_2^2
 
 			#define inner function 
 			objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
@@ -274,7 +274,10 @@ function IntPt_TR(
 			mk(d) = 0.5*(d'*∇²qk(d)) + ∇qk'*d + qk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
 			# look up how to test if two functions are equivalent? 
 			ρk = (ObjOuter(xk) - ObjOuter(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
-
+			@show ObjOuter(xk)
+			@show ObjOuter(xk + s)
+			@show mk(zeros(size(xk)))
+			@show mk(s)
 			if (ρk > η2)
 				TR_stat = "increase"
 				Δk = max(Δk, γ * norm(s, 1)) #for safety
