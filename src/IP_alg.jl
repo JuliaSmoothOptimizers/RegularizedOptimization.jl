@@ -182,12 +182,12 @@ function IntPt_TR(
 		#main algorithm initialization
 		Fsmth_out = f_obj(xk)
 		#test number of outputs to see if user provided a hessian
-		# (fk, ∇fk, H) = hessdeter(Fsmth_out, xk, k_i, FO_options)
+
 		if length(Fsmth_out)==3
 			(fk, ∇fk, Bk) = Fsmth_out
 		elseif length(Fsmth_out)==2 && k_i==0
 			(fk, ∇fk) = Fsmth_out
-			Bk = FO_options.β*LBFGSOperator(size(xk,1))
+			Bk = LBFGSOperator(size(xk,1))
 		elseif length(Fsmth_out)==2
 			(fk, ∇fk) = Fsmth_out
 			# Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
@@ -207,6 +207,10 @@ function IntPt_TR(
 		else 
 			H = Bk 
 		end
+
+		if length(Fsmth_out)==2
+			H = FO_Options.β*H 
+		end 
 		
 		#keep track of old subgradient for LnSrch purposes
 		Gν =  ∇fk
