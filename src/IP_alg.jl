@@ -245,7 +245,7 @@ function IntPt_TR(
 				FO_options.λ = Δk * FO_options.β
 			end
 			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
-			plot(hist)
+			@show hist
 			#update Complexity history 
 			Complex_hist[k]+=funEvals # doesn't really count because of quadratic model 
 
