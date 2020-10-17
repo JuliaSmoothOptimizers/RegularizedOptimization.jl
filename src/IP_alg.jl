@@ -282,7 +282,7 @@ function IntPt_TR(
 			@show f_obj(xk)[1]
 			@show h_obj(xk)
 			@show f_obj(xk+s)[1]
-			@show h_obj(x+s)
+			@show h_obj(xk+s)
 			if (ρk > η2)
 				TR_stat = "increase"
 				Δk = max(Δk, γ * norm(s, 1)) #for safety
