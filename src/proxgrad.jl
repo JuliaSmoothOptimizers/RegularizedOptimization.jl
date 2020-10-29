@@ -42,6 +42,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 
 	# Iteration set up
 	f, g = Fcn(s⁺)
+	fstart = f
 	feval = 1
 	#do iterations
 	while err >= ε && k<max_iter && abs(f)>1e-16
@@ -58,6 +59,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 	end
+	@show fstart, f
 	return s⁺,s, his[1:k-1], feval
 end
 
