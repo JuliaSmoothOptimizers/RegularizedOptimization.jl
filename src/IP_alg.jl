@@ -224,9 +224,6 @@ function IntPt_TR(
 			k = k + 1  #outer
 			TR_stat = ""
 			x_stat = ""
-			Fobj_hist[k] = fk
-			Hobj_hist[k] = h_obj(xk)
-			Complex_hist[k]+=1
 
 			#store previous iterates
 			xk⁻ = xk 
@@ -350,6 +347,9 @@ function IntPt_TR(
 				# k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
 				k, μ, kktNorm[1],  kktNorm[2],  kktNorm[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
 
+			Fobj_hist[k] = fk
+			Hobj_hist[k] = h_obj(xk)
+			Complex_hist[k]+=1
 			# if k % ptf == 0
 			# 	FO_options.optTol = FO_options.optTol * 0.1
 			# end
