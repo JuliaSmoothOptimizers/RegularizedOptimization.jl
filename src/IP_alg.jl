@@ -245,7 +245,7 @@ function IntPt_TR(
 				FO_options.λ = Δk * FO_options.β
 			end
 			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
-			@show hist
+			# @show hist
 			#update Complexity history 
 			Complex_hist[k]+=funEvals # doesn't really count because of quadratic model 
 
@@ -275,14 +275,14 @@ function IntPt_TR(
 			mk(d) = 0.5*(d'*∇²qk(d)) + ∇qk'*d + qk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
 			# look up how to test if two functions are equivalent? 
 			ρk = (ObjOuter(xk) - ObjOuter(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
-			@show ObjOuter(xk)
-			@show ObjOuter(xk + s)
-			@show mk(zeros(size(xk)))
-			@show mk(s)
-			@show f_obj(xk)[1]
-			@show h_obj(xk)
-			@show f_obj(xk+s)[1]
-			@show h_obj(xk+s)
+			# @show ObjOuter(xk)
+			# @show ObjOuter(xk + s)
+			# @show mk(zeros(size(xk)))
+			# @show mk(s)
+			# @show f_obj(xk)[1]
+			# @show h_obj(xk)
+			# @show f_obj(xk+s)[1]
+			# @show h_obj(xk+s)
 			if (ρk > η2)
 				TR_stat = "increase"
 				Δk = max(Δk, γ * norm(s, 1)) #for safety
