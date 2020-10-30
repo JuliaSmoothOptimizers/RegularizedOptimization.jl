@@ -212,6 +212,8 @@ function IntPt_TR(
 		#keep track of old subgradient for LnSrch purposes
 		Gν =  ∇fk
 		s = zeros(size(xk))
+		dzl = zeros(size(zkl))
+		dzu = zeros(size(zku))
 		∇qksj = copy(∇qk) 
 		g_old = ((Gν - ∇qksj) + ∇qk) #this is just ∇fk at first 
 
