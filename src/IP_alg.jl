@@ -228,6 +228,9 @@ function IntPt_TR(
 			#store previous iterates
 			xk⁻ = xk 
 			∇fk⁻ = ∇fk
+			sk⁻ = s
+			dzl⁻ = dzl 
+			dzu⁻ = dzu 
 
 			#define the Hessian 
 			∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
@@ -300,17 +303,17 @@ function IntPt_TR(
 
 				#changed back linesearch
 				α = 1.0
-				#this needs to be the previous search direction
-				while(ObjOuter(xk + α*s) > ObjOuter(xk) + σ*α*(g_old'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
+				#this needs to be the previous search direction and iterate? 
+				while(ObjOuter(xk + α*sk⁻) > ObjOuter(xk) + σ*α*(g_old'*sk⁻) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
 					α = α*mult
 					# @show α
 				end
 				# α = 0.1 #was 0.1; can be whatever
 				#step should be rejected
-				xk = xk + α*s
-				zkl = zkl + α*dzl
-				zku = zku + α*dzu
-				Δk = α * norm(s, 1)
+				xk = xk + α*sk⁻
+				zkl = zkl + α*dzl⁻
+				zku = zku + α*dzu⁻
+				Δk = α * norm(sk⁻, 1)
 			end
 
 			Fsmth_out = f_obj(xk)
