@@ -271,7 +271,7 @@ function IntPt_TR(
 			#define model and update ρ
 			mk(d) = 0.5*(d'*∇²qk(d)) + ∇qk'*d + qk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
 			# look up how to test if two functions are equivalent? 
-			ρk = (ObjOuter(xk) - ObjOuter(xk + s) + 1e-4) / (mk(zeros(size(xk))) - mk(s) + 1e-4)
+			ρk = (ObjOuter(xk) - ObjOuter(xk + s)) / (mk(zeros(size(xk))) - mk(s))
 			@show ObjOuter(xk)
 			@show ObjOuter(xk + s)
 			@show mk(zeros(size(xk)))
