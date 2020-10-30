@@ -53,6 +53,9 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		s⁺ = proxG(s - ν*g, λ*ν)
 		# update function info
 		f, g = Fcn(s⁺)
+		if f>fstart
+			s⁺ = s
+		end
 		feval+=1
 		err = norm(s-s⁺)
 		k+=1
