@@ -62,7 +62,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		err = norm(s-s⁺)
 		k+=1
 		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
+		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, f, err, ν)
 	end
 	@show fstart - f
 	return s⁺,s, his[1:k-1], feval
