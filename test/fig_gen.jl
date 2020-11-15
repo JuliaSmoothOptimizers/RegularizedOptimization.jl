@@ -15,7 +15,7 @@ function figen(xvars, labels, savestring, titles, typeswitch, yax)
             push!(lstyle, :dash)
             push!(marks, :none)
         elseif occursin("MC", labels[i])
-            push!(lstyle, :dot)
+            push!(lstyle, :dashdotdot)
             push!(marks,  :none)
         else
             push!(lstyle, :none)
