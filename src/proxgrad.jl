@@ -55,7 +55,8 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		f, g = Fcn(s⁺)
 		if f>fstart || isnan(norm(s⁺))
 			s⁺ = s
-			break
+			ν = .1*ν
+			err = 100
 		end
 		feval+=1
 		err = norm(s-s⁺)
