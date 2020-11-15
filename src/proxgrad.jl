@@ -53,14 +53,14 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		s⁺ = proxG(s - ν*g, λ*ν)
 		# update function info
 		f, g = Fcn(s⁺)
+		feval+=1
+		err = norm(s-s⁺)
+		k+=1
 		if f>fstart || isnan(norm(s⁺))
 			s⁺ = s
 			ν = .1*ν
 			err = 100
 		end
-		feval+=1
-		err = norm(s-s⁺)
-		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, f, err, ν)
 	end
