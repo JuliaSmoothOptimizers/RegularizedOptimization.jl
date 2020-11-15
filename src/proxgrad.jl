@@ -53,7 +53,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		s⁺ = proxG(s - ν*g, λ*ν)
 		# update function info
 		f, g = Fcn(s⁺)
-		if f>fstart
+		if f>fstart || isnan(norm(s⁺))
 			s⁺ = s
 			break
 		end
