@@ -194,7 +194,8 @@ function IntPt_TR(
 		elseif length(Fsmth_out)==2
 			(fk, ∇fk) = Fsmth_out
 			# Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
-			push!(Bk, s,  ∇fk-∇fk⁻)
+			# push!(Bk, s,  ∇fk-∇fk⁻)
+			push!(Bk, xk,  ∇fk-∇fk⁻)
 		else
 			# throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
 			error("Smooth Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
@@ -334,7 +335,8 @@ function IntPt_TR(
 				(fk, ∇fk, Bk) = Fsmth_out
 			elseif length(Fsmth_out)==2
 				(fk, ∇fk) = Fsmth_out
-				push!(Bk, s, ∇fk-∇fk⁻)
+				# push!(Bk, s, ∇fk-∇fk⁻)
+				push!(Bk, xk, ∇fk-∇fk⁻)
 			else
 				error("Smooth function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
 			end
