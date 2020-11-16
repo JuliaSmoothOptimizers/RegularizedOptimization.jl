@@ -201,9 +201,10 @@ function IntPt_TR(
 		qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
 		∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
 
-		#restored
+		#changed for now to have full representation
 		if isempty(methods(Bk))
-			H(d) = Bk*d
+			# H(d) = Bk*d
+			H = Bk
 		else 
 			H = Bk 
 		end
@@ -236,11 +237,14 @@ function IntPt_TR(
 			dzu⁻ = dzu 
 
 			#define the Hessian 
-			∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
-			β = power_iteration(∇²qk,randn(size(xk)))[1] #computes ||B_k||_2^2
+			# ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+			# β = power_iteration(∇²qk,randn(size(xk)))[1] #computes ||B_k||_2^2
+			∇²qk = H + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
+			β = eigmax(∇²qk) #make a Matrix? 
 
 			#define inner function 
-			objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
+			# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
+			objInner(d) = [0.5*(d'*∇²qk*d) + ∇qk'*d + qk, ∇²qk*d + ∇qk] #(mkB, ∇mkB)
 			s⁻ = zeros(size(xk))
 			
 			FO_options.β = β
@@ -275,7 +279,8 @@ function IntPt_TR(
 			dzu = dzu * α
 
 			#define model and update ρ
-			mk(d) = 0.5*(d'*∇²qk(d)) + ∇qk'*d + qk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
+			# mk(d) = 0.5*(d'*∇²qk(d)) + ∇qk'*d + qk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
+			mk(d) = 0.5*(d'*∇²qk*d) + ∇qk'*d + qk + ψk(xk + d)
 			# look up how to test if two functions are equivalent? 
 			ρk = (ObjOuter(xk) - ObjOuter(xk + s)) / (mk(zeros(size(xk))) - mk(s))
 			# @show ObjOuter(xk)
@@ -334,7 +339,7 @@ function IntPt_TR(
 			#update qk with new direction
 			qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
 			∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-			# ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
+			# ∇²qk = H + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
 
 
 			#update Gν with new direction

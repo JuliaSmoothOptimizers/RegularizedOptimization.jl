@@ -58,7 +58,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		k+=1
 		if f>fstart || isnan(norm(s⁺))
 			s⁺ = s
-			ν = .1*ν
+			ν = .1*ν #can you make this larger if ||Bk|| sucks? 
 			err = 100
 		end
 		#sheet on which to freq
