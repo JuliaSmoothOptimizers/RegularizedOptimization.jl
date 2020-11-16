@@ -258,7 +258,8 @@ function IntPt_TR(
 
 			#compute qksj for the previous iterate 
 			Gν = (s⁻ - s) * β
-			∇qksj = ∇qk + ∇²qk(s⁻)
+			# ∇qksj = ∇qk + ∇²qk(s⁻)
+			∇qksj = ∇qk + ∇²qk*s⁻
 
 
 
