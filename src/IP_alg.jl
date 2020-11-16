@@ -239,8 +239,8 @@ function IntPt_TR(
 			#define the Hessian 
 			# ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 			# β = power_iteration(∇²qk,randn(size(xk)))[1] #computes ||B_k||_2^2
-			∇²qk = H + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
-			β = eigmax(Matrix(∇²qk)) #make a Matrix? 
+			∇²qk = Matrix(H + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk)))
+			β = eigmax(∇²qk) #make a Matrix? 
 
 			#define inner function 
 			# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
