@@ -56,11 +56,11 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		feval+=1
 		err = norm(s-s⁺)
 		k+=1
-		if f>fstart || isnan(norm(s⁺))
-			s⁺ = s
-			ν = .1*ν #can you make this larger if ||Bk|| sucks? 
-			err = 100
-		end
+		# if f>fstart || isnan(norm(s⁺))
+		# 	s⁺ = s
+		# 	ν = .1*ν #can you make this larger if ||Bk|| sucks? 
+		# 	err = 100
+		# end
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, f, err, ν)
 	end
