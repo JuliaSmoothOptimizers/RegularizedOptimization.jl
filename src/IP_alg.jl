@@ -16,6 +16,7 @@ mutable struct IP_params
 	τ # linesearch buffer parameter 
 	σ #quadratic model linesearch buffer parameter
 	γ #trust region buffer 
+	mem #Bk iteration memory
 end
 
 mutable struct IP_methods
@@ -39,8 +40,9 @@ function IP_options(
 	τ = 0.01, #linesearch buffer parameter
 	σ = 1.0e-3, # quadratic model linesearch buffer parameter
 	γ = 3.0, #trust region buffer
+	mem = 5, #L-BFGS memory
 ) #default values for trust region parameters in algorithm 4.2
-	return IP_params(ϵD, ϵC, Δk, verbose, maxIter,η1, η2, τ, σ, γ)
+	return IP_params(ϵD, ϵC, Δk, verbose, maxIter,η1, η2, τ, σ, γ, mem)
 end
 
 function IP_struct(
@@ -110,6 +112,7 @@ function IntPt_TR(
 	σ = options.σ 
 	γ = options.γ
 	τ = options.τ
+	mem = options.mem
 
 	if verbose==0
 		ptf = Inf
@@ -187,7 +190,7 @@ function IntPt_TR(
 			(fk, ∇fk, Bk) = Fsmth_out
 		elseif length(Fsmth_out)==2 && k_i==0
 			(fk, ∇fk) = Fsmth_out
-			Bk = LBFGSOperator(size(xk,1))
+			Bk = LBFGSOperator(size(xk,1); mem = mem)
 		elseif length(Fsmth_out)==2
 			(fk, ∇fk) = Fsmth_out
 			# Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
