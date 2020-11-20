@@ -43,8 +43,9 @@ function IP_options(
 	σ = 1.0e-3, # quadratic model linesearch buffer parameter
 	γ = 3.0, #trust region buffer
 	mem = 5, #L-BFGS memory
+	θ = 1/8
 ) #default values for trust region parameters in algorithm 4.2
-	return IP_params(ϵD, ϵC, Δk, verbose, maxIter,η1, η2, τ, σ, γ, mem)
+	return IP_params(ϵD, ϵC, Δk, verbose, maxIter,η1, η2, τ, σ, γ, mem, θ)
 end
 
 function IP_struct(
