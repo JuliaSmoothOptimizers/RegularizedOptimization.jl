@@ -7,7 +7,7 @@ struct GD_problem{F <: Function, prox<: Function, A <: AbstractVecOrMat{<:Real},
     f::F # the objective function
     prox:: prox #the prox function 
     x0::A # the intial condition
-    γ::R # the stepsize
+    ν::R # the stepsize
     λ::B
     
 end
@@ -16,7 +16,7 @@ struct GD_setting
     
     # user settings to solve the problem using Gradient Descent
     
-    γ::Float64 # the step size
+    ν::Float64 # the step size
     maxit::Int64 # maximum number of iteration
     tol::Float64 # tolerance, i.e., if ||∇f(x)|| ≤ tol, we take x to be an optimal solution
     verbose::Bool # whether to print information about the iterates
@@ -24,8 +24,8 @@ struct GD_setting
 
     # constructor for the structure, so if user does not specify any particular values, 
     # then we create a GD_setting object with default values
-    function GD_setting(; γ = 1, maxit = 1000, tol = 1e-8, verbose = false, freq = 10)
-        new(γ, maxit, tol, verbose, freq)
+    function GD_setting(; ν = 1, maxit = 1000, tol = 1e-8, verbose = false, freq = 10)
+        new(ν, maxit, tol, verbose, freq)
     end
     
 end
@@ -36,7 +36,7 @@ mutable struct GD_state#{T <: AbstractVecOrMat{<: Real}, I <: Integer, R <: Real
     x⁻#::T #previous iterate 
     f_x#::T #function value 
     ∇f_x#::T # one gradient ∇f(x_n)
-    γ#::T # stepsize
+    ν#::T # stepsize
     λ#::T #h(x) regularizer  
     n#::I # iteration counter
     
@@ -50,11 +50,12 @@ function GD_state(problem::GD_problem)
     # unpack information from iter which is GD_iterable type
     x0 = copy(problem.x0) # to be safe
     f = problem.f
-    γ = problem.γ
+    ν = problem.ν
+    λ = problem.λ
     f_x, ∇f_x = f(x0)
     n = 1
     
-    return GD_state(x0, f_x, ∇f_x, γ,λ, n)
+    return GD_state(x0, f_x, ∇f_x, ν, λ, n)
     
 end
 
@@ -67,20 +68,20 @@ function GD_iteration!(problem::GD_problem, state::GD_state)
     # unpack the current state information
     x_n = state.x
     ∇f_x_n = state.∇f_x
-    γ_n = state.γ
+    ν_n = state.ν
     λ = state.λ
     n = state.n
     
     # compute the next state
-    x_n_plus_1 = x_n - γ_n*∇f_x_n
+    x_n_plus_1 = x_n - ν_n*∇f_x_n
     # prox projection
-    x_n_plus_1 = problem.prox(x_n_plus_1, λ*γ_n)
+    x_n_plus_1 = problem.prox(x_n_plus_1, λ*ν_n)
     
     # now load the computed values in the state
     state.x⁻ = state.x
     state.x = x_n_plus_1
     f_x, state.∇f_x = problem.f(x_n_plus_1)
-    # state.γ = 1/(n+1)
+    # state.ν = 1/(n+1)
     state.n = n+1
     
     # done computing return the new state
