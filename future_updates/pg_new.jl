@@ -1,7 +1,7 @@
 using LinearAlgebra, Random, Plots
-# include("pgtest.jl")
+include("pgtest.jl")
 # include("pgtest2.jl")
-include("panoc.jl")
+# include("panoc.jl")
 # using ProximalAlgorithms, ProximalOperators
 
 compound = 10
@@ -45,18 +45,18 @@ m,n = compound*25, compound*64
         return sign.(v).*max.(abs.(v).-(α*λ)*ones(size(v)), zeros(size(v)))
     end
 
-    # problem = GD_problem(funcF, proxp, zeros(T,size(x0)), β, λ)
+    problem = GD_problem(funcF, proxp, zeros(T,size(x0)), β, λ)
 
-    # setting = GD_setting(verbose = true, tol = 1e-2, maxit = 1000, freq = 1)
+    setting = GD_setting(verbose = true, tol = 1e-2, maxit = 1000, freq = 1)
 
-    # final_state_GD = GD_solver(problem, setting)
-    # @show norm(final_state_GD.x - x0)
+    final_state_GD = GD_solver(problem, setting)
+    @show norm(final_state_GD.x - x0)
 
     # solver = ForwardBackward(tol = 1e-15, freq = 1, verbose=true)
-    solver = PANOC(freq = 1, verbose = true)
-    x, it = solver(zeros(size(x0)), f = funcF, g = funch, prox = proxp, L = Float64(opnorm(A)^2))
+    # solver = PANOC(freq = 1, verbose = true)
+    # x, it = solver(zeros(size(x0)), f = funcF, g = funch, prox = proxp, L = Float64(opnorm(A)^2))
 
-    @show norm(x - x0)
+    # @show norm(x - x0)
 
     plot(x0)
     # plot!(final_state_GD.x) #compared to other pg, seems right 

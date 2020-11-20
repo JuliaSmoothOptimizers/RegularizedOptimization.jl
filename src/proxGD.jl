@@ -33,6 +33,7 @@ end
 mutable struct GD_state#{T <: AbstractVecOrMat{<: Real}, I <: Integer, R <: Real} # contains information regarding one iterattion sequence
     
     x#::T # iterate x_n
+    x⁻#::T #previous iterate 
     f_x#::T #function value 
     ∇f_x#::T # one gradient ∇f(x_n)
     γ#::T # stepsize
@@ -76,6 +77,7 @@ function GD_iteration!(problem::GD_problem, state::GD_state)
     x_n_plus_1 = problem.prox(x_n_plus_1, λ*γ_n)
     
     # now load the computed values in the state
+    state.x⁻ = state.x
     state.x = x_n_plus_1
     f_x, state.∇f_x = problem.f(x_n_plus_1)
     # state.γ = 1/(n+1)
@@ -94,7 +96,6 @@ function GD_solver(problem::GD_problem, setting::GD_setting)
     # this is the function that the end user will use to solve a particular problem, internally it is using the previously defined types and functions to run Gradient Descent Scheme
     # create the intial state
     state = GD_state(problem::GD_problem)
-    
     ## time to run the loop
     while  (state.n < setting.maxit) & (norm(state.∇f_x, Inf) > setting.tol)
         # compute a new state
@@ -105,6 +106,7 @@ function GD_solver(problem::GD_problem, setting::GD_setting)
                 @info "iteration = $(state.n) | obj val = $(problem.f(state.x)[1]) | gradient norm = $(norm(state.∇f_x, Inf))"
             end
         end
+        count+=1
     end
     
     # print information regarding the final state

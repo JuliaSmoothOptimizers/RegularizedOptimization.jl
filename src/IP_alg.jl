@@ -3,7 +3,7 @@
 
 using LinearOperators
 export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
-
+include("proxGD.jl")
 
 mutable struct IP_params
 	ϵD #termination criteria
@@ -26,6 +26,7 @@ mutable struct IP_methods
 	ψk #nonsmooth model of h that you are trying to solve - it is possible that ψ=h. 
 	f_obj #objective function (unaltered) that you want to minimize
 	h_obj #objective function that is nonsmooth - > only used for evaluation
+	λ #objective nonsmooth tuning parameter
 end
 
 function IP_options(
@@ -131,6 +132,7 @@ function IntPt_TR(
 	ψk = params.ψk
 	f_obj = params.f_obj
 	h_obj = params.h_obj
+	λ = params.λ
 
 
 	#initialize parameters
@@ -251,14 +253,20 @@ function IntPt_TR(
 			objInner(d) = [0.5*(d'*∇²qk*d) + ∇qk'*d + qk, ∇²qk*d + ∇qk] #(mkB, ∇mkB)
 			s⁻ = zeros(size(xk))
 			
-			FO_options.β = β
+			# FO_options.β = β
 			if h_obj(xk)==0 #i think this is for h==0? 
-				FO_options.λ = Δk * FO_options.β
+				# FO_options.λ = Δk * FO_options.β
+				λ = Δk*β
 			end
-			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
+			problem = GD_problem(objInner, (d, λν)->Rkprox(d, λν, xk, Δk), zeros(T,size(x0)), β, λ)
+			state = GD_solver(problem, FO_options)
+			s = state.x
+			s⁻ = state.x⁻
+			# (s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
 			# @show hist
+
 			#update Complexity history 
-			Complex_hist[k]+=funEvals # doesn't really count because of quadratic model 
+			Complex_hist[k]+=state.n # doesn't really count because of quadratic model 
 
 			#compute qksj for the previous iterate 
 			Gν = (s⁻ - s) * β
