@@ -312,7 +312,7 @@ function IntPt_TR(
 			mk(d) = objInner(d)[1] + ψk(xk+d) #psik = h -> psik = h(x+d)
 			# look up how to test if two functions are equivalent? 
 			ρk = (ObjOuter(xk) - ObjOuter(xk + s)) / (mk(zeros(size(s)))-mk(s))
-			# @show ObjOuter(xk+s), ObjOuter(xk), -mk(s)
+			@show ObjOuter(xk+s), ObjOuter(xk),mk(zeros(size(s))), mk(s)
 			# @show ObjOuter(xk)
 			# @show ObjOuter(xk + s)
 			# @show mk(zeros(size(xk)))
