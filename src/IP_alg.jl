@@ -267,7 +267,7 @@ function IntPt_TR(
 			# @show hist
 
 			#update Complexity history 
-			Complex_hist[k]+=state.n # doesn't really count because of quadratic model 
+			Complex_hist[k]+=funEvals# doesn't really count because of quadratic model 
 
 			#compute qksj for the previous iterate 
 			Gν = (s⁻ - s) * β
