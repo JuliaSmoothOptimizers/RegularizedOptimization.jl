@@ -32,12 +32,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 	end
 	#Problem Initialize
 	m = length(s)
-	θ = options.θ
-	β = options.β
-	νmin = (1-sqrt(1-4*θ))/(2*β)
-	νmax = (1+sqrt(1-4*θ))/(2*β)
-
-	ν = νmax
+	ν = options.ν
 	λ = options.λ
 	k = 1
 	err = 100
@@ -61,13 +56,13 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		feval+=1
 		err = norm(s-s⁺)
 		k+=1
-		if f>fstart || isnan(norm(s⁺))
-			s⁺ = s
-			ν = νmin #can you make this larger if ||Bk|| sucks? 
-			err = 100
-		end
+		# if f>fstart || isnan(norm(s⁺))
+		# 	s⁺ = s
+		# 	ν = νmin #can you make this larger if ||Bk|| sucks? 
+		# 	err = 100
+		# end
 		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, f, err, ν)
+		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, his[k], err, ν)
 	end
 	@show fstart - f
 	return s⁺,s, his[1:k-1], feval
@@ -174,7 +169,7 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
 		err = norm(s-s⁺)
 		k+=1
 		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
+		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, his[k], err)
 	end
 	return s⁺,s, his[1:k-1], feval
 end

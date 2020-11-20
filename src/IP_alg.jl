@@ -17,6 +17,7 @@ mutable struct IP_params
 	σ #quadratic model linesearch buffer parameter
 	γ #trust region buffer 
 	mem #Bk iteration memory
+	θ #TR inner loop "closeness" to Bk
 end
 
 mutable struct IP_methods
@@ -114,6 +115,7 @@ function IntPt_TR(
 	σ = options.σ 
 	γ = options.γ
 	τ = options.τ
+	θ = options.θ
 	mem = options.mem
 
 	if verbose==0
@@ -254,7 +256,11 @@ function IntPt_TR(
 			objInner(d) = [0.5*(d'*∇²qk*d) + ∇qk'*d + qk, ∇²qk*d + ∇qk] #(mkB, ∇mkB)
 			s⁻ = zeros(size(xk))
 			
-			FO_options.β = β
+
+
+			νmin = (1-sqrt(1-4*θ))/(2*β)
+			νmax = (1+sqrt(1-4*θ))/(2*β)
+			FO_options.ν = νmax #nu min later? 
 			if h_obj(xk)==0 #i think this is for h==0? 
 				FO_options.λ = Δk * FO_options.β
 				# λ = Δk*β
@@ -270,7 +276,7 @@ function IntPt_TR(
 			Complex_hist[k]+=funEvals# doesn't really count because of quadratic model 
 
 			#compute qksj for the previous iterate 
-			Gν = (s⁻ - s) * β
+			Gν = (s⁻ - s)/FO_options.ν #this isn't right anymore
 			# ∇qksj = ∇qk + ∇²qk(s⁻)
 			∇qksj = ∇qk + ∇²qk*s⁻
 
@@ -326,7 +332,7 @@ function IntPt_TR(
 				#changed back linesearch
 				α = 1.0
 				#this needs to be the previous search direction and iterate? 
-				while(ObjOuter(xk + α*s) > ObjOuter(xk) + σ*α*(g_old'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
+				while(ObjOuter(xk + α*s) > ObjOuter(xk) + σ*α*(((Gν - ∇qksj) + ∇qk)'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
 					α = α*mult
 					# @show α
 				end
