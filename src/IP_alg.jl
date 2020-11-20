@@ -291,7 +291,7 @@ function IntPt_TR(
 
 
 
-			# α = 1.0
+			α = 1.0
 			# mult = 0.5
 			# # gradient for z
 			# dzl = μ ./ (xk - l) - zkl - zkl .* s ./ (xk - l)
@@ -323,7 +323,8 @@ function IntPt_TR(
 			# @show h_obj(xk+s)
 			if (ρk > η2)
 				TR_stat = "increase"
-				Δk = max(Δk, γ * norm(s, 1)) #for safety
+				# Δk = max(Δk, γ * norm(s, 1)) #for safety
+				Δk = γ*Δk
 			else
 				TR_stat = "kept"
 			end
