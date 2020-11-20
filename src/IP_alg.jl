@@ -272,8 +272,8 @@ function IntPt_TR(
 			# state = GD_solver(problem, FO_options)
 			# s = state.x
 			# s⁻ = state.x⁻
-			s = Rkprox(-ν*∇qk, λ*ν, xk, Δk) #-> PG on step s1
-			Gν = norm(s/ν)
+			s = Rkprox(-FO_options.ν*∇qk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on step s1
+			Gν = norm(s/FO_options.ν)
 			if Gν>ϵD #final stopping criteria 
 				(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
 			end
