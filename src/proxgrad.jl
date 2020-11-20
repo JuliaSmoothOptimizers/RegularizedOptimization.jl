@@ -34,8 +34,8 @@ function PG(Fcn, Gcn, s,  proxG, options)
 	m = length(s)
 	θ = options.θ
 	β = options.β
-	νmin = 1-sqrt(1-4*θ)/(2*β)
-	νmax = 1+sqrt(1-4*θ)/(2*β)
+	νmin = (1-sqrt(1-4*θ))/(2*β)
+	νmax = (1+sqrt(1-4*θ))/(2*β)
 
 	ν = νmax
 	λ = options.λ
