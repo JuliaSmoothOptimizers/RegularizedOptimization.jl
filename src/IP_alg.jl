@@ -133,7 +133,7 @@ function IntPt_TR(
 	ψk = params.ψk
 	f_obj = params.f_obj
 	h_obj = params.h_obj
-	λ = params.λ
+	FO_options.λ = params.λ
 
 
 	#initialize parameters
@@ -254,16 +254,16 @@ function IntPt_TR(
 			objInner(d) = [0.5*(d'*∇²qk*d) + ∇qk'*d + qk, ∇²qk*d + ∇qk] #(mkB, ∇mkB)
 			s⁻ = zeros(size(xk))
 			
-			# FO_options.β = β
+			FO_options.β = β
 			if h_obj(xk)==0 #i think this is for h==0? 
-				# FO_options.λ = Δk * FO_options.β
-				λ = Δk*β
+				FO_options.λ = Δk * FO_options.β
+				# λ = Δk*β
 			end
-			problem = GD_problem(objInner, (d, λν)->Rkprox(d, λν, xk, Δk), zeros(size(x0)), 1/β, λ)
-			state = GD_solver(problem, FO_options)
-			s = state.x
-			s⁻ = state.x⁻
-			# (s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
+			# problem = GD_problem(objInner, (d, λν)->Rkprox(d, λν, xk, Δk), zeros(size(x0)), 1/β, λ)
+			# state = GD_solver(problem, FO_options)
+			# s = state.x
+			# s⁻ = state.x⁻
+			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
 			# @show hist
 
 			#update Complexity history 

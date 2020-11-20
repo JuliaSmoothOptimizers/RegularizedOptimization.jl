@@ -111,7 +111,7 @@ function GD_solver(problem::GD_problem, setting::GD_setting)
     
     # print information regarding the final state
     
-    @info "final iteration = $(state.n) | final obj val = $(problem.f(state.x)[1]) | final gradient norm = $(norm(state.∇f_x, Inf))"
+    # @info "final iteration = $(state.n) | final obj val = $(problem.f(state.x)[1]) | final gradient norm = $(norm(state.∇f_x, Inf))"
     return state
     
 end
