@@ -49,7 +49,7 @@ end
 function IP_struct(
 	f_obj,
 	h;
-	FO_options = s_options(1.0;),
+	FO_options = GD_setting,
 	s_alg = PG,
 	Rkprox = (z, σ, xt, Dk) → z./max(1, norm(z, 2)/σ),
 	ψk = h
