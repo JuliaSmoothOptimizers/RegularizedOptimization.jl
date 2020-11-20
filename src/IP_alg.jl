@@ -226,7 +226,8 @@ function IntPt_TR(
 		dzl = zeros(size(zkl))
 		dzu = zeros(size(zku))
 		∇qksj = copy(∇qk) 
-		g_old = ((Gν - ∇qksj) + ∇qk) #this is just ∇fk at first 
+		# g_old = ((Gν - ∇qksj) + ∇qk) #this is just ∇fk at first
+		g_old = Gν
 
 		kktInit = [norm(g_old - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
 		kktNorm = 100*kktInit
@@ -366,7 +367,8 @@ function IntPt_TR(
 
 			#update Gν with new direction
 			# Gν = (s⁻ - s) * β #is affine scaling of s (αs) still in the subgradient? 
-			g_old = (Gν - ∇qksj) + ∇qk
+			# g_old = (Gν - ∇qksj) + ∇qk
+			g_old = Gν
 			kktNorm = [
 				norm(g_old - zkl + zku) #check this
 				norm(zkl .* (xk - l) .- μ)
