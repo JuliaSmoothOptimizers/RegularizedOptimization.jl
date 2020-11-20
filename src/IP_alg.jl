@@ -48,13 +48,14 @@ end
 
 function IP_struct(
 	f_obj,
-	h;
-	FO_options = GD_setting,
+	h,
+	λ;
+	FO_options = s_options(1.0;),
 	s_alg = PG,
 	Rkprox = (z, σ, xt, Dk) → z./max(1, norm(z, 2)/σ),
 	ψk = h
 )
-	return IP_methods(FO_options, s_alg, Rkprox, ψk, f_obj, h)
+	return IP_methods(FO_options, s_alg, Rkprox, ψk, f_obj, h, λ)
 end
 
 
