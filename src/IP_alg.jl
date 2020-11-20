@@ -250,8 +250,9 @@ function IntPt_TR(
 			#define the Hessian 
 			# ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
 			# β = power_iteration(∇²qk,randn(size(xk)))[1] #computes ||B_k||_2^2
-			∇²qk = Matrix(H + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk)))
-			β = eigmax(∇²qk) #make a Matrix? 
+			# ∇²qk = Matrix(H + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk)))
+			∇²qk = Matrix(H) 
+			β = eigmax(∇²qk) #make a Matrix? ||B_k|| = λ(B_k)
 
 			#define inner function 
 			# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
@@ -262,7 +263,7 @@ function IntPt_TR(
 
 			νmin = (1-sqrt(1-4*θ))/(2*β)
 			νmax = (1+sqrt(1-4*θ))/(2*β)
-			FO_options.ν = (νmin+νmax)/2 #nu min later? 
+			FO_options.ν = (νmin+νmax)/2 #nu min later? λ(B_k)/2
 			if h_obj(xk)==0 #i think this is for h==0? 
 				FO_options.λ = Δk * FO_options.β
 				# λ = Δk*β
@@ -271,38 +272,43 @@ function IntPt_TR(
 			# state = GD_solver(problem, FO_options)
 			# s = state.x
 			# s⁻ = state.x⁻
-			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
+			s = Rkprox(-ν*∇qk, λ*ν, xk, Δk) #-> PG on step s1
+			Gν = norm(s/ν)
+			if Gν>ϵD #final stopping criteria 
+				(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
+			end
 			# @show hist
 
 			#update Complexity history 
 			Complex_hist[k]+=funEvals# doesn't really count because of quadratic model 
 
 			#compute qksj for the previous iterate 
-			Gν = (s⁻ - s)/FO_options.ν #this isn't right anymore
+			# Gν = (s⁻ - s)/FO_options.ν #this Gν of subproblem 
 			# ∇qksj = ∇qk + ∇²qk(s⁻)
-			∇qksj = ∇qk + ∇²qk*s⁻
+			# ∇qksj = ∇qk + ∇²qk*s⁻ # ->don't need this
 
 
 
-			α = 1.0
-			mult = 0.5
-			# gradient for z
-			dzl = μ ./ (xk - l) - zkl - zkl .* s ./ (xk - l)
-			dzu = μ ./ (u - xk) - zku + zku .* s ./ (u - xk)
-			# linesearch for step size?
-			# if μ!=0
-				# α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
-				α = lsTR(xk, s,l,u; mult=mult, tau =τ)
-				# α = linesearch(xk, zkl, zku, s, dzl, dzu,l,u ;mult=mult, tau = τ)
-			# end
-			#update search direction
-			s = s * α
-			dzl = dzl * α
-			dzu = dzu * α
+			# α = 1.0
+			# mult = 0.5
+			# # gradient for z
+			# dzl = μ ./ (xk - l) - zkl - zkl .* s ./ (xk - l)
+			# dzu = μ ./ (u - xk) - zku + zku .* s ./ (u - xk)
+			# # linesearch for step size?
+			# # if μ!=0
+			# 	# α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
+			# 	α = lsTR(xk, s,l,u; mult=mult, tau =τ)
+			# 	# α = linesearch(xk, zkl, zku, s, dzl, dzu,l,u ;mult=mult, tau = τ)
+			# # end
+			# #update search direction
+			# s = s * α
+			# dzl = dzl * α
+			# dzu = dzu * α
 
 			#define model and update ρ
 			# mk(d) = 0.5*(d'*∇²qk(d)) + ∇qk'*d + qk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
-			mk(d) = 0.5*(d'*∇²qk*d) + ∇qk'*d + qk + ψk(xk + d)
+			# mk(d) = 0.5*(d'*∇²qk*d) + ∇qk'*d + qk + ψk(xk + d)
+			mk(d) = objInner(d)[1] + ψk(xk+d) #psik = h -> psik = h(x+d)
 			# look up how to test if two functions are equivalent? 
 			ρk = (ObjOuter(xk) - ObjOuter(xk + s)) / (mk(zeros(size(xk))) - mk(s))
 			# @show ObjOuter(xk)
@@ -330,20 +336,19 @@ function IntPt_TR(
 			if (ρk < η1 || (ρk ==Inf || isnan(ρk)))
 
 				x_stat = "shrink"
-
 				#changed back linesearch
-				α = 1.0
+				α = .5
 				#this needs to be the previous search direction and iterate? 
-				while(ObjOuter(xk + α*s) > ObjOuter(xk) + σ*α*(((Gν - ∇qksj) + ∇qk)'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
-					α = α*mult
+				# while(ObjOuter(xk + α*s) > ObjOuter(xk) + σ*α*(((Gν - ∇qksj) + ∇qk)'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
+					# α = α*mult
 					# @show α
-				end
+				# end
 				# α = 0.1 #was 0.1; can be whatever
 				#step should be rejected
-				xk = xk + α*s
-				zkl = zkl + α*dzl
-				zku = zku + α*dzu
-				Δk = α * norm(s, 1)
+				# xk = xk + α*s
+				# zkl = zkl + α*dzl
+				# zku = zku + α*dzu
+				Δk = α*Δk	#* norm(s, Inf) #change to reflect trust region 
 			end
 
 			Fsmth_out = f_obj(xk)

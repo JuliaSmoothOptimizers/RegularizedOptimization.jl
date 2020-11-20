@@ -34,26 +34,26 @@ function PG(Fcn, Gcn, s,  proxG, options)
 	m = length(s)
 	ν = options.ν
 	λ = options.λ
-	k = 1
+	k = 0
 	err = 100
 	his = zeros(max_iter)
 	s⁺ = deepcopy(s)
 
 	# Iteration set up
-	f, g = Fcn(s⁺)
+	f, g = Fcn(s⁺) #objInner/ quadratic model
 	fstart = f
 	feval = 1
 	#do iterations
 	while err >= ε && k<max_iter && abs(f)>1e-16
 		s = s⁺
-		his[k] = f + Gcn(s⁺)
+		his[k] = f + Gcn(s⁺) #Gcn = h(x)
 
 		#prox step
-		s⁺ = proxG(s - ν*g, λ*ν)
+		s⁺ = proxG(s - ν*g, λ*ν) #combination regularizer + TR
 		# update function info
 		f, g = Fcn(s⁺)
 		feval+=1
-		err = norm((s-s⁺)/ν)
+		err = norm((s-s⁺)/ν) #stopping criteria
 		k+=1
 		# if f>fstart || isnan(norm(s⁺))
 		# 	s⁺ = s
