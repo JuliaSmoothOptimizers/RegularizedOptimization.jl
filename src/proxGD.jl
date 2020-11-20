@@ -55,7 +55,7 @@ function GD_state(problem::GD_problem)
     f_x, ∇f_x = f(x0)
     n = 1
     
-    return GD_state(x0, f_x, ∇f_x, ν, λ, n)
+    return GD_state(x0, x0, f_x, ∇f_x, ν, λ, n)
     
 end
 
