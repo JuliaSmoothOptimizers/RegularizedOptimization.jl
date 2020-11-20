@@ -38,7 +38,8 @@ function PG(Fcn, Gcn, s,  proxG, options)
 	err = 100
 	his = zeros(max_iter)
 	s⁺ = deepcopy(s)
-
+	@show ν
+	@show λ
 
 	# Iteration set up
 	f, g = Fcn(s⁺)
