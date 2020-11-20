@@ -259,7 +259,7 @@ function IntPt_TR(
 				# FO_options.λ = Δk * FO_options.β
 				λ = Δk*β
 			end
-			problem = GD_problem(objInner, (d, λν)->Rkprox(d, λν, xk, Δk), zeros(size(x0)), β, λ)
+			problem = GD_problem(objInner, (d, λν)->Rkprox(d, λν, xk, Δk), zeros(size(x0)), 1/β, λ)
 			state = GD_solver(problem, FO_options)
 			s = state.x
 			s⁻ = state.x⁻
