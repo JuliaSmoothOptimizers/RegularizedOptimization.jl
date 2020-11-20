@@ -261,7 +261,7 @@ function IntPt_TR(
 
 			νmin = (1-sqrt(1-4*θ))/(2*β)
 			νmax = (1+sqrt(1-4*θ))/(2*β)
-			FO_options.ν = νmax #nu min later? 
+			FO_options.ν = νmin #nu min later? 
 			if h_obj(xk)==0 #i think this is for h==0? 
 				FO_options.λ = Δk * FO_options.β
 				# λ = Δk*β
