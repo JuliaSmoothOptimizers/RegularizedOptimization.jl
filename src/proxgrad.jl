@@ -34,7 +34,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 	m = length(s)
 	ν = options.ν
 	λ = options.λ
-	k = 0
+	k = 1
 	err = 100
 	his = zeros(max_iter)
 	s⁺ = deepcopy(s)
