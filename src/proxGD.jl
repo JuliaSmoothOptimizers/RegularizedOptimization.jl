@@ -1,4 +1,3 @@
-export GD_problem, GD_setting, GD_solver
 
 struct GD_problem{F <: Function, prox<: Function, A <: AbstractVecOrMat{<:Real}, R <: Real, B<: Real}
     

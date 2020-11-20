@@ -3,7 +3,7 @@
 
 using LinearOperators
 export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
-include("proxGD.jl")
+# include("proxGD.jl")
 
 mutable struct IP_params
 	ϵD #termination criteria
