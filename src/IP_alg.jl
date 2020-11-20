@@ -375,7 +375,8 @@ function IntPt_TR(
 			# g_old = (Gν - ∇qksj) + ∇qk
 			g_old = Gν
 			kktNorm = [
-				norm(g_old - zkl + zku) #check this
+				# norm(g_old - zkl + zku) #check this
+				Gν
 				norm(zkl .* (xk - l) .- μ)
 				norm(zku .* (u - xk) .- μ)
 			]
