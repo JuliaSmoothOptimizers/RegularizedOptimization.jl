@@ -32,7 +32,12 @@ function PG(Fcn, Gcn, s,  proxG, options)
 	end
 	#Problem Initialize
 	m = length(s)
-	ν = options.β^(-1)
+	θ = options.θ
+	β = options.β
+	νmin = 1-sqrt(1-4*θ)/(2*β)
+	νmax = 1+sqrt(1-4*θ)/(2*β)
+
+	ν = νmax
 	λ = options.λ
 	k = 1
 	err = 100
@@ -58,7 +63,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		k+=1
 		if f>fstart || isnan(norm(s⁺))
 			s⁺ = s
-			ν = .1*ν #can you make this larger if ||Bk|| sucks? 
+			ν = νmin #can you make this larger if ||Bk|| sucks? 
 			err = 100
 		end
 		#sheet on which to freq

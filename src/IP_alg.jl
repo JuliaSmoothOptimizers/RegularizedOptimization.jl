@@ -167,7 +167,7 @@ function IntPt_TR(
 		"LnSrch: α",
 		"||x||",
 		"||s||",
-		"β",
+		"||Bk||",
 		"f(x)",
 		"h(x)",
 	)
