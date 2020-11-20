@@ -276,6 +276,8 @@ function IntPt_TR(
 			Gν = norm(s/FO_options.ν)
 			if Gν>ϵD #final stopping criteria 
 				(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
+			else
+				funEvals = 1 
 			end
 			# @show hist
 
