@@ -33,30 +33,28 @@ function h_obj(x)
     return norm(x,1) #without  lambda
 end
 
-#combination l1 and Binf prox
-function prox(q, σ, xk, Δ)
-    Fcn(yp) = (yp-xk-q).^2/2+σ*abs.(yp)
-    ProjB(wp) = min.(max.(wp,xk.-Δ), xk.+Δ)
-    
-    y1 = zeros(size(xk))
-    f1 = Fcn(y1)
-    idx = (y1.<xk.-Δ) .| (y1.>xk .+ Δ) #actually do outward since more efficient
-    f1[idx] .= Inf
+#combination l1 and B2 prox. This is a little wonky sometimes with s gets really small 
+function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need
 
-    y2 = ProjB(xk+q.-σ)
-    f2 = Fcn(y2)
-    y3 = ProjB(xk+q.+σ)
-    f3 = Fcn(y3)
+    ProjB(y) = min.(max.(y, q.-σ), q.+σ)
+    froot(η) = η - norm(ProjB((-xk).*(η/Δ)))
 
-    smat = hcat(y1, y2, y3) #to get dimensions right
-    fvec = hcat(f1, f2, f3)
+    # %do the 2 norm projection
+    y1 = ProjB(-xk) #start with eta = tau
 
-    f = minimum(fvec, dims=2)
-    idx = argmin(fvec, dims=2)
-    s = smat[idx]-xk
-
-    return dropdims(s, dims=2)
-end
+    if (norm(y1)<= Δ)
+        y = y1  # easy case
+    else
+        η = fzero(froot, 1e-10, Inf)
+        y = ProjB((-xk).*(η/Δ))
+    end
+    if (norm(y)<=Δ)
+        snew = y
+    else
+        snew = Δ.*y./norm(y)
+    end
+    return snew
+end 
 
 #set options for inner algorithm - only requires ||Bk|| norm guess to start (and λ but that is updated in IP_alg)
 #verbosity is levels: 0 = nothing, 1 -> maxIter % 10, 2 = maxIter % 100, 3+ -> print all 

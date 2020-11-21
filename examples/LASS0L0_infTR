@@ -30,33 +30,28 @@ function f_obj(x) #gradient and hessian info are smooth parts, m also includes n
 end
 
 function h_obj(x)
-    return norm(x,1) #without  lambda
+    return λ*norm(x,0) #, g∈∂h
 end
 
-#combination l1 and Binf prox
+#this is the Binf plus l0 prox code 
 function prox(q, σ, xk, Δ)
-    Fcn(yp) = (yp-xk-q).^2/2+σ*abs.(yp)
-    ProjB(wp) = min.(max.(wp,xk.-Δ), xk.+Δ)
-    
-    y1 = zeros(size(xk))
-    f1 = Fcn(y1)
-    idx = (y1.<xk.-Δ) .| (y1.>xk .+ Δ) #actually do outward since more efficient
-    f1[idx] .= Inf
 
-    y2 = ProjB(xk+q.-σ)
-    f2 = Fcn(y2)
-    y3 = ProjB(xk+q.+σ)
-    f3 = Fcn(y3)
+    ProjB(y) = min.(max.(y, xk.-Δ),xk.+Δ) # define outside? 
+    c = sqrt(2*σ)
+    w = xk+q
+    st = zeros(size(w))
 
-    smat = hcat(y1, y2, y3) #to get dimensions right
-    fvec = hcat(f1, f2, f3)
-
-    f = minimum(fvec, dims=2)
-    idx = argmin(fvec, dims=2)
-    s = smat[idx]-xk
-
-    return dropdims(s, dims=2)
-end
+    for i = 1:length(w)
+        absx = abs(w[i])
+        if absx <=c
+            st[i] = 0
+        else
+            st[i] = w[i]
+        end
+    end
+    s = ProjB(st) - xk
+    return s 
+end 
 
 #set options for inner algorithm - only requires ||Bk|| norm guess to start (and λ but that is updated in IP_alg)
 #verbosity is levels: 0 = nothing, 1 -> maxIter % 10, 2 = maxIter % 100, 3+ -> print all 
@@ -85,8 +80,16 @@ function funcF(x)
     g = A'*r
     return norm(r)^2, g
 end
+
+
 function proxp(z, α)
-    return sign.(z).*max.(abs.(z).-(λ*α)*ones(size(z)), zeros(size(z)))
+    y = zeros(size(z))
+    for i = 1:length(z)
+        if abs(z[i])>sqrt(2*α*λ)
+            y[i] = z[i]
+        end
+    end
+    return y
 end
 
 Doptions.verbose = 2 #print every 100 

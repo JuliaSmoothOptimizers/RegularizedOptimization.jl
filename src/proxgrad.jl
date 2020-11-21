@@ -55,8 +55,8 @@ function PG(Fcn, Gcn, s,  proxG, options)
 		f, g = Fcn(s⁺)
 		feval+=1
 		# err = norm((s-s⁺)/ν) #stopping criteria
-		# err = norm(g-gold - (s⁺-s)/ν) #(Bk - ν^-1I)(s⁺ -s ) ----> equation 17 in paper 
-		err = norm((s-s⁺)/ν - gold) #equation 16 in paper 
+		err = norm(g-gold - (s⁺-s)/ν) #(Bk - ν^-1I)(s⁺ -s ) ----> equation 17 in paper 
+		# err = norm((s-s⁺)/ν - gold) #equation 16 in paper 
 		k+=1
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, his[k], err, ν)
