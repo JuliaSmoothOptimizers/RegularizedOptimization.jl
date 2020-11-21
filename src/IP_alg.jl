@@ -167,7 +167,7 @@ function IntPt_TR(
 	ObjOuter(x) = f_obj(x)[1] + λ*h_obj(x) 
 
 
-	k_i = 0
+	k = 0
 	ρk = -1
 	α = 1.0
 
@@ -205,7 +205,7 @@ function IntPt_TR(
 
 	while kktNorm[1] > ϵD && k_i < maxIter
 		#update count
-		k_i = k_i + 1 #inner
+		k = k + 1 #inner
 		TR_stat = ""
 		x_stat = ""
 
@@ -301,7 +301,7 @@ function IntPt_TR(
 		k % ptf == 0 && 
 		@printf(
 			"%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e  %10.5e\n",
-			   k,   kktNorm[1], ρk,    x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), β,    fk,    ψk(xk))
+			   k,   kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), β,    fk,    ψk(xk))
 
 		Fobj_hist[k] = fk
 		Hobj_hist[k] = h_obj(xk)
