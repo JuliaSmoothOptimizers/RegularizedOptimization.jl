@@ -99,11 +99,7 @@ k   : Int
 function IntPt_TR(
 	x0,
 	params,
-	options;
-	l = -1.0e16 * ones(size(x0)),
-	u = 1.0e16 * ones(size(x0)),
-	μ = 0.0,
-	BarIter = 1)
+	options)
 
 	#initialize passed options
 	ϵD = options.ϵD
@@ -136,33 +132,23 @@ function IntPt_TR(
 	ψk = params.ψk
 	f_obj = params.f_obj
 	h_obj = params.h_obj
-	FO_options.λ = params.λ
+	λ = params.λ
 
 
 	#initialize parameters
 	xk = copy(x0)
-	#initialize them to positive values for x=l and negative for x=u
-	if μ ==0.0
-		zkl = zeros(size(x0))
-		zku = zeros(size(x0))
-	else
-		zkl = ones(size(x0))
-		zku = -ones(size(x0))
-	end
+
 	k = 0
-	Fobj_hist = zeros(maxIter * BarIter)
-	Hobj_hist = zeros(maxIter * BarIter)
-	Complex_hist = zeros(maxIter * BarIter)
+	Fobj_hist = zeros(maxIter)
+	Hobj_hist = zeros(maxIter)
+	Complex_hist = zeros(maxIter)
 	verbose!=0 && @printf(
 		"------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
 	)
 	verbose!=0 && @printf(
-		"%10s | %11s | %11s | %11s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s   | %10s | %10s\n",
+		"%10s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s | %10s | %10s\n",
 		"Iter",
-		"μ",
-		"||(Gν-∇q) + ∇ϕ⁺)-zl+zu||",
-		"||zl(x-l) - μ||",
-		"||zu(u-x) - μ||",
+		"||Gν||",
 		"Ratio: ρk",
 		"x status ",
 		"TR: Δk",
@@ -177,232 +163,151 @@ function IntPt_TR(
 	verbose!=0 && @printf(
 		"------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
 	)
-
-	#Barrier Loop
-	while k < BarIter && (μ > 1e-6 || μ==0) #create options for this
-		#make sure you only take the first output of the objective value of the true function you are minimizing
-		ObjOuter(x) = f_obj(x)[1] + h_obj(x) - μ*sum(log.((x-l).*(u-x)))# - μ * sum(log.(x - l)) - μ * sum(log.(u - x)) #
+	#make sure you only take the first output of the objective value of the true function you are minimizing
+	ObjOuter(x) = f_obj(x)[1] + λ*h_obj(x) 
 
 
-		k_i = 0
-		ρk = -1
+	k_i = 0
+	ρk = -1
+	α = 1.0
+
+	#main algorithm initialization
+	Fsmth_out = f_obj(xk)
+	#test number of outputs to see if user provided a hessian
+
+	if length(Fsmth_out)==3
+		(fk, ∇fk, Bk) = Fsmth_out
+	elseif length(Fsmth_out)==2 && k_i==0
+		(fk, ∇fk) = Fsmth_out
+		Bk = LBFGSOperator(size(xk,1); mem = mem)
+	elseif length(Fsmth_out)==2
+		(fk, ∇fk) = Fsmth_out
+		push!(Bk, s,  ∇fk-∇fk⁻)
+	else
+		error("Smooth Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
+	end
+
+	# initialize qk
+	qk = fk 
+	∇qk = ∇fk 
+	H = Bk
+
+	
+	#keep track of old subgradient for LnSrch purposes
+	Gν =  ∇fk
+	s = zeros(size(xk))
+
+	∇qksj = copy(∇qk) 
+	g_old = Gν
+
+	kktInit = norm(g_old)
+	kktNorm = 100*kktInit
+
+	while kktNorm[1] > ϵD && k_i < maxIter
+		#update count
+		k_i = k_i + 1 #inner
+		TR_stat = ""
+		x_stat = ""
+
+		#store previous iterates
+		xk⁻ = xk 
+		∇fk⁻ = ∇fk
+		sk⁻ = s
+
+		#define the Hessian 
+		∇²qk = Matrix(H) 
+		β = eigmax(∇²qk) #make a Matrix? ||B_k|| = λ(B_k)
+
+		#define inner function 
+		# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
+		objInner(d) = [0.5*(d'*∇²qk*d) + ∇qk'*d + qk, ∇²qk*d + ∇qk] #(mkB, ∇mkB)
+		s⁻ = zeros(size(xk))
+		
+
+
+		νmin = (1-sqrt(1-4*θ))/(2*β)
+		νmax = (1+sqrt(1-4*θ))/(2*β)
+		FO_options.ν = (νmin+νmax)/2 #nu min later? λ(B_k)/2
+		if h_obj(xk)==0 #i think this is for h==0? 
+			FO_options.λ = Δk * FO_options.β
+		end
+
+		s = Rkprox(-FO_options.ν*∇qk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on step s1
+		Gν = s/FO_options.ν
+		if norm(Gν)>ϵD #final stopping criteria 
+			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
+		else
+			funEvals = 1 
+		end
+
+		#update Complexity history 
+		Complex_hist[k]+=funEvals# doesn't really count because of quadratic model 
+
+
+
+
 		α = 1.0
+		#define model and update ρ
+		# mk(d) = 0.5*(d'*∇²qk*d) + ∇qk'*d + qk + ψk(xk + d)
+		mk(d) = objInner(d)[1] + ψk(xk+d) #psik = h -> psik = h(x+d)
+		# look up how to test if two functions are equivalent? 
+		ρk = (ObjOuter(xk) - ObjOuter(xk + s)) / (mk(zeros(size(s)))-mk(s))
 
-		#main algorithm initialization
+		if (ρk > η2)
+			TR_stat = "increase"
+			# Δk = max(Δk, γ * norm(s, 1)) #for safety
+			Δk = γ*Δk
+		else
+			TR_stat = "kept"
+		end
+
+		if (ρk >= η1 && !(ρk==Inf || isnan(ρk)))
+			x_stat = "update"
+			xk = xk + s
+			zkl = zkl + dzl
+			zku = zku + dzu
+		end
+
+		if (ρk < η1 || (ρk ==Inf || isnan(ρk)))
+
+			x_stat = "reject"
+			TR_stat = "shrink"
+			α = .5
+			Δk = α*Δk	#* norm(s, Inf) #change to reflect trust region 
+		end
+
 		Fsmth_out = f_obj(xk)
-		#test number of outputs to see if user provided a hessian
-
+		
 		if length(Fsmth_out)==3
 			(fk, ∇fk, Bk) = Fsmth_out
-		elseif length(Fsmth_out)==2 && k_i==0
-			(fk, ∇fk) = Fsmth_out
-			Bk = LBFGSOperator(size(xk,1); mem = mem)
 		elseif length(Fsmth_out)==2
 			(fk, ∇fk) = Fsmth_out
-			# Bk = bfgs_update(Bk, s, ∇fk-∇fk⁻)
-			push!(Bk, s,  ∇fk-∇fk⁻)
+			push!(Bk, s, ∇fk-∇fk⁻)
 		else
-			# throw(ArgumentError(f_obj, "Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  "))
-			error("Smooth Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
+			error("Smooth function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
 		end
 
-		# initialize qk
-		qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
-		∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
 
-		#changed for now to have full representation
-		if isempty(methods(Bk))
-			# H(d) = Bk*d
-			H = Bk
-		else 
-			H = Bk 
-		end
+		#update qk with new direction
+		qk = fk 
+		∇qk = ∇fk
 
-		
-		#keep track of old subgradient for LnSrch purposes
-		Gν =  ∇fk
-		s = zeros(size(xk))
-		dzl = zeros(size(zkl))
-		dzu = zeros(size(zku))
-		∇qksj = copy(∇qk) 
-		# g_old = ((Gν - ∇qksj) + ∇qk) #this is just ∇fk at first
+
+		#update Gν with new direction
 		g_old = Gν
+		kktNorm = norm(Gν)
 
-		kktInit = [norm(g_old - zkl + zku), norm(zkl .* (xk - l) .- μ), norm(zku .* (u - xk) .- μ)]
-		kktNorm = 100*kktInit
+		#Print values
+		k % ptf == 0 && 
+		@printf(
+			"%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e  %10.5e\n",
+			   k,   kktNorm[1], ρk,    x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), β,    fk,    ψk(xk))
 
-		# while (kktNorm[1]/kktInit[1] > ϵD || kktNorm[2]/kktInit[2] > ϵC || kktNorm[3]/kktInit[3] > ϵC) && k_i < maxIter
-		while (kktNorm[1] > ϵD || kktNorm[2] > ϵC || kktNorm[3] > ϵC) && k_i < maxIter
-			#update count
-			k_i = k_i + 1 #inner
-			k = k + 1  #outer
-			TR_stat = ""
-			x_stat = ""
-
-			#store previous iterates
-			xk⁻ = xk 
-			∇fk⁻ = ∇fk
-			sk⁻ = s
-			dzl⁻ = dzl 
-			dzu⁻ = dzu 
-
-			#define the Hessian 
-			# ∇²qk(d) = H(d) + Diagonal(zkl ./ (xk - l))*d + Diagonal(zku ./ (u - xk))*d
-			# β = power_iteration(∇²qk,randn(size(xk)))[1] #computes ||B_k||_2^2
-			# ∇²qk = Matrix(H + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk)))
-			∇²qk = Matrix(H) 
-			β = eigmax(∇²qk) #make a Matrix? ||B_k|| = λ(B_k)
-
-			#define inner function 
-			# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
-			objInner(d) = [0.5*(d'*∇²qk*d) + ∇qk'*d + qk, ∇²qk*d + ∇qk] #(mkB, ∇mkB)
-			s⁻ = zeros(size(xk))
-			
-
-
-			νmin = (1-sqrt(1-4*θ))/(2*β)
-			νmax = (1+sqrt(1-4*θ))/(2*β)
-			FO_options.ν = (νmin+νmax)/2 #nu min later? λ(B_k)/2
-			if h_obj(xk)==0 #i think this is for h==0? 
-				FO_options.λ = Δk * FO_options.β
-				# λ = Δk*β
-			end
-			# problem = GD_problem(objInner, (d, λν)->Rkprox(d, λν, xk, Δk), zeros(size(x0)), 1/β, λ)
-			# state = GD_solver(problem, FO_options)
-			# s = state.x
-			# s⁻ = state.x⁻
-			s = Rkprox(-FO_options.ν*∇qk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on step s1
-			Gν = norm(s/FO_options.ν)
-			if Gν>ϵD #final stopping criteria 
-				(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s⁻, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
-			else
-				funEvals = 1 
-			end
-			# @show hist
-
-			#update Complexity history 
-			Complex_hist[k]+=funEvals# doesn't really count because of quadratic model 
-
-			#compute qksj for the previous iterate 
-			# Gν = (s⁻ - s)/FO_options.ν #this Gν of subproblem 
-			# ∇qksj = ∇qk + ∇²qk(s⁻)
-			# ∇qksj = ∇qk + ∇²qk*s⁻ # ->don't need this
-
-
-
-			α = 1.0
-			# mult = 0.5
-			# # gradient for z
-			# dzl = μ ./ (xk - l) - zkl - zkl .* s ./ (xk - l)
-			# dzu = μ ./ (u - xk) - zku + zku .* s ./ (u - xk)
-			# # linesearch for step size?
-			# # if μ!=0
-			# 	# α = directsearch(xk - l, u - xk, zkl, zku, s, dzl, dzu)
-			# 	α = lsTR(xk, s,l,u; mult=mult, tau =τ)
-			# 	# α = linesearch(xk, zkl, zku, s, dzl, dzu,l,u ;mult=mult, tau = τ)
-			# # end
-			# #update search direction
-			# s = s * α
-			# dzl = dzl * α
-			# dzu = dzu * α
-
-			#define model and update ρ
-			# mk(d) = 0.5*(d'*∇²qk(d)) + ∇qk'*d + qk + ψk(xk + d) #needs to be xk in the model -> ask user to specify that? 
-			# mk(d) = 0.5*(d'*∇²qk*d) + ∇qk'*d + qk + ψk(xk + d)
-			mk(d) = objInner(d)[1] + ψk(xk+d) #psik = h -> psik = h(x+d)
-			# look up how to test if two functions are equivalent? 
-			ρk = (ObjOuter(xk) - ObjOuter(xk + s)) / (mk(zeros(size(s)))-mk(s))
-			@show ObjOuter(xk+s), ObjOuter(xk),mk(zeros(size(s))), mk(s)
-			# @show ObjOuter(xk)
-			# @show ObjOuter(xk + s)
-			# @show mk(zeros(size(xk)))
-			# @show mk(s)
-			# @show f_obj(xk)[1]
-			# @show h_obj(xk)
-			# @show f_obj(xk+s)[1]
-			# @show h_obj(xk+s)
-			if (ρk > η2)
-				TR_stat = "increase"
-				# Δk = max(Δk, γ * norm(s, 1)) #for safety
-				Δk = γ*Δk
-			else
-				TR_stat = "kept"
-			end
-
-			if (ρk >= η1 && !(ρk==Inf || isnan(ρk)))
-				x_stat = "update"
-				xk = xk + s
-				zkl = zkl + dzl
-				zku = zku + dzu
-			end
-
-			if (ρk < η1 || (ρk ==Inf || isnan(ρk)))
-
-				x_stat = "shrink"
-				#changed back linesearch
-				α = .5
-				#this needs to be the previous search direction and iterate? 
-				# while(ObjOuter(xk + α*s) > ObjOuter(xk) + σ*α*(((Gν - ∇qksj) + ∇qk)'*s) && α>1e-16) #compute a directional derivative of ψ CHECK LINESEARCH
-					# α = α*mult
-					# @show α
-				# end
-				# α = 0.1 #was 0.1; can be whatever
-				#step should be rejected
-				# xk = xk + α*s
-				# zkl = zkl + α*dzl
-				# zku = zku + α*dzu
-				Δk = α*Δk	#* norm(s, Inf) #change to reflect trust region 
-			end
-
-			Fsmth_out = f_obj(xk)
-			
-			if length(Fsmth_out)==3
-				(fk, ∇fk, Bk) = Fsmth_out
-			elseif length(Fsmth_out)==2
-				(fk, ∇fk) = Fsmth_out
-				push!(Bk, s, ∇fk-∇fk⁻)
-			else
-				error("Smooth function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
-			end
-
-
-			#update qk with new direction
-			qk = fk - μ * sum(log.(xk - l)) - μ * sum(log.(u - xk))
-			∇qk = ∇fk - μ ./ (xk - l) + μ ./ (u - xk)
-			# ∇²qk = H + Diagonal(zkl ./ (xk - l)) + Diagonal(zku ./ (u - xk))
-
-
-			#update Gν with new direction
-			# Gν = (s⁻ - s) * β #is affine scaling of s (αs) still in the subgradient? 
-			# g_old = (Gν - ∇qksj) + ∇qk
-			g_old = Gν
-			kktNorm = [
-				# norm(g_old - zkl + zku) #check this
-				Gν
-				norm(zkl .* (xk - l) .- μ)
-				norm(zku .* (u - xk) .- μ)
-			]
-	
-			#Print values
-			k % ptf == 0 && 
-			@printf(
-				"%11d|  %10.5e  %19.5e   %18.5e   %17.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e \n",
-				# k, μ, kktNorm[1]/kktInit[1],  kktNorm[2]/kktInit[2],  kktNorm[3]/kktInit[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
-				k, μ, kktNorm[1],  kktNorm[2],  kktNorm[3], ρk, x_stat, Δk, TR_stat, α, norm(xk, 2), norm(s, 2), β, fk, ψk(xk))
-
-			Fobj_hist[k] = fk
-			Hobj_hist[k] = h_obj(xk)
-			Complex_hist[k]+=1
-			# if k % ptf == 0
-			# 	FO_options.optTol = FO_options.optTol * 0.1
-			# end
-		end
-		# mu = norm(zl.*(x.-l)) + norm(zu.*(u.-x))
-		μ = 0.1 * μ
-		k = k + 1
-		ϵD = ϵD * μ
-		ϵC = ϵC * μ
+		Fobj_hist[k] = fk
+		Hobj_hist[k] = h_obj(xk)
+		Complex_hist[k]+=1
 
 	end
+
 	return xk, k, Fobj_hist[Fobj_hist.!=0], Hobj_hist[Fobj_hist.!=0], Complex_hist[Complex_hist.!=0]
 end
