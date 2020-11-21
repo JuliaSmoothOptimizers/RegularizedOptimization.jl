@@ -209,11 +209,12 @@ function IntPt_TR(
 		sk⁻ = s
 
 		#define the Hessian 
-		β = eigmax(Matrix(Bk)) #make a Matrix? ||B_k|| = λ(B_k)
+		H = Matrix(Bk)
+		β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k)
 
 		#define inner function 
 		# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
-		objInner(d) = [0.5*(d'*Bk*d) + ∇fk'*d + fk, Bk*d + ∇fk] #(mkB, ∇mkB)
+		objInner(d) = [0.5*(d'*H*d) + ∇fk'*d + fk, H*d + ∇fk] #(mkB, ∇mkB)
 		s⁻ = zeros(size(xk))
 		
 

@@ -26,7 +26,7 @@ b = b0 + α*randn(m,)
 function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
     r = A*x - b
     g = A'*r
-    return norm(r)^2/2, g, A'*A
+    return norm(r)^2/2, g
 end
 
 function h_obj(x)
