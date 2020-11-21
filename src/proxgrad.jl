@@ -45,15 +45,17 @@ function PG(Fcn, Gcn, s,  proxG, options)
 	feval = 1
 	#do iterations
 	while err >= ε && k<max_iter && abs(f)>1e-16
+		gold = g
 		s = s⁺
-		his[k] = f + Gcn(s⁺) #Gcn = h(x)
+		his[k] = f + Gcn(s⁺)*λ #Gcn = h(x)
 
 		#prox step
 		s⁺ = proxG(s - ν*g, λ*ν) #combination regularizer + TR
 		# update function info
 		f, g = Fcn(s⁺)
 		feval+=1
-		err = norm((s-s⁺)/ν) #stopping criteria
+		# err = norm((s-s⁺)/ν) #stopping criteria
+		err = norm(g-gold - (s⁺-s)/ν)
 		k+=1
 		# if f>fstart || isnan(norm(s⁺))
 		# 	s⁺ = s

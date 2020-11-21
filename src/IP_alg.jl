@@ -186,18 +186,12 @@ function IntPt_TR(
 	else
 		error("Smooth Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
 	end
-
-	# initialize qk
-	qk = fk 
-	∇qk = ∇fk 
-	H = Bk
-
 	
 	#keep track of old subgradient for LnSrch purposes
 	Gν =  ∇fk
 	s = zeros(size(xk))
 
-	∇qksj = copy(∇qk) 
+	∇qksj = copy(∇fk) 
 	g_old = Gν
 
 	kktInit = norm(g_old)
@@ -215,12 +209,11 @@ function IntPt_TR(
 		sk⁻ = s
 
 		#define the Hessian 
-		∇²qk = Matrix(H) 
-		β = eigmax(∇²qk) #make a Matrix? ||B_k|| = λ(B_k)
+		β = eigmax(Matrix(Bk)) #make a Matrix? ||B_k|| = λ(B_k)
 
 		#define inner function 
 		# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
-		objInner(d) = [0.5*(d'*∇²qk*d) + ∇qk'*d + qk, ∇²qk*d + ∇qk] #(mkB, ∇mkB)
+		objInner(d) = [0.5*(d'*Bk*d) + ∇f'*d + fk, Bk*d + ∇f] #(mkB, ∇mkB)
 		s⁻ = zeros(size(xk))
 		
 
@@ -233,7 +226,7 @@ function IntPt_TR(
 			FO_options.λ = Δk * FO_options.β
 		end
 
-		s = Rkprox(-FO_options.ν*∇qk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on step s1
+		s = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on step s1
 		Gν = s/FO_options.ν
 		if norm(Gν)>ϵD #final stopping criteria 
 			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
@@ -287,11 +280,6 @@ function IntPt_TR(
 		end
 
 
-		#update qk with new direction
-		qk = fk 
-		∇qk = ∇fk
-
-
 		#update Gν with new direction
 		g_old = Gν
 		kktNorm = norm(Gν)
@@ -300,10 +288,10 @@ function IntPt_TR(
 		k % ptf == 0 && 
 		@printf(
 			"%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e  %10.5e\n",
-			   k,   kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), β,    fk,    ψk(xk))
+			   k,   kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), β,    fk,    λ*ψk(xk))
 
 		Fobj_hist[k] = fk
-		Hobj_hist[k] = h_obj(xk)
+		Hobj_hist[k] = h_obj(xk)*λ
 		Complex_hist[k]+=1
 
 	end
