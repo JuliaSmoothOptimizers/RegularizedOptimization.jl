@@ -177,7 +177,7 @@ function IntPt_TR(
 
 	if length(Fsmth_out)==3
 		(fk, ∇fk, Bk) = Fsmth_out
-	elseif length(Fsmth_out)==2 && k_i==0
+	elseif length(Fsmth_out)==2 && k==0
 		(fk, ∇fk) = Fsmth_out
 		Bk = LBFGSOperator(size(xk,1); mem = mem)
 	elseif length(Fsmth_out)==2
