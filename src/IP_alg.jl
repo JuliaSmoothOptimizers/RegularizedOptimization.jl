@@ -264,8 +264,6 @@ function IntPt_TR(
 		if (ρk >= η1 && !(ρk==Inf || isnan(ρk)))
 			x_stat = "update"
 			xk = xk + s
-			zkl = zkl + dzl
-			zku = zku + dzu
 		end
 
 		if (ρk < η1 || (ρk ==Inf || isnan(ρk)))
