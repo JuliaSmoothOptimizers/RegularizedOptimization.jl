@@ -213,7 +213,7 @@ function IntPt_TR(
 
 		#define inner function 
 		# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
-		objInner(d) = [0.5*(d'*Bk*d) + ∇f'*d + fk, Bk*d + ∇f] #(mkB, ∇mkB)
+		objInner(d) = [0.5*(d'*Bk*d) + ∇fk'*d + fk, Bk*d + ∇fk] #(mkB, ∇mkB)
 		s⁻ = zeros(size(xk))
 		
 
