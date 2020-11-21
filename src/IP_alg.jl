@@ -203,7 +203,7 @@ function IntPt_TR(
 	kktInit = norm(g_old)
 	kktNorm = 100*kktInit
 
-	while kktNorm[1] > ϵD && k_i < maxIter
+	while kktNorm[1] > ϵD && k < maxIter
 		#update count
 		k = k + 1 #inner
 		TR_stat = ""
