@@ -227,7 +227,8 @@ function IntPt_TR(
 
 		νmin = (1-sqrt(1-4*θ))/(2*β)
 		νmax = (1+sqrt(1-4*θ))/(2*β)
-		FO_options.ν = (νmin+νmax)/2 #nu min later? λ(B_k)/2
+		# FO_options.ν = (νmin+νmax)/2 #nu min later? λ(B_k)/2
+		FO_options.ν = 1/β
 		if h_obj(xk)==0 #i think this is for h==0? 
 			FO_options.λ = Δk * FO_options.β
 		end
@@ -249,7 +250,7 @@ function IntPt_TR(
 		α = 1.0
 		#define model and update ρ
 		# mk(d) = 0.5*(d'*∇²qk*d) + ∇qk'*d + qk + ψk(xk + d)
-		mk(d) = objInner(d)[1] + ψk(xk+d) #psik = h -> psik = h(x+d)
+		mk(d) = objInner(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
 		# look up how to test if two functions are equivalent? 
 		ρk = (ObjOuter(xk) - ObjOuter(xk + s)) / (mk(zeros(size(s)))-mk(s))
 
