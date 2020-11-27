@@ -168,7 +168,7 @@ function IntPt_TR(
 
 
 	k = 0
-	ρk = -1
+	ρk = -1.0
 	α = 1.0
 
 	#main algorithm initialization
@@ -191,7 +191,6 @@ function IntPt_TR(
 	Gν =  ∇fk
 	s = zeros(size(xk))
 
-	∇qksj = copy(∇fk) 
 	g_old = Gν
 
 	kktInit = norm(g_old)
@@ -246,11 +245,11 @@ function IntPt_TR(
 		# mk(d) = 0.5*(d'*∇²qk*d) + ∇qk'*d + qk + ψk(xk + d)
 		mk(d) = objInner(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
 		# look up how to test if two functions are equivalent? 
-		ρk = (ObjOuter(xk) - ObjOuter(xk + s)) / (mk(zeros(size(s)))-mk(s))
+		ρk = (ObjOuter(xk) - ObjOuter(xk + s) + ϵD) / (mk(zeros(size(s)))-mk(s) + ϵD)
 
 		if (ρk > η2)
 			TR_stat = "increase"
-			# Δk = max(Δk, γ * norm(s, 1)) #for safety
+			# Δk = max(Δk, γ * norm(s, 1)) #for safety - same norm of the trust region
 			Δk = γ*Δk
 		else
 			TR_stat = "kept"
