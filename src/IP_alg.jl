@@ -209,7 +209,7 @@ function IntPt_TR(
 
 		#define the Hessian 
 		H = Matrix(Bk)
-		β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k)
+		β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
 
 		#define inner function 
 		# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
@@ -245,12 +245,13 @@ function IntPt_TR(
 		# mk(d) = 0.5*(d'*∇²qk*d) + ∇qk'*d + qk + ψk(xk + d)
 		mk(d) = objInner(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
 		# look up how to test if two functions are equivalent? 
-		ρk = (ObjOuter(xk) - ObjOuter(xk + s) + ϵD) / (mk(zeros(size(s)))-mk(s) + ϵD)
+		ρk = (ObjOuter(xk) - ObjOuter(xk + s) + 1e-16) / (mk(zeros(size(s)))-mk(s) + 1e-16)
 
 		if (ρk > η2)
 			TR_stat = "increase"
 			# Δk = max(Δk, γ * norm(s, 1)) #for safety - same norm of the trust region
-			Δk = γ*Δk
+			Δk = max(Δk, γ*norm(s))
+			# Δk = γ*Δk
 		else
 			TR_stat = "kept"
 		end
