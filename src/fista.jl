@@ -19,7 +19,7 @@ function FISTA(Fcn, Gcn, s,  proxG, options)
 	ε=options.optTol
 	max_iter=options.maxIter
 	restart = options.restart
-	ν = options.β^(-1)
+	ν = options.ν
 	λ = options.λ
 	if options.verbose==0
 		print_freq = Inf
@@ -83,7 +83,7 @@ function FISTA!(Fcn!,Gcn!, s,  proxG!, options)
 	ε=options.optTol
 	max_iter=options.maxIter
 	restart = options.restart
-	ν = options.β^(-1)
+	ν = options.ν
 	λ = options.λ
 	if options.verbose==0
 		print_freq = Inf
@@ -152,7 +152,7 @@ function FISTAD(Fcn, Gcn, s,  proxG, options)
 	ε=options.optTol
 	max_iter=options.maxIter
 	restart = options.restart
-	ν = options.β^(-1)
+	ν = options.ν
 	λ = options.λ
 	if options.verbose==0
 		print_freq = Inf
