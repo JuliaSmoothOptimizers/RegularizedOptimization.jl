@@ -59,7 +59,7 @@ function IP_struct(
 	ψk = h,
 	HessApprox = LBFGSOperator
 )
-	return IP_methods(FO_options, s_alg, Rkprox, ψk, f_obj, h, λ)
+	return IP_methods(FO_options, s_alg, Rkprox, ψk, HessApprox, f_obj, h, λ)
 end
 
 
