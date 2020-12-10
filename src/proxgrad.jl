@@ -83,7 +83,7 @@ function PG!(Fcn!,Gcn!, s,  proxG!, options)
 	R = real(T)
 	#Problem Initialize
 	m = length(s)
-	ν = options.β^(-1)
+	ν = options.ν
 	λ = options.λ
 	s⁻ = copy(s)
 	g = zeros(T, m)

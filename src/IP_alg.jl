@@ -25,6 +25,7 @@ mutable struct IP_methods
 	s_alg #algorithm passed that determines descent direction
 	Rkprox # ψ_k + χ_k where χ_k is the Δ - norm ball that you project onto. Note that the basic case is that ψ_k = 0
 	ψk #nonsmooth model of h that you are trying to solve - it is possible that ψ=h. 
+	HessApprox #Hessian Approximation choosen. Defaults to LBFGS, unless the user provides a Hessian in the smooth function 
 	f_obj #objective function (unaltered) that you want to minimize
 	h_obj #objective function that is nonsmooth - > only used for evaluation
 	λ #objective nonsmooth tuning parameter
@@ -56,6 +57,7 @@ function IP_struct(
 	s_alg = PG,
 	Rkprox = (z, σ, xt, Dk) → z./max(1, norm(z, 2)/σ),
 	ψk = h
+	HessApprox = LBFGSOperator
 )
 	return IP_methods(FO_options, s_alg, Rkprox, ψk, f_obj, h, λ)
 end
@@ -129,6 +131,7 @@ function IntPt_TR(
 	FO_options = params.FO_options
 	s_alg = params.s_alg
 	Rkprox = params.Rkprox
+	HessApprox = params.HessApprox
 	ψk = params.ψk
 	f_obj = params.f_obj
 	h_obj = params.h_obj
@@ -179,7 +182,7 @@ function IntPt_TR(
 		(fk, ∇fk, Bk) = Fsmth_out
 	elseif length(Fsmth_out)==2 && k==0
 		(fk, ∇fk) = Fsmth_out
-		Bk = LBFGSOperator(size(xk,1); mem = mem)
+		Bk = HessApprox(size(xk,1); mem = mem)
 	elseif length(Fsmth_out)==2
 		(fk, ∇fk) = Fsmth_out
 		push!(Bk, s,  ∇fk-∇fk⁻)
@@ -214,7 +217,6 @@ function IntPt_TR(
 		#define inner function 
 		# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
 		objInner(d) = [0.5*(d'*H*d) + ∇fk'*d + fk, H*d + ∇fk] #(mkB, ∇mkB)
-		s⁻ = zeros(size(xk))
 		
 
 
@@ -222,9 +224,9 @@ function IntPt_TR(
 		νmax = (1+sqrt(1-4*θ))/(2*β)
 		# FO_options.ν = (νmin+νmax)/2 #nu min later? λ(B_k)/2
 		FO_options.ν = 1/β
-		if h_obj(xk)==0 #i think this is for h==0? 
-			FO_options.λ = Δk * FO_options.β
-		end
+		# if h_obj(xk)==0 #i think this is for h==0? 
+		# 	FO_options.λ = Δk * FO_options.β
+		# end
 
 		s = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on step s1
 		Gν = s/FO_options.ν
