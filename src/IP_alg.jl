@@ -212,8 +212,9 @@ function IntPt_TR(
 
 		#define the Hessian 
 		H = Symmetric(Matrix(Bk))
-		@show maximum(eigvals(H))
-		β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
+		# @show maximum(eigvals(H))
+		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
+		β = maximum(eigs(H))
 
 		#define inner function 
 		# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
