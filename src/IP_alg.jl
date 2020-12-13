@@ -294,7 +294,7 @@ function IntPt_TR(
 		#Print values
 		k % ptf == 0 && 
 		@printf(
-			"%11d|  %9d |  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %9.5e   %9.5e   %9.5e   %9.5e  %9.5e\n",
+			"%11d|  %9d |  %10.5e   %10.5e   %9s   %10.5e   %10s   %10.5e   %9.4e   %9.4e   %9.4e   %9.4e  %9.4e\n",
 			   k, funEvals,  kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), β,    fk,    λ*ψk(xk))
 
 		Fobj_hist[k] = fk
