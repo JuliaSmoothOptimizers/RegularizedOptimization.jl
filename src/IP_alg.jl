@@ -149,8 +149,9 @@ function IntPt_TR(
 		"------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
 	)
 	verbose!=0 && @printf(
-		"%10s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s | %10s | %10s\n",
+		"%10s | %10s | %11s | %11s | %10s | %11s | %11s | %10s | %10s | %10s | %10s | %10s | %10s\n",
 		"Iter",
+		"PG-Iter",
 		"||Gν||",
 		"Ratio: ρk",
 		"x status ",
@@ -214,7 +215,7 @@ function IntPt_TR(
 		H = Symmetric(Matrix(Bk))
 		# @show maximum(eigvals(H))
 		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-		β = maximum(eigs(H))
+		β = maximum(eigs(H)[1])
 
 		#define inner function 
 		# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
@@ -293,8 +294,8 @@ function IntPt_TR(
 		#Print values
 		k % ptf == 0 && 
 		@printf(
-			"%11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e  %10.5e\n",
-			   k,   kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), β,    fk,    λ*ψk(xk))
+			"%11d|  %11d|  %10.5e   %10.5e   %10s   %10.5e   %10s   %10.5e   %10.5e   %10.5e   %10.5e   %10.5e  %10.5e\n",
+			   k, funEvals,  kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), β,    fk,    λ*ψk(xk))
 
 		Fobj_hist[k] = fk
 		Hobj_hist[k] = h_obj(xk)*λ
