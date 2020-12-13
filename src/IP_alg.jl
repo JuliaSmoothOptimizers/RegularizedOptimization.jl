@@ -212,7 +212,7 @@ function IntPt_TR(
 
 		#define the Hessian 
 		H = Symmetric(Matrix(Bk))
-		@show eigvals(H)
+		@show max(eigvals(H))
 		β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
 
 		#define inner function 
@@ -232,6 +232,7 @@ function IntPt_TR(
 		s = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on step s1
 		Gν = s/FO_options.ν
 		if norm(Gν)>ϵD #final stopping criteria 
+			# FO_options.ε = 1.1*norm(Gν)
 			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
 		else
 			funEvals = 1 
