@@ -1,7 +1,7 @@
 #Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 #Note that some of the file inclusions are for testing purposes (ie minconf_spg)
 
-using LinearOperators, LinearAlgebra
+using LinearOperators, LinearAlgebra, Arpack
 export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
 # include("proxGD.jl")
 
