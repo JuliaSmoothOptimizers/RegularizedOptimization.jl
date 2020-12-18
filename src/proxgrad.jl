@@ -35,7 +35,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 	ν = options.ν
 	λ = options.λ
 	k = 1
-	err = 100
+	err = 100.0
 	his = zeros(max_iter)
 	s⁺ = deepcopy(s)
 
@@ -44,7 +44,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 	fstart = f
 	feval = 1
 	#do iterations
-	while err >= ε && k<max_iter && abs(f)>1e-16
+	while err >= ε && k<max_iter && abs(f)>1e-16 #another stopping criteria abs(f - fstart)>TOL*||Δf(s1)||
 		gold = g
 		s = s⁺
 		his[k] = f + Gcn(s⁺)*λ #Gcn = h(x)
@@ -89,7 +89,7 @@ function PG!(Fcn!,Gcn!, s,  proxG!, options)
 	g = zeros(T, m)
 
 	k = 1
-	err = 100
+	err = 100.0
 	his = zeros(max_iter)
 	# Iteration set up
 	f = Fcn!(s,g)
@@ -137,7 +137,7 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
 	ν = R(1.0)
 	λ = options.λ
 	k = 1
-	err = 100
+	err = 100.0
 	his = zeros(max_iter)
 	s⁺ = deepcopy(s)
 

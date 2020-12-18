@@ -251,6 +251,7 @@ function IntPt_TR(
 		# mk(d) = 0.5*(d'*∇²qk*d) + ∇qk'*d + qk + ψk(xk + d)
 		mk(d) = objInner(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
 		# look up how to test if two functions are equivalent? 
+		@show ObjOuter(xk), ObjOuter(xk + s), mk(zeros(size(s))), mk(s)
 		ρk = (ObjOuter(xk) - ObjOuter(xk + s) + 1e-16) / (mk(zeros(size(s)))-mk(s) + 1e-16)
 
 		if (ρk > η2)
