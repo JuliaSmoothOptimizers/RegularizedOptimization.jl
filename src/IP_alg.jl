@@ -252,7 +252,9 @@ function IntPt_TR(
 		mk(d) = objInner(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
 		# look up how to test if two functions are equivalent? 
 		@show ObjOuter(xk), ObjOuter(xk + s), mk(zeros(size(s))), mk(s)
-		ρk = (ObjOuter(xk) - ObjOuter(xk + s) + 1e-16) / (mk(zeros(size(s)))-mk(s) + 1e-16)
+		Numerator = ObjOuter(xk) - ObjOuter(xk + s)
+		Denominator = mk(zeros(size(s)))-mk(s)
+		ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
 
 		if (ρk > η2)
 			TR_stat = "increase"
