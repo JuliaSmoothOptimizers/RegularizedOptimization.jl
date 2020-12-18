@@ -270,7 +270,7 @@ function IntPt_TR(
 			xk = xk + s
 		end
 
-		if (ρk < η1 || (ρk ==Inf || isnan(ρk)))
+		if (ρk < η1 || (ρk ==Inf || isnan(ρk) || (Numerator<0 && Denominator<0)))
 
 			x_stat = "reject"
 			TR_stat = "shrink"
