@@ -215,7 +215,7 @@ function IntPt_TR(
 		H = Symmetric(Matrix(Bk))
 		# @show maximum(eigvals(H))
 		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-		β = maximum(eigs(H;nev=size(xk,1))[1])
+		β = maximum(eigs(H;nev=size(xk,1)-1)[1])
 
 		#define inner function 
 		# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
@@ -254,7 +254,7 @@ function IntPt_TR(
 		@show ObjOuter(xk), ObjOuter(xk + s), mk(zeros(size(s))), mk(s)
 		Numerator = ObjOuter(xk) - ObjOuter(xk + s)
 		Denominator = mk(zeros(size(s)))-mk(s)
-		ρk = (Numerator + 1e-16) / (abs(Denominator) + 1e-16)
+		ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
 
 		if (ρk > η2)
 			TR_stat = "increase"
