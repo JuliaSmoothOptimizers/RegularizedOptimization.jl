@@ -254,7 +254,7 @@ function IntPt_TR(
 		@show ObjOuter(xk), ObjOuter(xk + s), mk(zeros(size(s))), mk(s)
 		Numerator = ObjOuter(xk) - ObjOuter(xk + s)
 		Denominator = mk(zeros(size(s)))-mk(s)
-		ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
+		ρk = (Numerator) / (Denominator)
 
 		if (ρk > η2)
 			TR_stat = "increase"
