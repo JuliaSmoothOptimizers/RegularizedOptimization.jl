@@ -212,8 +212,7 @@ function IntPt_TR(
 		sk⁻ = s
 
 		#define the Hessian 
-		# H = Symmetric(Matrix(Bk))
-		H = Matrix(Bk)
+		H = Symmetric(Matrix(Bk))
 		# @show maximum(eigvals(H))
 		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
 		β = maximum(eigs(H;nev=1, which=:LM)[1])
@@ -252,10 +251,10 @@ function IntPt_TR(
 		# mk(d) = 0.5*(d'*∇²qk*d) + ∇qk'*d + qk + ψk(xk + d)
 		mk(d) = objInner(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
 		# look up how to test if two functions are equivalent? 
-		@show ObjOuter(xk), ObjOuter(xk + s), mk(zeros(size(s))), mk(s)
+		# @show ObjOuter(xk), ObjOuter(xk + s), mk(zeros(size(s))), mk(s)
 		Numerator = ObjOuter(xk) - ObjOuter(xk + s)
 		Denominator = mk(zeros(size(s)))-mk(s)
-		ρk = (Numerator) / (Denominator)
+		ρk = (Numerator + 1e-20) / (Denominator + 1e-20)
 
 		if (ρk > η2)
 			TR_stat = "increase"
