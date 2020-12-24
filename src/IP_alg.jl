@@ -212,7 +212,8 @@ function IntPt_TR(
 		sk⁻ = s
 
 		#define the Hessian 
-		H = Symmetric(Matrix(Bk))
+		# H = Symmetric(Matrix(Bk))
+		H = Matrix(Bk)
 		# @show maximum(eigvals(H))
 		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
 		β = maximum(eigs(H;nev=1, which=:LM)[1])
