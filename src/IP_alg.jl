@@ -190,7 +190,12 @@ function IntPt_TR(
 	else
 		error("Smooth Function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
 	end
-	
+
+	#define the Hessian 
+	H = Symmetric(Matrix(Bk))
+	# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
+	β = maximum(eigs(H;nev=1, which=:LM)[1])
+
 	#keep track of old subgradient for LnSrch purposes
 	Gν =  ∇fk
 	s = zeros(size(xk))
@@ -211,20 +216,9 @@ function IntPt_TR(
 		∇fk⁻ = ∇fk
 		sk⁻ = s
 
-		#define the Hessian 
-		H = Symmetric(Matrix(Bk))
-		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-		β = maximum(eigs(H;nev=1, which=:LM)[1])
-
 		#define inner function 
-		# objInner(d) = [0.5*(d'*∇²qk(d)) + ∇qk'*d + qk, ∇²qk(d) + ∇qk] #(mkB, ∇mkB)
 		objInner(d) = [0.5*(d'*H*d) + ∇fk'*d + fk, H*d + ∇fk] #(mkB, ∇mkB)
 		
-
-
-		νmin = (1-sqrt(1-4*θ))/(2*β)
-		νmax = (1+sqrt(1-4*θ))/(2*β)
-		# FO_options.ν = (νmin+νmax)/2 #nu min later? λ(B_k)/2
 		FO_options.ν = 1/β
 		# if h_obj(xk)==0 #i think this is for h==0? 
 		# 	FO_options.λ = Δk * FO_options.β
@@ -247,12 +241,12 @@ function IntPt_TR(
 
 		α = 1.0
 		#define model and update ρ
-		# mk(d) = 0.5*(d'*∇²qk*d) + ∇qk'*d + qk + ψk(xk + d)
 		mk(d) = objInner(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
-		# look up how to test if two functions are equivalent? 
 		# @show ObjOuter(xk), ObjOuter(xk + s), mk(zeros(size(s))), mk(s)
 		Numerator = ObjOuter(xk) - ObjOuter(xk + s)
 		Denominator = mk(zeros(size(s)))-mk(s)
+
+
 		ρk = (Numerator + 1e-20) / (Denominator + 1e-20)
 
 		if (ρk > η2)
@@ -288,7 +282,11 @@ function IntPt_TR(
 			error("Smooth function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
 		end
 
-
+		#define the Hessian 
+		H = Symmetric(Matrix(Bk))
+		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
+		β = maximum(eigs(H;nev=1, which=:LM)[1])
+		
 		#update Gν with new direction
 		g_old = Gν
 		kktNorm = norm(Gν)
@@ -297,7 +295,7 @@ function IntPt_TR(
 		k % ptf == 0 && 
 		@printf(
 			"%11d|  %9d |  %10.5e   %10.5e   %9s   %10.5e   %10s   %10.4e   %9.4e   %9.4e   %9.4e   %9.4e  %9.4e\n",
-			   k, funEvals,  kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), β,    fk,    λ*ψk(xk))
+			   k, funEvals,  kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), β,    fk,    λ*h_obj(xk) )
 
 		Fobj_hist[k] = fk
 		Hobj_hist[k] = h_obj(xk)*λ
