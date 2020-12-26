@@ -228,7 +228,7 @@ function IntPt_TR(
 		Gν = s/FO_options.ν
 		if norm(Gν)>ϵD #final stopping criteria 
 			# FO_options.ε = 1.1*norm(Gν)
-			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), zeros(size(s)), (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
+			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
 		else
 			funEvals = 1 
 		end
