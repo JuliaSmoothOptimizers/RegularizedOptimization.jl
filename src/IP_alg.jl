@@ -285,7 +285,8 @@ function IntPt_TR(
 		#define the Hessian 
 		H = Symmetric(Matrix(Bk))
 		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-		β = maximum(eigs(H;nev=1, which=:LM)[1])
+		# β = maximum(eigs(H;nev=1, which=:LM)[1])
+		β = opnorm(H)
 		
 		#update Gν with new direction
 		g_old = Gν
