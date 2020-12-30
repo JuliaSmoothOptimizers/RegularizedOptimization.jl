@@ -210,7 +210,7 @@ function IntPt_TR(
 		k = k + 1 #inner
 		TR_stat = ""
 		x_stat = ""
-		@show det(H)
+		@show cond(H)
 		#store previous iterates
 		xk⁻ = xk 
 		∇fk⁻ = ∇fk
