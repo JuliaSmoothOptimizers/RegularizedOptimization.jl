@@ -193,6 +193,7 @@ function IntPt_TR(
 
 	#define the Hessian 
 	H = Symmetric(Matrix(Bk))
+	@show det(H)
 	# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
 	β = maximum(eigs(H;nev=1, which=:LM)[1])
 
