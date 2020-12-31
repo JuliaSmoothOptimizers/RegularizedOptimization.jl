@@ -139,7 +139,8 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
 	#Problem Initialize
     m = length(s)
     α = options.α
-	ν = R(1.0)
+	# ν = R(1.0)
+	ν = options.ν
 	λ = options.λ
 	k = 1
 	err = 100.0
@@ -154,6 +155,7 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
 	while err >= ε && k<max_iter && abs(f)>1e-16
 		s = s⁺
 		his[k] = f + Gcn(s⁺)
+		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, his[k], err)
 		#prox step
         s⁺ = proxG(s - ν*g, λ*ν)
         #linesearch
@@ -163,14 +165,13 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
             feval+=1
         end
         # update function info
-        ν = R(1.0)
+        ν = options.ν
         f, g = Fcn(s⁺)
 
 		feval+=1
 		err = norm(s-s⁺)
 		k+=1
-		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, his[k], err)
+
 	end
 	return s⁺,s, his[1:k-1], feval
 end
