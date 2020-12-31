@@ -200,9 +200,7 @@ function IntPt_TR(
 	Gν =  ∇fk
 	s = zeros(size(xk))
 
-	g_old = Gν
-
-	kktInit = norm(g_old)
+	kktInit = norm(Gν)
 	kktNorm = 100*kktInit
 
 	while kktNorm[1] > ϵD && k < maxIter
@@ -220,15 +218,13 @@ function IntPt_TR(
 		objInner(d) = [0.5*(d'*H*d) + ∇fk'*d + fk, H*d + ∇fk] #(mkB, ∇mkB)
 		
 		FO_options.ν = 1/β
-		# if h_obj(xk)==0 #i think this is for h==0? 
-		# 	FO_options.λ = Δk * FO_options.β
-		# end
 
 		s = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on step s1
 		Gν = s/FO_options.ν
 		if norm(Gν)>ϵD #final stopping criteria 
 			# FO_options.ε = 1.1*norm(Gν)
 			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
+			Gν = s/FO_options.ν
 		else
 			funEvals = 1 
 		end
@@ -247,7 +243,7 @@ function IntPt_TR(
 		Denominator = mk(zeros(size(s)))-mk(s)
 
 
-		ρk = (Numerator + 1e-300) / (Denominator + 1e-300)
+		ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
 
 		if (ρk > η2)
 			TR_stat = "increase"
@@ -258,12 +254,12 @@ function IntPt_TR(
 			TR_stat = "kept"
 		end
 
-		if (ρk >= η1 && !(ρk==Inf || isnan(ρk)))
+		if (ρk >= η1 && !(ρk==Inf || isnan(ρk) || Numerator < 0))
 			x_stat = "update"
 			xk = xk + s
 		end
 
-		if (ρk < η1 || (ρk ==Inf || isnan(ρk)))
+		if (ρk < η1 || (ρk ==Inf || isnan(ρk) || Numerator < 0))
 
 			x_stat = "reject"
 			TR_stat = "shrink"
@@ -285,11 +281,9 @@ function IntPt_TR(
 		#define the Hessian 
 		H = Symmetric(Matrix(Bk))
 		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-		# β = maximum(eigs(H;nev=1, which=:LM)[1])
-		β = opnorm(H)
+		β = maximum(eigs(H;nev=1, which=:LM)[1])
 		
 		#update Gν with new direction
-		g_old = Gν
 		kktNorm = norm(Gν)
 
 		#Print values
