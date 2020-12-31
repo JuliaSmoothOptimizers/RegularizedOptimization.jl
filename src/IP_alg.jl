@@ -247,7 +247,7 @@ function IntPt_TR(
 		Denominator = mk(zeros(size(s)))-mk(s)
 
 
-		ρk = (Numerator + 1e-20) / (Denominator + 1e-20)
+		ρk = (Numerator + 1e-300) / (Denominator + 1e-300)
 
 		if (ρk > η2)
 			TR_stat = "increase"
