@@ -194,7 +194,7 @@ function IntPt_TR(
 	#define the Hessian 
 	H = Symmetric(Matrix(Bk))
 	# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-	β = maximum(eigs(H;nev=1, which=:LM)[1])
+	β = maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
 
 	#keep track of old subgradient for LnSrch purposes
 	Gν =  ∇fk
@@ -208,7 +208,6 @@ function IntPt_TR(
 		k = k + 1 #inner
 		TR_stat = ""
 		x_stat = ""
-		@show cond(H)
 		#store previous iterates
 		xk⁻ = xk 
 		∇fk⁻ = ∇fk
@@ -281,7 +280,7 @@ function IntPt_TR(
 		#define the Hessian 
 		H = Symmetric(Matrix(Bk))
 		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-		β = maximum(eigs(H;nev=1, which=:LM)[1])
+		β = maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
 		
 		#update Gν with new direction
 		kktNorm = norm(Gν)
