@@ -209,11 +209,12 @@ function PGΔ(Fcn, Gcn, s,  proxG, options)
 
 	# Iteration set up
 	f, g = Fcn(s⁺) #objInner/ quadratic model
-	fstart = f*100
+	fstart = f
+	DiffFcn = err 
 	feval = 1
 
 	#do iterations
-	while err >= ε && k<max_iter && abs(f)>1e-16 && abs(f - fstart)<p*norm(FcnDec) #another stopping criteria abs(f - fstart)>TOL*||Δf(s1)||
+	while err >= ε && k<max_iter && abs(f)>1e-16 && abs(DiffFcn)<p*norm(FcnDec) #another stopping criteria abs(f - fstart)>TOL*||Δf(s1)||
 
 		his[k] = f + Gcn(s⁺)*λ #Gcn = h(x)
 		#sheet on which to freq
@@ -230,6 +231,7 @@ function PGΔ(Fcn, Gcn, s,  proxG, options)
 
 		# err = norm((s-s⁺)/ν) #stopping criteria
 		err = norm(g-gold - (s⁺-s)/ν) #(Bk - ν^-1I)(s⁺ -s ) ----> equation 17 in paper 
+		DiffFcn = f - fstart
 		# err = norm((s-s⁺)/ν - gold) #equation 16 in paper
 	
 		k+=1
