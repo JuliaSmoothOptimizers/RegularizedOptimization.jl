@@ -215,7 +215,9 @@ function IntPt_TR(
 
 		#define inner function 
 		objInner(d) = [0.5*(d'*H*d) + ∇fk'*d + fk, H*d + ∇fk] #(mkB, ∇mkB)
-		
+		#define model and update ρ
+		mk(d) = objInner(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
+
 		FO_options.ν = 1/β
 
 		s = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on step s1
@@ -236,8 +238,6 @@ function IntPt_TR(
 
 
 		α = 1.0
-		#define model and update ρ
-		mk(d) = objInner(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
 		# @show ObjOuter(xk), ObjOuter(xk + s), mk(zeros(size(s))), mk(s)
 		Numerator = ObjOuter(xk) - ObjOuter(xk + s)
 		Denominator = mk(zeros(size(s)))-mk(s)
