@@ -208,15 +208,13 @@ function PGΔ(Fcn, Gcn, s,  proxG, options)
 	s⁺ = deepcopy(s)
 
 	# Iteration set up
-	f, g = Fcn(s⁺) #objInner/ quadratic model
-	fstart = f
-	DiffFcn = err 
-	feval = 1
-
+    f, g = Fcn(s⁺) #objInner/ quadratic model
+    his[k] = f + Gcn(s⁺)*λ #Gcn = h(x)
+	DiffFcn = 0.0 
+    feval = 1
 	#do iterations
 	while err >= ε && k<max_iter && abs(f)>1e-16 && abs(DiffFcn)<p*norm(FcnDec) #another stopping criteria abs(f - fstart)>TOL*||Δf(s1)||
 
-		his[k] = f + Gcn(s⁺)*λ #Gcn = h(x)
 		#sheet on which to freq
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, his[k], err, ν)
 
@@ -231,10 +229,12 @@ function PGΔ(Fcn, Gcn, s,  proxG, options)
 
 		# err = norm((s-s⁺)/ν) #stopping criteria
 		err = norm(g-gold - (s⁺-s)/ν) #(Bk - ν^-1I)(s⁺ -s ) ----> equation 17 in paper 
-		DiffFcn = f - fstart
 		# err = norm((s-s⁺)/ν - gold) #equation 16 in paper
-	
-		k+=1
+        k+=1
+
+        
+        his[k] = f + Gcn(s⁺)*λ #Gcn = h(x)
+        DiffFcn = his[k-1] - his[k]
 	end
 	return s⁺,s, his[1:k-1], feval
 end
