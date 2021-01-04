@@ -1,4 +1,4 @@
-export PG, PG!, PGLnsch
+export PG, PG!, PGLnsch, PGΔ
 
 """
 	Proximal Gradient Descent  for
