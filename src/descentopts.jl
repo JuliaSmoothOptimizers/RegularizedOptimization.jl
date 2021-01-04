@@ -6,21 +6,14 @@ mutable struct s_params
 	verbose
 	restart
 	ν
-	α
 	λ
-	η
-    η_factor
-    Δ
-    WoptTol
-    ∇fk
-    Bk
-    xk
+	p
+	FcnDec
 end
 
 
-function s_options(ν;optTol=1f-6, maxIter=10000, verbose=0, restart=10, λ=1.0, η =1.0, η_factor=.9, Δ=1.0, α = .95,
-     WoptTol=1f-6, ∇fk = Vector{Float64}(undef,0), Bk = Array{Float64}(undef, 0,0), xk=Vector{Float64}(undef,0))
+function s_options(ν; optTol=1f-6, maxIter=10000, verbose=0, restart=10, λ=1.0, p = 1.1, FcnDec = 1)
 
-	return s_params(optTol, maxIter, verbose, restart, ν,α, λ, η, η_factor,Δ, WoptTol, ∇fk, Bk,xk)
+	return s_params(optTol, maxIter, verbose, restart, ν, λ, p, FcnDec)
 
 end
