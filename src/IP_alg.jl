@@ -223,7 +223,7 @@ function IntPt_TR(
 		s = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on step s1
 		Gν = s/FO_options.ν
 		if norm(Gν)>ϵD #final stopping criteria 
-			FO_options.optTol = min(1.5, sqrt(norm(Gν)))*norm(Gν)
+			FO_options.optTol = min(FO_options.optTol, sqrt(norm(Gν)))*norm(Gν)
 			FO_options.FcnDec = mk(zeros(size(s)))-mk(s)
 			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
 			Gν = s/FO_options.ν
