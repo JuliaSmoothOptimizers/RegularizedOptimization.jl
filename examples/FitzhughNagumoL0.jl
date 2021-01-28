@@ -340,7 +340,7 @@ x3, xbar, y, it, PF, PH = my_zerofpr(solver, xi, f = ϕ, g = g)
 include("../test/nonlinfig_gen.jl")
 folder = "./"
 hist = [Fhist+Hhist,PFp+PHp, PF+PH]
-histx = [Array(1:length(Fhist)), Array(1:20:length(PF)*20)] 
+histx = [Array(1:length(Fhist)), Array(1:length(PFp)), Array(1:20:length(PF)*20)] 
 labs = ["f+h: TR", "f+h: PANOC", "f+h: ZeroFPR"]
 figen_non(histx, hist, labs, string(folder,"objcomp"), [" ", "kth Objective Evaluation", " Value "], 3, 0)
 
@@ -362,6 +362,6 @@ solp = hcat(temp_solp.u...)
 solf = hcat(temp_solf.u...)
 
 yvars = [sol[1,:], sol[2,:], solx[1,:], solx[2,:], solp[1,:], solp[2,:],solf[1,:], solf[2,:], data[1,:], data[2,:]]
-xvars = [t, t, t, t, t, t, t, t]
-labs = ["True-V", "True-W", "TR-V", "TR-W", "PANOC-V", "PANOC-W","ZFP-V", "ZFP-W" "Data-V", "Data-W"]
+xvars = [t, t, t, t,t,t, t, t, t, t]
+labs = ["True-V", "True-W", "TR-V", "TR-W", "PANOC-V", "PANOC-W","ZFP-V", "ZFP-W", "Data-V", "Data-W"]
 figen_non(xvars, yvars, labs, string(folder, "xcomp"), [" ", "Time", "Voltage"],2, 1)

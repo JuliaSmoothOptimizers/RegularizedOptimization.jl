@@ -47,9 +47,9 @@ function figen_non(xvars, yvars, labels, savestring, titles, typeswitch, yax)
     # marks = [:circle, :cross, :xcross, :diamond, :hline, :ltriangle, :utriangle, :vline, :rect]
 
     if yax==1
-        plot(xvars[1],yvars[1],color = colors[1], label=labels[1], linewidth = 1, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=18)
+        plot(xvars[1],yvars[1],color = colors[1], label=labels[1], linewidth = 1, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=18,legend=:outertopright)
     else
-        plot(xvars[1],yvars[1],color = colors[1],  label=labels[1], linewidth = 1, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], yscale = :log10, tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=18)
+        plot(xvars[1],yvars[1],color = colors[1],  label=labels[1], linewidth = 1, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], yscale = :log10, tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=18,legend=:outertopright)
     end
 
     for i = 2:length(yvars)
