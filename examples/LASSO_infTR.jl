@@ -1,5 +1,5 @@
 using Random, LinearAlgebra, TRNC, Printf,Roots
-
+include("../test/minconf_spg/SPGSlim.jl")
 # min_x 1/2||Ax - b||^2 + λ||x||₁
 compound = 1
 m,n = compound*200,compound*512 #if you want to rapidly change problem size 
@@ -21,12 +21,13 @@ b = b0 + α*randn(m,)
 
 
 λ = norm(A'*b, Inf)/10 #this can change around 
+# λ = norm(A'*b, Inf)/10
 
 #define your smooth objective function
 function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
     r = A*x - b
     g = A'*r
-    return norm(r)^2/2, g
+    return norm(r)^2/2, g, I(size(x,1))
 end
 
 function h_obj(x)
@@ -63,21 +64,22 @@ end
 β = eigmax(A'*A) #1/||Bk|| for exact Bk = A'*A
 Doptions=s_options(1/β; maxIter=10000, verbose=0, λ = λ, optTol=1e-16)
 
-
+ϵ = 1e-6
 
 #define parameters - must feed in smooth, nonsmooth, and λ
 #first order options default ||Bk|| = 1.0, no printing. PG is default inner, Rkprox is inner prox loop - defaults to 2-norm ball projection (not accurate if h=0)
 parameters = IP_struct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, Rkprox=prox)
-options = IP_options(; ϵD=1e-7, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+options = IP_options(; ϵD=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 #put in your initial guesses
 xi = ones(n,)/2
+
 
 #input initial guess, parameters, options 
 x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, parameters, options)
 #final value, kth iteration, smooth history, nonsmooth history (with λ), # of evaluations in the inner PG loop 
 
 
-
+Foptions=s_options(1/β; maxIter=100000, verbose=1, λ = λ, optTol=ϵ)
 
 #If you want to test PG 
 function funcF(x)
@@ -89,7 +91,10 @@ function proxp(z, α)
     return sign.(z).*max.(abs.(z).-(λ*α)*ones(size(z)), zeros(size(z)))
 end
 
-Doptions.verbose = 2 #print every 100 
-Doptions.ν = 1/β #guess exact step size 
-xpg, xpg⁻, histpg, fevals = PG(funcF, h_obj, xi, proxp, Doptions) #takes in smooth, nonsmooth, initial guess, prox, options (with λ)
+Foptions.verbose = 2 #print every 100 
+Foptions.ν = 1/β #guess exact step size 
+xpg, xpg⁻, histpg, fevals = PG(funcF, h_obj, xi, proxp, Foptions) #takes in smooth, nonsmooth, initial guess, prox, options (with λ)
 #output final, secont to last, total function history, number of evals 
+# popt = spg_options(;optTol=ϵ, progTol=1.0e-16, verbose=10, memory=10, maxIter = 10000)
+# funproj(d, σ) = proxp(d, σ)
+# (xpg, fsave, funEvals,_,histpg) = minConf_SPG(funcF, xi, funproj,h_obj, popt)

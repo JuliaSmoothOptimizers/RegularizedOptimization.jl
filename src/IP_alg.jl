@@ -273,7 +273,7 @@ function IntPt_TR(
 			(fk, ∇fk, Bk) = Fsmth_out
 		elseif length(Fsmth_out)==2
 			(fk, ∇fk) = Fsmth_out
-			push!(Bk, s, ∇fk-∇fk⁻)
+			push!(Bk, s, ∇fk-∇fk⁻) #should this be Gν⁺ - Gν? 
 		else
 			error("Smooth function must provide at least 2 outputs - fk and ∇fk. Can also provide Hessian.  ")
 		end

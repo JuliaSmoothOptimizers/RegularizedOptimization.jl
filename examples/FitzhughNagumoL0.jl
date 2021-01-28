@@ -1,6 +1,6 @@
 using DifferentialEquations, Zygote, DiffEqSensitivity
-using Random, LinearAlgebra, TRNC, Printf,Roots
-using ProximalOperators, ProximalAlgorithms
+using Random, LinearAlgebra, TRNC, Printf,Roots, Plots
+using ProximalOperators, ProximalAlgorithms, LinearOperators
 
 
 #so we need a model solution, a gradient, and a Hessian of the system (along with some data to fit)
@@ -58,20 +58,19 @@ function Gradprob(p)
 end
 function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
     fk = Gradprob(x)
-    # @show fk
     if fk==Inf 
-        grad = Inf*ones(size(x))
-        Hess = Inf*ones(size(x,1), size(x,1))
+        grad = zeros(size(x))
+        # Hess = Inf*ones(size(x,1), size(x,1))
     else
         grad = Zygote.gradient(Gradprob, x)[1] 
         # Hess = Zygote.hessian(Gradprob, x)
     end
-
     return fk, grad
 end
 
 
 λ = 1.0
+δ = 2
 function h_obj(x)
     return norm(x,0) 
 end
@@ -104,13 +103,35 @@ function prox(q, σ, xk, Δ)
     return s 
 end
 
-ϵ = 1e-2
+# function h_obj(x)
+#     if norm(x,0) ≤ δ
+#         h = 0
+#     else
+#         h = Inf
+#     end
+#     return h 
+# end
+
+# function prox(q, σ, xk, Δ)
+#     ProjB(w) = min.(max.(w, xk.-Δ), xk.+Δ)
+#     y = q + xk 
+#     #find largest entries
+#     p = sortperm(abs.(y), rev = true)
+#     y[p[δ+1:end]].=0 #set smallest to zero 
+#     y = ProjB(y)#put largest entries in projection
+#     s = y - xk 
+
+#     return s 
+# end
+
+
+ϵ = 1e-3
 #set all options
 Doptions=s_options(1.0; λ=λ, optTol = ϵ*(1e-6), verbose = 0)
 
-params= IP_struct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, Rkprox=prox)
+params= IP_struct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, Rkprox=prox, HessApprox = LSR1Operator)
 
-options = IP_options(; maxIter = 500, verbose=10, ϵD = ϵ, Δk = 1.0)
+options = IP_options(; maxIter = 500, verbose=10, ϵD = ϵ)
 #solve our problem 
 function funcF(x)
     fk = Gradprob(x)
@@ -127,7 +148,6 @@ end
 
 
 x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, params, options)
-
 
 T = Float64
 R = real(T)
@@ -239,12 +259,109 @@ end
 # 4. call PANOC again with our own objective
 @info "running PANOC with our own objective"
 solver = ProximalAlgorithms.PANOC{R}(tol = TOL, verbose=true, freq=1, maxit=5000)
-x2, it, PF, PH = my_panoc(solver, xi, f = ϕ, g = g)
+x2, it, PFp, PHp = my_panoc(solver, xi, f = ϕ, g = g)
+
+
+
+
+
+import ProximalAlgorithms: LBFGS, Maybe, ZeroFPR, ZeroFPR_iterable, ZeroFPR_state
+
+
+function my_zerofpr(solver::ZeroFPR{R},
+    x0::AbstractArray{C};
+    f = Zero(),
+    A = I,
+    g = Zero(),
+    L::Maybe{R} = nothing,
+    Fhist = zeros(0),
+    Hhist = zeros(0),) where {R,C<:Union{R,Complex{R}}}
+    stop(state::ZeroFPR_state) = norm(state.res, Inf) / state.gamma <= solver.tol
+    function disp((it, state))
+        append!(Fhist, state.f_Ax)
+        append!(Hhist, state.g_xbar)
+        @printf(
+                "%5d | %.3e | %.3e | %.3e | %9.2e | %9.2e\n",
+                it,
+                state.gamma,
+                norm(state.res, Inf) / state.gamma,
+                (state.tau === nothing ? 0.0 : state.tau),
+                state.f_Ax,  # <-- added this
+                state.g_xbar    # <-- and this
+            )
+    end
+
+    gamma = if solver.gamma === nothing && L !== nothing
+        solver.alpha / L
+    else
+        solver.gamma
+    end
+
+    iter = ZeroFPR_iterable(
+        f,
+        A,
+        g,
+        x0,
+        solver.alpha,
+        solver.beta,
+        gamma,
+        solver.adaptive,
+        LBFGS(x0, solver.memory),
+    )
+    iter = take(halt(iter, stop), solver.maxit)
+    iter = enumerate(iter)
+    if solver.verbose
+        iter = tee(sample(iter, solver.freq), disp)
+    end
+
+    num_iters, state_final = loop(iter)
+
+    return state_final.x,state_final.xbar, state_final.y, num_iters, Fhist, Hhist
+end
+
+@info "running ZeroFPR with our own objective"
+xi = ones(size(pars_FH))
+solver = ProximalAlgorithms.ZeroFPR{R}(tol = TOL, verbose=true, freq=1, maxit=5000)
+x3, xbar, y, it, PF, PH = my_zerofpr(solver, xi, f = ϕ, g = g)
+
 
 
 @info "TR relative error" norm(x_pr - x0) / norm(x0)
 @info "PANOC relative error" norm(x2 - x0) / norm(x0)
+@info "ZeroFPR relative error" norm(x3 - x0) / norm(x0)
+@info "monotonicity" findall(>(0), diff(Fhist+Hhist))
 
 @show x_pr
 @show x2
+@show x3 
 @show x0'
+
+
+include("../test/nonlinfig_gen.jl")
+folder = "./"
+hist = [Fhist+Hhist,PFp+PHp, PF+PH]
+histx = [Array(1:length(Fhist)), Array(1:20:length(PF)*20)] 
+labs = ["f+h: TR", "f+h: PANOC", "f+h: ZeroFPR"]
+figen_non(histx, hist, labs, string(folder,"objcomp"), [" ", "kth Objective Evaluation", " Value "], 3, 0)
+
+
+
+
+probx = remake(prob_FH, p = x_pr)
+temp_solx = solve(probx, reltol=1e-6, saveat=savetime)
+probx = remake(prob_FH, p = x2)
+temp_solp = solve(probx, reltol=1e-6, saveat=savetime)
+probx = remake(prob_FH, p = x3)
+temp_solf = solve(probx, reltol=1e-6, saveat=savetime)
+
+
+#print out l2 norm difference and plot the two x values
+sol = hcat(sol_VDP.u...)
+solx = hcat(temp_solx.u...)
+solp = hcat(temp_solp.u...)
+solf = hcat(temp_solf.u...)
+
+yvars = [sol[1,:], sol[2,:], solx[1,:], solx[2,:], solp[1,:], solp[2,:],solf[1,:], solf[2,:], data[1,:], data[2,:]]
+xvars = [t, t, t, t, t, t, t, t]
+labs = ["True-V", "True-W", "TR-V", "TR-W", "PANOC-V", "PANOC-W","ZFP-V", "ZFP-W" "Data-V", "Data-W"]
+figen_non(xvars, yvars, labs, string(folder, "xcomp"), [" ", "Time", "Voltage"],2, 1)
