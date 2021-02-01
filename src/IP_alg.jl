@@ -245,7 +245,7 @@ function IntPt_TR(
 
 		ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
 
-		while ρk ≤ η2 && Numerator<0
+		while ρk ≤ η2 || Numerator<0
 
 			s = α*s 
 			Numerator = ObjOuter(xk) - ObjOuter(xk + s)
