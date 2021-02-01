@@ -220,12 +220,12 @@ function IntPt_TR(
 
 		FO_options.ν = 1/β
 
-		s = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on step s1
+		s = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on one step s1
 		Gν = s/FO_options.ν
 		if norm(Gν)>ϵD #final stopping criteria 
-			FO_options.optTol = min(.01, sqrt(norm(Gν)))*norm(Gν)
+			FO_options.optTol = min(.01, sqrt(norm(Gν)))*norm(Gν) #stopping criteria for inner algorithm 
 			FO_options.FcnDec = mk(zeros(size(s)))-mk(s)
-			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options)
+			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s, (d, λν)->Rkprox(d, λν, xk, 2*norm(s,2)^2), FO_options) #2*||s_1|| = Δk (same norm as TR)
 			Gν = s/FO_options.ν
 		else
 			funEvals = 1 
