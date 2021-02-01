@@ -253,6 +253,7 @@ function IntPt_TR(
 
 
 			ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
+			@show ρk, Numerator, Denominator
 
 		end
 
@@ -271,7 +272,6 @@ function IntPt_TR(
 		end
 
 		if (ρk < η1 || (ρk ==Inf || isnan(ρk) || Numerator < 0))
-			# @show ρk, Numerator
 			x_stat = "reject"
 			TR_stat = "shrink"
 			α = .5
