@@ -245,7 +245,7 @@ function IntPt_TR(
 
 		ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
 
-		while ρk ≤ η2 
+		while ρk ≤ η2 && Numerator<0
 
 			s = α*s 
 			Numerator = ObjOuter(xk) - ObjOuter(xk + s)
@@ -271,7 +271,7 @@ function IntPt_TR(
 		end
 
 		if (ρk < η1 || (ρk ==Inf || isnan(ρk) || Numerator < 0))
-			@show ρk, Numerator
+			# @show ρk, Numerator
 			x_stat = "reject"
 			TR_stat = "shrink"
 			α = .5
