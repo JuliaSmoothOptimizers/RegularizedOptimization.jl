@@ -361,7 +361,13 @@ solx = hcat(temp_solx.u...)
 solp = hcat(temp_solp.u...)
 solf = hcat(temp_solf.u...)
 
-yvars = [sol[1,:], sol[2,:], solx[1,:], solx[2,:], solp[1,:], solp[2,:],solf[1,:], solf[2,:], data[1,:], data[2,:]]
-xvars = [t, t, t, t,t,t, t, t, t, t]
-labs = ["True-V", "True-W", "TR-V", "TR-W", "PANOC-V", "PANOC-W","ZFP-V", "ZFP-W", "Data-V", "Data-W"]
-figen_non(xvars, yvars, labs, string(folder, "xcomp"), [" ", "Time", "Voltage"],2, 1)
+yvars = [sol[1,:], sol[2,:], solx[1,:], solx[2,:], solp[1,:], solp[2,:], data[1,:], data[2,:]]
+xvars = [t,         t,          t,         t,        t,          t,       t,         t,        t,           t]
+labs = ["True-V", "True-W", "TR-V", "TR-W", "PANOC-V", "PANOC-W", "Data-V", "Data-W"]
+figen_non(xvars, yvars, labs, string(folder, "xcomp_panoc"), [" ", "Time", "Voltage"],2, 1)
+
+
+yvars = [sol[1,:], sol[2,:], solx[1,:], solx[2,:], solf[1,:], solf[2,:], data[1,:], data[2,:]]
+xvars = [t,         t,          t,         t,        t,          t,       t,         t,        t,           t]
+labs = ["True-V", "True-W", "TR-V", "TR-W", "ZFP-V", "ZFP-W", "Data-V", "Data-W"]
+figen_non(xvars, yvars, labs, string(folder, "xcomp_zero"), [" ", "Time", "Voltage"],2, 1)
