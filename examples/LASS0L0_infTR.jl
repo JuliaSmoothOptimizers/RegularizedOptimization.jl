@@ -98,7 +98,7 @@ Doptions=s_options(1/β; verbose=0, λ = λ, optTol=1e-16)
 ε = 1e-6
 #define parameters - must feed in smooth, nonsmooth, and λ
 #first order options default ||Bk|| = 1.0, no printing. PG is default inner, Rkprox is inner prox loop - defaults to 2-norm ball projection (not accurate if h=0)
-parameters = IP_struct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=FISTA, Rkprox=prox, HessApprox = LSR1Operator)
+parameters = IP_struct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=FISTA, Rkprox=prox)#, HessApprox = LSR1Operator)
 options = IP_options(; ϵD=ε, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 #put in your initial guesses
 xi = zeros(n,)
