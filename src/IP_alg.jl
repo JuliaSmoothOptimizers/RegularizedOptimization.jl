@@ -225,7 +225,7 @@ function IntPt_TR(
 		if norm(Gν)>ϵD #final stopping criteria 
 			FO_options.optTol = min(.01, sqrt(norm(Gν)))*norm(Gν) #stopping criteria for inner algorithm 
 			FO_options.FcnDec = mk(zeros(size(s)))-mk(s)
-			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s, (d, λν)->Rkprox(d, λν, xk, min(2*norm(s,2), Δk)), FO_options) #2*||s_1|| = Δk (same norm as TR) min(ξ*||s_1||, Δk)
+			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s, (d, λν)->Rkprox(d, λν, xk, min(10*norm(s,2), Δk)), FO_options) #2*||s_1|| = Δk (same norm as TR) min(ξ*||s_1||, Δk)
 			Gν = s/FO_options.ν
 		else
 			funEvals = 1 
