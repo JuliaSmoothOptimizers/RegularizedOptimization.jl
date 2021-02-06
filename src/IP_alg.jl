@@ -18,6 +18,7 @@ mutable struct IP_params
 	γ #trust region buffer 
 	mem #Bk iteration memory
 	θ #TR inner loop "closeness" to Bk
+	β #TR size for PG steps j>1
 end
 
 mutable struct IP_methods
@@ -44,9 +45,10 @@ function IP_options(
 	σ = 1.0e-3, # quadratic model linesearch buffer parameter
 	γ = 3.0, #trust region buffer
 	mem = 5, #L-BFGS memory
-	θ = 1/8
+	θ = 1e-3
+	β = 1.1
 ) #default values for trust region parameters in algorithm 4.2
-	return IP_params(ϵD, ϵC, Δk, verbose, maxIter,η1, η2, τ, σ, γ, mem, θ)
+	return IP_params(ϵD, ϵC, Δk, verbose, maxIter,η1, η2, τ, σ, γ, mem, θ, β)
 end
 
 function IP_struct(
@@ -115,6 +117,7 @@ function IntPt_TR(
 	γ = options.γ
 	τ = options.τ
 	θ = options.θ
+	β = options.β
 	mem = options.mem
 
 	if verbose==0
@@ -193,8 +196,8 @@ function IntPt_TR(
 
 	#define the Hessian 
 	H = Symmetric(Matrix(Bk))
-	# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-	β = maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
+	# νInv = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
+	νInv = (1+θ)*maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
 
 	#keep track of old subgradient for LnSrch purposes
 	Gν =  ∇fk
@@ -214,18 +217,19 @@ function IntPt_TR(
 		sk⁻ = s
 
 		#define inner function 
-		objInner(d) = [0.5*(d'*H*d) + ∇fk'*d + fk, H*d + ∇fk] #(mkB, ∇mkB)
+		φ(d) = [0.5*(d'*H*d) + ∇fk'*d + fk, H*d + ∇fk] #(mkB, ∇mkB)
+		# φν(d) = [fk + ∇fk'*d + νInv/2*(d'*d), ∇fk + νInv.*d] # necessary?
 		#define model and update ρ
-		mk(d) = objInner(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
+		mk(d) = φ(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
 
-		FO_options.ν = 1/β
+		FO_options.ν = min(1/νInv, α*Δk)
 
-		s = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on one step s1
-		Gν = s/FO_options.ν
+		s1 = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on one step s1
+		Gν = s1*νInv
 		if norm(Gν)>ϵD #final stopping criteria 
 			FO_options.optTol = min(.01, sqrt(norm(Gν)))*norm(Gν) #stopping criteria for inner algorithm 
-			FO_options.FcnDec = mk(zeros(size(s)))-mk(s)
-			(s, s⁻, hist, funEvals) = s_alg(objInner, (d)->ψk(xk + d), s, (d, λν)->Rkprox(d, λν, xk, min(θ*norm(s, 2), Δk)), FO_options) #2*||s_1|| = Δk (same norm as TR) min(ξ*||s_1||, Δk)min(10*norm(s,2), Δk)
+			FO_options.FcnDec = mk(zeros(size(s)))-mk(s1)
+			(s, s⁻, hist, funEvals) = s_alg(φ, (d)->ψk(xk + d), s1, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options) #2*||s_1|| = Δk (same norm as TR) min(ξ*||s_1||, Δk)min(10*norm(s,2), Δk)
 			Gν = s/FO_options.ν
 		else
 			funEvals = 1 
@@ -233,29 +237,17 @@ function IntPt_TR(
 
 		#update Complexity history 
 		Complex_hist[k]+=funEvals# doesn't really count because of quadratic model 
+		@show norm(s1)^2, norm(s)^2, norm(s1)^2<=norm(s)^2
 
 
 
-
-		α = 0.5
+		α = 1.0
 		# @show ObjOuter(xk), ObjOuter(xk + s), mk(zeros(size(s))), mk(s)
 		Numerator = ObjOuter(xk) - ObjOuter(xk + s)
 		Denominator = mk(zeros(size(s)))-mk(s)
 
 
 		ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
-
-		while ρk ≤ η2 || Numerator<0
-
-			s = α*s 
-			Numerator = ObjOuter(xk) - ObjOuter(xk + s)
-			Denominator = mk(zeros(size(s)))-mk(s)
-
-
-			ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
-			@show ρk, Numerator, Denominator
-
-		end
 
 		if (ρk > η2)
 			TR_stat = "increase"
@@ -292,7 +284,7 @@ function IntPt_TR(
 		#define the Hessian 
 		H = Symmetric(Matrix(Bk))
 		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-		β = maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
+		νInv = (1+θ)*maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
 		
 		#update Gν with new direction
 		kktNorm = norm(Gν)
@@ -301,7 +293,7 @@ function IntPt_TR(
 		k % ptf == 0 && 
 		@printf(
 			"%11d|  %9d |  %10.5e   %10.5e   %9s   %10.5e   %10s   %10.4e   %9.4e   %9.4e   %9.4e   %9.4e  %9.4e\n",
-			   k, funEvals,  kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), β,    fk,    λ*h_obj(xk) )
+			   k, funEvals,  kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), νInv,    fk,    λ*h_obj(xk) )
 
 		Fobj_hist[k] = fk
 		Hobj_hist[k] = h_obj(xk)*λ
