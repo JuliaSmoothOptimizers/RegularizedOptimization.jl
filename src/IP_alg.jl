@@ -45,7 +45,7 @@ function IP_options(
 	σ = 1.0e-3, # quadratic model linesearch buffer parameter
 	γ = 3.0, #trust region buffer
 	mem = 5, #L-BFGS memory
-	θ = 1e-3
+	θ = 1e-3,
 	β = 1.1
 ) #default values for trust region parameters in algorithm 4.2
 	return IP_params(ϵD, ϵC, Δk, verbose, maxIter,η1, η2, τ, σ, γ, mem, θ, β)
@@ -222,7 +222,7 @@ function IntPt_TR(
 		#define model and update ρ
 		mk(d) = φ(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
 
-		FO_options.ν = min(1/νInv, α*Δk)
+		FO_options.ν = 1/νInv # min(1/νInv, α*Δk)
 
 		s1 = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on one step s1
 		Gν = s1*νInv
@@ -237,7 +237,7 @@ function IntPt_TR(
 
 		#update Complexity history 
 		Complex_hist[k]+=funEvals# doesn't really count because of quadratic model 
-		@show norm(s1)^2, norm(s)^2, norm(s1)^2<=norm(s)^2
+		@show norm(s1)^2, norm(s)^2, norm(s)^2/norm(s1)^2
 
 
 
