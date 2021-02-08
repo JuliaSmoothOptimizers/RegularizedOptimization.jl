@@ -237,7 +237,6 @@ function IntPt_TR(
 
 		#update Complexity history 
 		Complex_hist[k]+=funEvals# doesn't really count because of quadratic model 
-		@show norm(s1)^2, norm(s)^2, norm(s)^2/norm(s1)^2
 
 
 
@@ -246,6 +245,7 @@ function IntPt_TR(
 		Numerator = ObjOuter(xk) - ObjOuter(xk + s)
 		Denominator = mk(zeros(size(s)))-mk(s)
 
+		@show norm(s1)^2, norm(s)^2, norm(s)^2>norm(s1)^2, Numerator, Denominator, Δk
 
 		ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
 
