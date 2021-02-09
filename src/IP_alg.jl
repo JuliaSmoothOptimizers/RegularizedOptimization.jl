@@ -46,7 +46,7 @@ function IP_options(
 	γ = 3.0, #trust region buffer
 	mem = 5, #L-BFGS memory
 	θ = 1e-3,
-	β = 1.1
+	β = 10.0
 ) #default values for trust region parameters in algorithm 4.2
 	return IP_params(ϵD, ϵC, Δk, verbose, maxIter,η1, η2, τ, σ, γ, mem, θ, β)
 end
@@ -229,7 +229,7 @@ function IntPt_TR(
 		if norm(Gν)>ϵD #final stopping criteria 
 			FO_options.optTol = min(.01, sqrt(norm(Gν)))*norm(Gν) #stopping criteria for inner algorithm 
 			FO_options.FcnDec = mk(zeros(size(s)))-mk(s1)
-			(s, s⁻, hist, funEvals) = s_alg(φ, (d)->ψk(xk + d), s1, (d, λν)->Rkprox(d, λν, xk, Δk), FO_options) #2*||s_1|| = Δk (same norm as TR) min(ξ*||s_1||, Δk)min(10*norm(s,2), Δk)
+			(s, s⁻, hist, funEvals) = s_alg(φ, (d)->ψk(xk + d), s1, (d, λν)->Rkprox(d, λν, xk, β*norm(s1)), FO_options) #2*||s_1|| = Δk (same norm as TR) min(ξ*||s_1||, Δk)min(10*norm(s,2), Δk)
 			Gν = s/FO_options.ν
 		else
 			funEvals = 1 
