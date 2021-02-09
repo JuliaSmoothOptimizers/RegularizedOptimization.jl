@@ -222,7 +222,7 @@ function IntPt_TR(
 		#define model and update ρ
 		mk(d) = φ(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
 
-		FO_options.ν = 1/νInv # min(1/νInv, α*Δk)
+		FO_options.ν = min(1/νInv, Δk)
 
 		s1 = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on one step s1
 		Gν = s1*νInv
