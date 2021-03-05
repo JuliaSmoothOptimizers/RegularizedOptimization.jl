@@ -1,97 +1,28 @@
 #Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
-#Note that some of the file inclusions are for testing purposes (ie minconf_spg)
 
 using LinearOperators, LinearAlgebra, Arpack
-export IP_options, IntPt_TR, IP_struct #export necessary values to file that calls these functions
-# include("proxGD.jl")
-
-mutable struct IP_params
-	ϵD #termination criteria
-	ϵC #dual termination criteria
-	Δk #trust region radius
-	verbose #print every so often
-	maxIter #maximum amount of inner iterations
-	η1 #ρ lower bound 
-	η2 #ρ upper bound 
-	τ # linesearch buffer parameter 
-	σ #quadratic model linesearch buffer parameter
-	γ #trust region buffer 
-	mem #Bk iteration memory
-	θ #TR inner loop "closeness" to Bk
-	β #TR size for PG steps j>1
-end
-
-mutable struct IP_methods
-	FO_options #options for minConf_SPG/minimization routine you use for s
-	s_alg #algorithm passed that determines descent direction
-	Rkprox # ψ_k + χ_k where χ_k is the Δ - norm ball that you project onto. Note that the basic case is that ψ_k = 0
-	ψk #nonsmooth model of h that you are trying to solve - it is possible that ψ=h. 
-	HessApprox #Hessian Approximation choosen. Defaults to LBFGS, unless the user provides a Hessian in the smooth function 
-	f_obj #objective function (unaltered) that you want to minimize
-	h_obj #objective function that is nonsmooth - > only used for evaluation
-	λ #objective nonsmooth tuning parameter
-end
-
-function IP_options(
-	;
-	ϵD = 1e-2,
-	ϵC = 1e-2,
-	Δk = 1.0,
-	verbose = 0,
-	maxIter = 10000,
-	η1 = 1.0e-3, #ρ lower bound
-	η2 = 0.9,  #ρ upper bound
-	τ = 0.01, #linesearch buffer parameter
-	σ = 1.0e-3, # quadratic model linesearch buffer parameter
-	γ = 3.0, #trust region buffer
-	mem = 5, #L-BFGS memory
-	θ = 1e-3,
-	β = 10.0
-) #default values for trust region parameters in algorithm 4.2
-	return IP_params(ϵD, ϵC, Δk, verbose, maxIter,η1, η2, τ, σ, γ, mem, θ, β)
-end
-
-function IP_struct(
-	f_obj,
-	h,
-	λ;
-	FO_options = s_options(1.0;),
-	s_alg = PG,
-	Rkprox = (z, σ, xt, Dk) → z./max(1, norm(z, 2)/σ),
-	ψk = h,
-	HessApprox = LBFGSOperator
-)
-	return IP_methods(FO_options, s_alg, Rkprox, ψk, HessApprox, f_obj, h, λ)
-end
-
-
+export TR
 
 """Interior method for Trust Region problem
-	IntPt_TR(x, TotalCount,params, options)
+	TR(x, params, options)
 Arguments
 ----------
 x : Array{Float64,1}
 	Initial guess for the x value used in the trust region
-TotalCount: Float64
-	overall count on total iterations
-params : mutable structure IP_params with:
+params : mutable structure TR_params with:
 	--
 	-ϵD, tolerance for primal convergence
-	-ϵC, tolerance for dual convergence
 	-Δk Float64, trust region radius
 	-verbose Int, print every # options
 	-maxIter Float64, maximum number of inner iterations (note: does not influence TotalCount)
-options : mutable struct IP_methods
+options : mutable struct TR_methods
 	-f_obj, smooth objective function; takes in x and outputs [f, g, Bk]
 	-h_obj, nonsmooth objective function; takes in x and outputs h
 	--
 	-FO_options, options for first order algorithm, see DescentMethods.jl for more
 	-s_alg, algorithm for descent direction, see DescentMethods.jl for more
-	-Rkprox, function projecting onto the trust region ball or ψ+χ
-	-InnerFunc, inner objective or proximal operator of ψk+χk+1/2||u - sⱼ + ∇qk|²
-l : Vector{Float64} size of x, defaults to -Inf
-u : Vector{Float64} size of x, defaults to Inf
-μ : Float64, initial barrier parameter, defaults to 1.0
+	-ψχprox, function projecting onto the trust region ball or ψ+χ
+	-χk, function that is the TR norm ball; defaults to l2 
 
 Returns
 -------
@@ -99,21 +30,26 @@ x   : Array{Float64,1}
 	Final value of Algorithm 4.2 trust region
 k   : Int
 	number of iterations used
+Fobj_hist: Array{Float64,1}
+	smooth function history 
+Hobj_hist: Array{Float64, 1}
+	nonsmooth function history
+Complex_hist: Array{Float64, 1}
+	inner algorithm iteration count 
+
 """
-function IntPt_TR(
+function TR(
 	x0,
 	params,
 	options)
 
 	#initialize passed options
 	ϵD = options.ϵD
-	ϵC = options.ϵC
 	Δk = options.Δk
 	verbose = options.verbose
 	maxIter = options.maxIter
 	η1 = options.η1
 	η2 = options.η2 
-	σ = options.σ 
 	γ = options.γ
 	τ = options.τ
 	θ = options.θ
@@ -133,9 +69,10 @@ function IntPt_TR(
 	#other parameters
 	FO_options = params.FO_options
 	s_alg = params.s_alg
-	Rkprox = params.Rkprox
+	ψχprox = params.ψχprox
 	HessApprox = params.HessApprox
 	ψk = params.ψk
+	χk = params.χk 
 	f_obj = params.f_obj
 	h_obj = params.h_obj
 	λ = params.λ
@@ -171,7 +108,7 @@ function IntPt_TR(
 		"---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n",
 	)
 	#make sure you only take the first output of the objective value of the true function you are minimizing
-	ObjOuter(x) = f_obj(x)[1] + λ*h_obj(x) 
+	ObjOuter(x) = f_obj(x)[1] + λ*h_obj(x) #make the same name as in the paper f+h 
 
 
 	k = 0
@@ -181,7 +118,6 @@ function IntPt_TR(
 	#main algorithm initialization
 	Fsmth_out = f_obj(xk)
 	#test number of outputs to see if user provided a hessian
-
 	if length(Fsmth_out)==3
 		(fk, ∇fk, Bk) = Fsmth_out
 	elseif length(Fsmth_out)==2 && k==0
@@ -217,19 +153,20 @@ function IntPt_TR(
 		sk⁻ = s
 
 		#define inner function 
-		φ(d) = [0.5*(d'*H*d) + ∇fk'*d + fk, H*d + ∇fk] #(mkB, ∇mkB)
+		φ(d) = [0.5*(d'*H*d) + ∇fk'*d + fk, H*d + ∇fk, H] #(φ, ∇φ, ∇²φ)
 		# φν(d) = [fk + ∇fk'*d + νInv/2*(d'*d), ∇fk + νInv.*d] # necessary?
 		#define model and update ρ
 		mk(d) = φ(d)[1] + λ*ψk(xk+d) #psik = h -> psik = h(x+d)
 
-		FO_options.ν = 1/νInv #min(1/νInv, Δk)
+		FO_options.ν = min(1/νInv, Δk)
 
-		s1 = Rkprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on one step s1
+		s1 = ψχprox(-FO_options.ν*∇fk, FO_options.λ*FO_options.ν, xk, Δk) #-> PG on one step s1
 		Gν = s1*νInv
-		if norm(Gν)>ϵD #final stopping criteria 
-			FO_options.optTol = min(.01, sqrt(norm(Gν)))*norm(Gν) #stopping criteria for inner algorithm 
+		if χk(Gν)>ϵD #final stopping criteria 
+			FO_options.optTol = min(.01, sqrt(χk(Gν)))*χk(Gν) #stopping criteria for inner algorithm 
 			FO_options.FcnDec = mk(zeros(size(s)))-mk(s1)
-			(s, s⁻, hist, funEvals) = s_alg(φ, (d)->ψk(xk + d), s1, (d, λν)->Rkprox(d, λν, xk, β*norm(s1)), FO_options) #2*||s_1|| = Δk (same norm as TR) min(ξ*||s_1||, Δk)min(10*norm(s,2), Δk)
+			# (s, s⁻, hist, funEvals) = s_alg(φ, (d)->ψk(xk + d), s1, (d, λν)->ψχprox(d, λν, xk, β*χk(s1)), FO_options) 
+			(s, s⁻, hist, funEvals) = s_alg(φ, (d)->ψk(xk + d), s1, (d, λν)->ψχprox(d, λν, xk, Δk), FO_options) #2*||s_1|| = Δk (same norm as TR) min(ξ*||s_1||, Δk)min(10*norm(s,2), Δk)
 			Gν = s/FO_options.ν
 		else
 			funEvals = 1 
@@ -245,14 +182,13 @@ function IntPt_TR(
 		Numerator = ObjOuter(xk) - ObjOuter(xk + s)
 		Denominator = mk(zeros(size(s)))-mk(s)
 
-		@show norm(s1)^2, norm(s)^2, norm(s)^2>norm(s1)^2, Numerator, Denominator, Δk
+		# @show β*norm(s1)^2, norm(s)^2, norm(s)^2>norm(s1)^2, Numerator, Denominator, Δk
 
 		ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
 
-		if (ρk > η2)
+		if (ρk > η2 && !(ρk==Inf || isnan(ρk) || Numerator < 0))
 			TR_stat = "increase"
-			# Δk = max(Δk, γ * norm(s, 1)) #for safety - same norm of the trust region
-			Δk = max(Δk, γ*norm(s))
+			Δk = max(Δk, γ*χk(s))
 			# Δk = γ*Δk
 		else
 			TR_stat = "kept"
@@ -287,13 +223,13 @@ function IntPt_TR(
 		νInv = (1+θ)*maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
 		
 		#update Gν with new direction
-		kktNorm = norm(Gν)
+		kktNorm = χk(Gν)
 
 		#Print values
 		k % ptf == 0 && 
 		@printf(
 			"%11d|  %9d |  %10.5e   %10.5e   %9s   %10.5e   %10s   %10.4e   %9.4e   %9.4e   %9.4e   %9.4e  %9.4e\n",
-			   k, funEvals,  kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   norm(xk, 2), norm(s, 2), νInv,    fk,    λ*h_obj(xk) )
+			   k, funEvals,  kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   χk(xk), χk(s), νInv,    fk,    λ*h_obj(xk) )
 
 		Fobj_hist[k] = fk
 		Hobj_hist[k] = h_obj(xk)*λ

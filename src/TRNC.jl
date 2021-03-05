@@ -9,7 +9,8 @@ include("proxgrad.jl")
 include("fista.jl")
 include("splitting.jl")
 include("linesearch.jl")
-include("IP_alg.jl")
+include("TR_alg.jl")
+include("LM_alg.jl")
 include("proxGD.jl")
 
 

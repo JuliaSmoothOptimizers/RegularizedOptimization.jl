@@ -14,15 +14,18 @@ function figen(xvars, labels, savestring, titles, typeswitch, yax)
         elseif occursin("TR", labels[i])
             push!(lstyle, :dash)
             push!(marks, :none)
-        elseif occursin("MC", labels[i])
+        elseif occursin("PANOC", labels[i])
+            push!(lstyle, :dot)
+            push!(marks,  :circle)
+        elseif occursin("ZFP", labels[i])
             push!(lstyle, :dashdotdot)
-            push!(marks,  :none)
+            push!(marks,  :circle)
         else
-            push!(lstyle, :none)
+            push!(lstyle, :auto)
             push!(marks,  :circle)
         end
 
-        if i % 2==0
+        if occursin("True", labels[i])
             push!(colors, :darkgray)
         else
             push!(colors, :black)
@@ -41,15 +44,15 @@ function figen(xvars, labels, savestring, titles, typeswitch, yax)
     # end
     # marks = [:circle, :cross, :xcross, :diamond, :hline, :ltriangle, :utriangle, :vline, :rect]
 
-    if yax==0
-        plot(xvars[1], color = colors[1], label=labels[1], linewidth = 2, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=18)
+    if yax==1
+        plot(xvars[1], color = colors[1], label=labels[1], linewidth = 1, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=18)
     else
-        plot(xvars[1], color = colors[1], label=labels[1], linewidth = 2, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], yscale = :log10, tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=18)
+        plot(xvars[1], color = colors[1], label=labels[1], linewidth = 1, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], yscale = :log10, tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=18)
     end
 
     for i = 2:length(xvars)
 
-        plot!(xvars[i], linewidth = 2, linestyle = lstyle[i],color = colors[i], label=labels[i])
+        plot!(xvars[i], linewidth = 1, linestyle = lstyle[i],color = colors[i], label=labels[i])
 
     end
     tkstring = string(savestring, ".pdf")

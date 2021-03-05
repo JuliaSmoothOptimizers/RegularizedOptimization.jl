@@ -1,7 +1,7 @@
 using Random, LinearAlgebra, TRNC, Printf,Roots
 using ProximalAlgorithms, ProximalOperators, LinearOperators
 
-# min_x 1/2||Ax - b||^2 + λ||x||₁
+# min_x 1/2||Ax - b||^2 + λ||x||₀
 compound = 1
 m,n = compound*200,compound*512 #if you want to rapidly change problem size 
 k = compound*10 #10 signals 
@@ -34,40 +34,40 @@ function h_obj(x)
     return norm(x,0) #, g∈∂h
 end
 
-function  prox(q, σ, xk, Δ)
-    ProjB(z) = min.(max.(z, -Δ), Δ) # define outside? 
-    w = xk + q 
-    c1 = (1/(2*σ/λ)).*w.^2
-    c2 = λ .+ ((max.(abs.(q).-Δ, zeros(size(w)) )).^2)/(2*σ/λ)
-    y = zeros(size(w))
-    for i = 1:length(w)
-        if c1[i] ≤ c2[i] && abs(xk[i])≤ Δ
-            y[i] = 0
-        else
-            y[i] = xk[i] + ProjB(q[i])
-        end
-    end
-    return y - xk 
-end
-
-# function prox(q, σ, xk, Δ)
-#     ProjB(y) = min.(max.(y, xk.-Δ),xk.+Δ) # define outside? 
-#     # @show σ/λ, λ
-#     c = sqrt(2*σ)
-#     w = xk+q
-#     st = zeros(size(w))
-
+# function  prox(q, σ, xk, Δ)
+#     ProjB(z) = min.(max.(z, -Δ), Δ) # define outside? 
+#     w = xk + q 
+#     c1 = (1/(2*σ/λ)).*w.^2
+#     c2 = λ .+ ((max.(abs.(q).-Δ, zeros(size(w)) )).^2)/(2*σ/λ)
+#     y = zeros(size(w))
 #     for i = 1:length(w)
-#         absx = abs(w[i])
-#         if absx <=c
-#             st[i] = 0
+#         if c1[i] ≤ c2[i] && abs(xk[i])≤ Δ
+#             y[i] = 0
 #         else
-#             st[i] = w[i]
+#             y[i] = xk[i] + ProjB(q[i])
 #         end
 #     end
-#     s = ProjB(st) - xk
-#     return s 
+#     return y - xk 
 # end
+
+function prox(q, σ, xk, Δ)
+    ProjB(y) = min.(max.(y, xk.-Δ),xk.+Δ) # define outside? 
+    # @show σ/λ, λ
+    c = sqrt(2*σ)
+    w = xk+q
+    st = zeros(size(w))
+
+    for i = 1:length(w)
+        absx = abs(w[i])
+        if absx <=c
+            st[i] = 0
+        else
+            st[i] = w[i]
+        end
+    end
+    s = ProjB(st) - xk
+    return s 
+end
 # function h_obj(x)
 #     if norm(x,0) ≤ δ
 #         h = 0
@@ -89,7 +89,7 @@ end
 #     return s 
 # end
 
-#set options for inner algorithm - only requires ||Bk|| norm guess to start (and λ but that is updated in IP_alg)
+#set options for inner algorithm - only requires ||Bk|| norm guess to start (and λ but that is updated in TR)
 #verbosity is levels: 0 = nothing, 1 -> maxIter % 10, 2 = maxIter % 100, 3+ -> print all 
 β = opnorm(A)^2 #1/||Bk|| for exact Bk = A'*A
 Doptions=s_options(1/β; verbose=0, λ = λ, optTol=1e-16)
@@ -98,23 +98,45 @@ Doptions=s_options(1/β; verbose=0, λ = λ, optTol=1e-16)
 ε = 1e-6
 #define parameters - must feed in smooth, nonsmooth, and λ
 #first order options default ||Bk|| = 1.0, no printing. PG is default inner, Rkprox is inner prox loop - defaults to 2-norm ball projection (not accurate if h=0)
-parameters = IP_struct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=FISTA, Rkprox=prox)#, HessApprox = LSR1Operator)
-options = IP_options(; ϵD=ε, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, ψχprox=prox, χk=(s)->norm(s, Inf), HessApprox = LSR1Operator)
+options = TRNCoptions(; ϵD=ε, verbose = 10, θ = 1e-3, Δk = 1.0) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 #put in your initial guesses
 xi = zeros(n,)
 
 #input initial guess, parameters, options 
-x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, parameters, options)
+x_pr, k, Fhist, Hhist, Comp_pg = TR(xi, parameters, options)
 #final value, kth iteration, smooth history, nonsmooth history (with λ), # of evaluations in the inner PG loop 
 
 
+function proxl0s(q, σ, xk, Δ)
+    # @show σ/λ, λ
+    c = sqrt(2*σ)
+    w = xk+q
+    st = zeros(size(w))
 
+    for i = 1:length(w)
+        absx = abs(w[i])
+        if absx <=c
+            st[i] = 0
+        else
+            st[i] = w[i]
+        end
+    end
+    s = st - xk
+    return s 
+end
+
+parametersLM = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PGE, ψχprox=proxl0s, χk=(s)->norm(s, Inf), HessApprox = LSR1Operator)
+optionsLM = TRNCoptions(; σk = 1/β, ϵD=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+
+#input initial guess
+xlm, klm, Fhistlm, Hhistlm, Comp_pglm = LM(xi, parametersLM, optionsLM)
 
 #If you want to test PG 
 function funcF(x)
     r = A*x - b
     g = A'*r
-    return norm(r)^2, g
+    return norm(r)^2, g, A'*A
 end
 
 
@@ -170,7 +192,7 @@ end
 import ProximalOperators.is_quadratic
 is_quadratic(::LeastSquaresObjective) = true
 
-import ProximalAlgorithms: LBFGS, Maybe, PANOC, PANOC_iterable, PANOC_state
+import ProximalAlgorithms: AndersonAcceleration, Maybe, PANOC, PANOC_iterable, PANOC_state
 import ProximalAlgorithms.IterationTools: halt, sample, tee, loop
 using Base.Iterators  # for take
 function my_panoc(solver::PANOC{R},
@@ -211,7 +233,7 @@ function my_panoc(solver::PANOC{R},
         solver.beta,
         gamma,
         solver.adaptive,
-        LBFGS(x0, solver.memory),
+        AndersonAcceleration(x0, solver.memory),
     )
     iter = take(halt(iter, stop), solver.maxit)
     iter = enumerate(iter)
@@ -246,6 +268,7 @@ x2, it = solver(xi, f = ϕ, g = g, L = opnorm(A)^2)
 
 
 @info "TR relative error" norm(x_pr - x0) / norm(x0)
+@info "LM relative error" norm(xlm - x0) / norm(x0)
 @info "PG relative error" norm(xpg - x0)/norm(x0)
 @info "PANOC relative error" norm(x1 - x0) / norm(x0)
 @info "ZeroFPR relative error" norm(x2 - x0) / norm(x0)

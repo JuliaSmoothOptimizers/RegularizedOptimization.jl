@@ -1,10 +1,9 @@
-### table1.jl script
-using DataFrames
 
-function show_table(mp, vals)
-    dp = DataFrame(True = mp[:,1], TR = mp[:,2], MC = mp[:,3])
-    df = DataFrame(Function = ["\$ (f + h)(x) \$", "\$ f(x) \$", "\$ h(x) \$", "\$ \\frac{||x - x_0||_2}{||A||} \$"], TR = vals[:,1], MC = vals[:,2], True = vals[:,3])
-    # d = crossjoin(dp, df )
+function show_table(mp, vals, labs)
+    dp = DataFrame([mp[:,i] for i in 1:length(labs)])
+    rename!(dp,  [Symbol(labs[i]) for i in 1:length(labs)])
+    df = DataFrame(hcat(["\$ (f + h)(x) \$", "\$ f(x) \$", "\$ h(x) \$", "\$ \\frac{||x - x_0||_2}{||A||} \$"], hcat([vals[:,i] for i in 1:length(labs)])))
+    rename!(df,  vcat(:Function, [Symbol(labs[i]) for i in 1:length(labs)]))
     return dp, df
 end
 

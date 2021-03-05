@@ -81,7 +81,8 @@ function FHNONLINB0BFGS()
 		if norm(x,0) ≤ 2
 			h = 0
 		else
-			h = 1.0
+			# h = 1e16
+			h = 1
 		end
 		return λ*h 
 	end
@@ -99,12 +100,11 @@ function FHNONLINB0BFGS()
 		y[p[2+1:end]].=0 #set smallest to zero 
 		y = ProjB(y)#put all entries in projection
 		s = y - xk 
-
 		return s 
 	end
 
 	#set all options
-	Doptions=s_options(1.0; λ=λ, verbose = 0, optTol = 1e-6)
+	Doptions=s_options(1.0; λ=λ, verbose = 0, optTol = 1e-6, maxIter = 100)
 
 	params= IP_struct(f_obj, h_obj; FO_options = Doptions, s_alg=PG, Rkprox=prox)
 

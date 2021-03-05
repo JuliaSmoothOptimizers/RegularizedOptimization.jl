@@ -43,17 +43,15 @@ data = noise + b
 #First, make the function you are going to manipulate
 function Gradprob(p)
     temp_prob = remake(prob_FH, p = p)
-    temp_sol = solve(temp_prob, reltol=1e-6, saveat=savetime, verbose=false)
+    temp_sol = solve(temp_prob,Vern9(), abstol=1e-14,reltol=1e-14, saveat=savetime)
     tot_loss = 0.
 
     if any((temp_sol.retcode!= :Success for s in temp_sol))
         tot_loss = Inf
     else
         temp_v = convert(Array, temp_sol)
-
-        tot_loss = sum((temp_v - data).^2)/2
+        tot_loss = sum(((temp_v - data).^2)./2)
     end
-
     return tot_loss
 end
 function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
@@ -103,6 +101,22 @@ function prox(q, σ, xk, Δ)
     return s 
 end
 
+# function  prox(q, σ, xk, Δ)
+#     ProjB(z) = min.(max.(z, -Δ), Δ) # define outside? 
+#     w = xk + q 
+#     c1 = (1/(2*σ/λ)).*w.^2
+#     c2 = λ .+ ((max.(abs.(q).-Δ, zeros(size(w)) )).^2)/(2*σ/λ)
+#     y = zeros(size(w))
+#     for i = 1:length(w)
+#         if c1[i] ≤ c2[i] && abs(xk[i])≤ Δ
+#             y[i] = 0
+#         else
+#             y[i] = xk[i] + ProjB(q[i])
+#         end
+#     end
+#     return y - xk 
+# end
+
 # function h_obj(x)
 #     if norm(x,0) ≤ δ
 #         h = 0
@@ -125,13 +139,13 @@ end
 # end
 
 
-ϵ = 1e-3
+ϵ = 1e-6
 #set all options
 Doptions=s_options(1.0; λ=λ, optTol = ϵ*(1e-6), verbose = 0)
 
-params= IP_struct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, Rkprox=prox, HessApprox = LSR1Operator)
+params= TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PGΔ, ψχprox=prox, χk=(s)->norm(s, Inf), HessApprox = LSR1Operator)
 
-options = IP_options(; maxIter = 500, verbose=10, ϵD = ϵ)
+options = TRNCoptions(; maxIter = 500, verbose=10, ϵD = ϵ, β = 10.0)
 #solve our problem 
 function funcF(x)
     fk = Gradprob(x)
@@ -147,7 +161,31 @@ end
 
 
 
-x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, params, options)
+x_pr, k, Fhist, Hhist, Comp_pg = TR(xi, params, options)
+
+function proxl0s(q, σ, xk, Δ)
+    # @show σ/λ, λ
+    c = sqrt(2*σ)
+    w = xk+q
+    st = zeros(size(w))
+
+    for i = 1:length(w)
+        absx = abs(w[i])
+        if absx <=c
+            st[i] = 0
+        else
+            st[i] = w[i]
+        end
+    end
+    s = st - xk
+    return s 
+end
+
+parametersLM = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PGE, ψχprox=proxl0s, χk=(s)->norm(s, Inf))
+optionsLM = TRNCoptions(; σk = 1/β, ϵD=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+
+#input initial guess
+# xlm, klm, Fhistlm, Hhistlm, Comp_pglm = LM(xi, parametersLM, optionsLM)
 
 T = Float64
 R = real(T)
@@ -189,7 +227,7 @@ is_quadratic(::LeastSquaresObjective) = true
 
 
 
-import ProximalAlgorithms: LBFGS, Maybe, PANOC, PANOC_iterable, PANOC_state
+import ProximalAlgorithms: AndersonAcceleration, Maybe, PANOC, PANOC_iterable, PANOC_state
 import ProximalAlgorithms.IterationTools: halt, sample, tee, loop
 using Base.Iterators  # for take
 function my_panoc(solver::PANOC{R},
@@ -239,7 +277,7 @@ function my_panoc(solver::PANOC{R},
         solver.beta,
         gamma,
         solver.adaptive,
-        LBFGS(x0, solver.memory),
+        AndersonAcceleration(x0, solver.memory),
     )
     iter = take(halt(iter, stop), solver.maxit)
     iter = enumerate(iter)

@@ -1,4 +1,4 @@
-export FISTA, FISTA!, FISTAD
+export FISTA, FISTAD
 """
 	FISTA for
 	min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
@@ -47,9 +47,9 @@ function FISTA(Fcn, Gcn, s,  proxG, options)
 	his = zeros(max_iter)
 
 	#do iterations
-	f, g = Fcn(y)
+	f, g= Fcn(y)[1:2]
 	feval = 1
-	while err >= ε && k<max_iter && abs(f)>1e-16
+	while err >= ε && k<max_iter
 		copy!(s,s⁺)
 		his[k] = f + Gcn(y)
 		s⁺ = proxG(y - ν*g, ν*λ)
@@ -70,81 +70,13 @@ function FISTA(Fcn, Gcn, s,  proxG, options)
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 
 		#update parameters
-		f, g = Fcn(y)
+		f, g= Fcn(y)[1:2]
 
 		feval+=1
 		k+=1
 	end
 	return s⁺,s, his[1:k-1], feval
 
-end
-
-function FISTA!(Fcn!,Gcn!, s,  proxG!, options)
-	ε=options.optTol
-	max_iter=options.maxIter
-	restart = options.restart
-	ν = options.ν
-	λ = options.λ
-	if options.verbose==0
-		print_freq = Inf
-	elseif options.verbose==1
-		print_freq = round(max_iter/10)
-	elseif options.verbose==2
-		print_freq = round(max_iter/100)
-	else
-		print_freq = 1
-	end
-
-	#get types
-	T = eltype(s)
-	R = real(T)
-
-
-	#Problem Initialize
-	m = length(s)
-	y = deepcopy(s)
-	s⁻ = zeros(T, m)
-	gradF = zeros(T, m)
-
-
-	#initialize parameters
-	t = R(1.0)
-	# Iteration set up
-	k = 1
-	err = R(100.0)
-	his = zeros(max_iter)
-
-	#do iterations
-	f = Fcn!(y, gradF)
-	feval = 1
-	while ε<err && abs(f) >1e-16 && k<max_iter
-		copy!(s⁻, s)
-
-		his[k] = f + Gcn!(y) #note: shouldn't actually modify anything, just produce output
-		BLAS.axpy!(-ν,gradF,y)
-		copy!(s, y)
-		proxG!(s, ν*λ)
-
-		#update step
-		t⁺ = R(0.5)*(R(1.0) + sqrt(R(1.0)+R(4.0)*t^2))
-
-		#update y
-		y = s + ((t - R(1.0))/t⁺)*(s-s⁻)
-
-		#check convergence
-		err = norm(s - s⁻)
-
-		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
-		#update parameters
-		f = Fcn!(y, gradF)
-		t = t⁺
-
-		feval+=1
-		k+=1
-	end
-
-	return s⁻, his[1:k-1], feval
 end
 
 #enforces strict descent  for FISTA 
@@ -181,10 +113,10 @@ function FISTAD(Fcn, Gcn, s,  proxG, options)
 
 	#do iterations
 	y = (R(1.0)-t)*s + t*v
-	f, g = Fcn(y) 
+	f, g= Fcn(y)[1:2] 
 
 	feval = 1
-	while err >= ε && k<max_iter && abs(f)>1e-16
+	while err >= ε && k<max_iter
 		copy!(s,s⁺)
 		his[k] = f + Gcn(y)
 
@@ -215,7 +147,7 @@ function FISTAD(Fcn, Gcn, s,  proxG, options)
 		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 
 		#update parameters
-		f, g = Fcn(y)
+		f, g= Fcn(y)[1:2]
 
 		feval+=1
 		k+=1

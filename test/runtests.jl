@@ -1,19 +1,20 @@
 
-using Test
-using LinearAlgebra, Random, Printf, Plots, Roots
-using DataFrames
-using TRNC
+using Test, TRNC
+using Random, LinearAlgebra,LinearOperators, TRNC, Printf,Roots, Plots,  DataFrames 
+using DifferentialEquations, Zygote, DiffEqSensitivity
+using ProximalOperators, ProximalAlgorithms
+
 pgfplotsx()
-include("nonlinfig_gen.jl")
-include("fig_gen.jl")
+include("fig_preproc.jl")
+
 
 Random.seed!(0)
 
 @testset "TRNC" begin
 
-# @testset "Descent Methods" begin
-# 	# include("test_proxalgs.jl")
-# end
+@testset "Descent Methods" begin
+	# include("test_proxalgs.jl")
+end
 
 @testset "Hard Prox Computations" begin 
 	# include("test_hardprox.jl")

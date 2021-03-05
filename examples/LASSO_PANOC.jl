@@ -35,32 +35,71 @@ function h_obj(x)
 end
 
 function prox(q, σ, xk, Δ)
+    #------ old ----
     ProjB(wp) = min.(max.(wp,q.-σ), q.+σ)
-    
     ProjΔ(yp) = min.(max.(yp, -Δ), Δ)
-
     s = ProjΔ(ProjB(-xk))
+    #---- new ---
+    # Proxh(wp) = max.(abs.(wp) .-σ, zeros(size(wp))).*sign.(wp)
+    # ProjΔ(yp) = min.(max.(yp, xk.-Δ), xk.+Δ)
+    # s = ProjΔ(Proxh(q+xk)) - xk 
+
+    #----- test -----
+    # ProjB(wp) = min.(max.(wp, q.-σ), q.+σ)
+    # ProjΔ(yp) = min.(max.(yp, -Δ), Δ)
+    # s = ProjΔ(ProjB(-xk))
 
     return s
 end
 
-#set options for inner algorithm - only requires ||Bk|| norm guess to start (and λ but that is updated in IP_alg)
+#set options for inner algorithm - only requires ||Bk|| norm guess to start (and λ but that is updated in TR)
 #verbosity is levels: 0 = nothing, 1 -> maxIter % 10, 2 = maxIter % 100, 3+ -> print all 
 β = eigmax(A'*A) #1/||Bk|| for exact Bk = A'*A
-Doptions=s_options(1/β; maxIter=1000, verbose=0, λ = λ, optTol=1e-16, p = 1.5)
+Doptions=s_options(1/β; verbose=0, λ = λ, optTol=1e-16, p = 1.5)
 
 ϵ = 1e-6
 
 #define parameters - must feed in smooth, nonsmooth, and λ
 #first order options default ||Bk|| = 1.0, no printing. PG is default inner, Rkprox is inner prox loop - defaults to 2-norm ball projection (not accurate if h=0)
-parameters = IP_struct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PGΔ, Rkprox=prox)#, HessApprox = LSR1Operator)
-options = IP_options(; ϵD=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+parameterstr = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PGE, χk=(s)->norm(s, Inf), ψχprox=prox)#, HessApprox = LSR1Operator)
+optionstr = TRNCoptions(; ϵD=ϵ, verbose = 10, maxIter = 100) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 #put in your initial guesses
 xi = ones(n,)/2
 
 
 #input initial guess, parameters, options 
-x_pr, k, Fhist, Hhist, Comp_pg = IntPt_TR(xi, parameters, options)
+xtr, ktr, Fhisttr, Hhisttr, Comp_pgtr = TR(xi, parameterstr, optionstr)
+
+
+
+
+function proxl1s(q, νλ,  xk, Δ)
+    # return sign.(q).*max.(abs.(q+xk).-(νλ)*ones(size(q)), zeros(size(q))) - xk
+    ProjB(wp) = min.(max.(wp,q.-νλ), q.+νλ)
+    return ProjB(-xk) 
+end
+
+
+
+parametersLM = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PGE, ψχprox=proxl1s)#, HessApprox = LSR1Operator)
+optionsLM = TRNCoptions(; σk = 1/β, ϵD=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+#put in your initial guesses
+xi = ones(n,)/2
+
+#input initial guess, parameters, options 
+xlm, klm, Fhistlm, Hhistlm, Comp_pglm = LM(xi, parametersLM, optionsLM)
+Doptions.verbose = 10; 
+Doptions.ν = 1/β
+Doptions.optTol = ϵ
+function f_obj2(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
+    r = A*x - b
+    g = A'*r
+    return norm(r)^2/2, g, A'*A
+end
+function proxl1(q, νλ,  xk, Δ)
+    return sign.(q).*max.(abs.(q).-(νλ)*ones(size(q)), zeros(size(q)))
+end
+xpg, _, _, _ = FISTA(f_obj2, h_obj, xi,  (x, νλ)->proxl1(x, νλ, xi, 1.0), Doptions)
 #final value, kth iteration, smooth history, nonsmooth history (with λ), # of evaluations in the inner PG loop 
 
 T = Float64
@@ -115,7 +154,9 @@ xi = ones(n,)/2
 x2, it = solver(xi, f = ϕ, g = g, L = opnorm(A)^2)
 
 
-@info "TR relative error" norm(x_pr - x0) / norm(x0)
+@info "TR relative error" norm(xtr - x0) / norm(x0)
+@info "LM relative error" norm(xlm - x0) / norm(x0)
+@info "PG relative error" norm(xpg - x0) / norm(x0)
 @info "PANOC relative error" norm(x1 - x0) / norm(x0)
 @info "ZeroFPR relative error" norm(x2 - x0) / norm(x0)
-@info "monotonicity" findall(>(0), diff(Fhist+Hhist))
+@info "monotonicity" findall(>(0), diff(Fhisttr+Hhisttr))
