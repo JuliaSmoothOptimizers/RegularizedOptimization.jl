@@ -138,19 +138,30 @@ function TR(
 	#keep track of old subgradient for LnSrch purposes
 	Gν =  ∇fk
 	s = zeros(size(xk))
+	funEvals = 1
 
 	kktInit = norm(Gν)
 	kktNorm = 100*kktInit
 
 	while kktNorm[1] > ϵD && k < maxIter
 		#update count
-		k = k + 1 #inner
+		k = k + 1 
 		TR_stat = ""
 		x_stat = ""
 		#store previous iterates
 		xk⁻ = xk 
 		∇fk⁻ = ∇fk
 		sk⁻ = s
+
+
+		Fobj_hist[k] = fk
+		Hobj_hist[k] = h_obj(xk)*λ
+		#Print values
+		k % ptf == 0 && 
+		@printf(
+			"%11d|  %9d |  %10.5e   %10.5e   %9s   %10.5e   %10s   %10.4e   %9.4e   %9.4e   %9.4e   %9.4e  %9.4e\n",
+				k, funEvals,  kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   χk(xk), χk(s), νInv,    fk,    λ*h_obj(xk) )
+
 
 		#define inner function 
 		φ(d) = [0.5*(d'*H*d) + ∇fk'*d + fk, H*d + ∇fk, H] #(φ, ∇φ, ∇²φ)
@@ -225,14 +236,6 @@ function TR(
 		#update Gν with new direction
 		kktNorm = χk(Gν)
 
-		#Print values
-		k % ptf == 0 && 
-		@printf(
-			"%11d|  %9d |  %10.5e   %10.5e   %9s   %10.5e   %10s   %10.4e   %9.4e   %9.4e   %9.4e   %9.4e  %9.4e\n",
-			   k, funEvals,  kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   α,   χk(xk), χk(s), νInv,    fk,    λ*h_obj(xk) )
-
-		Fobj_hist[k] = fk
-		Hobj_hist[k] = h_obj(xk)*λ
 		Complex_hist[k]+=1
 
 	end

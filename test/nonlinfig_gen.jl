@@ -1,5 +1,3 @@
-using Plots
-
 
 function figen_non(xvars, yvars, labels, savestring, titles, yax)
 
@@ -33,9 +31,17 @@ function figen_non(xvars, yvars, labels, savestring, titles, yax)
     end
 
     if yax==1
-        plot(xvars[1],yvars[1],color = colors[1], label=labels[1], linewidth = 1, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=12)
+        if occursin("Data", labels[1])
+            scatter(xvars[1],yvars[1],color = colors[1], label=labels[1], markers = 2, markercolor = colors[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=12)
+        else
+            plot(xvars[1],yvars[1],color = colors[1], label=labels[1], linewidth = 1, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=12)
+        end
     else
-        plot(xvars[1],yvars[1],color = colors[1],  label=labels[1], linewidth = 1, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], yscale = :log10, tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=12)
+        if occursin("Data", labels[1])
+            scatter(xvars[1],yvars[1],color = colors[1],  label=labels[1], markers = 2, markercolor = colors[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], yscale = :log10, tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=12)
+        else
+            plot(xvars[1],yvars[1],color = colors[1],  label=labels[1], linewidth = 1, linestyle = lstyle[1], title = titles[1], xlabel=titles[2], ylabel=titles[3], yscale = :log10, tickfontsize = 14, xguidefontsize=18, yguidefontsize=18,legendfontsize=12)
+        end
     end
 
     for i = 2:length(yvars)

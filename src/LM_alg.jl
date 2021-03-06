@@ -153,6 +153,15 @@ function LM(
 		∇fk⁻ = ∇fk
 		sk⁻ = s
 
+		#Print values
+		k % ptf == 0 && 
+		@printf(
+			"%11d|  %9d |  %10.5e   %10.5e   %9s   %10.5e   %10s   %10.4e   %9.4e   %9.4e   %9.4e  %9.4e\n",
+				k, funEvals,  kktNorm[1], ρk,   x_stat,  σk, TR_stat,   α,   χk(xk), χk(s),   fk,    λ*h_obj(xk) )
+
+		Fobj_hist[k] = fk
+		Hobj_hist[k] = h_obj(xk)*λ
+
 		#define inner function 
 		φ(d) = [0.5*(d'*H*d) + ∇fk'*d + fk, H*d + ∇fk, H] #(φ, ∇φ, ∇²φ)
 		#define model and update ρ
@@ -213,14 +222,6 @@ function LM(
 		#update Gν with new direction
 		kktNorm = χk(Gν)
 
-		#Print values
-		k % ptf == 0 && 
-		@printf(
-			"%11d|  %9d |  %10.5e   %10.5e   %9s   %10.5e   %10s   %10.4e   %9.4e   %9.4e   %9.4e  %9.4e\n",
-			   k, funEvals,  kktNorm[1], ρk,   x_stat,  σk, TR_stat,   α,   χk(xk), χk(s),   fk,    λ*h_obj(xk) )
-
-		Fobj_hist[k] = fk
-		Hobj_hist[k] = h_obj(xk)*λ
 		Complex_hist[k]+=1
 
 	end

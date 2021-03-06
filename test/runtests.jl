@@ -6,6 +6,7 @@ using ProximalOperators, ProximalAlgorithms
 
 pgfplotsx()
 include("fig_preproc.jl")
+include("test_bpdn_nobarrier_tr.jl")
 
 
 Random.seed!(0)
@@ -21,7 +22,7 @@ end
 end
 
 @testset "LASSO" begin
-	# include("test_tr.jl")
+	include("test_tr.jl")
 end
 
 @testset "Nonlinear Problems" begin

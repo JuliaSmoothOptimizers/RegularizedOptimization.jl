@@ -1,20 +1,16 @@
-using DifferentialEquations, Zygote, DiffEqSensitivity
-using Random, LinearAlgebra, TRNC, Printf,Roots, Plots
-using ProximalOperators, ProximalAlgorithms, LinearOperators
+# using DifferentialEquations, Zygote, DiffEqSensitivity
+# using Random, LinearAlgebra, TRNC, Printf,Roots, Plots
+# using ProximalOperators, ProximalAlgorithms, LinearOperators
 include("Nonlin_table.jl")
-include("nonlin/test_FN_l0.jl")
 include("nonlinfig_gen.jl")
-# include("modded_panoc.jl")
+include("fig_gen.jl")
+include("modded_panoc.jl")
+include("modded_zerofpr.jl")
+using TRNC
 
-# @testset "TRNC - Nonlinear Examples" begin 
-# Julia Testing function
-#Here we solve the Fitzhugh-Nagumo (FHN) Model with some extra terms we know to be zero
-	#The FHN model is a set of coupled ODE's 
-	#V' = (f(V) - W + I)/μ for f(V) = V - V^3 / 3
-	#W' = μ(aV - bW + c) for μ = 0.08,  b = 0.8, c = 0.7
-
-   #so we need a model solution, a gradient, and a Hessian of the system (along with some data to fit)
-   function FH_ODE(dx, x, p, t)
+@testset "TRNC - Nonlinear Examples" begin 
+	#so we need a model solution, a gradient, and a Hessian of the system (along with some data to fit)
+	function FH_ODE(dx, x, p, t)
 		#p is parameter vector [I,μ, a, b, c]
 		V,W = x 
 		I, μ, a, b, c = p
@@ -53,96 +49,106 @@ include("nonlinfig_gen.jl")
 	#First, make the function you are going to manipulate
 	function Gradprob(p)
 		temp_prob = remake(prob_FH, p = p)
-		temp_sol = solve(temp_prob, reltol=1e-6, saveat=savetime, verbose=false)
+		temp_sol = solve(temp_prob,Vern9(), abstol=1e-14,reltol=1e-14, saveat=savetime, verbose = false)
 		tot_loss = 0.
 
 		if any((temp_sol.retcode!= :Success for s in temp_sol))
 			tot_loss = Inf
 		else
 			temp_v = convert(Array, temp_sol)
-
-			tot_loss = sum((temp_v - data).^2)/2
+			tot_loss = sum(((temp_v - data).^2)./2)
 		end
-
 		return tot_loss
 	end
 	function f_obj(x) #gradient and hessian info are smooth parts, m also includes nonsmooth part
 		fk = Gradprob(x)
-		# @show fk
 		if fk==Inf 
 			grad = Inf*ones(size(x))
-			Hess = Inf*ones(size(x,1), size(x,1))
+			# Hess = Inf*ones(size(x,1), size(x,1))
 		else
 			grad = Zygote.gradient(Gradprob, x)[1] 
 			# Hess = Zygote.hessian(Gradprob, x)
 		end
-
 		return fk, grad
 	end
 
 
-
 	ϵ = 1e-2
-	MI = 10
+	MI = 500
 	TOL = 1e-10
 	λ = 1.0 
 	#set all options
 	Doptions=s_options(1.0; λ=λ, optTol = TOL, verbose = 0)
-	options = TRNCoptions(;verbose=0, ϵD=ϵ, maxIter = MI)
-	solver = ProximalAlgorithms.PANOC(tol = ϵ, verbose=true, freq=1, maxit=MI)
+	options = TRNCoptions(;verbose=10, ϵD=ϵ, maxIter = MI)
 
-	function A(x, ξ)
-		if ξ!=0
-			s = solve(remake(prob_FH, p = x), reltol=1e-6, saveat=savetime)
-		else
-			s = data
-		end
+	#this is for l0 norm 
+	function h_obj(x)
+		return norm(x,0) 
 	end
+	function prox(q, σ, xk, Δ)
 
-	# @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₀; ||⋅||_∞  ≤Δ" begin
+		ProjB(y) = min.(max.(y, -Δ), Δ) # define outside? 
+		# @show σ/λ, λ
+		c = sqrt(2*σ)
+		w = xk+q
+		st = zeros(size(w))
 
-		@info "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₀; ||⋅||_∞  ≤Δ"
-		folder = "figs/nonlin/FH/l0/"
-
-		function h_obj(x)
-			return norm(x,0) 
-		end
-		#this is for l0 norm 
-		function prox(q, σ, xk, Δ)
-
-			ProjB(y) = min.(max.(y, xk.-Δ),xk.+Δ) # define outside? 
-			# @show σ/λ, λ
-			c = sqrt(2*σ)
-			w = xk+q
-			st = zeros(size(w))
-
-			for i = 1:length(w)
-				absx = abs(w[i])
-				if absx <=c
-					st[i] = 0
-				else
-					st[i] = w[i]
-				end
+		for i = 1:length(w)
+			absx = abs(w[i])
+			if absx <=c
+				st[i] = 0
+			else
+				st[i] = w[i]
 			end
-			s = ProjB(st) - xk
-			return s 
+		end
+		s = ProjB(st-xk)
+		return s 
+	end
+	function A(x,ξ)
+		if ξ==0
+			sol = data
+		else
+			sol = solve(remake(prob_FH, p = x),Vern9(), abstol=1e-14,reltol=1e-14, saveat=savetime, verbose = false)
 		end
 
-		params= TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, ψχprox=prox, χk=(s)->norm(s, Inf), HessApprox = LSR1Operator)
+		return sol 
+	end
+	@info "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₀; ||⋅||_∞  ≤Δ"
+	folder = "figs/nonlin/FH/l0/"
 
-		#put in your initial guesses
-		xi = ones(size(pars_FH))
+	params= TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, ψχprox=prox, χk=(s)->norm(s, Inf), HessApprox = LSR1Operator)
+
+	xi = ones(size(pars_FH))
+
+	# min_x 1/2||Ax - b||^2 + λ||x||₁
+	@info "running TR with our own objective"
+	xtr, ktr, Fhisttr, Hhisttr, Comp_pg = TR(xi, params, options)
+	# 	# partest, objtest = bpdnNoBar(x0,xi, A, f_obj, h_obj,ϕ,g,λ,params, options, solver, folder, "fhl0")
+
+	solverp = ProximalAlgorithms.PANOC(tol = ϵ, verbose=true, freq=1, maxit=MI)
+	ϕ = LeastSquaresObjective(f_obj, data)
+	g = NormL0(λ)
+
+	xi2 = copy(xi)
+	@info "running PANOC with our own objective"
+	xpanoc, kpanoc, Fhistpanoc, Hhistpanoc = my_panoc(solverp, xi, f = ϕ, g = g)
 
 
-		# ϕ = LeastSquaresObjective(f_obj, data)
-		g = NormL0(λ)
-		ϕ = f_obj 
+	@info "running ZeroFPR with our own objective"
+	solverz = ProximalAlgorithms.ZeroFPR(tol = ϵ, verbose=true, freq=1, maxit=MI)
+	xz, kz, Fhistz, Hhistz = my_zerofpr(solverz, xi2, f = ϕ, g = g)
 
-		partest, objtest = FHNONLIN(x0,xi, A, f_obj, h_obj,ϕ,g,λ,params, options, solver, folder, "fhl0")
+	xvars = [x0, xtr, xpanoc, xz]
+    xlabs = ["True", "TR", "PANOC", "ZFP"]
 
-		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-		@test partest < .15 #10% error I guess 
-		@test objtest < .15
+
+    hist = [Fhisttr+Hhisttr, Fhistpanoc+Hhistpanoc, Fhistz+Hhistz]
+    partest, objtest = fig_preproc(f_obj, h_obj, xvars, xlabs, hist,[Comp_pg], A, λ, folder, "fhl0")
+
+
+	# 	# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
+	@test partest < .15 #10% error I guess 
+	@test objtest < .15
 
 
 
@@ -168,39 +174,4 @@ include("nonlinfig_gen.jl")
 	# 	@test objtest < .15
 	# end
 
-
-	# @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + χ_{||p||₀≤δ}; ||⋅||_∞  ≤Δ" begin
-
-	# 	println("Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + χ_{||p||₀≤δ}; ||⋅||_∞  ≤Δ")
-	# 	include("nonlin/test_FN_B0_bfgs.jl")
-
-	# 	num_runs = 0
-	# 	partest = 10
-	# 	objtest = Float64
-	# 	while num_runs<10 && partest > .15
-	# 		partest, objtest = FHNONLINB0BFGS()
-	# 		num_runs+=1
-	# 	end
-	# 	@printf("Non-CVX problem required %1.2d runs\n", num_runs)
-	# 	# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-
-	# 	@test num_runs < 9
-	# 	@test partest < .15 #10% error I guess 
-	# 	@test objtest < .15
-
-	# end
-
-	# @testset "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₁; ||⋅||₂  ≤Δ" begin
-	# 	println("Testing with BFGS Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₁; ||⋅||₂  ≤Δ")
-	# 	include("nonlin/test_FH_l1_bfgs.jl")
-
-	# 	partest, objtest  = FHNONLINl1LBFGS()
-
-	# 	# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)
-	# 	@test partest < 1.0
-	# 	@test objtest < 1.0
-
-
-
-	# end
-# end
+end

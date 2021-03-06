@@ -4,7 +4,9 @@ using ProximalOperators, ProximalAlgorithms
 include("test_bpdn_nobarrier_tr.jl")
 include("Lin_table.jl")
 include("fig_gen.jl")
+include("nonlinfig_gen.jl")
 include("modded_panoc.jl")
+include("modded_zerofpr.jl")
 
 
 @testset "TRNC - Linear/BPDN Examples ($compound)" for compound=1
@@ -22,12 +24,13 @@ include("modded_panoc.jl")
 
 	m,n= size(A)
 	MI = 1000
-	TOL = 1e-10
+	TOL = 1e-3
 	λ = 1.0 
     #set all options
     Doptions = s_options(1/eigmax(A'*A); optTol = TOL, maxIter=MI, verbose=0)
-	options = TRNCoptions(;verbose=0, ϵD=TOL, maxIter = MI)
-	solver = ProximalAlgorithms.PANOC(tol = TOL, verbose=true, freq=1, maxit=MI)
+	options = TRNCoptions(;verbose=10, ϵD=TOL, maxIter = MI)
+	solverp = ProximalAlgorithms.PANOC(tol = TOL, verbose=true, freq=1, maxit=MI)
+	solverz = ProximalAlgorithms.ZeroFPR(tol = TOL, verbose=true, freq=1, maxit=MI)
     
 
 	# @testset "LS, h=0" begin
@@ -80,9 +83,9 @@ include("modded_panoc.jl")
 		g = IndBallL2(100)
 		ϕ = LeastSquaresObjective((z)->[norm(A*z-b)^2, A'*(A*z-b)], b)
 
-		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, 2), ψχprox=tr_norm)
+		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, 2), ψχprox=tr_norm, HessApprox = LSR1Operator)
     
-		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solver, folder, "ls")
+		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "ls")
 
 		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A))
 		@test partest < norm(x0)*.1 #50% x noise?  
@@ -131,9 +134,9 @@ include("modded_panoc.jl")
 		g = NormL1(λ)
 		ϕ = LeastSquaresObjective((z)->[norm(A*z-b)^2, A'*(A*z-b)], b)
 
-		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf), ψχprox=prox)
+		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf), ψχprox=prox, HessApprox = LSR1Operator)
     
-		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solver, folder, "l1binf")
+		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "l1binf")
 
 		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A))
 		@test partest < norm(x0)*.1
@@ -179,9 +182,9 @@ include("modded_panoc.jl")
 		g = NormL1(λ)
 		ϕ = LeastSquaresObjective((z)->[norm(A*z-b)^2, A'*(A*z-b)], b)
 
-		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf), ψχprox=prox)
+		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf), ψχprox=prox,HessApprox = LSR1Operator)
     
-		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solver, folder, "l1b2")
+		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "l1b2")
 
 		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A))
 		@test partest < norm(x0)*.1 #5x noise
@@ -224,9 +227,9 @@ include("modded_panoc.jl")
 		g = NormL0(λ)
 		ϕ = LeastSquaresObjective((z)->[norm(A*z-b)^2, A'*(A*z-b)], b)
 
-		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf), ψχprox=prox)
+		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf), ψχprox=prox,HessApprox = LSR1Operator)
     
-		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solver, folder, "l0binf")
+		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "l0binf")
 
 		@test partest < norm(x0)*.1 #5x noise
 		@test objtest < α
@@ -270,7 +273,7 @@ include("modded_panoc.jl")
 
 		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf), ψχprox=prox, HessApprox = LSR1Operator)
     
-		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solver, folder, "B0binf")
+		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "B0binf")
 
 		@test partest < norm(x0)*.1 #5x noise
 		@test objtest < α
