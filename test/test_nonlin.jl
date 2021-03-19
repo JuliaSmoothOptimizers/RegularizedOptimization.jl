@@ -73,13 +73,13 @@ using TRNC
 	end
 
 
-	ϵ = 1e-2
+	ϵ = 1e-6
 	MI = 500
-	TOL = 1e-10
+	TOL = 1e-3
 	λ = 1.0 
 	#set all options
 	Doptions=s_options(1.0; λ=λ, optTol = TOL, verbose = 0)
-	options = TRNCoptions(;verbose=10, ϵD=ϵ, maxIter = MI)
+	options = TRNCoptions(;verbose=10, ϵD=ϵ, maxIter = MI, β = 1e16)
 
 	#this is for l0 norm 
 	function h_obj(x)
@@ -123,8 +123,7 @@ using TRNC
 	# min_x 1/2||Ax - b||^2 + λ||x||₁
 	@info "running TR with our own objective"
 	xtr, ktr, Fhisttr, Hhisttr, Comp_pg = TR(xi, params, options)
-	# 	# partest, objtest = bpdnNoBar(x0,xi, A, f_obj, h_obj,ϕ,g,λ,params, options, solver, folder, "fhl0")
-
+	
 	solverp = ProximalAlgorithms.PANOC(tol = ϵ, verbose=true, freq=1, maxit=MI)
 	ϕ = LeastSquaresObjective(f_obj, data)
 	g = NormL0(λ)
@@ -143,7 +142,7 @@ using TRNC
 
 
     hist = [Fhisttr+Hhisttr, Fhistpanoc+Hhistpanoc, Fhistz+Hhistz]
-    partest, objtest = fig_preproc(f_obj, h_obj, xvars, xlabs, hist,[Comp_pg], A, λ, folder, "fhl0")
+    # partest, objtest = fig_preproc(f_obj, h_obj, xvars, xlabs, hist,[Comp_pg], A, λ, folder, "fhl0")
 
 
 	# 	# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A)^2)

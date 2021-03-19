@@ -1,13 +1,4 @@
-
-
-using ProximalOperators, ProximalAlgorithms
 include("test_bpdn_nobarrier_tr.jl")
-include("Lin_table.jl")
-include("fig_gen.jl")
-include("nonlinfig_gen.jl")
-include("modded_panoc.jl")
-include("modded_zerofpr.jl")
-
 
 @testset "TRNC - Linear/BPDN Examples ($compound)" for compound=1
 
@@ -24,14 +15,11 @@ include("modded_zerofpr.jl")
 
 	m,n= size(A)
 	MI = 1000
-	TOL = 1e-3
+	TOL = 1e-6
 	λ = 1.0 
     #set all options
     Doptions = s_options(1/eigmax(A'*A); optTol = TOL, maxIter=MI, verbose=0)
 	options = TRNCoptions(;verbose=10, ϵD=TOL, maxIter = MI)
-	solverp = ProximalAlgorithms.PANOC(tol = TOL, verbose=true, freq=1, maxit=MI)
-	solverz = ProximalAlgorithms.ZeroFPR(tol = TOL, verbose=true, freq=1, maxit=MI)
-    
 
 	# @testset "LS, h=0" begin
 	# 	folder = string("figs/ls/", compound, "/")
@@ -61,31 +49,23 @@ include("modded_zerofpr.jl")
 	# 	@test objtest < α
 
 	# end
+	function f_obj(x)
+		f = .5*norm(A*x-b)^2
+		g = A'*(A*x - b)
+		return f, g
+	end
 
-
+	function h_obj(x)
+		return 0
+	end
+	parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, HessApprox = LSR1Operator)
 	@testset "LS, h=0; bfgs" begin
 		folder = string("figs/ls_bfgs/", compound, "/")
 		xi = zeros(size(x0))
-		function f_obj(x)
-			f = .5*norm(A*x-b)^2
-			g = A'*(A*x - b)
-			return f, g
-		end
-	
-		function h_obj(x)
-			return 0
-		end
-		function tr_norm(z,σ, x, Δ)
-			return z./max(1, norm(z, 2)/Δ)
-		end
 
 		@info "running LS bfgs, h=0"
-		g = IndBallL2(100)
-		ϕ = LeastSquaresObjective((z)->[norm(A*z-b)^2, A'*(A*z-b)], b)
-
-		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, 2), ψχprox=tr_norm, HessApprox = LSR1Operator)
     
-		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "ls")
+		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,λ, parameters, options)
 
 		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A))
 		@test partest < norm(x0)*.1 #50% x noise?  
@@ -112,17 +92,17 @@ include("modded_zerofpr.jl")
 
 	Doptions.λ = λ
 	Doptions.optTol=TOL
+	function f_obj(x)
+		f = .5*norm(A*x-b)^2
+		g = A'*(A*x - b)
+		return f, g
+	end
+	function h_obj(x)
+		return norm(x,1)
+	end
 	@testset "LS, h=l1; binf" begin
 		xi = zeros(size(x0))
-		folder = string("figs/bpdn/LS_l1_Binf/", compound, "/")
-		function f_obj(x)
-			f = .5*norm(A*x-b)^2
-			g = A'*(A*x - b)
-			return f, g
-		end
-		function h_obj(x)
-			return norm(x,1)
-		end
+
 		function prox(q, σ, xk, Δ)
 			ProjB(wp) = min.(max.(wp,q.-σ), q.+σ)
 			ProjΔ(yp) = min.(max.(yp, -Δ), Δ)
@@ -131,12 +111,13 @@ include("modded_zerofpr.jl")
 		end
 
 		@info "running LS bfgs, h=l1, tr = linf"
-		g = NormL1(λ)
-		ϕ = LeastSquaresObjective((z)->[norm(A*z-b)^2, A'*(A*z-b)], b)
-
-		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf), ψχprox=prox, HessApprox = LSR1Operator)
+		parameters.f_obj = f_obj
+		parameters.h_obj = h_obj
+		parameters.λ = λ
+		parameters.χk = (s)->norm(s, Inf)
+		parameters.ψχprox=prox
     
-		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "l1binf")
+		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj, λ, parameters, options)
 
 		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A))
 		@test partest < norm(x0)*.1
@@ -146,16 +127,6 @@ include("modded_zerofpr.jl")
 
 	@testset "LS, h=l1, tr = l2" begin
 		xi = zeros(size(x0))
-		folder = string("figs/bpdn/LS_l1_B2/", compound, "/")
-
-		function f_obj(x)
-			f = .5*norm(A*x-b)^2
-			g = A'*(A*x - b)
-			return f, g
-		end
-		function h_obj(x)
-			return norm(x,1)
-		end
 		function prox(q, σ, xk, Δ) #q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need
 
 			ProjB(y) = min.(max.(y, q.-σ), q.+σ)
@@ -179,12 +150,10 @@ include("modded_zerofpr.jl")
 		end 
 
 		@info "running LS bfgs, h=l1, tr = l2"
-		g = NormL1(λ)
-		ϕ = LeastSquaresObjective((z)->[norm(A*z-b)^2, A'*(A*z-b)], b)
-
-		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf), ψχprox=prox,HessApprox = LSR1Operator)
+		parameters.χk=(s)->norm(s, 2)
+		parameters.ψχprox=prox
     
-		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "l1b2")
+		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj, λ, parameters, options)
 
 		# test against true values - note that these are operator-weighted (norm(x - x0)/opnorm(A))
 		@test partest < norm(x0)*.1 #5x noise
@@ -192,19 +161,12 @@ include("modded_zerofpr.jl")
 
 	end
 
-
+	function h_obj(x)
+		return norm(x,0)
+	end
 	@testset "LS, h=l0; binf" begin
 		xi = zeros(size(x0))
-		folder = string("figs/bpdn/LS_l0_Binf/", compound, "/")
 
-		function f_obj(x)
-			f = .5*norm(A*x-b)^2
-			g = A'*(A*x - b)
-			return f, g
-		end
-		function h_obj(x)
-			return norm(x,0)
-		end
 		function prox(q, σ, xk, Δ)
 			# @show σ/λ, λ
 			c = sqrt(2*σ)
@@ -224,12 +186,12 @@ include("modded_zerofpr.jl")
 		end
 
 		@info "running LS bfgs, h=l0, tr = linf"
-		g = NormL0(λ)
-		ϕ = LeastSquaresObjective((z)->[norm(A*z-b)^2, A'*(A*z-b)], b)
 
-		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf), ψχprox=prox,HessApprox = LSR1Operator)
+		parameters.h_obj
+		parameters.χk=(s)->norm(s, Inf)
+		parameters.ψχprox=prox,HessApprox
     
-		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "l0binf")
+		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj, λ, parameters, options)
 
 		@test partest < norm(x0)*.1 #5x noise
 		@test objtest < α
@@ -239,23 +201,17 @@ include("modded_zerofpr.jl")
 
 
 	λ = k
+	function h_obj(x)
+		if norm(x,0) ≤ λ
+			h = 0
+		else
+			h = Inf
+		end
+		return h 
+	end
 	@testset "LS, h=B0; binf" begin
 		xi = zeros(size(x0))
 		folder = string("figs/bpdn/LS_B0_Binf/", compound, "/")
-
-		function f_obj(x)
-			f = .5*norm(A*x-b)^2
-			g = A'*(A*x - b)
-			return f, g
-		end
-		function h_obj(x)
-			if norm(x,0) ≤ λ
-				h = 0
-			else
-				h = Inf
-			end
-			return h 
-		end
 
 		function prox(q, σ, xk, Δ)
 			ProjB(w) = min.(max.(w, -Δ), +Δ)
@@ -268,12 +224,12 @@ include("modded_zerofpr.jl")
 		end
 
 		@info "running LS bfgs, h=B0, tr = linf"
-		g = IndBallL0(λ)
-		ϕ = LeastSquaresObjective((z)->[norm(A*z-b)^2, A'*(A*z-b)], b)
 
-		parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf), ψχprox=prox, HessApprox = LSR1Operator)
+		parameters.h_obj = h_obj
+		parameters.λ = λ
+		parameters.ψχprox=prox
     
-		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "B0binf")
+		partest, objtest = bpdnNoBar(x0, xi, A, f_obj, h_obj, λ, parameters, options)
 
 		@test partest < norm(x0)*.1 #5x noise
 		@test objtest < α

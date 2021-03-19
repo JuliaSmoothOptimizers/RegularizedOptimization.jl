@@ -1,6 +1,3 @@
-using Plots
-
-
 function figen(xvars, labels, savestring, titles, typeswitch, yax)
 
     lstyle = []
@@ -55,8 +52,8 @@ function figen(xvars, labels, savestring, titles, typeswitch, yax)
         plot!(xvars[i], linewidth = 1, linestyle = lstyle[i],color = colors[i], label=labels[i])
 
     end
-    tkstring = string(savestring, ".pdf")
-    # tkstring = string(savestring, ".tikz")
+    # tkstring = string(savestring, ".pdf")
+    tkstring = string(savestring, ".tikz")
     # texstring = string(savestring, ".tex")
     savefig(tkstring)
     # run(`mv $texstring $tkstring`)

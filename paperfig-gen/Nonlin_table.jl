@@ -2,7 +2,7 @@
 function show_table(mp, vals, labs)
   dp = DataFrame([mp[:,i] for i in 1:length(labs)])
   rename!(dp,  [Symbol(labs[i]) for i in 1:length(labs)])
-  df = DataFrame(hcat(["\$ (f + h)(x) \$", "\$ f(x) \$", "\$ h(x) \$", "\$ ||x - x_0||_2 \$", "\$ N \$"], hcat([vals[:,i] for i in 1:length(labs)])))
+  df = DataFrame(hcat(["\$ f(x) \$", "\$ h(x) \$", "\$ ||x - x_0||_2 \$", "\$ \\nabla f \$ Calls", "\$ \\prox{\\nu\\psi}\$ Calls"], hcat([vals[:,i] for i in 1:length(labs)])))
   rename!(df,  vcat(:Function, [Symbol(labs[i]) for i in 1:length(labs)]))
   return dp, df
 end
