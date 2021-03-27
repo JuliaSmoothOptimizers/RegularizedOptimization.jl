@@ -1,43 +1,40 @@
-import ProximalAlgorithms: LBFGS, Maybe, ZeroFPR, ZeroFPR_iterable, ZeroFPR_state
+import ProximalAlgorithms: Maybe, ForwardBackward, FBS_iterable, FBS_state
 import ProximalAlgorithms.IterationTools: halt, sample, tee, loop
 using Base.Iterators  # for take
 
-function my_zerofpr(solver::ZeroFPR{R},
+function my_fbs(solver::ForwardBackward{R},
     x0::AbstractArray{C};
     f = Zero(),
     A = I,
     g = Zero(),
     L::Maybe{R} = nothing,
     ) where {R,C<:Union{R,Complex{R}}}
-    stop(state::ZeroFPR_state) = norm(state.res, Inf) / state.gamma <= solver.tol
+    stop(state::FBS_state) = norm(state.res, Inf) / state.gamma <= solver.tol
     function disp((it, state))
         @printf(
-                "%5d | %.3e | %.3e | %.3e | %9.2e | %9.2e\n",
+                "%5d | %.3e | %.3e | %9.2e | %9.2e\n",
                 it,
                 state.gamma,
                 norm(state.res, Inf) / state.gamma,
-                (state.tau === nothing ? 0.0 : state.tau),
                 state.f_Ax,  # <-- added this
-                state.g_xbar    # <-- and this
+                state.g_z    # <-- and this
             )
     end
 
     gamma = if solver.gamma === nothing && L !== nothing
-        solver.alpha / L
+        R(1) / L
     else
         solver.gamma
     end
 
-    iter = ZeroFPR_iterable(
+    iter = FBS_iterable(
         f,
         A,
         g,
         x0,
-        solver.alpha,
-        solver.beta,
         gamma,
-        solver.adaptive,
-        LBFGS(x0, solver.memory),
+        solver.adaptive, 
+        solver.fast
     )
     iter = take(halt(iter, stop), solver.maxit)
     iter = enumerate(iter)
@@ -47,5 +44,5 @@ function my_zerofpr(solver::ZeroFPR{R},
 
     num_iters, state_final = loop(iter)
 
-    return state_final.x, num_iters
+    return state_final.z, num_iters
 end

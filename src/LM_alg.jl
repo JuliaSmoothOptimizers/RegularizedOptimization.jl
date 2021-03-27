@@ -163,13 +163,10 @@ function LM(
 		# define model and update ρ
 		mk(d) = φ(d)[1] + λ * ψk(xk + d) # psik = h -> psik = h(x+d)
 
-
 		s = ψχprox(-ν * ∇fk, ν * λ, xk, σk) # -> PG on one step s
-		# Gν = s./ν
-        funEvals = 1 
 
 		# update Complexity history 
-		Complex_hist[k] += funEvals# doesn't really count because of quadratic model 
+		Complex_hist[k] += 1# doesn't really count because of quadratic model 
 
 		# @show ObjOuter(xk), ObjOuter(xk + s), mk(zeros(size(s))), mk(s)
 		Numerator = ObjOuter(xk) - ObjOuter(xk + s)
@@ -212,9 +209,6 @@ function LM(
 		# define the Hessian 
 		# ν =1/ max(σk, (1+θ)*maximum(abs.(eigs(H;nev=1, which=:LM)[1])))
 		ν = 1/σk
-
-
-		Complex_hist[k] += 1
 
 	end
 

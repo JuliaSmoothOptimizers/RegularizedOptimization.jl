@@ -20,8 +20,9 @@ end
 import ProximalOperators.gradient, ProximalOperators.gradient!
 # state.f_Ax_d = gradient!(state.grad_f_Ax_d, iter.f, state.Ax_d)
 function gradient!(∇fx, f::LeastSquaresObjective, x)
-	r, g = f.nonlin(x)
-	append!(f.hist, minimum(f.hist, r + λ*f.nonsmooth(x)))
+	r, g = f.smooth(x)
+	# append!(f.hist, r + λ*f.nonsmooth(x))
+	append!(f.hist, min(minimum(f.hist),r + λ*f.nonsmooth(x)))
 	∇fx .= g
 	return r
 end

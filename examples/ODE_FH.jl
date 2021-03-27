@@ -19,7 +19,6 @@ function FH_L0Binf()
     pars_FH = [0.5, 0.08, 1.0, 0.8, 0.7]
     prob_FH = ODEProblem(FH_ODE, u0, tspan, pars_FH)
 
-
     # So this is all well and good, but we need a cost function and some parameters to fit. First, we take care of the parameters
     # We start by noting that the FHN model is actually the van-der-pol oscillator with some parameters set to zero
     # x' = μ(x - x^3/3 - y)

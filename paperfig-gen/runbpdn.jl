@@ -51,7 +51,7 @@ end
 g = ProxOp(h_objmod, (z, σ) -> tr_norm(z, σ, 1, 100), 1, 0)
 parameters.χk = (s) -> norm(s, 2)
 parameters.ψχprox = tr_norm 
-evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "ls")
+_, _ = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder)
 
 
 
@@ -105,7 +105,7 @@ parameters.h_obj = h_obj
 parameters.λ = λ
 parameters.χk = (s) -> norm(s, Inf)
 parameters.ψχprox = proxp
-evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "l1binf")
+l1binfv, l1binfp = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder)
 
 
 
@@ -140,7 +140,7 @@ parameters.ψχprox = proxp
 ϕ.count = 0
 ϕ.hist = []
 g.count = 0
-evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "l1b2")
+l1b2v, l1b2p = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder)
 
 
 
@@ -189,7 +189,7 @@ parameters.ψχprox = proxp
 g.count = 0 
 g.func = h_obj
 g.proxh = proxl0
-evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "l0binf")
+l0binfv, l0binfp = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder)
 
 
 
@@ -237,4 +237,13 @@ g.count = 0
 g.func = h_obj
 g.proxh = proxb0
 
-evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder, "B0binf")
+b0binfv, b0binfp = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder)
+
+toplabs = ["\\(h=\\|\\cdot\\|_1\\), \\(\\Delta\\mathbb{B}_2\\)", "\\(h=\\|\\cdot\\|_0\\), \\(\\Delta\\mathbb{B}_\\infty\\)","\\(h=\\chi(\\cdot; \\lambda \\mathbb{B}_0)\\), \\(\\Delta\\mathbb{B}_\\infty\\)"]
+xlabs = ["True", "TR", "PANOC", "ZFP", "TR", "PANOC", "ZFP", "TR", "PANOC", "ZFP"]
+
+# pars = [l1b2p, l0binfp, b0binfp]
+vals = hcat(l1b2v, l0binfv[:,2:end], b0binfv[:,2:end])
+
+df = show_table(toplabs, vals, xlabs)
+_ = write_table(toplabs, df, string("figs/bpdn/", "bpdn-table"))
