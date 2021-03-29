@@ -17,5 +17,5 @@ include("modded_fbs.jl")
 
 Random.seed!(0)
 
-# include("runbpdn.jl")
+include("runbpdn.jl")
 include("runnonlin.jl")

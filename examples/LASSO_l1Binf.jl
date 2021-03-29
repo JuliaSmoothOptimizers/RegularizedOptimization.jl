@@ -1,8 +1,7 @@
 using Random, LinearAlgebra, TRNC, Printf,Roots
-using ProximalOperators, ProximalAlgorithms
 using LinearOperators
-# min_x 1/2||Ax - b||^2 + λ||x||₁
-function L1B2(compound = 1)
+# min_x 1/2||Ax - b||^2 + λ||x||₁; ΔB_∞
+function L1BInf(compound = 1)
     m,n = compound*200,compound*512 #if you want to rapidly change problem size 
     k = compound*10 #10 signals 
     α = .01 #noise level 
@@ -39,16 +38,6 @@ function L1B2(compound = 1)
         ProjB(wp) = min.(max.(wp,q.-σ), q.+σ)
         ProjΔ(yp) = min.(max.(yp, -Δ), Δ)
         s = ProjΔ(ProjB(-xk))
-        #---- new ---
-        # Proxh(wp) = max.(abs.(wp) .-σ, zeros(size(wp))).*sign.(wp)
-        # ProjΔ(yp) = min.(max.(yp, xk.-Δ), xk.+Δ)
-        # s = ProjΔ(Proxh(q+xk)) - xk 
-
-        #----- test -----
-        # ProjB(wp) = min.(max.(wp, q.-σ), q.+σ)
-        # ProjΔ(yp) = min.(max.(yp, -Δ), Δ)
-        # s = ProjΔ(ProjB(-xk))
-
         return s
     end
 
@@ -83,7 +72,7 @@ function L1B2(compound = 1)
     xi = ones(n,)/2
 
     #input initial guess, parameters, options 
-    xlm, klm, Fhistlm, Hhistlm, Comp_pglm = LM(xi, parametersLM, optionsLM)
+    xlm, klm, Fhistlm, Hhistlm, Comp_pglm = QR(xi, parametersLM, optionsLM)
 
 
     @info "TR relative error" norm(xtr - x0) / norm(x0)

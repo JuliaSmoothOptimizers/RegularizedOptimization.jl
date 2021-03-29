@@ -162,7 +162,7 @@ dp, df = show_table(pars, vals, xlabs)
 _ = write_table(dp, df, string(folder, "fhl0"))
 
 
-@info "running LM"
+@info "running QR"
 # xtr, k, Fhist, Hhist, Comp_pg = TR(xi, params, options)
 
 function proxl0s(q, σ, xk, Δ)
@@ -185,11 +185,11 @@ end
 
 
 folder = "figs/nonlin/FH/pg_l0/"
-parametersLM = TRNCstruct(f_obj, h_obj, λ; FO_options=Doptions, ψχprox=proxl0s, χk=(s) -> norm(s, Inf))
-optionsLM = TRNCoptions(; σk=1e4, ϵD=TOL, verbose=1, maxIter = MI*10) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+parametersQR = TRNCstruct(f_obj, h_obj, λ; FO_options=Doptions, ψχprox=proxl0s, χk=(s) -> norm(s, Inf))
+optionsQR = TRNCoptions(; σk=1e4, ϵD=TOL, verbose=1, maxIter = MI*10) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 
 # input initial guess
-xlm, klm, Fhistlm, Hhistlm, Comp_pglm = LM(ones(size(xi)), parametersLM, optionsLM)
+xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QR(ones(size(xi)), parametersQR, optionsQR)
 
 
 @info "running FBS with our objective"
@@ -200,13 +200,13 @@ solverpg = ProximalAlgorithms.ForwardBackward(tol=ϵ, verbose=true, freq=1, maxi
 xpg, kpg = my_fbs(solverpg, ones(size(xi2)), f=ϕ, g=g)
 Histpg = ϕ.hist 
 
-xvars = [x0, xlm, xpg]
-xlabs = ["True", "LM", "PG"]
-histp = [Fhistlm+Hhistlm, Histpg]
-vals, pars = tab_preproc(f_obj, h_obj, xvars,[0,sum(Comp_pglm), g.count],  histp, Aval, λ)
+xvars = [x0, xqr, xpg]
+xlabs = ["True", "QR", "PG"]
+histp = [Fhistqr+Hhistqr, Histpg]
+vals, pars = tab_preproc(f_obj, h_obj, xvars,[0,sum(Comp_pgqr), g.count],  histp, Aval, λ)
 
-fig_preproc(xvars,xlabs, histp,[Comp_pglm], Aval, folder)
+fig_preproc(xvars,xlabs, histp,[Comp_pgqr], Aval, folder)
 
 dp, df = show_table(pars, vals, xlabs)
-_ = write_table(dp, df, string(folder, "fhl0_lm"))
+_ = write_table(dp, df, string(folder, "fhl0_qr"))
 # 	@info "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + χ_{||p||₀≤δ}; ||⋅||_∞  ≤Δ"

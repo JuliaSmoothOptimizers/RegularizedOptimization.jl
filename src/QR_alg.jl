@@ -1,7 +1,7 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 
 using LinearOperators, LinearAlgebra, Arpack
-export LM
+export QR
 
 """Interior method for Trust Region problem
 	TR(x, params, options)
@@ -38,7 +38,7 @@ Complex_hist: Array{Float64, 1}
 	inner algorithm iteration count 
 
 """
-function LM(
+function QR(
 	x0,
 	params,
 	options)
