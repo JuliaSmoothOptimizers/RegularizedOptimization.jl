@@ -96,7 +96,7 @@ function L0Binf(compound = 1)
     optionsQR = TRNCoptions(; σk = 1/β, ϵD=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 
     #input initial guess
-    xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QR(xi, parametersQR, optionsQR)
+    xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QuadReg(xi, parametersQR, optionsQR)
 
     @info "TR relative error" norm(xtr - x0) / norm(x0)
     @info "QR relative error" norm(xqr - x0) / norm(x0)

@@ -116,7 +116,7 @@ function B0Binf(compound = 1)
     optionsLM = TRNCoptions(; σk = 1/β, ϵD=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 
     #input initial guess
-    xlm, klm, Fhistlm, Hhistlm, Comp_pglm = LM(xi, parametersLM, optionsLM)
+    xlm, klm, Fhistlm, Hhistlm, Comp_pglm = QuadReg(xi, parametersLM, optionsLM)
 
     @info "TR relative error" norm(x_pr - x0) / norm(x0)
     @info "LM relative error" norm(xlm - x0) / norm(x0)

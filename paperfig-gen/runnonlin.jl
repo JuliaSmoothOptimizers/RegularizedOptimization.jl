@@ -189,7 +189,7 @@ parametersQR = TRNCstruct(f_obj, h_obj, λ; FO_options=Doptions, ψχprox=proxl0
 optionsQR = TRNCoptions(; σk=1e4, ϵD=TOL, verbose=1, maxIter = MI*10) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 
 # input initial guess
-xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QR(ones(size(xi)), parametersQR, optionsQR)
+xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QuadReg(ones(size(xi)), parametersQR, optionsQR)
 
 
 @info "running FBS with our objective"

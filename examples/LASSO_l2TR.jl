@@ -88,7 +88,7 @@ function L1B2(compound = 1)
     xi = ones(n,)/2
 
     #input initial guess, parameters, options 
-    xlm, klm, Fhistlm, Hhistlm, Comp_pglm = LM(xi, parametersLM, optionsLM)
+    xlm, klm, Fhistlm, Hhistlm, Comp_pglm = QuadReg(xi, parametersLM, optionsLM)
 
 
     @info "TR relative error" norm(xtr - x0) / norm(x0)

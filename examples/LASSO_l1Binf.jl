@@ -72,7 +72,7 @@ function L1BInf(compound = 1)
     xi = ones(n,)/2
 
     #input initial guess, parameters, options 
-    xlm, klm, Fhistlm, Hhistlm, Comp_pglm = QR(xi, parametersLM, optionsLM)
+    xlm, klm, Fhistlm, Hhistlm, Comp_pglm = QuadReg(xi, parametersLM, optionsLM)
 
 
     @info "TR relative error" norm(xtr - x0) / norm(x0)
