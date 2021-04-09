@@ -1,4 +1,4 @@
-export s_options, TRNCoptions, TRNCstruct
+export s_params, TRNCparams, TRNCmethods
 
 mutable struct s_params
 	ν
@@ -9,14 +9,15 @@ mutable struct s_params
 	λ
 	p
 	FcnDec
+
+	function s_params(ν; optTol=1f-6, maxIter=10000, verbose=0, restart=10, λ=1.0, p=1.1, FcnDec=1e10)
+		return new(ν, optTol, maxIter, verbose, restart, λ, p, FcnDec)
+	end
 end
 
-
-function s_options(ν; optTol=1f-6, maxIter=10000, verbose=0, restart=10, λ=1.0, p=1.1, FcnDec=1e10)
-
-	return s_params(ν, optTol, maxIter, verbose, restart, λ, p, FcnDec)
-
-end
+# function s_options(ν; optTol=1f-6, maxIter=10000, verbose=0, restart=10, λ=1.0, p=1.1, FcnDec=1e10)
+# 	return s_params(ν, optTol, maxIter, verbose, restart, λ, p, FcnDec)
+# end
 
 mutable struct TRNCparams
 	ϵD # termination criteria
@@ -31,6 +32,24 @@ mutable struct TRNCparams
 	mem # Bk iteration memory
 	θ # TR inner loop "closeness" to Bk
 	β # TR size for PG steps j>1
+
+	function TRNCparams(
+		;
+		ϵD=1e-2,
+		Δk=1.0,
+		verbose=0,
+		maxIter=10000,
+		η1=1.0e-3, # ρ lower bound
+		η2=0.9,  # ρ upper bound
+		τ=0.01, # linesearch buffer parameter
+		σk=1.0e-3, # LM parameter
+		γ=3.0, # trust region buffer
+		mem=5, # L-BFGS memory
+		θ=1e-3,
+		β=10.0
+		) # default values for trust region parameters in algorithm 4.2
+		return new(ϵD, Δk, verbose, maxIter, η1, η2, τ, σk, γ, mem, θ, β)
+	end
 end
 
 mutable struct TRNCmethods
@@ -44,38 +63,52 @@ mutable struct TRNCmethods
 	χk # TR norm one computes for the trust region radius - default is l2 
 	HessApprox # Hessian Approximation choosen. Defaults to LBFGS, unless the user provides a Hessian in the smooth function 
 	f_obj # objective function (unaltered) that you want to minimize
+	f_grad
 	h_obj # objective function that is nonsmooth - > only used for evaluation
 	λ # objective nonsmooth tuning parameter
+
+	function TRNCmethods(
+		f_obj,
+		f_grad,
+		h,
+		λ;
+		FO_options=s_params(1.0),
+		s_alg=PG,
+		ψχprox=(z, σ, xt, Dk) -> z ./ max(1, norm(z, 2) / σ),
+		ψk=h,
+		χk=s -> norm(s, 2),
+		HessApprox=LBFGSOperator)
+		return new(FO_options, s_alg, ψχprox, ψk, χk, HessApprox, f_obj, f_grad, h, λ)
+	end
 end
 
-function TRNCoptions(
-	;
-	ϵD=1e-2,
-	Δk=1.0,
-	verbose=0,
-	maxIter=10000,
-	η1=1.0e-3, # ρ lower bound
-	η2=0.9,  # ρ upper bound
-	τ=0.01, # linesearch buffer parameter
-	σk=1.0e-3, # LM parameter
-	γ=3.0, # trust region buffer
-	mem=5, # L-BFGS memory
-	θ=1e-3,
-	β=10.0
-) # default values for trust region parameters in algorithm 4.2
-	return TRNCparams(ϵD, Δk, verbose, maxIter, η1, η2, τ, σk, γ, mem, θ, β)
-end
+# function TRNCoptions(
+# 	;
+# 	ϵD=1e-2,
+# 	Δk=1.0,
+# 	verbose=0,
+# 	maxIter=10000,
+# 	η1=1.0e-3, # ρ lower bound
+# 	η2=0.9,  # ρ upper bound
+# 	τ=0.01, # linesearch buffer parameter
+# 	σk=1.0e-3, # LM parameter
+# 	γ=3.0, # trust region buffer
+# 	mem=5, # L-BFGS memory
+# 	θ=1e-3,
+# 	β=10.0
+# 	) # default values for trust region parameters in algorithm 4.2
+# 	return TRNCparams(ϵD, Δk, verbose, maxIter, η1, η2, τ, σk, γ, mem, θ, β)
+# end
 
-function TRNCstruct(
-	f_obj,
-	h,
-	λ;
-	FO_options=s_options(1.0;),
-	s_alg=PG,
-	ψχprox=(z, σ, xt, Dk) -> z ./ max(1, norm(z, 2) / σ),
-	ψk=h,
-	χk=(s) -> norm(s, 2),
-	HessApprox=LBFGSOperator
-)
-	return TRNCmethods(FO_options, s_alg, ψχprox, ψk, χk, HessApprox, f_obj, h, λ)
-end
+# function TRNCstruct(
+# 	f_obj,
+# 	h,
+# 	λ;
+# 	FO_options=s_params(1.0),
+# 	s_alg=PG,
+# 	ψχprox=(z, σ, xt, Dk) -> z ./ max(1, norm(z, 2) / σ),
+# 	ψk=h,
+# 	χk=(s) -> norm(s, 2),
+# 	HessApprox=LBFGSOperator)
+# 	return TRNCmethods(FO_options, s_alg, ψχprox, ψk, χk, HessApprox, f_obj, h, λ)
+# end

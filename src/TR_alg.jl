@@ -38,10 +38,7 @@ Complex_hist: Array{Float64, 1}
 	inner algorithm iteration count 
 
 """
-function TR(
-	x0,
-	params,
-	options)
+function TR(x0, params, options)
 
 	# initialize passed options
 	ϵD = options.ϵD
@@ -74,9 +71,9 @@ function TR(
 	ψk = params.ψk
 	χk = params.χk 
 	f_obj = params.f_obj
+	f_grad = params.g_grad
 	h_obj = params.h_obj
 	λ = params.λ
-
 
 	# initialize parameters
 	xk = copy(x0)
@@ -110,7 +107,6 @@ function TR(
 	# make sure you only take the first output of the objective value of the true function you are minimizing
 	ObjOuter(x) = f_obj(x)[1] + λ * h_obj(x) # make the same name as in the paper f+h 
 
-
 	k = 0
 	ρk = -1.0
 	α = 1.0
@@ -134,7 +130,7 @@ function TR(
 	# define the Hessian 
 	H = Symmetric(Matrix(Bk))
 	# νInv = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-	νInv = (1 + θ) * maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
+	νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1, which=:LM)[1]))
 
 	# keep track of old subgradient for LnSrch purposes
 	Gν =  ∇fk
@@ -151,7 +147,6 @@ function TR(
 		xk⁻ = xk 
 		∇fk⁻ = ∇fk
 		sk⁻ = s
-
 
 		Fobj_hist[k] = fk
 		Hobj_hist[k] = h_obj(xk) * λ
@@ -186,8 +181,6 @@ function TR(
 
 		# update Complexity history 
 		Complex_hist[k] += funEvals# doesn't really count because of quadratic model 
-
-
 
 		α = 1.0
 		# @show ObjOuter(xk), ObjOuter(xk + s), mk(zeros(size(s))), mk(s)

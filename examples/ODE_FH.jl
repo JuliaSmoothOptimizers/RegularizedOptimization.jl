@@ -1,7 +1,9 @@
-using DifferentialEquations, Zygote, DiffEqSensitivity
-using Random, LinearAlgebra, TRNC, Printf,Roots
+using TRNC
+using DiffEqSensitivity, DifferentialEquations, LinearOperators, Roots, Zygote
+using LinearAlgebra, Printf, Random
 
-function FH_L0Binf()
+# function FH_L0Binf()
+function FH_smooth_term()
     # so we need a model solution, a gradient, and a Hessian of the system (along with some data to fit)
     function FH_ODE(dx, x, p, t)
         # p is parameter vector [I,μ, a, b, c]
@@ -10,7 +12,6 @@ function FH_L0Binf()
         dx[1] = (V - V^3 / 3 -  W + I) / μ
         dx[2] = μ * (a * V - b * W + c)
     end
-
 
     u0 = [2.0; 0.0]
     tspan = (0.0, 20.0)
@@ -28,8 +29,7 @@ function FH_L0Binf()
     prob_VDP = ODEProblem(FH_ODE, u0, tspan, x0)
     sol_VDP = solve(prob_VDP, reltol=1e-6, saveat=savetime)
 
-
-    # also make some noie to fit later
+    # also make some noise to fit later
     t = sol_VDP.t
     b = hcat(sol_VDP.u...)
     noise = .1 * randn(size(b))
@@ -51,6 +51,7 @@ function FH_L0Binf()
         end
         return tot_loss
     end
+
     function f_obj(x) # gradient and hessian info are smooth parts, m also includes nonsmooth part
         fk = Gradprob(x)
         if fk == Inf 
@@ -63,110 +64,156 @@ function FH_L0Binf()
         return fk, grad
     end
 
+    f_grad(x) = Zygote.gradient(Gradprob, x)[1]
 
-    λ = 1.0
-    function h_obj(x)
-        return norm(x, 0) 
-    end
+    # return f_obj
+    return Gradprob, f_grad
+end
 
+function zero_norm(x)
+    return norm(x, 0) 
+end
 
-    # put in your initial guesses
-    xi = ones(size(pars_FH))
-    # this is for l0 norm 
-    function prox(q, σ, xk, Δ)
+function zero_norm_prox_trust_region(q, σ, xk, Δ)
+    ProjB(y) = min.(max.(y, xk .- Δ), xk .+ Δ) # define outside? 
+    c = sqrt(2 * σ)
+    w = xk + q
+    st = zeros(size(w))
 
-        ProjB(y) = min.(max.(y, xk .- Δ), xk .+ Δ) # define outside? 
-        # @show σ/λ, λ
-        c = sqrt(2 * σ)
-        w = xk + q
-        st = zeros(size(w))
-
-        for i = 1:length(w)
-            absx = abs(w[i])
-            if absx <= c
-                st[i] = 0
-            else
-                st[i] = w[i]
-            end
-        end
-        s = ProjB(st) - xk
-        return s 
-    end
-
-
-    ϵ = 1e-6
-    # set all options
-    Doptions = s_options(1.0; λ=λ, optTol=ϵ * (1e-6), verbose=0)
-
-    params = TRNCstruct(f_obj, h_obj, λ; FO_options=Doptions, ψχprox=prox, χk=(s) -> norm(s, Inf), HessApprox=LSR1Operator)
-
-    options = TRNCoptions(; maxIter=500, verbose=10, ϵD=ϵ, β=1e16)
-    # solve our problem 
-    function funcF(x)
-        fk = Gradprob(x)
-        # @show fk
-        if fk == Inf 
-            grad = Inf * ones(size(x))
+    for i = 1:length(w)
+        absx = abs(w[i])
+        if absx <= c
+            st[i] = 0
         else
-            grad = Zygote.gradient(Gradprob, x)[1] 
+            st[i] = w[i]
         end
-
-        return fk, grad
     end
+    s = ProjB(st) - xk
+    return s 
+end
 
+mutable struct NormL0
+    w
+    st
+    function NormL0(n)
+        new(Vector{Float64}(undef, n), Vector{Float64}(undef, n))
+    end
+end
 
+(h::NormL0)(x) = norm(x, 0)
 
-    # xtr, k, Fhist, Hhist, Comp_pg = TR(xi, params, options)
+function prox(h::NormL0, q, σ, xk)
+    c = sqrt(2 * σ)
+    h.w .= xk .+ q
 
-    function proxl0s(q, σ, xk, Δ)
-        # @show σ/λ, λ
-        c = sqrt(2 * σ)
-        w = xk + q
-        st = zeros(size(w))
-
-        for i = 1:length(w)
-            absx = abs(w[i])
-            if absx <= c
-                st[i] = 0
-            else
-                st[i] = w[i]
-            end
+    for i = 1:length(h.w)
+        absx = abs(h.w[i])
+        if absx ≤ c
+            h.st[i] = 0
+        else
+            h.st[i] = h.w[i]
         end
-        s = st - xk
-        return s 
     end
+    h.st .-= xk
+    return h.st
+end
 
-    parametersLM = TRNCstruct(f_obj, h_obj, λ; FO_options=Doptions, ψχprox=proxl0s, χk=(s) -> norm(s, Inf))
-    optionsLM = TRNCoptions(; σk=1e4, ϵD=ϵ, verbose=10) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+function prox(h::NormL0, q, σ, xk, Δ)
+    ProjB!(y) = begin
+        for i ∈ eachindex(y)
+            y[i] = min(max(y[i], xk[i] - Δ), xk[i] + Δ)
+        end
+    end
+    c = sqrt(2 * σ)
+    h.w .= xk .+ q
+
+    for i = 1:length(h.w)
+        absx = abs(h.w[i])
+        if absx ≤ c
+            h.st[i] = 0
+        else
+            h.st[i] = h.w[i]
+        end
+    end
+    ProjB!(h.st)
+    h.st .-= xk
+    return h.st
+end
+
+function zero_norm_prox(q, σ, xk, args...)
+    c = sqrt(2 * σ)
+    w = xk + q
+    st = zeros(length(w))
+
+    for i = 1:length(w)
+        absx = abs(w[i])
+        if absx ≤ c
+            st[i] = 0
+        else
+            st[i] = w[i]
+        end
+    end
+    s = st - xk
+    return s
+end
+
+function solve_FH_trust_region(; λ=1.0, ϵ=1.0e-6)
+    f_obj, f_grad = FH_smooth_term()
+    Doptions = s_params(1.0; λ=λ, optTol=ϵ * (1e-6), verbose=0)
+    params = TRNCmethods(x -> (f_obj(x), f_grad(x)),
+                         (args...; kwargs...) -> error("should not have called this method!"),
+                         zero_norm,
+                         λ;
+                         FO_options=Doptions,
+                         ψχprox=zero_norm_prox_trust_region,
+                         χk=s -> norm(s, Inf),
+                         HessApprox=LSR1Operator)
+
+    options = TRNCparams(; maxIter=500, verbose=10, ϵD=ϵ, β=1e16)
 
     # input initial guess
-    xlm, klm, Fhistlm, Hhistlm, Comp_pglm = LM(xi, parametersLM, optionsLM)
+    xi = ones(5)
+    xtr, k, Fhist, Hhist, Comp_pg = TR(xi, params, options)
+    return xtr, k, Fhist, Hhist, Comp_pg
+end
 
+function solve_FH_QR(; λ=1.0, ϵ=1.0e-4)
+    # f_obj = FH_smooth_term()
+    f_obj, f_grad = FH_smooth_term()
+    Doptions = s_params(1.0; λ=λ, optTol=ϵ * (1e-6), verbose=0)
+    h = NormL0(5)
+    parametersQR = TRNCmethods(f_obj,
+                               f_grad,
+                               h,  # zero_norm,
+                               λ;
+                               FO_options=Doptions,
+                               ψχprox=(args...) -> prox(h, args...),  # zero_norm_prox,
+                               χk=s -> norm(s, Inf))
+ 
+    optionsQR = TRNCparams(; maxIter=10000, σk=1e4, ϵD=ϵ, verbose=2) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 
-    @show xtr
-    @show xlm
-    @show x0
+    # input initial guess
+    xi = ones(5)
+    xQR, kQR, FhistQR, HhistQR, Comp_pgQR = TRNC.QR(xi, parametersQR, optionsQR)
+    return xQR, kQR, FhistQR, HhistQR, Comp_pgQR
+end
 
+function zero_norm_ball(x, δ=1)
+    if norm(x, 0) ≤ δ
+        h = 0.0
+    else
+        h = Inf
+    end
+    return h 
+end
 
-
-    # function h_obj(x)
-    #     if norm(x,0) ≤ δ
-    #         h = 0
-    #     else
-    #         h = Inf
-    #     end
-    #     return h 
-    # end
-
-    # function prox(q, σ, xk, Δ)
-    #     ProjB(w) = min.(max.(w, xk.-Δ), xk.+Δ)
-    #     y = q + xk 
-    #     #find largest entries
-    #     p = sortperm(abs.(y), rev = true)
-    #     y[p[δ+1:end]].=0 #set smallest to zero 
-    #     y = ProjB(y)#put largest entries in projection
-    #     s = y - xk 
-
-    #     return s 
-# end
+function zero_norm_ball_prox_trust_region(q, σ, xk, Δ, δ=1)
+    ProjB(w) = min.(max.(w, xk.-Δ), xk.+Δ)
+    y = q + xk 
+    #find largest entries
+    p = sortperm(abs.(y), rev = true)
+    y[p[δ+1:end]].=0 #set smallest to zero 
+    y = ProjB(y)#put largest entries in projection
+    s = y - xk 
+    return s 
 end
