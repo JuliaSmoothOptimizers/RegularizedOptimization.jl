@@ -1,4 +1,5 @@
-export s_options, TRNCoptions, TRNCstruct
+using ForwardDiff, LinearOperators
+export s_options, TRNCoptions, TRNCstruct, FObj, HObj
 
 mutable struct s_params
 	ν
@@ -19,7 +20,7 @@ function s_options(ν; optTol=1f-6, maxIter=10000, verbose=0, restart=10, λ=1.0
 end
 
 mutable struct TRNCparams
-	ϵD # termination criteria
+	ϵ # termination criteria
 	Δk # trust region radius
 	verbose # print every so often
 	maxIter # maximum amount of inner iterations
@@ -33,24 +34,9 @@ mutable struct TRNCparams
 	β # TR size for PG steps j>1
 end
 
-mutable struct TRNCmethods
-	FO_options # options for minimization routine you use for s; based on minconf_spg
-	s_alg # algorithm passed that determines descent direction
-	ψχprox # ψ_k + χ_k where χ_k is the Δ - norm ball that you project onto. 
-	# Note that the basic case is that ψ_k = 0 with l2 TR norm, 
-	# so it is just prox of l2-norm ball projection. 
-	# In the LM algorithm, this is just the prox of ψₖ
-	ψk # nonsmooth model of h that you are trying to solve - default is ψ=h. 
-	χk # TR norm one computes for the trust region radius - default is l2 
-	HessApprox # Hessian Approximation choosen. Defaults to LBFGS, unless the user provides a Hessian in the smooth function 
-	f_obj # objective function (unaltered) that you want to minimize
-	h_obj # objective function that is nonsmooth - > only used for evaluation
-	λ # objective nonsmooth tuning parameter
-end
-
 function TRNCoptions(
 	;
-	ϵD=1e-2,
+	ϵ=1e-2,
 	Δk=1.0,
 	verbose=0,
 	maxIter=10000,
@@ -63,19 +49,47 @@ function TRNCoptions(
 	θ=1e-3,
 	β=10.0
 ) # default values for trust region parameters in algorithm 4.2
-	return TRNCparams(ϵD, Δk, verbose, maxIter, η1, η2, τ, σk, γ, mem, θ, β)
+	return TRNCparams(ϵ, Δk, verbose, maxIter, η1, η2, τ, σk, γ, mem, θ, β)
 end
 
+
+mutable struct Fsmooth
+	eval
+	grad
+	Hess # Hessian (approximation) choosen. Defaults to LSR1, unless the user provides a Hessian in the smooth function 
+end
+function FObj(eval; grad=(x) -> ForwardDiff.gradient(eval, x), Hess=LSR1Operator)
+	return Fsmooth(eval, grad, Hess)
+end
+
+mutable struct Hnonsmooth
+	eval
+	ψk # nonsmooth model of h that you are trying to solve - default is ψ=h.
+	ψχprox # ψ_k + χ_k where χ_k is the Δ - norm ball that you project onto. 	
+	# Note that the basic case is that ψ_k = 0 with l2 TR norm, 
+	# so it is just prox of l2-norm ball projection. 
+	# In the LM algorithm, this is just the prox of ψₖ
+end
+
+function HObj(eval; ψk=eval, ψχprox=(z, σ, xt, Dk) -> z ./ max(1, norm(z, 2) / σ),)
+	return Hnonsmooth(eval, ψk, ψχprox)
+end
+
+mutable struct TRNCmethods
+	FO_options # options for minimization routine you use for s; based on minconf_spg
+	s_alg # algorithm passed that determines descent direction
+	χk # TR norm one computes for the trust region radius - default is l2 
+	f # struct of objective function (unaltered) that you want to minimize
+	h # objective function that is nonsmooth - > only used for evaluation
+end
+
+
 function TRNCstruct(
-	f_obj,
-	h,
-	λ;
+	f,
+	h;
 	FO_options=s_options(1.0;),
 	s_alg=PG,
-	ψχprox=(z, σ, xt, Dk) -> z ./ max(1, norm(z, 2) / σ),
-	ψk=h,
-	χk=(s) -> norm(s, 2),
-	HessApprox=LBFGSOperator
+	χk=(s) -> norm(s, 2)
 )
-	return TRNCmethods(FO_options, s_alg, ψχprox, ψk, χk, HessApprox, f_obj, h, λ)
+	return TRNCmethods(FO_options, s_alg, χk, f, h)
 end

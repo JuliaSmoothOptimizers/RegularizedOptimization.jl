@@ -66,7 +66,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 	
 		k+=1
 	end
-	return s⁺,s, his[1:k-1], feval
+	return s⁺, his[1:k-1], feval
 end
 
 function PGLnsch(Fcn,Gcn, s,  proxG, options)
@@ -125,7 +125,7 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
 		k+=1
 
 	end
-	return s⁺,s, his[1:k-1], feval
+	return s⁺, his[1:k-1], feval
 end
 
 
@@ -188,7 +188,7 @@ function PGΔ(Fcn, Gcn, s,  proxG, options)
         his[k] = f + Gcn(s⁺)*λ #Gcn = h(x)
         DiffFcn = his[k-1] - his[k]
 	end
-	return s⁺,s, his[1:k-1], feval
+	return s⁺, his[1:k-1], feval
 end
 
 
@@ -252,5 +252,5 @@ function PGE(Fcn, Gcn, s,  proxG, options)
         his[k] = f + Gcn(s⁺)*λ #Gcn = h(x)
         DiffFcn = his[k-1] - his[k]
 	end
-	return s⁺,s, his[1:k-1], feval
+	return s⁺, his[1:k-1], feval
 end

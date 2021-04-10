@@ -10,7 +10,7 @@ include("fista.jl")
 include("splitting.jl")
 include("linesearch.jl")
 include("TR_alg.jl")
-include("LM_alg.jl")
+include("QR_alg.jl")
 include("proxGD.jl")
 
 

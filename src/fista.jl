@@ -75,7 +75,7 @@ function FISTA(Fcn, Gcn, s,  proxG, options)
 		feval+=1
 		k+=1
 	end
-	return s⁺,s, his[1:k-1], feval
+	return s⁺, his[1:k-1], feval
 
 end
 
@@ -152,6 +152,6 @@ function FISTAD(Fcn, Gcn, s,  proxG, options)
 		feval+=1
 		k+=1
 	end
-	return s⁺,s, his[1:k-1], feval
+	return s⁺, his[1:k-1], feval
 
 end

@@ -1,5 +1,6 @@
-using DifferentialEquations, Zygote, DiffEqSensitivity
-using Random, LinearAlgebra, TRNC, Printf,Roots
+using Random, LinearAlgebra, TRNC, Printf,Roots, LinearOperators
+using DifferentialEquations, ForwardDiff, DiffEqSensitivity
+
 
 function FH_L0Binf()
     # so we need a model solution, a gradient, and a Hessian of the system (along with some data to fit)
@@ -38,7 +39,7 @@ function FH_L0Binf()
     # so now that we have data, we want to formulate our optimization problem. This is going to be 
     # min_p ||f(p) - b||₂^2 + λ||p||₀
     # define your smooth objective function
-    function Gradprob(p)
+    function CostFunc(p)
         temp_prob = remake(prob_FH, p=p)
         temp_sol = solve(temp_prob, Vern9(), abstol=1e-14, reltol=1e-14, saveat=savetime)
         tot_loss = 0.
@@ -51,24 +52,26 @@ function FH_L0Binf()
         end
         return tot_loss
     end
-    function f_obj(x) # gradient and hessian info are smooth parts, m also includes nonsmooth part
-        fk = Gradprob(x)
-        if fk == Inf 
-            grad = zeros(size(x))
-            # Hess = Inf*ones(size(x,1), size(x,1))
-        else
-            grad = Zygote.gradient(Gradprob, x)[1] 
-            # Hess = Zygote.hessian(Gradprob, x)
-        end
-        return fk, grad
-    end
+
+    # function f_obj(x) # gradient and hessian info are smooth parts, m also includes nonsmooth part
+    #     fk = Gradprob(x)
+    #     if fk == Inf 
+    #         grad = zeros(size(x))
+    #         Hess = Inf*ones(size(x,1), size(x,1))
+    #     else
+    #         grad = Zygote.gradient(Gradprob, x)[1] 
+    #         Hess = Zygote.hessian(Gradprob, x)
+    #     end
+    #     return fk, grad, Hess
+    # end
+
+    ϕ = FObj(CostFunc; grad = (x) -> ForwardDiff.gradient(CostFunc, x), Hess = LSR1Operator)# Hess = (x)-> ForwardDiff.hessian(CostFunc, x))
 
 
     λ = 1.0
     function h_obj(x)
-        return norm(x, 0) 
+        return λ * norm(x, 0) 
     end
-
 
     # put in your initial guesses
     xi = ones(size(pars_FH))
@@ -93,30 +96,17 @@ function FH_L0Binf()
         return s 
     end
 
+    Ψ = HObj(h_obj; ψχprox = prox)
 
     ϵ = 1e-6
     # set all options
-    Doptions = s_options(1.0; λ=λ, optTol=ϵ * (1e-6), verbose=0)
+    Doptions = s_options(1.0; λ=λ, optTol = ϵ * (1e-6), verbose=0)
 
-    params = TRNCstruct(f_obj, h_obj, λ; FO_options=Doptions, ψχprox=prox, χk=(s) -> norm(s, Inf), HessApprox=LSR1Operator)
+    params = TRNCstruct(ϕ, Ψ; FO_options=Doptions, χk=(s) -> norm(s, Inf))
 
-    options = TRNCoptions(; maxIter=500, verbose=10, ϵD=ϵ, β=1e16)
-    # solve our problem 
-    function funcF(x)
-        fk = Gradprob(x)
-        # @show fk
-        if fk == Inf 
-            grad = Inf * ones(size(x))
-        else
-            grad = Zygote.gradient(Gradprob, x)[1] 
-        end
+    options = TRNCoptions(; maxIter=500, verbose=10, ϵ=ϵ, β=1e16)
 
-        return fk, grad
-    end
-
-
-
-    # xtr, k, Fhist, Hhist, Comp_pg = TR(xi, params, options)
+    xtr, k, Fhist, Hhist, Comp_pg = TR(xi, params, options)
 
     function proxl0s(q, σ, xk, Δ)
         # @show σ/λ, λ
@@ -136,15 +126,16 @@ function FH_L0Binf()
         return s 
     end
 
-    parametersLM = TRNCstruct(f_obj, h_obj, λ; FO_options=Doptions, ψχprox=proxl0s, χk=(s) -> norm(s, Inf))
-    optionsLM = TRNCoptions(; σk=1e4, ϵD=ϵ, verbose=10) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+    Ψ.ψχprox = proxl0s
+    parametersLM = TRNCstruct(ϕ, Ψ; FO_options=Doptions, χk=(s) -> norm(s, Inf))
+    optionsLM = TRNCoptions(; σk=1e4, ϵ=ϵ, verbose=10) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 
     # input initial guess
-    xlm, klm, Fhistlm, Hhistlm, Comp_pglm = LM(xi, parametersLM, optionsLM)
+    xlm, klm, Fhistlm, Hhistlm, Comp_pglm = QuadReg(xi, parametersLM, optionsLM)
 
 
     @show xtr
-    @show xlm
+    # @show xlm
     @show x0
 
 

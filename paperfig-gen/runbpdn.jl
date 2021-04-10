@@ -154,6 +154,7 @@ function h_obj(x)
 	return norm(x, 0)
 end
 function proxp(q, σ, xk, Δ)
+	ProjB(y) = min.(max.(y, xk .- Δ), xk .+ Δ) # define outside? 
 	# @show σ/λ, λ
 	c = sqrt(2 * σ)
 	w = xk + q
@@ -167,7 +168,7 @@ function proxp(q, σ, xk, Δ)
 			st[i] = w[i]
 		end
 	end
-	s = st - xk
+	s = ProjB(st) - xk
 	return s 
 end
 

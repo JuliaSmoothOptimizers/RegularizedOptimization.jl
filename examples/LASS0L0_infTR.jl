@@ -1,5 +1,4 @@
-using Random, LinearAlgebra, TRNC, Printf,Roots
-using ProximalAlgorithms, ProximalOperators, LinearOperators
+using Random, LinearAlgebra, TRNC, Printf,Roots, LinearOperators
 
 # min_x 1/2||Ax - b||^2 + λ||x||₀; ΔB_∞
 function L0Binf(compound = 1)
@@ -31,8 +30,10 @@ function L0Binf(compound = 1)
         return norm(r)^2/2, g
     end
 
+    ϕ = FObj((x)-> norm(A*x - b)^2/2; grad = (x) -> A'*(A*x - b))
+
     function h_obj(x)
-        return norm(x,0) #, g∈∂h
+        return λ*norm(x,0) #, g∈∂h
     end
 
 
@@ -55,6 +56,8 @@ function L0Binf(compound = 1)
         return s 
     end
 
+    Ψ = HObj(h_obj; ψχprox = prox)
+
     #set options for inner algorithm - only requires ||Bk|| norm guess to start (and λ but that is updated in TR)
     #verbosity is levels: 0 = nothing, 1 -> maxIter % 10, 2 = maxIter % 100, 3+ -> print all 
     β = opnorm(A)^2 #1/||Bk|| for exact Bk = A'*A
@@ -64,8 +67,8 @@ function L0Binf(compound = 1)
     ε = 1e-6
     #define parameters - must feed in smooth, nonsmooth, and λ
     #first order options default ||Bk|| = 1.0, no printing. PG is default inner, Rkprox is inner prox loop - defaults to 2-norm ball projection (not accurate if h=0)
-    parameters = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PG, ψχprox=prox, χk=(s)->norm(s, Inf), HessApprox = LSR1Operator)
-    options = TRNCoptions(; ϵD=ε, verbose = 10, θ = 1e-3, Δk = 1.0) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+    parameters = TRNCstruct(ϕ, Ψ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf))
+    options = TRNCoptions(; ϵ=ε, verbose = 10, θ = 1e-3, Δk = 1.0) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
     #put in your initial guesses
     xi = zeros(n,)
 
@@ -92,8 +95,9 @@ function L0Binf(compound = 1)
         return s 
     end
 
-    parametersQR = TRNCstruct(f_obj, h_obj, λ; FO_options = Doptions, s_alg=PGE, ψχprox=proxl0s, χk=(s)->norm(s, Inf), HessApprox = LSR1Operator)
-    optionsQR = TRNCoptions(; σk = 1/β, ϵD=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+    Ψ.ψχprox = proxl0s
+    parametersQR = TRNCstruct(ϕ, Ψ; FO_options = Doptions, s_alg=PG, χk=(s)->norm(s, Inf))
+    optionsQR = TRNCoptions(; σk = 1/β, ϵ=ε, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 
     #input initial guess
     xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QuadReg(xi, parametersQR, optionsQR)
