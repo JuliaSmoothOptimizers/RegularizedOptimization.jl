@@ -11,7 +11,7 @@ include("splitting.jl")
 include("linesearch.jl")
 include("TR_alg.jl")
 include("QR_alg.jl")
-include("proxGD.jl")
+# include("proxGD.jl")
 
 
 end  # module TRNC

@@ -1,6 +1,6 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 
-using LinearOperators, LinearAlgebra, Arpack
+using LinearOperators, LinearAlgebra, Arpack, ShiftedProximalOperators
 export TR
 
 """Interior method for Trust Region problem
@@ -17,7 +17,7 @@ params : mutable structure TR_params with:
 	-maxIter Float64, maximum number of inner iterations (note: does not influence TotalCount)
 options : mutable struct TR_methods
 	-f_obj, smooth objective struct; eval, grad, Hess
-	-h_obj, nonsmooth objective struct; h, ψ, ψχprox - function projecting onto the trust region ball or ψ+χ
+	-ψ, nonsmooth objective struct; h, ψ, ψχprox - function projecting onto the trust region ball or ψ+χ
 	--
 	-FO_options, options for first order algorithm, see DescentMethods.jl for more
 	-s_alg, algorithm for descent direction, see DescentMethods.jl for more
@@ -37,10 +37,7 @@ Complex_hist: Array{Float64, 1}
 	inner algorithm iteration count 
 
 """
-function TR(
-	x0,
-	params,
-	options)
+function TR(x0, params, options)
 
 	# initialize passed options
 	ϵ = options.ϵ
@@ -70,44 +67,23 @@ function TR(
 	s_alg = params.s_alg
 	χk = params.χk 
 	f_obj = params.f
-	h_obj = params.h
-
+	ψ = params.ψ
 
 	# initialize parameters
 	xk = copy(x0)
+
+	shift!(ψ, xk, Δk)
 
 	k = 0
 	Fobj_hist = zeros(maxIter)
 	Hobj_hist = zeros(maxIter)
 	Complex_hist = zeros(maxIter)
-	headerstr = "-"^155
-	verbose != 0 && @printf(
-		"%s\n", headerstr
-	)
-	verbose != 0 && @printf(
-		"%10s | %10s | %11s | %12s | %10s | %10s | %11s | %10s | %10s | %10s | %9s | %9s\n",
-		"Iter",
-		"PG-Iter",
-		"‖Gν‖",
-		"Ratio: ρk",
-		"x status ",
-		"TR: Δk",
-		"Δk status",
-		"‖x‖   ",
-		"‖s‖   ",
-		"‖Bk‖   ",
-		"f(x)   ",
-		"h(x)   ",
-	)
-	verbose != 0 && @printf(
-		"%s\n", headerstr
-	)
+	@info @sprintf "%6s %8s %8s %8s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
 
 	k = 0
 	ρk = -1.0
 	α = 1.0
 	TR_stat = ""
-	x_stat = ""
 
 	# main algorithm initialization
 	# test to see if user provided a hessian
@@ -120,54 +96,46 @@ function TR(
 	# define the Hessian 
 	H = Symmetric(Matrix(Bk))
 	# νInv = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-	νInv = (1 + θ) * maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
+	νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1, which=:LM)[1]))
 
 	# keep track of old values, initialize functions
 	∇fk =  f_obj.grad(xk)
 	fk = f_obj.eval(xk)
-	hk = h_obj.eval(xk)
+	hk = ψ.h(xk)
 	s = zeros(size(xk))
-	xk⁻ = xk 
-	Gν = ∇fk*νInv
 	∇fk⁻ = ∇fk
 	funEvals = 1
 
-	kktNorm = χk(Gν)^2 / νInv
-	optimal = kktNorm < ϵ
+	sNorm = 0.0
+	ξ = 0.0
+	optimal = false
+	tired = k ≥ maxIter
 
-	while !optimal && k < maxIter && Δk ≥ 1e-16 
+	while !(optimal || tired)
 		# update count
 		k = k + 1 
-
 
 		Fobj_hist[k] = fk
 		Hobj_hist[k] = hk
 		# Print values
-		k % ptf == 0 && 
-		@printf(
-			"%11d|  %9d |  %10.5e   %10.5e   %9s   %10.5e   %10s   %9.4e   %9.4e   %9.4e   %9.4e  %9.4e\n",
-				k, funEvals,  kktNorm[1], ρk,   x_stat,  Δk, TR_stat,   χk(xk), χk(s), νInv,    fk,    hk )
-
-		TR_stat = ""
-		x_stat = ""
+		k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ ρk Δk χk(xk) sNorm νInv TR_stat
 
 		# define inner function 
 		φ(d) = [0.5 * (d' * H * d) + ∇fk' * d + fk, H * d + ∇fk, H] # (φ, ∇φ, ∇²φ)
 
 		# define model and update ρ
-		mk(d) = 0.5 * (d' * (H * d)) + ∇fk' * d + fk + h_obj.ψk(xk + d) # psik = h -> psik = h(x+d)
+		mk(d) = 0.5 * (d' * (H * d)) + ∇fk' * d + fk + ψ(d) # psik = h -> psik = h(x+d)
 
 		# take initial step s1 and see if you can do more 
 		FO_options.ν = min(1 / νInv, Δk)
-		s1 = h_obj.ψχprox(-FO_options.ν * ∇fk, FO_options.λ * FO_options.ν, xk, Δk) # -> PG on one step s1
-		Gν .= s1 * νInv
-		χGν = χk(Gν)
+		s1 = prox(ψ, -FO_options.ν * ∇fk, 1.0/νInv) # -> PG on one step s1
+		χGν = χk(s1 * νInv)
 
-		if kktNorm[1] > ϵ # final stopping criteria
+		if ξ > ϵ || k==1 # final stopping criteria
 			FO_options.optTol = min(.01, sqrt(χGν)) * χGν # stopping criteria for inner algorithm 
 			FO_options.FcnDec = fk + hk - mk(s1)
-			(s, hist, funEvals) = s_alg(φ, (d) -> h_obj.ψk(xk + d), s1, (d, λν) -> h_obj.ψχprox(d, λν, xk, min(β * χk(s1), Δk)), FO_options)
-			Gν .= s / FO_options.ν
+			shift!(ψ, xk, min(β * χk(s1), Δk))
+			(s, hist, funEvals) = s_alg(φ, ψ, s1, FO_options)
 		else
 			s .= s1
 			funEvals = 1 
@@ -177,23 +145,25 @@ function TR(
 		Complex_hist[k] += funEvals # doesn't really count because of quadratic model 
 
 		fkn = f_obj.eval(xk + s)
-		hkn = h_obj.eval(xk + s)
+		hkn = ψ(s)
 
-		Numerator = fk + hk - (fkn + hkn)
-		Denominator = fk + hk - mk(s)
+		Δobj = fk + hk - (fkn + hkn)
+		ξ = fk + hk - mk(s)
 
-		ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
-
-		if ρk > η2 
-			TR_stat = "increase"
-			Δk = max(Δk, γ * χk(s))
-			# Δk = γ*Δk
-		else
-			TR_stat = "kept"
+		if (ξ ≤ 0 || isnan(ξ))
+			error("failed to compute a step")
 		end
 
-		if ρk >= η1 
-			x_stat = "update"
+		ρk = (Δobj + 1e-16) / (ξ + 1e-16)
+
+		if η2 ≤ ρk < Inf
+			TR_stat = "↗"
+			Δk = max(Δk, γ * χk(s))
+		else
+			TR_stat = "="
+		end
+
+		if η1 ≤ ρk < Inf
 			xk .+= s
 
 			#update functions
@@ -201,39 +171,34 @@ function TR(
 			hk = hkn
 
 			#update gradient & hessian 
-			∇fk = f_obj.grad(xk)
-			if quasiNewtTest
-				push!(Bk, s, ∇fk - ∇fk⁻)
-			else
-				Bk = f_obj.Hess(xk)
+			optimal = ξ < ϵ
+			if !optimal 
+				∇fk = f_obj.grad(xk)
+				if quasiNewtTest
+					push!(Bk, s, ∇fk - ∇fk⁻)
+				else
+					Bk = f_obj.Hess(xk)
+				end
+				# define the Hessian 
+				H = Symmetric(Matrix(Bk))
+				# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
+				νInv = (1 + θ) * maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
+						
+				# store previous iterates
+				∇fk⁻ .= ∇fk
 			end
 
+			#hist update 
 			Complex_hist[k] += 1
 		end
 
-		if ρk < η1
-			x_stat = "reject"
-			TR_stat = "shrink"
+		if ρk < η1 || ρk == Inf
+			TR_stat = "↘"
 			α = .5
 			Δk = α * Δk	# * norm(s, Inf) #change to reflect trust region 
 		end
 
-		# define the Hessian 
-		H = Symmetric(Matrix(Bk))
-		# β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-		νInv = (1 + θ) * maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
-		
-		# update Gν with new direction
-		if x_stat == "update"
-			# kktNorm = χk(Gν)^2/νInv
-			kktNorm = Denominator
-		end
-		
-		# store previous iterates
-		xk⁻ .= xk 
-		∇fk⁻ .= ∇fk
-		optimal = kktNorm<ϵ
-
+		shift!(ψ, xk, Δk) #inefficient but placed here for now 
 
 	end
 

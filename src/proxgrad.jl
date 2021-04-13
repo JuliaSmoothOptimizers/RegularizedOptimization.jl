@@ -1,4 +1,4 @@
-export PG, PGLnsch, PGΔ, PGE
+export PG, PGLnsch, PGΔ, PGE, PGnew
 
 """
 	Proximal Gradient Descent  for
@@ -251,6 +251,59 @@ function PGE(Fcn, Gcn, s,  proxG, options)
         
         his[k] = f + Gcn(s⁺)*λ #Gcn = h(x)
         DiffFcn = his[k-1] - his[k]
+	end
+	return s⁺, his[1:k-1], feval
+end
+
+function PGnew(Fcn, Gcn, s, options)
+
+	ε=options.optTol
+	max_iter=options.maxIter
+
+	if options.verbose==0
+		print_freq = Inf
+	elseif options.verbose==1
+		print_freq = round(max_iter/10)
+	elseif options.verbose==2
+		print_freq = round(max_iter/100)
+	else
+		print_freq = 1
+	end
+	#Problem Initialize
+	m = length(s)
+	ν = options.ν
+	λ = options.λ
+	k = 1
+	err = 100.0
+	his = zeros(max_iter)
+	s⁺ = deepcopy(s)
+
+	# Iteration set up
+	f, g, _ = Fcn(s⁺) #objInner/ quadratic model
+	fstart = f
+	feval = 1
+
+	#do iterations
+	while err >= ε && k<max_iter #another stopping criteria abs(f - fstart)>TOL*||Δf(s1)||
+
+		his[k] = f + Gcn(s⁺) #Gcn = h(x)
+		#sheet on which to freq
+		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, his[k], err, ν)
+
+		gold = g
+		s = s⁺
+
+		#prox step
+		s⁺ = prox(Gcn, s - ν*g, ν) #combination regularizer + TR
+		# update function info
+		f, g = Fcn(s⁺)[1:2]
+		feval+=1
+
+		# err = norm((s-s⁺)/ν) #stopping criteria
+		err = norm(g-gold - (s⁺-s)/ν) #(Bk - ν^-1I)(s⁺ -s ) ----> equation 17 in paper 
+		# err = norm((s-s⁺)/ν - gold) #equation 16 in paper
+	
+		k+=1
 	end
 	return s⁺, his[1:k-1], feval
 end

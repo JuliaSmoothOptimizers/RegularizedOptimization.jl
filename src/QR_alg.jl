@@ -1,7 +1,7 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 
 using LinearOperators, LinearAlgebra, Arpack
-export QuadReg
+export QRalg
 
 """Interior method for Trust Region problem
 	QuadReg(x, params, options)
@@ -17,7 +17,7 @@ params : mutable structure TR_params with:
 	-maxIter Float64, maximum number of inner iterations (note: does not influence TotalCount)
 options : mutable struct TR_methods
 	-f_obj, smooth objective struct; eval, grad, Hess
-	-h_obj, nonsmooth objective struct; h, ψ, ψχprox - function projecting onto the trust region ball or ψ+χ
+	-ψ, nonsmooth objective struct; h, ψ, ψχprox - function projecting onto the trust region ball or ψ+χ
 	--
 	-FO_options, options for first order algorithm, see DescentMethods.jl for more
 	-s_alg, algorithm for descent direction, see DescentMethods.jl for more
@@ -36,10 +36,7 @@ Complex_hist: Array{Float64, 1}
 	inner algorithm iteration count 
 
 """
-function QuadReg(
-	x0,
-	params,
-	options)
+function QRalg(x0, params, options)
 
 	# initialize passed options
 	ϵ = options.ϵ
@@ -49,10 +46,6 @@ function QuadReg(
 	η2 = options.η2 
 	σk = options.σk 
 	γ = options.γ
-	τ = options.τ
-	θ = options.θ
-	β = options.β
-	mem = options.mem
 
 	if verbose == 0
 		ptf = Inf
@@ -68,129 +61,97 @@ function QuadReg(
 	FO_options = params.FO_options
 	s_alg = params.s_alg
 	f_obj = params.f
-	h_obj = params.h
+	ψ = params.ψ
 	χk = params.χk
 
 
 	# initialize parameters
 	xk = copy(x0)
+	shift!(ψ, xk)
 
+	k = 0
 	Fobj_hist = zeros(maxIter)
 	Hobj_hist = zeros(maxIter)
-	Complex_hist = zeros(maxIter)
-	headerstr = "-"^155
-	verbose != 0 && @printf(
-		"%s\n", headerstr
-	)
-	verbose != 0 && @printf(
-		"%10s | %10s | %11s | %12s | %10s | %10s | %11s | %10s | %10s | %10s | %9s | %9s\n",
-		"Iter",
-		"PG-Iter",
-		"‖Gν‖",
-		"Ratio: ρk",
-		"x status ",
-		"σk",
-		"σk status",
-		" α",
-		"‖x‖   ",
-		"‖s‖   ",
-		"f(x)   ",
-		"h(x)   ",
-	)
-	verbose != 0 && @printf(
-		"%s\n", headerstr
-	)
+	Complex_hist = zeros(Int, maxIter)
+	@info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
 
 	k = 0
 	ρk = -1.0
-	α = 1.0
 	TR_stat = ""
-	x_stat = ""
-
+	
 	# main algorithm initialization
 	∇fk =  f_obj.grad(xk)
-	∇fk⁻ = ∇fk
-	xk⁻ = xk 
 	fk = f_obj.eval(xk)
-	hk = h_obj.eval(xk)
+	hk = ψ.h(xk) #hk = h_obj(xk)
+
     ν = 1 / σk
-	# νInv = (1+θ)*maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
-	Gν =  ∇fk * σk
 	s = zeros(size(xk))
 	funEvals = 1
 
-	kktNorm = χk(Gν)^2 * σk
-	optimal = kktNorm < ϵ
+	sNorm = 0.0
+	ξ = 0.0
+	optimal = false
+	tired = k ≥ maxIter
 
-
-	while !optimal && k < maxIter
+	while !(optimal || tired) 
 		# update count
 		k = k + 1 # inner
 
 		Fobj_hist[k] = fk
 		Hobj_hist[k] = hk
 		# Print values
-		k % ptf == 0 && 
-		@printf(
-			"%11d|  %9d |  %10.5e   %10.5e   %9s   %10.5e   %10s   %10.4e   %9.4e   %9.4e   %9.4e  %9.4e\n",
-				k, funEvals,  kktNorm[1], ρk,   x_stat,  σk, TR_stat,   α,   χk(xk), χk(s),   fk,    hk )
+		k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk ξ ρk σk χk(xk) sNorm TR_stat
+		
+		# define model
+		φk(d) = ∇fk' * d + fk
+		mk(d) = φk(d) + ψ(d) # psik = h -> psik = h(x+d)
 
-		TR_stat = ""
-		x_stat = ""
-
-		# define model and update ρ
-		mk(d) = ∇fk' * d + fk + h_obj.ψk(xk + d) # psik = h -> psik = h(x+d)
-
-		s = h_obj.ψχprox(-ν * ∇fk, ν * FO_options.λ, xk, σk) # -> PG on one step s
+		s = prox(ψ, -ν * ∇fk, ν) # -> PG on one step s
+		sNorm = χk(s)
 
 		fkn = f_obj.eval(xk + s)
-		hkn = h_obj.eval(xk + s)
-		Numerator = fk + hk - (fkn + hkn)
-		Denominator = fk + hk - mk(s)
- 
+		hkn = ψ(s)
+		Δobj = (fk + hk) - (fkn + hkn)
+		ξ = (fk + hk) - mk(s)
 
-		ρk = (Numerator + 1e-16) / (Denominator + 1e-16)
-		if ρk > η2 
-			TR_stat = "increase"
-			σk = σk / γ # here γ>1, we shrink σk
-		else
-			TR_stat = "kept"
+		if (ξ ≤ 0 || isnan(ξ))
+			error("failed to compute a step")
 		end
 
-		if ρk >= η1 
-			x_stat = "update"
+		ρk = (Δobj + 1e-16) / (ξ + 1e-16)
+
+		if η2 ≤ ρk < Inf
+			TR_stat = "↗"
+			σk = σk / γ
+		else
+			TR_stat = "="
+		end
+
+		if η1 ≤ ρk < Inf
 			xk .+= s 
 
 			#update functions 
 			fk = fkn
 			hk = hkn
 
+			optimal = ξ < ϵ
+			if !optimal
+				∇fk = f_obj.grad(xk)
+			end
 			#update gradient 
-			∇fk .= f_obj.grad(xk)
 			Complex_hist[k] += 1
 
+			shift!(ψ, xk)
 		end
 
-		if ρk < η1 
-			x_stat = "reject"
-			TR_stat = "shrink"
+		if ρk < η1 || ρk == Inf
+			TR_stat = "↘"
 			σk = max(σk * γ, 1e-6) # dominique σmin ok? 
 		end
 
-		
-		# update Gν with new direction
-		# kktNorm = χk(s/ν)^2*ν
-		if x_stat == "update"
-			kktNorm = Denominator
-		end
-
-		# define the Hessian 
 		ν = 1 / σk
-
-		# store previous iterates
-		xk⁻ .= xk 
-		∇fk⁻ .= ∇fk
-		optimal = kktNorm < ϵ
+		tired = k ≥ maxIter
+		
 		
 	end
 
