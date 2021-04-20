@@ -1,7 +1,6 @@
 @testset "Inner Descent Direction ($compound) Descent Methods" for compound = 1
 	using LinearAlgebra
 	using TRNC 
-	using Roots
 
 	m, n = compound * 25, compound * 64
 	p = randperm(n)

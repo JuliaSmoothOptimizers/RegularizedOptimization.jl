@@ -1,6 +1,6 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 
-using LinearOperators, LinearAlgebra, Arpack, ShiftedProximalOperators
+using NLPModelsModifiers, LinearAlgebra, Arpack, ShiftedProximalOperators
 export TR
 
 """Interior method for Trust Region problem
@@ -37,7 +37,7 @@ Complex_hist: Array{Float64, 1}
 	inner algorithm iteration count 
 
 """
-function TR(x0, params, options)
+function TR(f, h, params, options)
 
 	# initialize passed options
 	ϵ = options.ϵ
@@ -66,13 +66,12 @@ function TR(x0, params, options)
 	FO_options = params.FO_options
 	s_alg = params.s_alg
 	χk = params.χk 
-	f_obj = params.f
-	ψ = params.ψ
+	# h = params.h 
+	# f = params.f #nlp model
+	xk = f.meta.x0
 
 	# initialize parameters
-	xk = copy(x0)
-
-	shift!(ψ, xk, Δk)
+	ψ = shifted(h, xk, Δk)
 
 	k = 0
 	Fobj_hist = zeros(maxIter)
@@ -87,11 +86,12 @@ function TR(x0, params, options)
 
 	# main algorithm initialization
 	# test to see if user provided a hessian
-	quasiNewtTest = (f_obj.Hess == LSR1Operator) || (f_obj.Hess==LBFGSOperator)
+	# quasiNewtTest = (f_obj.Hess == LSR1Operator) || (f_obj.Hess==LBFGSOperator)
+	quasiNewtTest = isa(f, QuasiNewtonModel)
 	if quasiNewtTest
-		Bk = f_obj.Hess(size(xk, 1); mem=mem)
+		Bk = hess_op(f, xk)
 	else
-		Bk = f_obj.Hess(xk)
+		Bk = hess(f, xk)
 	end
 	# define the Hessian 
 	H = Symmetric(Matrix(Bk))
@@ -99,8 +99,8 @@ function TR(x0, params, options)
 	νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1, which=:LM)[1]))
 
 	# keep track of old values, initialize functions
-	∇fk =  f_obj.grad(xk)
-	fk = f_obj.eval(xk)
+	∇fk = grad(f, xk)
+	fk = obj(f, xk)
 	hk = ψ.h(xk)
 	s = zeros(size(xk))
 	∇fk⁻ = ∇fk
@@ -121,7 +121,7 @@ function TR(x0, params, options)
 		k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ ρk Δk χk(xk) sNorm νInv TR_stat
 
 		# define inner function 
-		φ(d) = [0.5 * (d' * H * d) + ∇fk' * d + fk, H * d + ∇fk, H] # (φ, ∇φ, ∇²φ)
+		φ(d) = H * d + ∇fk # (φ, ∇φ, ∇²φ)
 
 		# define model and update ρ
 		mk(d) = 0.5 * (d' * (H * d)) + ∇fk' * d + fk + ψ(d) # psik = h -> psik = h(x+d)
@@ -132,10 +132,10 @@ function TR(x0, params, options)
 		χGν = χk(s1 * νInv)
 
 		if ξ > ϵ || k==1 # final stopping criteria
-			FO_options.optTol = min(.01, sqrt(χGν)) * χGν # stopping criteria for inner algorithm 
+			FO_options.optTol = min(.01, χGν) * χGν # stopping criteria for inner algorithm 
 			FO_options.FcnDec = fk + hk - mk(s1)
-			shift!(ψ, xk, min(β * χk(s1), Δk))
-			(s, hist, funEvals) = s_alg(φ, ψ, s1, FO_options)
+			set_radius!(ψ, min(β * χk(s1), Δk))
+			(s, funEvals) = s_alg(φ, ψ, s1, FO_options)
 		else
 			s .= s1
 			funEvals = 1 
@@ -144,7 +144,7 @@ function TR(x0, params, options)
 		# update Complexity history 
 		Complex_hist[k] += funEvals # doesn't really count because of quadratic model 
 
-		fkn = f_obj.eval(xk + s)
+		fkn = obj(f, xk + s)
 		hkn = ψ(s)
 
 		Δobj = fk + hk - (fkn + hkn)
@@ -173,11 +173,12 @@ function TR(x0, params, options)
 			#update gradient & hessian 
 			optimal = ξ < ϵ
 			if !optimal 
-				∇fk = f_obj.grad(xk)
+				∇fk = grad(f, xk)
 				if quasiNewtTest
-					push!(Bk, s, ∇fk - ∇fk⁻)
+					push!(f, s, ∇fk - ∇fk⁻)
+					Bk = hess_op(f, xk)
 				else
-					Bk = f_obj.Hess(xk)
+					Bk = hess(f, xk)
 				end
 				# define the Hessian 
 				H = Symmetric(Matrix(Bk))
@@ -198,7 +199,8 @@ function TR(x0, params, options)
 			Δk = α * Δk	# * norm(s, Inf) #change to reflect trust region 
 		end
 
-		shift!(ψ, xk, Δk) #inefficient but placed here for now 
+		shift!(ψ, xk) #inefficient but placed here for now 
+		set_radius!(ψ, Δk)
 
 	end
 

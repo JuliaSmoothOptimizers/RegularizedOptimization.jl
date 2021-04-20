@@ -1,5 +1,5 @@
 using Test, TRNC
-using LinearAlgebra, LinearOperators, Printf, Random, Roots
+using LinearAlgebra, Random
 
 include("test_bpdn_nobarrier_tr.jl")
 

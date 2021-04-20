@@ -1,6 +1,6 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 
-using LinearOperators, LinearAlgebra, Arpack
+using LinearAlgebra, Arpack
 export QRalg
 
 """Interior method for Trust Region problem
@@ -36,7 +36,7 @@ Complex_hist: Array{Float64, 1}
 	inner algorithm iteration count 
 
 """
-function QRalg(x0, params, options)
+function QRalg(f, h, params, options)
 
 	# initialize passed options
 	ϵ = options.ϵ
@@ -60,14 +60,12 @@ function QRalg(x0, params, options)
 	# other parameters
 	FO_options = params.FO_options
 	s_alg = params.s_alg
-	f_obj = params.f
-	ψ = params.ψ
 	χk = params.χk
 
 
 	# initialize parameters
-	xk = copy(x0)
-	shift!(ψ, xk)
+	xk = f.meta.x0
+	ψ = shifted(h, xk)
 
 	k = 0
 	Fobj_hist = zeros(maxIter)
@@ -80,8 +78,8 @@ function QRalg(x0, params, options)
 	TR_stat = ""
 	
 	# main algorithm initialization
-	∇fk =  f_obj.grad(xk)
-	fk = f_obj.eval(xk)
+	∇fk = grad(f, xk)
+	fk = obj(f, xk)
 	hk = ψ.h(xk) #hk = h_obj(xk)
 
     ν = 1 / σk
@@ -109,7 +107,7 @@ function QRalg(x0, params, options)
 		s = prox(ψ, -ν * ∇fk, ν) # -> PG on one step s
 		sNorm = χk(s)
 
-		fkn = f_obj.eval(xk + s)
+		fkn = obj(f, xk + s)
 		hkn = ψ(s)
 		Δobj = (fk + hk) - (fkn + hkn)
 		ξ = (fk + hk) - mk(s)
@@ -136,7 +134,7 @@ function QRalg(x0, params, options)
 
 			optimal = ξ < ϵ
 			if !optimal
-				∇fk = f_obj.grad(xk)
+				∇fk = grad(f, xk)
 			end
 			#update gradient 
 			Complex_hist[k] += 1

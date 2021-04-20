@@ -1,6 +1,3 @@
-# using DifferentialEquations, Zygote, DiffEqSensitivity
-# using Random, LinearAlgebra, TRNC, Printf,Roots, Plots
-# using ProximalOperators, ProximalAlgorithms, LinearOperators
 include("Nonlin_table.jl")
 include("nonlinfig_gen.jl")
 include("fig_gen.jl")

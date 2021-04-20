@@ -1,4 +1,5 @@
-export s_params, TRNCparams, TRNCmethods, FObj #, HObj
+using NLPModels, ADNLPModels
+export s_params, TRNCparams, TRNCmethods, SmoothObj#, FObj, HObj
 
 mutable struct s_params
 	ν
@@ -47,59 +48,40 @@ mutable struct TRNCparams
 	end
 end
 
-mutable struct FObj
-	eval
-	grad
-	Hess # Hessian (approximation) choosen. Defaults to LSR1, unless the user provides a Hessian in the smooth function 
-	
-	function FObj(
-		eval; 
-		grad=(x) -> ForwardDiff.gradient(eval, x), 
-		Hess=LSR1Operator,
-		)
-		return new(eval, grad, Hess)
+mutable struct SmoothObj <: AbstractNLPModel
+	meta :: NLPModelMeta
+	counters :: Counters
+
+	#functions 
+	f 
+	g
+	function SmoothObj(f, g, x::AbstractVector{T};  name = "F(x)_smooth") where T
+		meta = NLPModelMeta(length(x), x0 = x, name=name)
+		return new(meta, Counters(), f, g)
 	end
+end 
+
+function NLPModels.obj(nlp::SmoothObj, x::AbstractVector)
+	increment!(nlp, :neval_obj)
+	return nlp.f(x)
+end
+function NLPModels.grad!(nlp::SmoothObj, x::AbstractVector, g :: AbstractVector)
+	increment!(nlp, :neval_grad)
+	g .= nlp.g(x)
+	return g
 end
 
-# mutable struct HObj
-# 	eval
-# 	ψk # nonsmooth model of h that you are trying to solve - default is ψ=h.
-# 	ψχprox # ψ_k + χ_k where χ_k is the Δ - norm ball that you project onto. 	
-# 	# Note that the basic case is that ψ_k = 0 with l2 TR norm, 
-# 	# so it is just prox of l2-norm ball projection. 
-# 	# In the LM algorithm, this is just the prox of ψₖ
-
-# 	function HObj(
-# 		eval; 
-# 		ψk=eval, 
-# 		ψχprox=(z, σ, xt, Dk) -> z ./ max(1, norm(z, 2) / σ),
-# 		)
-# 		return new(eval, ψk, ψχprox)
-# 	end
-# end
 
 mutable struct TRNCmethods
 	FO_options # options for minimization routine you use for s; based on minconf_spg
-	s_alg # algorithm passed that determines descent direction
-	# ψχprox # ψ_k + χ_k where χ_k is the Δ - norm ball that you project onto. 
-	# Note that the basic case is that ψ_k = 0 with l2 TR norm, 
-	# so it is just prox of l2-norm ball projection. 
-	# In the LM algorithm, this is just the prox of ψₖ
-	# ψk # nonsmooth model of h that you are trying to solve - default is ψ=h. 
+	s_alg # algorithm passed that determines descent direction 
 	χk # TR norm one computes for the trust region radius - default is l2 
-	# HessApprox # Hessian Approximation choosen. Defaults to LBFGS, unless the user provides a Hessian in the smooth function 
-	f # objective function (unaltered) that you want to minimize
-	ψ # objective function that is nonsmooth - > only used for evaluation
 
-	function TRNCmethods(
-		f,
-		ψ;
+	function TRNCmethods(;
 		FO_options=s_params(1.0, 1.0),
 		s_alg=PG,
-		# ψχprox=(z, σ, xt, Dk) -> z ./ max(1, norm(z, 2) / σ),
-		# ψk=h,
 		χk=s -> norm(s, 2),
 	)
-		return new(FO_options, s_alg, χk, f, ψ)
+		return new(FO_options, s_alg, χk)
 	end
 end

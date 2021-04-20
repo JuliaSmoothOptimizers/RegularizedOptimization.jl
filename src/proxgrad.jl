@@ -255,7 +255,7 @@ function PGE(Fcn, Gcn, s,  proxG, options)
 	return s⁺, his[1:k-1], feval
 end
 
-function PGnew(Fcn, Gcn, s, options)
+function PGnew(GradFcn, Gcn, s, options)
 
 	ε=options.optTol
 	max_iter=options.maxIter
@@ -279,16 +279,14 @@ function PGnew(Fcn, Gcn, s, options)
 	s⁺ = deepcopy(s)
 
 	# Iteration set up
-	f, g, _ = Fcn(s⁺) #objInner/ quadratic model
-	fstart = f
+	g = GradFcn(s⁺) #objInner/ quadratic model
 	feval = 1
 
 	#do iterations
 	while err >= ε && k<max_iter #another stopping criteria abs(f - fstart)>TOL*||Δf(s1)||
 
-		his[k] = f + Gcn(s⁺) #Gcn = h(x)
 		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, his[k], err, ν)
+		k % print_freq ==0 && @printf("Iter %4d, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, err, ν)
 
 		gold = g
 		s = s⁺
@@ -296,7 +294,7 @@ function PGnew(Fcn, Gcn, s, options)
 		#prox step
 		s⁺ = prox(Gcn, s - ν*g, ν) #combination regularizer + TR
 		# update function info
-		f, g = Fcn(s⁺)[1:2]
+		g = GradFcn(s⁺)
 		feval+=1
 
 		# err = norm((s-s⁺)/ν) #stopping criteria
@@ -305,5 +303,5 @@ function PGnew(Fcn, Gcn, s, options)
 	
 		k+=1
 	end
-	return s⁺, his[1:k-1], feval
+	return s⁺, feval
 end
