@@ -65,7 +65,7 @@ function TR(f, h, params, options)
 	# other parameters
 	FO_options = params.FO_options
 	s_alg = params.s_alg
-	χ = params.χk 
+	χ = params.χ 
 	# h = params.h 
 	# f = params.f #nlp model
 	xk = f.meta.x0
