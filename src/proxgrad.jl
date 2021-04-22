@@ -49,8 +49,7 @@ function PG(Fcn, Gcn, s,  proxG, options)
 
 		his[k] = f + Gcn(s⁺)*λ #Gcn = h(x)
 		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, his[k], err, ν)
-
+		
 		gold = g
 		s = s⁺
 
@@ -107,7 +106,6 @@ function PGLnsch(Fcn,Gcn, s,  proxG, options)
 	while err >= ε && k<max_iter
 		s = s⁺
 		his[k] = f + Gcn(s⁺)
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, his[k], err)
 		#prox step
         s⁺ = proxG(s - ν*g, λ*ν)
         #linesearch
@@ -168,7 +166,6 @@ function PGΔ(Fcn, Gcn, s,  proxG, options)
 	while err >= ε && k<max_iter && abs(DiffFcn)<p*norm(FcnDec) #another stopping criteria abs(f - fstart)>TOL*||Δf(s1)||
 
 		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, his[k], err, ν)
 
 		gold = g
 		s = s⁺
@@ -231,8 +228,6 @@ function PGE(Fcn, Gcn, s,  proxG, options)
 	while err >= ε && k<max_iter && abs(DiffFcn)<p*norm(FcnDec) #another stopping criteria abs(f - fstart)>TOL*||Δf(s1)||
 
 		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, his[k], err, ν)
-
 		gold = g
 		s = s⁺
 
@@ -286,7 +281,7 @@ function PGnew(GradFcn, Gcn, s, options)
 	while err >= ε && k<max_iter #another stopping criteria abs(f - fstart)>TOL*||Δf(s1)||
 
 		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, ‖xᵏ⁺¹ - xᵏ‖ %1.5e, ν = %1.5e\n", k, err, ν)
+		k % ptf == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
 		gold = g
 		s = s⁺

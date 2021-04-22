@@ -60,7 +60,7 @@ function QRalg(f, h, params, options)
 	# other parameters
 	FO_options = params.FO_options
 	s_alg = params.s_alg
-	χk = params.χk
+	χ = params.χ
 
 
 	# initialize parameters
@@ -98,14 +98,14 @@ function QRalg(f, h, params, options)
 		Fobj_hist[k] = fk
 		Hobj_hist[k] = hk
 		# Print values
-		k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk ξ ρk σk χk(xk) sNorm TR_stat
+		k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk ξ ρk σk χ(xk) sNorm TR_stat
 		
 		# define model
 		φk(d) = ∇fk' * d + fk
 		mk(d) = φk(d) + ψ(d) # psik = h -> psik = h(x+d)
 
 		s = prox(ψ, -ν * ∇fk, ν) # -> PG on one step s
-		sNorm = χk(s)
+		sNorm = χ(s)
 
 		fkn = obj(f, xk + s)
 		hkn = ψ(s)

@@ -65,10 +65,6 @@ function FISTA(Fcn, Gcn, s,  proxG, options)
 		#check convergence
 		err = norm(s - s⁺)
 
-
-		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
-
 		#update parameters
 		f, g= Fcn(y)[1:2]
 
@@ -142,9 +138,6 @@ function FISTAD(Fcn, Gcn, s,  proxG, options)
 		#check convergence
 		err = norm(s - s⁺)
 
-
-		#sheet on which to freq
-		k % print_freq ==0 && @printf("Iter %4d, Obj Val %1.5e, ‖xᵏ⁺¹ - xᵏ‖ %1.5e\n", k, f, err)
 
 		#update parameters
 		f, g= Fcn(y)[1:2]

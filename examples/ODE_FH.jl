@@ -1,7 +1,7 @@
 using TRNC
 using ADNLPModels
-using DiffEqSensitivity, DifferentialEquations, LinearOperators, Roots, ForwardDiff
-using LinearAlgebra, Printf, Random
+using DiffEqSensitivity, DifferentialEquations, LinearOperators, ForwardDiff
+using LinearAlgebra, Random
 
 # function FH_L0Binf()
 function FH_smooth_term()

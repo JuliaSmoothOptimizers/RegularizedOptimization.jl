@@ -1,6 +1,6 @@
 
 using TRNC
-using Random, LinearAlgebra,LinearOperators, Printf,Roots, Plots, DataFrames 
+using Random, LinearAlgebra,LinearOperators, Printf, Plots, DataFrames 
 using DifferentialEquations, Zygote, DiffEqSensitivity
 using ProximalOperators, ProximalAlgorithms
 

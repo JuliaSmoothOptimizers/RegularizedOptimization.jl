@@ -1,4 +1,4 @@
-using Random, LinearAlgebra, TRNC, Printf,Roots
+using Random, LinearAlgebra, TRNC
 using ProximalAlgorithms, ProximalOperators, LinearOperators
 
 # min_x 1/2||Ax - b||^2 + λ||x||₀; ΔB_∞

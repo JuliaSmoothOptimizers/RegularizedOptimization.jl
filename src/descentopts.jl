@@ -1,4 +1,4 @@
-using NLPModels, ADNLPModels
+using NLPModels, ADNLPModels, ProximalOperators
 export s_params, TRNCparams, TRNCmethods, SmoothObj#, FObj, HObj
 
 mutable struct s_params
@@ -75,13 +75,13 @@ end
 mutable struct TRNCmethods
 	FO_options # options for minimization routine you use for s; based on minconf_spg
 	s_alg # algorithm passed that determines descent direction 
-	χk # TR norm one computes for the trust region radius - default is l2 
+	χ # TR norm one computes for the trust region radius - default is l2 
 
 	function TRNCmethods(;
 		FO_options=s_params(1.0, 1.0),
 		s_alg=PG,
-		χk=s -> norm(s, 2),
+		χ= NormL2(1.0),
 	)
-		return new(FO_options, s_alg, χk)
+		return new(FO_options, s_alg, χ)
 	end
 end

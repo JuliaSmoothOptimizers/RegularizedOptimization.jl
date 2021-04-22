@@ -65,13 +65,13 @@ function TR(f, h, params, options)
 	# other parameters
 	FO_options = params.FO_options
 	s_alg = params.s_alg
-	χk = params.χk 
+	χ = params.χk 
 	# h = params.h 
 	# f = params.f #nlp model
 	xk = f.meta.x0
 
 	# initialize parameters
-	ψ = shifted(h, xk, Δk)
+	ψ = shifted(h, xk, Δk, χ)
 
 	k = 0
 	Fobj_hist = zeros(maxIter)
@@ -118,7 +118,7 @@ function TR(f, h, params, options)
 		Fobj_hist[k] = fk
 		Hobj_hist[k] = hk
 		# Print values
-		k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ ρk Δk χk(xk) sNorm νInv TR_stat
+		k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ ρk Δk ψ.χ(xk) sNorm νInv TR_stat
 
 		# define inner function 
 		φ(d) = H * d + ∇fk # (φ, ∇φ, ∇²φ)
@@ -129,12 +129,12 @@ function TR(f, h, params, options)
 		# take initial step s1 and see if you can do more 
 		FO_options.ν = min(1 / νInv, Δk)
 		s1 = prox(ψ, -FO_options.ν * ∇fk, 1.0/νInv) # -> PG on one step s1
-		χGν = χk(s1 * νInv)
+		χGν = ψ.χ(s1 * νInv)
 
 		if ξ > ϵ || k==1 # final stopping criteria
 			FO_options.optTol = min(.01, χGν) * χGν # stopping criteria for inner algorithm 
 			FO_options.FcnDec = fk + hk - mk(s1)
-			set_radius!(ψ, min(β * χk(s1), Δk))
+			set_radius!(ψ, min(β * ψ.χ(s1), Δk))
 			(s, funEvals) = s_alg(φ, ψ, s1, FO_options)
 		else
 			s .= s1
@@ -158,7 +158,7 @@ function TR(f, h, params, options)
 
 		if η2 ≤ ρk < Inf
 			TR_stat = "↗"
-			Δk = max(Δk, γ * χk(s))
+			Δk = max(Δk, γ * ψ.χ(s))
 		else
 			TR_stat = "="
 		end
