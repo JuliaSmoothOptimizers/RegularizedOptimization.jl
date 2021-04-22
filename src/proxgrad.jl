@@ -282,7 +282,7 @@ function PGnew(GradFcn, Gcn, s, options)
 	while err >= ε && k<max_iter #another stopping criteria abs(f - fstart)>TOL*||Δf(s1)||
 
 		#sheet on which to freq
-		k % ptf == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
+		k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
 		gold = g
 		s = s⁺
