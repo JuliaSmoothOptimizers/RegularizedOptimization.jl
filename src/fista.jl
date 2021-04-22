@@ -1,4 +1,5 @@
 export FISTA, FISTAD
+using Printf
 """
 	FISTA for
 	min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx

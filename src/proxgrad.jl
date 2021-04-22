@@ -1,5 +1,6 @@
 export PG, PGLnsch, PGΔ, PGE, PGnew
 
+using Printf
 """
 	Proximal Gradient Descent  for
 	min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
