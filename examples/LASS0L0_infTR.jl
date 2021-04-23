@@ -35,7 +35,7 @@ function L0BInf()
   #set options for inner algorithm - only requires ||Bk|| norm guess to start (and λ but that is updated in TR)
   #verbosity is levels: 0 = nothing, 1 -> maxIter % 10, 2 = maxIter % 100, 3+ -> print all 
   β = opnorm(A)^2 #1/||Bk|| for exact Bk = A'*A
-  Doptions=s_params(1/β, λ; verbose=0, optTol=1e-16)
+  Doptions=s_params(1/β, λ; verbose=10, optTol=1e-16)
 
 
   ε = 1e-6
@@ -48,17 +48,14 @@ function L0BInf()
   #input NLP, h, parameters, options 
   xtr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, parameters, options)
 
-  @info "TR relative error" norm(xtr - x0) / norm(x0)
-
   optionsQR = TRNCparams(; σk = 1/β, ϵ=ε, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
   xi .= 0 
   
   #input initial guess
   xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QRalg(ϕ, h, parameters, optionsQR)
 
-  
+  @info "TR relative error" norm(xtr - x0) / norm(x0)
   @info "QR relative error" norm(xqr - x0) / norm(x0)
-  @info "QR - TR" norm(xqr - xtr)
   @info "monotonicity" findall(>(0), diff(Fhist+Hhist))
 
 end
