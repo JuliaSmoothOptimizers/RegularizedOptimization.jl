@@ -128,7 +128,7 @@ function TR(f, h, params, options)
 
     # take initial step s1 and see if you can do more 
     FO_options.ν = min(1 / νInv, Δk)
-    s1 = prox(ψ, -FO_options.ν * ∇fk, 1.0 / νInv) # -> PG on one step s1
+    s1 = prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
     ξ1 = fk + hk - mk(s1)
 
     if ξ1 > ϵ || k == 1 
