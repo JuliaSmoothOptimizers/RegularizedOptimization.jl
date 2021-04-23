@@ -129,29 +129,28 @@ function TR(f, h, methods, params)
     FO_options.ν = min(1 / νInv, Δk)
     s1 = prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
     ξ1 = fk + hk - mk(s1)
-    χGν = ψ.χ(s1)
 
     if ξ1 > ϵ || k == 1 
-      FO_options.optTol = min(.01, χGν) * χGν # stopping criteria for inner algorithm 
+      FO_options.optTol = min(.01, ξ1) * ξ1 # stopping criteria for inner algorithm 
       FO_options.FcnDec = ξ1
       set_radius!(ψ, min(β * ψ.χ(s1), Δk))
       (s, funEvals) = s_alg(φ, ψ, s1, FO_options)
+      ξ = fk + hk - mk(s)
     else
       s .= s1
       funEvals = 1 
-      # ξ = ξ1
+      ξ = ξ1
     end
 
     # update Complexity history 
     Complex_hist[k] += funEvals # doesn't really count because of quadratic model 
     sNorm = ψ.χ(s)
 
-    ξ = fk + hk - mk(s)
     fkn = obj(f, xk + s)
     hkn = ψ.h(xk + s)
 
     Δobj = fk + hk - (fkn + hkn)
-    optimal = ξ < ϵ
+    optimal = ξ1 < ϵ
 
     if (ξ ≤ 0 || isnan(ξ))
       error("failed to compute a step")
