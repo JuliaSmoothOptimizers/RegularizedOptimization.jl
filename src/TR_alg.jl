@@ -128,11 +128,11 @@ xk = deepcopy(f.meta.x0)
 		# take initial step s1 and see if you can do more 
 		FO_options.ν = min(1 / νInv, Δk)
 		s1 = prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
-		χGν = χ(s1 * νInv)
+		ξ1 = fk + hk - mk(s1)
 
-		if ξ > ϵ || k==1 # final stopping criteria
-			FO_options.optTol = min(.01, χGν) * χGν # stopping criteria for inner algorithm 
-			FO_options.FcnDec = fk + hk - mk(s1)
+		if ξ1 > ϵ || k==1 # final stopping criteria
+			FO_options.optTol = min(.01, ξ1) * ξ1 # stopping criteria for inner algorithm 
+			FO_options.FcnDec = ξ1
 			set_radius!(ψ, min(β * χ(s1), Δk))
 			(s, funEvals) = s_alg(φ, ψ, s1, FO_options)
 		else
