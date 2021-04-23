@@ -130,7 +130,7 @@ function TR(f, h, methods, params)
     s1 = prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
     ξ1 = fk + hk - mk(s1)
 
-    if ξ1 > ϵ || k == 1 
+    if ξ > ϵ || k == 1 
       FO_options.optTol = min(ϵ, ξ1) * ξ1 # stopping criteria for inner algorithm 
       FO_options.FcnDec = ξ1
       set_radius!(ψ, min(β * ψ.χ(s1), Δk))
@@ -175,7 +175,7 @@ function TR(f, h, methods, params)
       # update gradient & hessian 
 
       if !optimal 
-        ∇fk .= grad(f, xk)
+        grad!(f, xk, ∇fk)
         if quasiNewtTest
           push!(f, s, ∇fk - ∇fk⁻)
           Bk = hess_op(f, xk)
