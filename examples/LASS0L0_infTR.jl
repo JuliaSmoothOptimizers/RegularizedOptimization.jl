@@ -41,12 +41,12 @@ function L0BInf()
   ε = 1e-6
   #define parameters - must feed in smooth, nonsmooth, and λ
   #first order options default ||Bk|| = 1.0, no printing. PG is default inner, Rkprox is inner prox loop - defaults to 2-norm ball projection (not accurate if h=0)
-  parameters = TRNCmethods(; FO_options = Doptions, s_alg=PGnew, χ=NormLinf(1.0))
-  options = TRNCparams(;β = 1e-16, ϵ=ε, verbose = 10, θ = 1e-3, Δk = 1.0) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+  options = TRNCmethods(; FO_options = Doptions, s_alg=PGnew, χ=NormLinf(1.0))
+  parameters = TRNCparams(;) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 
 
   #input NLP, h, parameters, options 
-  xtr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, parameters, options)
+  xtr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h,options, parameters)
 
   optionsQR = TRNCparams(; σk = 1/β, ϵ=ε, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
   xi .= 0 

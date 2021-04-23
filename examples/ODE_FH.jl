@@ -63,13 +63,13 @@ function ODEFH()
 
     ϵ = 1e-6
     # # set all options
-    Doptions = s_options(1.0, λ;, optTol = ϵ * (1e-6), verbose=0)
-    params = TRNCstruct(; FO_options=Doptions, s_alg = PGnew, χk=NormLinf(1.0))
-    options = TRNCoptions(; maxIter=500, verbose=10, ϵ=ϵ, β=1e16)
+    Doptions = s_params(1.0, λ; optTol = ϵ * (1e-6), verbose=0)
+    methods = TRNCmethods(; FO_options=Doptions, s_alg = PGnew, χk=NormLinf(1.0))
+    params = TRNCparams(; maxIter=500, verbose=10, ϵ=ϵ, β=1e16)
 
-    xtr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, params, options)
+    xtr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, methods, params)
 
-
+end
     # Ψ.ψχprox = proxl0s
     # parametersLM = TRNCstruct(ϕ, Ψ; FO_options=Doptions, χk=(s) -> norm(s, Inf))
     # optionsLM = TRNCoptions(; σk=1e4, ϵ=ϵ, verbose=10) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e

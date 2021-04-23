@@ -38,20 +38,20 @@ Complex_hist: Array{Float64, 1}
   inner algorithm iteration count 
 
 """
-function TR(f, h, params, options)
+function TR(f, h, methods, params)
 
-  # initialize passed options
-  ϵ = options.ϵ
-  Δk = options.Δk
-  verbose = options.verbose
-  maxIter = options.maxIter
-  η1 = options.η1
-  η2 = options.η2 
-  γ = options.γ
-  τ = options.τ
-  θ = options.θ
-  β = options.β
-  mem = options.mem
+  # initialize passed params
+  ϵ = params.ϵ
+  Δk = params.Δk
+  verbose = params.verbose
+  maxIter = params.maxIter
+  η1 = params.η1
+  η2 = params.η2 
+  γ = params.γ
+  τ = params.τ
+  θ = params.θ
+  β = params.β
+  mem = params.mem
 
   if verbose == 0
     ptf = Inf
@@ -63,13 +63,13 @@ function TR(f, h, params, options)
     ptf = 1
   end
 
-  # other parameters
-  FO_options = params.FO_options
-  s_alg = params.s_alg
-  χ = params.χ 
+  # other methods
+  FO_options = methods.FO_options
+  s_alg = methods.s_alg
+  χ = methods.χ 
   xk = deepcopy(f.meta.x0)
 
-  # initialize parameters
+  # initialize shift
   ψ = shifted(h, xk, Δk, χ)
 
   k = 0
