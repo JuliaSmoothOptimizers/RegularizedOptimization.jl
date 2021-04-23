@@ -153,7 +153,7 @@ function TR(f, h, methods, params)
     Δobj = fk + hk - (fkn + hkn)
     optimal = ξ1 < ϵ
 
-    if (ξ1 ≤ 0 || isnan(ξ1))
+    if (ξ ≤ 0 || isnan(ξ))
       error("failed to compute a step")
     end
 
