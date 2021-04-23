@@ -78,7 +78,7 @@ function TR(f, h, params, options)
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(maxIter)
-  @info @sprintf "%6s %8s %8s %8s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
+  @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ1" "ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
 
   k = 0
   ρk = -1.0
@@ -119,7 +119,7 @@ function TR(f, h, params, options)
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
     # Print values
-    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ ρk Δk χ(xk) sNorm νInv TR_stat
+    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
 
     # define inner function 
     φ(d) = H * d + ∇fk # (φ, ∇φ, ∇²φ)
@@ -130,16 +130,18 @@ function TR(f, h, params, options)
     # take initial step s1 and see if you can do more 
     FO_options.ν = min(1 / νInv, Δk)
     s1 = prox(ψ, -FO_options.ν * ∇fk, 1.0 / νInv) # -> PG on one step s1
-    χGν = ψ.χ(s1 * νInv)
+    ξ1 = fk + hk - mk(s1)
 
-    if χGν > ϵ || k == 1 
-      FO_options.optTol = min(sqrt(ϵ), χGν) * χGν # stopping criteria for inner algorithm 
-      FO_options.FcnDec = fk + hk - mk(s1)
+    if ξ1 > ϵ || k == 1 
+      FO_options.optTol = min(sqrt(ϵ), ξ1) * ξ1 # stopping criteria for inner algorithm 
+      FO_options.FcnDec = ξ1
       set_radius!(ψ, min(β * ψ.χ(s1), Δk))
       (s, funEvals) = s_alg(φ, ψ, s1, FO_options)
+      ξ = fk + hk - mk(s)
     else
       s .= s1
       funEvals = 1 
+      ξ = ξ1
     end
 
     # update Complexity history 
@@ -150,7 +152,7 @@ function TR(f, h, params, options)
     hkn = ψ.h(xk + s)
 
     Δobj = fk + hk - (fkn + hkn)
-    ξ = fk + hk - mk(s)
+    optimal = ξ1 < ϵ
 
     if (ξ ≤ 0 || isnan(ξ))
       error("failed to compute a step")
@@ -173,8 +175,8 @@ function TR(f, h, params, options)
       hk = hkn
 
       # update gradient & hessian 
-      optimal = ξ < ϵ
-          if !optimal 
+
+      if !optimal 
         grad!(f, xk, ∇fk)
         if quasiNewtTest
           push!(f, s, ∇fk - ∇fk⁻)
@@ -205,6 +207,6 @@ function TR(f, h, params, options)
     set_radius!(ψ, Δk)
     
   end
-  @show χ(xk)
+
   return xk, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
 end
