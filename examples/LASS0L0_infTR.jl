@@ -48,15 +48,15 @@ function L0BInf()
   #input NLP, h, parameters, options 
   xtr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, parameters, options)
 
+  @info "TR relative error" norm(xtr - x0) / norm(x0)
+
   optionsQR = TRNCparams(; σk = 1/β, ϵ=ε, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
   xi .= 0 
   
   #input initial guess
-  ϕ = LSR1Model(SmoothObj((x) -> .5*norm(A*x - b)^2, (x) -> A'*(A*x - b), xi))
-
   xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QRalg(ϕ, h, parameters, optionsQR)
 
-  @info "TR relative error" norm(xtr - x0) / norm(x0)
+  
   @info "QR relative error" norm(xqr - x0) / norm(x0)
   @info "QR - TR" norm(xqr - xtr)
   @info "monotonicity" findall(>(0), diff(Fhist+Hhist))

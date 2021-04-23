@@ -67,9 +67,7 @@ function TR(f, h, params, options)
   FO_options = params.FO_options
   s_alg = params.s_alg
   χ = params.χ 
-  # h = params.h 
-  # f = params.f #nlp model
-  xk = f.meta.x0
+  xk = deepcopy(f.meta.x0)
 
   # initialize parameters
   ψ = shifted(h, xk, Δk, χ)

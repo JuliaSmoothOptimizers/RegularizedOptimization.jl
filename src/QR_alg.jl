@@ -64,7 +64,7 @@ function QRalg(f, h, params, options)
 
 
   # initialize parameters
-  xk = f.meta.x0
+  xk = deepcopy(f.meta.x0)
   ψ = shifted(h, xk)
 
   k = 0
