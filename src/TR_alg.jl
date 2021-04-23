@@ -72,11 +72,10 @@ xk = deepcopy(f.meta.x0)
 	# initialize parameters
 	ψ = shifted(h, xk, Δk, χ)
 
-	k = 0
 	Fobj_hist = zeros(maxIter)
 	Hobj_hist = zeros(maxIter)
 	Complex_hist = zeros(maxIter)
-	@info @sprintf "%6s %8s %8s %8s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
+	k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
 
 	k = 0
 	ρk = -1.0
@@ -107,6 +106,7 @@ xk = deepcopy(f.meta.x0)
 
 	sNorm = 0.0
 	ξ = 0.0
+  ξ1 = 0.0
 	optimal = false
 	tired = k ≥ maxIter
 
@@ -117,7 +117,7 @@ xk = deepcopy(f.meta.x0)
 		Fobj_hist[k] = fk
 		Hobj_hist[k] = hk
 		# Print values
-		k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ ρk Δk χ(xk) sNorm νInv TR_stat
+		k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
 
 		# define inner function 
 		φ(d) = H * d + ∇fk # (φ, ∇φ, ∇²φ)
