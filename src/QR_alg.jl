@@ -152,6 +152,6 @@ function QRalg(f, h, params, options)
 		
 		
 	end
-
+	@show χ(xk)
 	return xk, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
 end

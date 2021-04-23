@@ -131,9 +131,9 @@ function TR(f, h, params, options)
     FO_options.ν = min(1 / νInv, Δk)
     s1 = prox(ψ, -FO_options.ν * ∇fk, 1.0 / νInv) # -> PG on one step s1
     χGν = ψ.χ(s1 * νInv)
-    @show χGν, ψ.χ(xk)
-    if χGν > ϵ || k == 1 # final stopping criteria
-      FO_options.optTol = min(.01, χGν) * χGν # stopping criteria for inner algorithm 
+
+    if χGν > ϵ || k == 1 
+      FO_options.optTol = min(sqrt(ϵ), χGν) * χGν # stopping criteria for inner algorithm 
       FO_options.FcnDec = fk + hk - mk(s1)
       set_radius!(ψ, min(β * ψ.χ(s1), Δk))
       (s, funEvals) = s_alg(φ, ψ, s1, FO_options)
@@ -205,6 +205,6 @@ function TR(f, h, params, options)
     set_radius!(ψ, Δk)
     
   end
-
+  @show χ(xk)
   return xk, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
 end
