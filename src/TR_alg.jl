@@ -135,9 +135,11 @@ xk = deepcopy(f.meta.x0)
 			FO_options.FcnDec = ξ1
 			set_radius!(ψ, min(β * χ(s1), Δk))
 			(s, funEvals) = s_alg(φ, ψ, s1, FO_options)
+      ξ = fk + hk - mk(s)
 		else
 			s .= s1
 			funEvals = 1 
+      ξ = ξ1
 		end
 
 		# update Complexity history 
@@ -147,7 +149,7 @@ xk = deepcopy(f.meta.x0)
 		hkn = ψ(s)
 
 		Δobj = fk + hk - (fkn + hkn)
-		ξ = fk + hk - mk(s)
+		
 
 		if (ξ ≤ 0 || isnan(ξ))
 			error("failed to compute a step")
