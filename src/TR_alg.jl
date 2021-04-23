@@ -75,7 +75,7 @@ xk = deepcopy(f.meta.x0)
 	Fobj_hist = zeros(maxIter)
 	Hobj_hist = zeros(maxIter)
 	Complex_hist = zeros(maxIter)
-	k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
+	@info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ1" "ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
 
 	k = 0
 	ρk = -1.0
