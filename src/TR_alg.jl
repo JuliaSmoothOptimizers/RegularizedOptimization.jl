@@ -106,7 +106,7 @@ function TR(f, h, methods, params)
 
   sNorm = 0.0
   ξ = 0.0
-  ξ1 = ξ
+  ξ1 = 0
   optimal = false
   tired = k ≥ maxIter
 
@@ -135,17 +135,15 @@ function TR(f, h, methods, params)
       FO_options.FcnDec = ξ1
       set_radius!(ψ, min(β * ψ.χ(s1), Δk))
       (s, funEvals) = s_alg(φ, ψ, s1, FO_options)
-      ξ = fk + hk - mk(s)
     else
       s .= s1
       funEvals = 1 
-      ξ = ξ1
     end
 
     # update Complexity history 
     Complex_hist[k] += funEvals # doesn't really count because of quadratic model 
     sNorm = ψ.χ(s)
-
+    ξ = fk + hk - mk(s)
     fkn = obj(f, xk + s)
     hkn = ψ.h(xk + s)
 
