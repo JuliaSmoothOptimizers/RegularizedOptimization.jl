@@ -127,7 +127,7 @@ xk = deepcopy(f.meta.x0)
 
 		# take initial step s1 and see if you can do more 
 		FO_options.ν = min(1 / νInv, Δk)
-		s1 = prox(ψ, -FO_options.ν * ∇fk, 1.0/νInv) # -> PG on one step s1
+		s1 = prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
 		χGν = χ(s1 * νInv)
 
 		if ξ > ϵ || k==1 # final stopping criteria
