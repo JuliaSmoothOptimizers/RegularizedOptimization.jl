@@ -72,7 +72,6 @@ function TR(f, h, methods, params)
   # initialize shift
   ψ = shifted(h, xk, Δk, χ)
 
-  k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(maxIter)
@@ -176,7 +175,7 @@ function TR(f, h, methods, params)
       # update gradient & hessian 
 
       if !optimal 
-        grad!(f, xk, ∇fk)
+        ∇fk .= grad(f, xk)
         if quasiNewtTest
           push!(f, s, ∇fk - ∇fk⁻)
           Bk = hess_op(f, xk)
