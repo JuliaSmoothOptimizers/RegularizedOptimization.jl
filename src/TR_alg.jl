@@ -41,33 +41,33 @@ Complex_hist: Array{Float64, 1}
 function TR(f, h, methods, params)
 
 	# initialize passed options
-  ϵ = params.ϵ
-  Δk = params.Δk
-  verbose = params.verbose
-  maxIter = params.maxIter
-  η1 = params.η1
-  η2 = params.η2 
-  γ = params.γ
-  τ = params.τ
-  θ = params.θ
-  β = params.β
-  mem = params.mem
+ϵ = params.ϵ
+Δk = params.Δk
+verbose = params.verbose
+maxIter = params.maxIter
+η1 = params.η1
+η2 = params.η2 
+γ = params.γ
+τ = params.τ
+θ = params.θ
+β = params.β
+mem = params.mem
 
-	if verbose == 0
-		ptf = Inf
-	elseif verbose == 1
-		ptf = round(maxIter / 10)
-	elseif verbose == 2
-		ptf = round(maxIter / 100)
-	else
-		ptf = 1
-	end
+if verbose == 0
+  ptf = Inf
+elseif verbose == 1
+  ptf = round(maxIter / 10)
+elseif verbose == 2
+  ptf = round(maxIter / 100)
+else
+  ptf = 1
+end
 
-	# other parameters
-  FO_options = methods.FO_options
-  s_alg = methods.s_alg
-  χ = methods.χ 
-  xk = deepcopy(f.meta.x0)
+# other methods
+FO_options = methods.FO_options
+s_alg = methods.s_alg
+χ = methods.χ 
+xk = deepcopy(f.meta.x0)
 
 	# initialize parameters
 	ψ = shifted(h, xk, Δk, χ)
@@ -128,12 +128,12 @@ function TR(f, h, methods, params)
 		# take initial step s1 and see if you can do more 
 		FO_options.ν = min(1 / νInv, Δk)
 		s1 = prox(ψ, -FO_options.ν * ∇fk, 1.0/νInv) # -> PG on one step s1
-		χGν = ψ.χ(s1 * νInv)
+		χGν = χ(s1 * νInv)
 
 		if ξ > ϵ || k==1 # final stopping criteria
 			FO_options.optTol = min(.01, χGν) * χGν # stopping criteria for inner algorithm 
 			FO_options.FcnDec = fk + hk - mk(s1)
-			set_radius!(ψ, min(β * ψ.χ(s1), Δk))
+			set_radius!(ψ, min(β * χ(s1), Δk))
 			(s, funEvals) = s_alg(φ, ψ, s1, FO_options)
 		else
 			s .= s1
@@ -142,10 +142,9 @@ function TR(f, h, methods, params)
 
 		# update Complexity history 
 		Complex_hist[k] += funEvals # doesn't really count because of quadratic model 
-		sNorm = ψ.χ(s)
 
 		fkn = obj(f, xk + s)
-		hkn = ψ.h(xk+s)
+		hkn = ψ(s)
 
 		Δobj = fk + hk - (fkn + hkn)
 		ξ = fk + hk - mk(s)
@@ -173,7 +172,7 @@ function TR(f, h, methods, params)
 			#update gradient & hessian 
 			optimal = ξ < ϵ
 			if !optimal 
-				grad!(f, xk, ∇fk)
+				∇fk = grad(f, xk)
 				if quasiNewtTest
 					push!(f, s, ∇fk - ∇fk⁻)
 					Bk = hess_op(f, xk)
