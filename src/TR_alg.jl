@@ -131,7 +131,7 @@ function TR(f, h, params, options)
     FO_options.ν = min(1 / νInv, Δk)
     s1 = prox(ψ, -FO_options.ν * ∇fk, 1.0 / νInv) # -> PG on one step s1
     χGν = ψ.χ(s1 * νInv)
-
+    @show χGν, ψ.χ(xk)
     if χGν > ϵ || k == 1 # final stopping criteria
       FO_options.optTol = min(.01, χGν) * χGν # stopping criteria for inner algorithm 
       FO_options.FcnDec = fk + hk - mk(s1)
