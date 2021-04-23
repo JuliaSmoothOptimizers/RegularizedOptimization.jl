@@ -132,7 +132,7 @@ function TR(f, h, params, options)
     ξ1 = fk + hk - mk(s1)
 
     if ξ1 > ϵ || k == 1 
-      FO_options.optTol = min(sqrt(ϵ), ξ1) * ξ1 # stopping criteria for inner algorithm 
+      FO_options.optTol = min(ϵ, ξ1) * ξ1 # stopping criteria for inner algorithm 
       FO_options.FcnDec = ξ1
       set_radius!(ψ, min(β * ψ.χ(s1), Δk))
       (s, funEvals) = s_alg(φ, ψ, s1, FO_options)

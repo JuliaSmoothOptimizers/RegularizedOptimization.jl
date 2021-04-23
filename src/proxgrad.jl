@@ -296,9 +296,10 @@ function PGnew(GradFcn, Gcn, s, options)
 		# err = norm((s-s⁺)/ν) #stopping criteria
 		err = norm(g-gold - (s⁺-s)/ν) #(Bk - ν^-1I)(s⁺ -s ) ----> equation 17 in paper 
 		# err = norm((s-s⁺)/ν - gold) #equation 16 in paper
+		k+=1
 		k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
-		k+=1
+		
 	end
 	return s⁺, feval
 end
