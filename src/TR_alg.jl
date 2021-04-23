@@ -109,6 +109,7 @@ function TR(f, h, params, options)
 
   sNorm = 0.0
   ξ = 0.0
+  ξ1 = ξ
   optimal = false
   tired = k ≥ maxIter
 
