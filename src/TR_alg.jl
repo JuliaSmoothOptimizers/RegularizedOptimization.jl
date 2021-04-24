@@ -149,7 +149,7 @@ xk = deepcopy(f.meta.x0)
 		hkn = ψ(s)
 
 		Δobj = fk + hk - (fkn + hkn)
-		
+		optimal = ξ1 < ϵ
 
 		if (ξ ≤ 0 || isnan(ξ))
 			error("failed to compute a step")
@@ -172,7 +172,6 @@ xk = deepcopy(f.meta.x0)
 			hk = hkn
 
 			#update gradient & hessian 
-			optimal = ξ < ϵ
 			if !optimal 
 				∇fk = grad(f, xk)
 				if quasiNewtTest
