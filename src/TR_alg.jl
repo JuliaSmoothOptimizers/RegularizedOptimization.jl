@@ -146,7 +146,7 @@ xk = deepcopy(f.meta.x0)
 		Complex_hist[k] += funEvals # doesn't really count because of quadratic model 
     sNorm =  χ(s)
 		fkn = obj(f, xk + s)
-		hkn = ψ(s)
+		hkn = h(xk+s)
 
 		Δobj = fk + hk - (fkn + hkn)
 		optimal = ξ1 < ϵ
@@ -173,7 +173,7 @@ xk = deepcopy(f.meta.x0)
 
 			#update gradient & hessian 
 			if !optimal 
-				∇fk = grad(f, xk)
+				grad(f, xk, ∇fk)
 				if quasiNewtTest
 					push!(f, s, ∇fk - ∇fk⁻)
 					Bk = hess_op(f, xk)
