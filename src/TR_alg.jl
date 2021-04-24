@@ -144,7 +144,7 @@ xk = deepcopy(f.meta.x0)
 
 		# update Complexity history 
 		Complex_hist[k] += funEvals # doesn't really count because of quadratic model 
-
+    sNorm =  χ(s)
 		fkn = obj(f, xk + s)
 		hkn = ψ(s)
 
@@ -178,7 +178,7 @@ xk = deepcopy(f.meta.x0)
 					push!(f, s, ∇fk - ∇fk⁻)
 					Bk = hess_op(f, xk)
 				else
-					Bk = hess(f, xk)
+					Bk = hess_op(f, xk)
 				end
 				# define the Hessian 
 				H = Symmetric(Matrix(Bk))
