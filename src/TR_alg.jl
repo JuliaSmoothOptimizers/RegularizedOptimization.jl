@@ -17,8 +17,8 @@ params : mutable structure TR_params with:
 	-verbose Int, print every # options
 	-maxIter Float64, maximum number of inner iterations (note: does not influence TotalCount)
 options : mutable struct TR_methods
-	-f_obj, smooth objective struct; eval, grad, Hess
-	-ψ, nonsmooth objective struct; h, ψ, ψχprox - function projecting onto the trust region ball or ψ+χ
+	-f, smooth objective NLP Model
+	-h, nonsmooth objective struct; h, ψ, ψχprox - function projecting onto the trust region ball or ψ+χ
 	--
 	-FO_options, options for first order algorithm, see DescentMethods.jl for more
 	-s_alg, algorithm for descent direction, see DescentMethods.jl for more
@@ -173,7 +173,7 @@ xk = deepcopy(f.meta.x0)
 
 			#update gradient & hessian 
 			if !optimal 
-				∇fk = grad(f, xk)
+				 grad!(f, xk, ∇fk)
 				if quasiNewtTest
 					push!(f, s, ∇fk - ∇fk⁻)
 					Bk = hess_op(f, xk)
