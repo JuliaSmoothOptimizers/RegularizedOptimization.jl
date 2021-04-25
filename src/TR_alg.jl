@@ -173,7 +173,7 @@ xk = deepcopy(f.meta.x0)
 
 			#update gradient & hessian 
 			if !optimal 
-				 grad!(f, xk, ∇fk)
+				  ∇fk = grad!(f, xk, ∇fk)
 				if quasiNewtTest
 					push!(f, s, ∇fk - ∇fk⁻)
 					Bk = hess_op(f, xk)
