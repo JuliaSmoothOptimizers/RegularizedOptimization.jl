@@ -131,7 +131,7 @@ xk = deepcopy(f.meta.x0)
     ξ1 = fk + hk - mk(s1)
 
     if ξ1 > ϵ || k==1 # final stopping criteria
-      FO_options.optTol = min(.01, ξ1) * ξ1 # stopping criteria for inner algorithm 
+      FO_options.optTol = min(.01, sqrt(ξ1)) * ξ1 # stopping criteria for inner algorithm 
       FO_options.FcnDec = ξ1
       set_radius!(ψ, min(β * χ(s1), Δk))
       (s, funEvals) = s_alg(φ, ψ, s1, FO_options)
@@ -201,6 +201,7 @@ xk = deepcopy(f.meta.x0)
 
     shift!(ψ, xk) #inefficient but placed here for now 
     set_radius!(ψ, Δk)
+    tired = k ≥ maxIter
 
   end
 
