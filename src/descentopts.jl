@@ -73,7 +73,7 @@ end
 function NLPModels.grad!(nlp::SmoothObj, x::AbstractVector, g :: AbstractVector)
   increment!(nlp, :neval_grad)
   nlp.g!(g, x)
-  # return g
+  return g
 end
 
 

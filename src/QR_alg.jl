@@ -60,12 +60,12 @@ function QRalg(f, h, params, options)
   # other parameters
   FO_options = params.FO_options
   s_alg = params.s_alg
-  χ = params.χ
+  χ = params.χ #ProximalOperator/technically 
 
 
   # initialize parameters
   xk = deepcopy(f.meta.x0)
-  ψ = shifted(h, xk)
+  ψ = shifted(h, xk) #this only takes PO's
 
   k = 0
   Fobj_hist = zeros(maxIter)

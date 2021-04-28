@@ -41,33 +41,33 @@ Complex_hist: Array{Float64, 1}
 function TR(f, h, methods, params)
 
   # initialize passed options
-ϵ = params.ϵ
-Δk = params.Δk
-verbose = params.verbose
-maxIter = params.maxIter
-η1 = params.η1
-η2 = params.η2 
-γ = params.γ
-τ = params.τ
-θ = params.θ
-β = params.β
-mem = params.mem
+  ϵ = params.ϵ
+  Δk = params.Δk
+  verbose = params.verbose
+  maxIter = params.maxIter
+  η1 = params.η1
+  η2 = params.η2 
+  γ = params.γ
+  τ = params.τ
+  θ = params.θ
+  β = params.β
+  mem = params.mem
 
-if verbose == 0
-  ptf = Inf
-elseif verbose == 1
-  ptf = round(maxIter / 10)
-elseif verbose == 2
-  ptf = round(maxIter / 100)
-else
-  ptf = 1
-end
+  if verbose == 0
+    ptf = Inf
+  elseif verbose == 1
+    ptf = round(maxIter / 10)
+  elseif verbose == 2
+    ptf = round(maxIter / 100)
+  else
+    ptf = 1
+  end
 
-# other methods
-FO_options = methods.FO_options
-s_alg = methods.s_alg
-χ = methods.χ 
-xk = deepcopy(f.meta.x0)
+  # other methods
+  FO_options = methods.FO_options
+  s_alg = methods.s_alg
+  χ = methods.χ 
+  xk = deepcopy(f.meta.x0) #try copy()
 
   # initialize parameters
   ψ = shifted(h, xk, Δk, χ)
@@ -86,11 +86,7 @@ xk = deepcopy(f.meta.x0)
   # test to see if user provided a hessian
   # quasiNewtTest = (f_obj.Hess == LSR1Operator) || (f_obj.Hess==LBFGSOperator)
   quasiNewtTest = isa(f, QuasiNewtonModel)
-  if quasiNewtTest
-    Bk = hess_op(f, xk)
-  else
-    Bk = hess(f, xk)
-  end
+  Bk = hess_op(f, xk)
   # define the Hessian 
   H = Symmetric(Matrix(Bk))
   # νInv = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
@@ -120,7 +116,7 @@ xk = deepcopy(f.meta.x0)
     k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
 
     # define inner function 
-    φ(d) = H * d + ∇fk # (φ, ∇φ, ∇²φ)
+    φ(d) = H * d + ∇fk # (∇φ) -> PGnew (eventually get to just PG)
 
     # define model and update ρ
     mk(d) = 0.5 * (d' * (H * d)) + ∇fk' * d + fk + ψ(d) # psik = h -> psik = h(x+d)
@@ -173,13 +169,12 @@ xk = deepcopy(f.meta.x0)
 
       #update gradient & hessian 
       if !optimal 
-          ∇fk = grad(f, xk)
+          ∇fk = grad!(f, xk, ∇fk)
+          #grad!(f, xk, ∇fk)
         if quasiNewtTest
           push!(f, s, ∇fk - ∇fk⁻)
-          Bk = hess_op(f, xk)
-        else
-          Bk = hess_op(f, xk)
         end
+        Bk = hess_op(f, xk)
         # define the Hessian 
         H = Symmetric(Matrix(Bk))
         # β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
