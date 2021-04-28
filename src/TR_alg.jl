@@ -169,7 +169,7 @@ function TR(f, h, methods, params)
 
       #update gradient & hessian 
       if !optimal 
-          ∇fk = grad!(f, xk)
+          ∇fk = grad(f, xk)
           #grad!(f, xk, ∇fk)
         if quasiNewtTest
           push!(f, s, ∇fk - ∇fk⁻)
