@@ -27,8 +27,13 @@ function L0BInf()
   xi = zeros(n,)
   λ = norm(A'*b, Inf)/10 #this can change around 
 
-  ϕ = LSR1Model(SmoothObj((x) -> .5*norm(A*x - b)^2, (x) -> A'*(A*x - b), xi))
-  # ϕ = ADNLPModel((x) -> .5*norm(A*x - b)^2, xi)
+  function gradF!(g,x)
+    g .= A'*(A*x - b)
+    return g
+  end
+
+  ϕ = LSR1Model(SmoothObj((x) -> .5*norm(A*x - b)^2, gradF!, xi))
+  # ϕ = ADNLPModel((x) -> .5*norm(A*x - b)^2, xi) # this is slower
 
   h = NormL0(λ)
 
@@ -39,20 +44,18 @@ function L0BInf()
 
 
   ε = 1e-6
-  #define parameters - must feed in smooth, nonsmooth, and λ
-  #first order options default ||Bk|| = 1.0, no printing. PG is default inner, Rkprox is inner prox loop - defaults to 2-norm ball projection (not accurate if h=0)
-  options = TRNCmethods(; FO_options = Doptions, s_alg=PGnew, χ=NormLinf(1.0))
-  parameters = TRNCparams(;) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+  methods = TRNCmethods(; FO_options = Doptions, s_alg=PGnew, χ=NormLinf(1.0))
+  parameters = TRNCparams(;β = 1e16, ϵ=ε, verbose = 10)
 
 
   #input NLP, h, parameters, options 
-  xtr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h,options, parameters)
+  xtr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, methods, parameters)
 
-  optionsQR = TRNCparams(; σk = 1/β, ϵ=ε, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+  paramsQR = TRNCparams(; σk = 1/β, ϵ=ε, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
   xi .= 0 
   
   #input initial guess
-  xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QRalg(ϕ, h, parameters, optionsQR)
+  xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QRalg(ϕ, h, methods, paramsQR)
 
   @info "TR relative error" norm(xtr - x0) / norm(x0)
   @info "QR relative error" norm(xqr - x0) / norm(x0)
