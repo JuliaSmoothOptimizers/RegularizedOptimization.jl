@@ -37,7 +37,7 @@ function L1B2(compound=1)
   Doptions=s_params(1/β, λ; verbose=0, optTol=1e-16)
 
   ϵ = 1e-6
-  methods = TRNCmethods(; FO_options=Doptions, s_alg=PGnew, χ=NormL2(1.0))
+  methods = TRNCmethods(; FO_options=Doptions, s_alg=FISTA, χ=NormL2(1.0))
   parameters = TRNCparams(;β = 1e16, ϵ=ϵ, verbose = 10)
 
   # input initial guess, parameters, options 

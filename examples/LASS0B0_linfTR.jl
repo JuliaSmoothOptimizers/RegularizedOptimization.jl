@@ -37,7 +37,7 @@ function B0Binf(compound=1)
   h = IndBallL0(k)
 
   ϵ = 1e-6
-  methods = TRNCmethods(; FO_options=Doptions, s_alg=PGnew, χ=NormLinf(1.0))
+  methods = TRNCmethods(; FO_options=Doptions, s_alg=PG, χ=NormLinf(1.0))
   parameters = TRNCparams(;β = 1e16, ϵ=ϵ, verbose = 10)
 
   # input initial guess, parameters, options 
