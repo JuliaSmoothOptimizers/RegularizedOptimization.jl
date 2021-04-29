@@ -19,7 +19,6 @@ using Printf
 function FISTA(GradFcn, Gcn, s,  options)
   ε=options.optTol
   max_iter=options.maxIter
-  restart = options.restart
   ν = options.ν
 
   if options.verbose==0
@@ -76,7 +75,6 @@ end
 function FISTAD(GradFcn, Gcn, s, options)
   ε=options.optTol
   max_iter=options.maxIter
-  restart = options.restart
   ν = options.ν
 
   if options.verbose==0
