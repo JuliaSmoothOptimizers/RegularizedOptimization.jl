@@ -83,7 +83,7 @@ function QRalg(f, h, params, options)
   hk = ψ.h(xk) #hk = h_obj(xk)
 
   ν = 1 / σk
-  s = zeros(size(xk))
+  s = zero(xk)
   funEvals = 1
 
   sNorm = 0.0

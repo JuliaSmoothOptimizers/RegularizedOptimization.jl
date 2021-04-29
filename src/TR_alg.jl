@@ -96,7 +96,7 @@ function TR(f, h, methods, params)
   ∇fk = grad(f, xk)
   fk = obj(f, xk)
   hk = ψ.h(xk)
-  s = zeros(size(xk))
+  s = zero(xk)
   ∇fk⁻ = ∇fk
   funEvals = 1
 
@@ -116,7 +116,7 @@ function TR(f, h, methods, params)
     k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
 
     # define inner function 
-    φ(d) = H * d + ∇fk # (∇φ) -> PGnew (eventually get to just PG)
+    ∇φ(d) = H * d + ∇fk # (∇φ) -> PGnew (eventually get to just PG)
 
     # define model and update ρ
     mk(d) = 0.5 * (d' * (H * d)) + ∇fk' * d + fk + ψ(d) # psik = h -> psik = h(x+d)
@@ -130,7 +130,7 @@ function TR(f, h, methods, params)
       FO_options.optTol = min(.01, sqrt(ξ1)) * ξ1 # stopping criteria for inner algorithm 
       FO_options.FcnDec = ξ1
       set_radius!(ψ, min(β * χ(s1), Δk))
-      (s, funEvals) = s_alg(φ, ψ, s1, FO_options)
+      (s, funEvals) = s_alg(∇φ, ψ, s1, FO_options)
       ξ = fk + hk - mk(s)
     else
       s .= s1

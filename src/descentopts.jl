@@ -83,9 +83,9 @@ mutable struct TRNCmethods
   χ # TR norm one computes for the trust region radius - default is l2 
 
   function TRNCmethods(;
-    FO_options=s_params(1.0, 1.0),
-    s_alg=PG,
-    χ= NormL2(1.0),
+    FO_options = s_params(1.0, 1.0),
+    s_alg = PG,
+    χ = NormL2(1.0),
   )
     return new(FO_options, s_alg, χ)
   end

@@ -98,7 +98,7 @@ function FISTAD(GradFcn, Gcn, s, options)
 
   #do iterations
   y = (1.0-t)*s + t*v
-  g= GradFcn(y) 
+  g = GradFcn(y) 
 
   optimal = false
   tired = k ≥ max_iter
