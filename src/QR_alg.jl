@@ -63,6 +63,8 @@ function QRalg(f, ∇f, h, x0, params, options)
 
   # initialize parameters
   xk = copy(x0)
+  xkn = similar(xk)
+  s = zero(xk)
   ψ = shifted(h, xk)
 
   k = 0
@@ -83,8 +85,6 @@ function QRalg(f, ∇f, h, x0, params, options)
 
   # main algorithm initialization
   ν = 1 / σk
-  s = zero(xk)
-  xkn = similar(xk)
   funEvals = 1
 
   ξ = 0.0
