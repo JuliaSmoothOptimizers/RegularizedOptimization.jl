@@ -5,7 +5,7 @@ using ShiftedProximalOperators: prox
 export TR
 
 """Interior method for Trust Region problem
-  TR(x, params, options)
+  TR(f, h, methods, params)
 Arguments
 ----------
 x : Array{Float64,1}
@@ -52,7 +52,6 @@ function TR(f, h, methods, params)
   θ = params.θ
   β = params.β
   mem = params.mem
-
   if verbose == 0
     ptf = Inf
   elseif verbose == 1
@@ -74,7 +73,7 @@ function TR(f, h, methods, params)
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(maxIter)
+  Complex_hist = zeros(Int, maxIter)
   @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ1" "ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
 
   k = 0
@@ -117,9 +116,10 @@ function TR(f, h, methods, params)
 
     # define inner function 
     ∇φ(d) = H * d + ∇fk # (∇φ) -> PGnew (eventually get to just PG)
+    φ(d) = 0.5 * (d' * (H * d)) + ∇fk' * d + fk
 
     # define model and update ρ
-    mk(d) = 0.5 * (d' * (H * d)) + ∇fk' * d + fk + ψ(d) # psik = h -> psik = h(x+d)
+    mk(d) = φ(d) + ψ(d)
 
     # take initial step s1 and see if you can do more 
     FO_options.ν = min(1 / νInv, Δk)
@@ -130,7 +130,8 @@ function TR(f, h, methods, params)
       FO_options.optTol = min(.01, sqrt(ξ1)) * ξ1 # stopping criteria for inner algorithm 
       FO_options.FcnDec = ξ1
       set_radius!(ψ, min(β * χ(s1), Δk))
-      (s, funEvals) = s_alg(∇φ, ψ, s1, FO_options)
+      # (s, funEvals) = QRalg(φ, ∇φ, ψ, s1, methods, params)
+      (s, funEvals) = s_alg(φ, ∇φ, ψ, s1, FO_options)
       ξ = fk + hk - mk(s)
     else
       s .= s1
@@ -191,7 +192,7 @@ function TR(f, h, methods, params)
     if ρk < η1 || ρk == Inf
       TR_stat = "↘"
       α = .5
-      Δk = α * Δk	# * norm(s, Inf) #change to reflect trust region 
+      Δk = α * Δk	# change to reflect trust region 
     end
 
     shift!(ψ, xk) #inefficient but placed here for now 
