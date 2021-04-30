@@ -1,6 +1,6 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 
-using LinearAlgebra, Arpack
+using LinearAlgebra
 export QRalg
 
 """Interior method for Trust Region problem
@@ -104,6 +104,7 @@ function QRalg(f, ∇f, h, x0, params, options)
 
     s = prox(ψ, -ν * ∇fk, ν)
     ξ = hk - mk(s)
+    @show φk(d), ψ(d), hk 
 
     if (ξ ≤ 0 || isnan(ξ))
       error("QR: failed to compute a step: ξ = $ξ")

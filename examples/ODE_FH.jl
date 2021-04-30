@@ -68,7 +68,7 @@ function ODEFH()
   # # set all options
   Doptions = s_params(1.0, λ; optTol = ϵ, verbose=0)
   methods = TRNCmethods(; FO_options=Doptions, s_alg = PG, χ=NormLinf(1.0))
-  params = TRNCparams(; maxIter=20000, verbose=10, ϵ=ϵ, β=1e16)
+  params = TRNCparams(; maxIter=20000, verbose=10, ϵ=ϵ, β=1e16, σk = 1e4)
 
   xtr, k, Fhist, Hhist, Comp_pg = TR(φ, h, methods, params)
 
