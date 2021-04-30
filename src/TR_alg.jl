@@ -116,7 +116,7 @@ function TR(f, h, methods, params)
 
     # define inner function 
     ∇φ(d) = H * d + ∇fk # (∇φ) -> PGnew (eventually get to just PG)
-    φ(d) = 0.5 * (d' * (H * d)) + ∇fk' * d 
+    φ(d) = 0.5 * (d' * (H * d)) + ∇fk' * d + fk
 
     # define model and update ρ
     mk(d) = φ(d) + ψ(d)
@@ -125,6 +125,7 @@ function TR(f, h, methods, params)
     FO_options.ν = min(1 / νInv, Δk)
     s1 = prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
     ξ1 = fk + hk - mk(s1)
+    @show ξ1, mk(s1), φ(s1)
 
     if ξ1 > ϵ || k==1 # final stopping criteria
       FO_options.optTol = min(.01, sqrt(ξ1)) * ξ1 # stopping criteria for inner algorithm 
