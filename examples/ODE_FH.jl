@@ -70,7 +70,7 @@ function ODEFH()
   methods = TRNCmethods(; FO_options=Doptions, s_alg = PG, χ=NormLinf(1.0))
   params = TRNCparams(; maxIter=20000, verbose=10, ϵ=ϵ, β=1e16, σk = 1e4)
 
-  xtr, k, Fhist, Hhist, Comp_pg = TR(φ, h, methods, params)
+  xtr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, methods, params)
 
   # paramsQR = TRNCparams(; σk = 1.0, ϵ=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
   xi .= 1 
@@ -78,13 +78,13 @@ function ODEFH()
   Doptions = s_params(1.0, λ; optTol = ϵ, verbose=0)
   methods = TRNCmethods(; FO_options=Doptions, s_alg = PG, χ=NormLinf(1.0))
   params = TRNCparams(; maxIter=20000, verbose=10, ϵ=ϵ, β=1e16)
-  xlm, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, methods, params)
+  xbf, k, Fhist, Hhist, Comp_pg = TR(φ, h, methods, params)
 
   # input initial guess
   # xlm, klm, Fhistlm, Hhistlm, Comp_pglm = QRalg(ϕ, h, xi, methods, paramsQR)
 
   @show xtr
-  @show xlm 
+  @show xbf 
   # @show xlm
   # @show x0
 
