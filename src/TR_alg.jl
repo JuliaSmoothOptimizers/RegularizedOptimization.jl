@@ -125,13 +125,13 @@ function TR(f, h, methods, params)
     FO_options.ν = min(1 / νInv, Δk)
     s1 = prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
     ξ1 = fk + hk - mk(s1)
-    @show ξ1, mk(s1), φ(s1)
 
     if ξ1 > ϵ || k==1 # final stopping criteria
       FO_options.optTol = min(.01, sqrt(ξ1)) * ξ1 # stopping criteria for inner algorithm 
       FO_options.FcnDec = ξ1
       set_radius!(ψ, min(β * χ(s1), Δk))
-      (s, funEvals) = QRalg(φ, ∇φ, ψ, s1, methods, params)
+      # (s, funEvals) = QRalg(φ, ∇φ, ψ, s1, methods, params)
+      (s, funEvals) = s_alg(φ, ∇φ, ψ, s1, FO_options)
       ξ = fk + hk - mk(s)
     else
       s .= s1
