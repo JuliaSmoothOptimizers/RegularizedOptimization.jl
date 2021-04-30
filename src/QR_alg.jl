@@ -29,43 +29,42 @@ x   : Array{Float64,1}
 k   : Int
     number of iterations used
 Fobj_hist: Array{Float64,1}
-    smooth function history 
+    smooth function history
 Hobj_hist: Array{Float64, 1}
     nonsmooth function history
 Complex_hist: Array{Float64, 1}
-    inner algorithm iteration count 
+    inner algorithm iteration count
 
 """
-function QRalg(f, h, params, options)
+QRalg(nlp::AbstractNLPModel, args...; kwargs...) = QRalg(x -> obj(nlp, x), x -> grad(nlp, x), args...; kwargs...)
 
+function QRalg(f, ∇f, h, x0, params, options)
   # initialize passed options
   ϵ = options.ϵ
   verbose = options.verbose
   maxIter = options.maxIter
   η1 = options.η1
-  η2 = options.η2 
-  σk = options.σk 
+  η2 = options.η2
+  σk = options.σk
   γ = options.γ
 
   if verbose == 0
-      ptf = Inf
+    ptf = Inf
   elseif verbose == 1
-      ptf = round(maxIter / 10)
+    ptf = round(maxIter / 10)
   elseif verbose == 2
-      ptf = round(maxIter / 100)
+    ptf = round(maxIter / 100)
   else
-      ptf = 1
+    ptf = 1
   end
 
   # other parameters
   FO_options = params.FO_options
-  s_alg = params.s_alg
-  χ = params.χ #ProximalOperator/technically 
-
+  χ = params.χ
 
   # initialize parameters
-  xk = deepcopy(f.meta.x0)
-  ψ = shifted(h, xk) #this only takes PO's
+  xk = copy(x0)
+  ψ = shifted(h, xk)
 
   k = 0
   Fobj_hist = zeros(maxIter)
@@ -76,83 +75,74 @@ function QRalg(f, h, params, options)
   k = 0
   ρk = -1.0
   TR_stat = ""
-  
-  # main algorithm initialization
-  ∇fk = grad(f, xk)
-  fk = obj(f, xk)
-  hk = ψ.h(xk) #hk = h_obj(xk)
 
+  fk = f(xk)
+  ∇fk = ∇f(xk)
+  hk = ψ.h(xk)
+
+  # main algorithm initialization
   ν = 1 / σk
-  s = zeros(size(xk))
+  s = zero(xk)
+  xkn = similar(xk)
   funEvals = 1
 
-  sNorm = 0.0
   ξ = 0.0
   optimal = false
   tired = k ≥ maxIter
 
-  while !(optimal || tired) 
-    # update count
-    k = k + 1 # inner
+  while !(optimal || tired)
+    k = k + 1
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    # Print values
-    k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk ξ ρk σk χ(xk) sNorm TR_stat
-    
+    k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk ξ ρk σk χ(xk) χ(s) TR_stat
+
     # define model
-    φk(d) = ∇fk' * d + fk
-    mk(d) = φk(d) + ψ(d) # psik = h -> psik = h(x+d)
+    φk(d) = dot(∇fk, d)
+    mk(d) = φk(d) + ψ(d)
 
-    s = prox(ψ, -ν * ∇fk, ν) # -> PG on one step s
-    sNorm = χ(s)
+    s = prox(ψ, -ν * ∇fk, ν)
+    ξ = hk - mk(s)
 
-    fkn = obj(f, xk + s)
-    hkn = ψ(s)
-    Δobj = (fk + hk) - (fkn + hkn)
-    ξ = (fk + hk) - mk(s)
-
-    optimal = ξ < ϵ
-    
     if (ξ ≤ 0 || isnan(ξ))
-      error("failed to compute a step")
+      error("QR: failed to compute a step: ξ = $ξ")
     end
 
-    ρk = (Δobj + 1e-16) / (ξ + 1e-16)
+    if ξ < ϵ
+      optimal = true
+      @info "QR: terminating with ξ = $ξ"
+      continue
+    end
+
+    xkn .= xk .+ s
+    fkn = f(xkn)
+    hkn = h(xkn)
+    Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+    ρk = Δobj / ξ
 
     if η2 ≤ ρk < Inf
-      TR_stat = "↗"
+      TR_stat = "↘"
       σk = σk / γ
     else
       TR_stat = "="
     end
 
     if η1 ≤ ρk < Inf
-      xk .+= s 
-
-      #update functions 
+      xk .= xkn
       fk = fkn
       hk = hkn
-
-      
-      if !optimal
-        ∇fk = grad(f, xk)
-      end
-      #update gradient 
-      Complex_hist[k] += 1
-
+      ∇fk = ∇f(xk)
       shift!(ψ, xk)
+      Complex_hist[k] += 1
     end
 
     if ρk < η1 || ρk == Inf
-      TR_stat = "↘"
-      σk = max(σk * γ, 1e-6) # dominique σmin ok? 
+      TR_stat = "↗"
+      σk = max(σk * γ, 1e-6)
     end
 
     ν = 1 / σk
     tired = k ≥ maxIter
-      
-      
   end
 
   return xk, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
