@@ -116,7 +116,7 @@ function TR(f, h, methods, params)
 
     # define inner function 
     ∇φ(d) = H * d + ∇fk # (∇φ) -> PGnew (eventually get to just PG)
-    φ(d) = 0.5 * (d' * (H * d)) + ∇fk' * d + fk
+    φ(d) = 0.5 * (d' * (H * d)) + ∇fk' * d 
 
     # define model and update ρ
     mk(d) = φ(d) + ψ(d)
