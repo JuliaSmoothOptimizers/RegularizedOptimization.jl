@@ -52,7 +52,6 @@ function TR(f, h, methods, params)
   θ = params.θ
   β = params.β
   mem = params.mem
-  params.verbose = 0
   if verbose == 0
     ptf = Inf
   elseif verbose == 1

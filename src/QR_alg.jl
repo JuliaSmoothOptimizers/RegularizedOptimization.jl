@@ -104,7 +104,6 @@ function QRalg(f, ∇f, h, x0, params, options)
 
     s = prox(ψ, -ν * ∇fk, ν)
     ξ = hk - mk(s)
-    @show φk(s), ψ(s), hk 
 
     if (ξ ≤ 0 || isnan(ξ))
       error("QR: failed to compute a step: ξ = $ξ")
