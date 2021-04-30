@@ -16,7 +16,7 @@ using Printf
     his : function history
     feval : number of function evals (total objective)
 """
-function FISTA(GradFcn, Gcn, s,  options)
+function FISTA(Fcn, GradFcn, Gcn, s,  options)
   ε=options.optTol
   max_iter=options.maxIter
   ν = options.ν
@@ -72,7 +72,7 @@ function FISTA(GradFcn, Gcn, s,  options)
 end
 
 #enforces strict descent  for FISTA 
-function FISTAD(GradFcn, Gcn, s, options)
+function FISTAD(Fcn, GradFcn, Gcn, s, options)
   ε=options.optTol
   max_iter=options.maxIter
   ν = options.ν
@@ -98,7 +98,8 @@ function FISTAD(GradFcn, Gcn, s, options)
 
   #do iterations
   y = (1.0-t)*s + t*v
-  g= GradFcn(y) 
+  g = GradFcn(y) 
+  f = Fcn(y)
 
   optimal = false
   tired = k ≥ max_iter
@@ -111,7 +112,7 @@ function FISTAD(GradFcn, Gcn, s, options)
     #complete prox step 
     u = prox(Gcn, y - ν*g, ν)
 
-    if Fcn(u)[1] ≤ f #this does not work 
+    if Fcn(u) ≤ f #this does not work 
       s⁺ = u
     else
       s⁺ = s
@@ -129,6 +130,7 @@ function FISTAD(GradFcn, Gcn, s, options)
 
     #update parameters
     g = GradFcn(y)
+    f = Fcn(y)
 
     #check convergence
     err = norm(s - s⁺)

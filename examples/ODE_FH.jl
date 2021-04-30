@@ -59,26 +59,32 @@ function ODEFH()
   # put in your initial guesses
   xi = ones(size(pars_FH))
   # this is for l0 norm 
-  # ϕ = LBFGSModel(ADNLPModel(CostFunc, xi))
+  φ = LBFGSModel(ADNLPModel(CostFunc, xi))
   ϕ = LSR1Model(ADNLPModel(CostFunc, xi))
   # ϕ = LSR1Model(SmoothObj(CostFunc, (x)->ForwardDiff.gradient(CostFunc, x), xi))
   # ϕ = ADNLPModel(CostFunc, xi)
 
   ϵ = 1e-6
   # # set all options
-  Doptions = s_params(1.0, λ; optTol = ϵ * (1e-6), verbose=0)
-  methods = TRNCmethods(; FO_options=Doptions, s_alg = FISTA, χ=NormLinf(1.0))
+  Doptions = s_params(1.0, λ; optTol = ϵ, verbose=0)
+  methods = TRNCmethods(; FO_options=Doptions, s_alg = PG, χ=NormLinf(1.0))
   params = TRNCparams(; maxIter=500, verbose=10, ϵ=ϵ, β=1e16)
 
-  xtr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, methods, params)
+  xtr, k, Fhist, Hhist, Comp_pg = TR(φ, h, methods, params)
 
-  paramsQR = TRNCparams(; σk = 1.0, ϵ=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+  # paramsQR = TRNCparams(; σk = 1.0, ϵ=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
   xi .= 1 
+ 
+  Doptions = s_params(1.0, λ; optTol = ϵ, verbose=0)
+  methods = TRNCmethods(; FO_options=Doptions, s_alg = PG, χ=NormLinf(1.0))
+  params = TRNCparams(; maxIter=500, verbose=10, ϵ=ϵ, β=1e16)
+  xlm, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, methods, params)
 
   # input initial guess
-  xlm, klm, Fhistlm, Hhistlm, Comp_pglm = QRalg(ϕ, h, methods, paramsQR)
+  # xlm, klm, Fhistlm, Hhistlm, Comp_pglm = QRalg(ϕ, h, xi, methods, paramsQR)
 
-  # @show xtr
+  @show xtr
+  @show xlm 
   # @show xlm
   # @show x0
 

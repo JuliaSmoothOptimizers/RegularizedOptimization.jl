@@ -17,7 +17,7 @@ using Printf
         his : function history
         feval : number of function evals (total objective )
 """
-function PG(GradFcn, Gcn, s, options)
+function PG(Fcn, GradFcn, Gcn, s, options)
 
   ε=options.optTol
   max_iter=options.maxIter
@@ -66,7 +66,7 @@ function PG(GradFcn, Gcn, s, options)
   return s⁺, feval
 end
 
-function PGΔ(GradFcn, Gcn, s, options)
+function PGΔ(Fcn, GradFcn, Gcn, s, options)
 
   ε=options.optTol
   max_iter=options.maxIter
@@ -91,7 +91,7 @@ function PGΔ(GradFcn, Gcn, s, options)
 
   # Iteration set up
   g = GradFcn(s⁺) #objInner/ quadratic model
-  @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
+  f = Fcn(s⁺)
 
   #do iterations
   optimal = false
@@ -101,11 +101,13 @@ function PGΔ(GradFcn, Gcn, s, options)
   while !(optimal || tired || FD)
 
     gold = g
+    fold = f
     s = s⁺
 
     s⁺ = prox(Gcn, s - ν*g, ν)
     # update function info
     g = GradFcn(s⁺)
+    f = Fcn(s⁺)
 
     feval+=1
     k+=1
@@ -115,7 +117,7 @@ function PGΔ(GradFcn, Gcn, s, options)
 
     k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
-    DiffFcn = his[k-1] - his[k] # these do not work 
+    DiffFcn = fold + Gcn(s) - f - Gcn(s⁺) # these do not work 
     FD = abs(DiffFcn)<p*norm(FcnDec)
 
   end
@@ -166,6 +168,7 @@ function PGE(Fcn, Gcn, s, options)
     s⁺ = prox(Gcn, s - ν*g, ν)
     # update function info
     g = GradFcn(s⁺)
+    f = Fcn(s⁺)
 
     feval+=1
     k+=1
@@ -176,13 +179,13 @@ function PGE(Fcn, Gcn, s, options)
     k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
     
-    his[k] = f + Gcn(s⁺)*λ # will not work 
-    DiffFcn = his[k-1] - his[k]
+    DiffFcn = fold + Gcn(s) - f - Gcn(s⁺) # these do not work 
+    FD = abs(DiffFcn)<p*norm(FcnDec)
   end
-  return s⁺, his[1:k-1], feval
+  return s⁺, feval
 end
 
-function PGLnsch(GradFcn, Gcn, s, options)
+function PGLnsch(Fcn, GradFcn, Gcn, s, options)
 
   ε=options.optTol
   max_iter=options.maxIter
@@ -206,6 +209,7 @@ function PGLnsch(GradFcn, Gcn, s, options)
   # Iteration set up
   feval = 1
   g = GradFcn(s⁺) #objInner/ quadratic model
+  f = Fcn(s⁺)
 
   #do iterations
   optimal = false
@@ -225,6 +229,7 @@ function PGLnsch(GradFcn, Gcn, s, options)
     end
     # update function info
     g = GradFcn(s⁺) #objInner/ quadratic model
+    f = Fcn(s⁺)
 
     feval+=1
     k+=1

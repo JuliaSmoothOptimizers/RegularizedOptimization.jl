@@ -59,7 +59,6 @@ function QRalg(f, ∇f, h, x0, params, options)
   end
 
   # other parameters
-  FO_options = params.FO_options
   χ = params.χ
 
   # initialize parameters
