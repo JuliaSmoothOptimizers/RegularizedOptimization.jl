@@ -1,9 +1,8 @@
 using TRNC
-using ADNLPModels, NLPModelsModifiers
+using ADNLPModels, NLPModelsModifiers,NLPModels
 using DiffEqSensitivity, DifferentialEquations, ProximalOperators, ForwardDiff
 using LinearAlgebra, Random, Printf
-
-# function FH_L0Binf()
+Random.seed!(1234)
 function ODEFH()
   # so we need a model solution, a gradient, and a Hessian of the system (along with some data to fit)
   function FH_ODE(dx, x, p, t)
@@ -56,25 +55,26 @@ return CostFunc
 end
 
 function phirod(cfunc;λ = 1.0)
-  h = NormL0(λ)
+  nonsmoothfunc = NormL0(λ)
 
   # put in your initial guesses
   xi = ones(5,)
   # this is for l0 norm 
-  # φ = LBFGSModel(ADNLPModel(cfunc, xi))
-  # ϕ = LSR1Model(ADNLPModel(CostFunc, xi))
+  Smoothfunc = LBFGSModel(ADNLPModel(cfunc, xi))
+  # Smoothfunc = LSR1Model(ADNLPModel(cfunc, xi))
   # ϕ = LSR1Model(SmoothObj(CostFunc, (x)->ForwardDiff.gradient(CostFunc, x), xi))
-  φ = ADNLPModel(cfunc, xi)
-  return φ, h
+  # Smoothfunc = ADNLPModel(cfunc, xi)
+  return Smoothfunc, nonsmoothfunc
 end
 
-function runode(φ, h; ϵ = 1e-6, λ = 1.0)
+function runode(func, hunc; ϵ = 1e-10, λ = 1.0)
   # # set all options
-  Doptions = s_params(1.0, λ; optTol = ϵ, verbose=0)
+  Doptions = s_params(1.0, λ; maxIter = 10000, optTol = ϵ, verbose=0)
   methods = TRNCmethods(; FO_options=Doptions, s_alg = PGtemp, χ=NormLinf(1.0))
-  params = TRNCparams(; maxIter=20000, verbose=10, ϵ=ϵ, β=1e16, σk = 1e4)
+  params = TRNCparams(; maxIter = 10000, verbose=10, ϵ=ϵ, β=1e16, σk = 1e4)
 
-  xtr, k, Fhist, Hhist, Comp_pg = TRalg(ϕ, h,  methods, params)
+  xtr, k, Fhist, Hhist, Comp_pg = TRalg(func, hunc,  methods, params)
+  # xtr, k, Fhist, Hhist, Comp_pg = LMTR(func, hunc,  methods, params)
 
   # paramsQR = TRNCparams(; σk = 1.0, ϵ=ϵ, verbose = 10) #options, such as printing (same as above), tolerance, γ, σ, τ, w/e
   # xi .= 1 
@@ -85,7 +85,7 @@ function runode(φ, h; ϵ = 1e-6, λ = 1.0)
   # xbf, k, Fhist, Hhist, Comp_pg = TR(φ, h, methods, params)
 
   # input initial guess
-  # xlm, klm, Fhistlm, Hhistlm, Comp_pglm = QRalg(ϕ, h, xi, methods, paramsQR)
+  # xlm, klm, Fhistlm, Hhistlm, Comp_pglm = QRalg2(func, hunc, ones(5,), methods, params)
 
   return xtr
   # @show xbf 
@@ -116,7 +116,6 @@ function PGtemp(Fcn, GradFcn, Gcn, s, options)
   # Iteration set up
   g = GradFcn(s⁺) #objInner/ quadratic model
   f = Fcn(s⁺)
-  @show f, g, ν
   feval = 1
   k = 0
 
@@ -129,7 +128,7 @@ function PGtemp(Fcn, GradFcn, Gcn, s, options)
     gold = g
     s = s⁺
 
-    s⁺ = prox(Gcn, s - ν*g, ν) 
+    s⁺ = ShiftedProximalOperators.prox(Gcn, s - ν*g, ν) 
 
     g = GradFcn(s⁺)
     f = Fcn(s⁺)

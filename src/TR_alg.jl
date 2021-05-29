@@ -96,7 +96,7 @@ function TR(f, h, methods, params)
   fk = obj(f, xk)
   hk = ψ.h(xk)
   s = zero(xk)
-  ∇fk⁻ = ∇fk
+  ∇fk⁻ = copy(∇fk)
   funEvals = 1
 
   sNorm = 0.0

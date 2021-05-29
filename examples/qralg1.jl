@@ -1,8 +1,8 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 
 using LinearAlgebra
-using ShiftedProximalOperators: prox
-export QRalg2
+using ShiftedProximalOperators
+export QRalg
 
 """Interior method for Trust Region problem
     QuadReg(x, params, options)
@@ -37,7 +37,7 @@ Complex_hist: Array{Float64, 1}
     inner algorithm iteration count
 
 """
-QRalg2(nlp, h, args...; kwargs...) = QRalg2(x -> obj(nlp, x), x -> grad(nlp, x), args...; kwargs...)
+QRalg2(nlp::AbstractNLPModel, args...; kwargs...) = QRalg2(x -> obj(nlp, x), x -> grad(nlp, x), args...; kwargs...)
 
 function QRalg2(f, ∇f, h, x0, params, options)
   # initialize passed options
@@ -82,16 +82,16 @@ function QRalg2(f, ∇f, h, x0, params, options)
 
   fk = f(xk)
   ∇fk = ∇f(xk)
-  hk = ψ.h(xk)
+  hk = ψ.h(xk) #should be h(x + sΣ + s) = h(x + xk)
 
   # main algorithm initialization
   ν = 1 / σk
   funEvals = 1
 
   ξ = 0.0
-  optimal = false
+  optimal = false #abs(ψ.χ(xk)-ψ.Δ)<1e-5
   tired = k ≥ maxIter
-
+#   @show ψ.x0, x0, xk,  - ν .* ∇fk, s, ψ.χ(xk)-ψ.Δ , k
   while !(optimal || tired)
     k = k + 1
 
@@ -102,17 +102,17 @@ function QRalg2(f, ∇f, h, x0, params, options)
     # define model
     φk(d) = dot(∇fk, d)
     mk(d) = φk(d) + ψ(d)
-
-    s = prox(ψ, - ν * ∇fk, ν)
+    s = ShiftedProximalOperators.prox(ψ, - ν .* ∇fk, ν)
     ξ = hk - mk(s)
-
-    if (ξ ≤ 0 || isnan(ξ))
+    # @show xk, s, abs(ψ.χ(s+xk)-ψ.Δ) , k
+    if (ξ < 0 || isnan(ξ))
+        # @show ψ.x0, x0, xk,  - ν .* ∇fk, s, ψ.χ(s+xk)-ψ.Δ , k
       error("QR: failed to compute a step: ξ = $ξ")
     end
 
-    if ξ < ϵ
+    if ξ < ϵ || abs(ψ.χ(s+xk) - ψ.Δ)<1e-5
       optimal = true
-      @info "QR: terminating with ξ = $ξ"
+    #   @info "QR: terminating with ξ = $ξ"
       continue
     end
 
@@ -121,11 +121,10 @@ function QRalg2(f, ∇f, h, x0, params, options)
     hkn = h(xkn)
     Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ρk = Δobj / ξ
-    # @show ρk, Δobj, ξ
 
     if η2 ≤ ρk < Inf
       TR_stat = "↘"
-      σk = max(σk / γ, 1e10)
+      σk = σk / γ
     else
       TR_stat = "="
     end

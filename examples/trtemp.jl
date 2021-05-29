@@ -1,15 +1,18 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
+using Printf
+using Logging
+using Arpack
+using ShiftedProximalOperators
 
-using NLPModelsModifiers, NLPModels, LinearAlgebra, Arpack, ShiftedProximalOperators
-using ShiftedProximalOperators: prox
 
-
-function TRalg(f, 
+function TRalg(
+    f::AbstractNLPModel, 
     h::ProximableFunction, 
     methods, 
     params;
-    x0::AbstractVector=f.meta.x0
-    )
+    x0::AbstractVector=f.meta.x0,
+    subsolver_logger::Logging.AbstractLogger=Logging.NullLogger()
+)
 
   # initialize passed options
   ϵ = params.ϵ
@@ -23,6 +26,7 @@ function TRalg(f,
   θ = params.θ
   β = params.β
   mem = params.mem
+
   if verbose == 0
     ptf = Inf
   elseif verbose == 1
@@ -41,6 +45,7 @@ function TRalg(f,
   # initialize parameters
   xk = copy(x0)
   xkn = similar(xk)
+  m = length(xk)
   s = zero(xk)
   ψ = shifted(h, xk, Δk, χ)
 
@@ -67,8 +72,8 @@ function TRalg(f,
   Bk = hess_op(f, xk)
   # define the Hessian 
   H = Symmetric(Matrix(Bk))
-  # νInv = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-  νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1, which=:LM)[1]))
+  #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
+  νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1,  v0 = randn(m,), which=:LM)[1]))
 
   ξ = 0.0
   ξ1 = 0.0
@@ -78,41 +83,43 @@ function TRalg(f,
   while !(optimal || tired)
     # update count
     k = k + 1 
-
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
     # Print values
     k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
 
     # define inner function 
-    ∇φ(d) = H * d + ∇fk
-    φ(d) = 0.5 * (d' * (H * d)) + ∇fk' * d + fk
+    ∇φ(d) = begin
+        return H * d + ∇fk 
+    end
+
+    φ(d) = begin 
+        return 0.5 * (d' * (H * d)) + ∇fk' * d + fk
+    end
 
     # define model and update ρ
     mk(d) = φ(d) + ψ(d)
 
     # take initial step s1 and see if you can do more 
     FO_options.ν = min(1 / νInv, Δk)
-    s1 = prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
+    s1 = ShiftedProximalOperators.prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
     ξ1 = fk + hk - mk(s1)
-    # @show s1,H, s1'*H*s1, mk(s1), φ(s1), ψ(s1), ∇fk' * s1, ∇fk
-    # @show ξ1, hk, mk(s1), 0.5 * (s1' * (H * s1)), ∇fk'*s1, fk
-    ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1), $(χ(s1)), $(ψ.Δ)")
+
     if ξ1 < ϵ
         # the current xk is approximately first-order stationary
         optimal = true
         @info "TR: terminating with ξ1 = $(ξ1)"
         continue
     end
-
     FO_options.optTol = k == 1 ? 1.0e-5 : max(ϵ, min(.01, sqrt(ξ1)) * ξ1)
     set_radius!(ψ, min(β * χ(s1), Δk))
-    FO_options.verbose = 0
     inner_params = TRNCmethods(FO_options = methods.FO_options, χ = χ)
-    inner_options = TRNCparams(; maxIter = 20000, verbose = 0, ϵ = FO_options.optTol)
-    s, funEvals, _, _, _, = QRalg2(φ, ∇φ, ψ, s1, inner_params, inner_options)
+    inner_options = TRNCparams(; maxIter = 90000, verbose = 0, ϵ = FO_options.optTol, σk = νInv)
+    # @show xk, ψ.x, ψ.x0, s1, ψ.χ(s1), ψ.Δ, ∇fk, 1/νInv
+    s, funEvals, _, _, _ = QRalg2(φ, ∇φ, ψ, s1, inner_params, inner_options)
     # (s, funEvals) = s_alg(φ, ∇φ, ψ, s1, FO_options)
-
+    # @show xk, ψ.x, ψ.x0, s, ψ.χ(s), ψ.Δ
     # update Complexity history 
     Complex_hist[k] += funEvals
 
@@ -125,14 +132,14 @@ function TRalg(f,
     ξ = fk + hk - mk(s)
 
     if (ξ ≤ 0 || isnan(ξ))
-      error("failed to compute a step")
+        error("TR: failed to compute a step: ξ = $ξ")
     end
 
     ρk = Δobj / ξ
 
     if η2 ≤ ρk < Inf
       TR_stat = "↗"
-      Δk = max(Δk, γ * ψ.χ(s))
+      Δk = max(Δk, γ * sNorm)
       set_radius!(ψ, Δk)
     else
       TR_stat = "="
@@ -144,20 +151,16 @@ function TRalg(f,
       #update functions
       fk = fkn
       hk = hkn
-    
       shift!(ψ, xk)
-      #update gradient & hessian 
       ∇fk = grad(f, xk)
         #grad!(f, xk, ∇fk)
       if quasiNewtTest
         push!(f, s, ∇fk - ∇fk⁻)
       end
       Bk = hess_op(f, xk)
-        # define the Hessian 
       H = Symmetric(Matrix(Bk))
-      νInv = (1 + θ) * maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
-            
-        # store previous iterates
+      νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1,  v0 = randn(m,), which=:LM)[1]))
+    # store previous iterates
       ∇fk⁻ .= ∇fk
 
       #hist update 
@@ -166,11 +169,11 @@ function TRalg(f,
 
     if ρk < η1 || ρk == Inf
       TR_stat = "↘"
+      # Δk = sNorm / γ
       α = .5
       Δk = α * Δk	# change to reflect trust region 
       set_radius!(ψ, Δk)
     end
-
     tired = k ≥ maxIter
 
   end
