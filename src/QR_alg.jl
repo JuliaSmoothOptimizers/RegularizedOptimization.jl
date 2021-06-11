@@ -81,7 +81,7 @@ function QRalg(f, ∇f, h, x0, params, options)
 
   fk = f(xk)
   ∇fk = ∇f(xk)
-  hk = ψ.h(xk)
+  hk = h(xk)
 
   # main algorithm initialization
   ν = 1 / σk
@@ -89,7 +89,7 @@ function QRalg(f, ∇f, h, x0, params, options)
 
   ξ = 0.0
   optimal = false
-  tired = k ≥ maxIter
+  tired = maxIter > 0 && k ≥ maxIter
 
   while !(optimal || tired)
     k = k + 1
@@ -103,9 +103,11 @@ function QRalg(f, ∇f, h, x0, params, options)
     mk(d) = φk(d) + ψ(d)
 
     s = prox(ψ, -ν * ∇fk, ν)
-    ξ = hk - mk(s)
+    mks = mk(s)
+    ξ = hk - mks
 
-    if (ξ ≤ 0 || isnan(ξ))
+    if (ξ < 0 || isnan(ξ))
+      @error "failed to obtain decrease" k ν ∇fk' hk mks ξ ψ s'
       error("QR: failed to compute a step: ξ = $ξ")
     end
 
@@ -122,6 +124,7 @@ function QRalg(f, ∇f, h, x0, params, options)
     ρk = Δobj / ξ
 
     if η2 ≤ ρk < Inf
+      @debug "very successful step"
       TR_stat = "↘"
       σk = σk / γ
     else
@@ -129,6 +132,7 @@ function QRalg(f, ∇f, h, x0, params, options)
     end
 
     if η1 ≤ ρk < Inf
+      ρk < η2 && @debug "successful step"
       xk .= xkn
       fk = fkn
       hk = hkn
@@ -138,12 +142,14 @@ function QRalg(f, ∇f, h, x0, params, options)
     end
 
     if ρk < η1 || ρk == Inf
+      @debug "unsuccessful step"
       TR_stat = "↗"
-      σk = max(σk * γ, 1e-6)
+      σk = σk * γ
+      # σk = max(σk * γ, 1e-6)
     end
 
     ν = 1 / σk
-    tired = k ≥ maxIter
+    tired = maxIter > 0 && k ≥ maxIter
   end
 
   return xk, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
