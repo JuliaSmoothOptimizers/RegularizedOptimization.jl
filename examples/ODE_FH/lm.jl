@@ -2,6 +2,7 @@ using Logging
 using Printf
 
 using Arpack
+using LinearOperators
 using ShiftedProximalOperators
 
 """
@@ -116,7 +117,6 @@ function LMTR(
     φ(d) = begin
       JdFk = Jk * d + Fk
       return dot(JdFk, JdFk) / 2
-      # return [dot(JdFk, JdFk) / 2, Jk' * JdFk, nothing]
     end
 
     ∇φ(d) = begin
@@ -142,7 +142,7 @@ function LMTR(
     FO_options.optTol = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
     set_radius!(ψ, min(β * χ(s1), Δk))
     inner_params = TRNCmethods(FO_options=params.FO_options, χ=χ)
-    inner_options = TRNCparams(; maxIter=20000, verbose=10, ϵ=FO_options.optTol, σk=1 / Δk)
+    inner_options = TRNCparams(; maxIter=90_000, verbose=10, ϵ=FO_options.optTol, σk=1 / Δk)
     s, funEvals, _, _, _ = with_logger(subsolver_logger) do
       QRalg(φ, ∇φ, ψ, s1, inner_params, inner_options)
     end
@@ -157,6 +157,8 @@ function LMTR(
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ξ = fk + hk - mk(s)  # TODO: isn't mk(s) returned by s_alg?
+
+    @debug "computed step" s norm(s, Inf) Δk
 
     if (ξ ≤ 0 || isnan(ξ))
       error("LMTR: failed to compute a step: ξ = $ξ")
@@ -339,10 +341,12 @@ function LM(nls::AbstractNLSModel, h::ProximableFunction, params, options; x0::A
       continue
     end
 
-    FO_options.optTol = k == 1 ? 1.0e-4 : max(ϵ, min(1.0e-4, ξ1 / 5))
+    # FO_options.optTol = k == 1 ? 1.0e-4 : max(ϵ, min(1.0e-4, ξ1 / 5))
+    FO_options.optTol = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
+    @debug "setting inner stopping tolerance to" FO_options.optTol
     FO_options.FcnDec = ξ1
     inner_params = TRNCmethods(FO_options=params.FO_options, χ=χ)
-    inner_options = TRNCparams(; maxIter=20000, verbose=10, ϵ=FO_options.optTol, σk=1.0)
+    inner_options = TRNCparams(; maxIter=90_000, verbose=10, ϵ=FO_options.optTol, σk=1.0)
     s, funEvals, _, _, _ = with_logger(subsolver_logger) do
       QRalg(φ, ∇φ, ψ, s1, inner_params, inner_options)
     end
