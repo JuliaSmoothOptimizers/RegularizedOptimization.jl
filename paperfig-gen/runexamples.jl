@@ -1,8 +1,9 @@
 
 using TRNC
-using Random, LinearAlgebra,LinearOperators, Printf, Plots, DataFrames 
+using Random, LinearAlgebra, Printf, Plots, DataFrames 
 using DifferentialEquations, Zygote, DiffEqSensitivity
-using ProximalOperators, ProximalAlgorithms
+using ShiftedProximalOperators, ProximalOperators, ProximalAlgorithms
+using ADNLPModels, NLPModelsModifiers,NLPModels
 
 pgfplotsx()
 include("fig_preproc.jl")
@@ -15,7 +16,7 @@ include("modded_zerofpr.jl")
 include("modded_fbs.jl")
 
 
-Random.seed!(0)
+Random.seed!(123)
 
 include("runbpdn.jl")
-include("runnonlin.jl")
+# include("runnonlin.jl")

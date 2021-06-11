@@ -64,36 +64,17 @@ function f_obj(x) # gradient and hessian info are smooth parts, m also includes 
 	return fk, grad
 end
 
-
-TOL = 1e-6
+TOL = 1e-10
 MI = 500
-ϵ = 1e-3
+ϵ = 1e-8
 λ = 1.0 
 # set all options
-Doptions = s_options(1.0; λ=λ, optTol=TOL, verbose=0, maxIter=1000)
-options = TRNCoptions(;verbose=10, ϵD=ϵ, maxIter=MI, β=1e16)
+Doptions = s_params(1.0, λ; optTol=TOL, verbose=0, maxIter=20000)
+options = TRNCparams(;verbose=10, ϵ=ϵ, maxIter=MI, β=1e16)
 
 # this is for l0 norm 
 function h_obj(x)
 	return norm(x, 0) 
-end
-function proxtr(q, σ, xk, Δ)
-	ProjB(y) = min.(max.(y, -Δ), Δ) # define outside? 
-	# @show σ/λ, λ
-	c = sqrt(2 * σ)
-	w = xk + q
-	st = zeros(size(w))
-
-	for i = 1:length(w)
-		absx = abs(w[i])
-		if absx <= c
-			st[i] = 0
-		else
-			st[i] = w[i]
-		end
-	end
-	s = ProjB(st - xk)
-	return s 
 end
 
 function Aval(x, ξ)
@@ -118,15 +99,17 @@ end
 @info "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + λ||p||₀; ||⋅||_∞  ≤Δ"
 folder = "figs/nonlin/FH/quad_l0/"
 
-params = TRNCstruct(f_obj, h_obj, λ; FO_options=Doptions, s_alg=PG, ψχprox=proxtr, χk=(s) -> norm(s, Inf), HessApprox=LSR1Operator)
+params = TRNCmethods(; FO_options=Doptions, s_alg=PG, χ = NormLinf(1.0))
 xi = ones(size(pars_FH))
+ϕt = LBFGSModel(ADNLPModel(Gradprob, xi))
+h = NormL0(λ)
 
 
 @info "running TR with our own objective"
-xtr, ktr, Fhisttr, Hhisttr, Comp_pg = TR(xi, params, options)
+xtr, ktr, Fhisttr, Hhisttr, Comp_pg = TR(ϕt, h, params, options)
 proxnum = [0, sum(Comp_pg)]
 
-Ival = f_obj(xi)[1] + λ * h_obj(xi)
+Ival = obj(ϕt, xi) + h(xi)
 
 solverp = ProximalAlgorithms.PANOC(tol=ϵ, verbose=true, freq=1, maxit=MI)
 ϕ = LeastSquaresObjective(f_obj, h_obj, 0, [Ival])
@@ -156,57 +139,36 @@ xlabs = ["True", "TR", "PANOC", "ZFP"]
 hist = [Fhisttr + Hhisttr, histpanoc, histz]
 fig_preproc(xvars, xlabs, hist,[Comp_pg], Aval, folder)
 
-vals, pars = tab_preproc(f_obj, h_obj, xvars, proxnum, hist, Aval, λ)
+vals, pars = tab_preproc(ϕt, h, xvars, proxnum, hist, Aval, λ)
 
 dp, df = show_table(pars, vals, xlabs)
 _ = write_table(dp, df, string(folder, "fhl0"))
 
 
-@info "running QR"
-# xtr, k, Fhist, Hhist, Comp_pg = TR(xi, params, options)
+# @info "running QR"
+# folder = "figs/nonlin/FH/pg_l0/"
+# paramsQR = TRNCmethods(; FO_options=Doptions, χ = NormLinf(1.0))
+# optionsQR = TRNCparams(; σk=1e4, ϵ=TOL, verbose=1, maxIter = MI*10) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 
-function proxl0s(q, σ, xk, Δ)
-	# @show σ/λ, λ
-	c = sqrt(2 * σ)
-	w = xk + q
-	st = zeros(size(w))
-
-	for i = 1:length(w)
-		absx = abs(w[i])
-		if absx <= c
-			st[i] = 0
-		else
-			st[i] = w[i]
-		end
-	end
-	s = st - xk
-	return s 
-end
+# # input initial guess
+# xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QRalg(ϕt, h, ones(size(xi)), paramsQR, optionsQR)
 
 
-folder = "figs/nonlin/FH/pg_l0/"
-parametersQR = TRNCstruct(f_obj, h_obj, λ; FO_options=Doptions, ψχprox=proxl0s, χk=(s) -> norm(s, Inf))
-optionsQR = TRNCoptions(; σk=1e4, ϵD=TOL, verbose=1, maxIter = MI*10) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e
+# @info "running FBS with our objective"
+# ϕ.count = 0
+# ϕ.hist = [Ival]
+# g.count = 0
+# solverpg = ProximalAlgorithms.ForwardBackward(tol=ϵ, verbose=true, freq=1, maxit=MI*10)
+# xpg, kpg = my_fbs(solverpg, ones(size(xi2)), f=ϕ, g=g)
+# Histpg = ϕ.hist 
 
-# input initial guess
-xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QuadReg(ones(size(xi)), parametersQR, optionsQR)
+# xvars = [x0, xqr, xpg]
+# xlabs = ["True", "QR", "PG"]
+# histp = [Fhistqr+Hhistqr, Histpg]
+# vals, pars = tab_preproc(ϕt, h, xvars,[0,sum(Comp_pgqr), g.count],  histp, Aval, λ)
 
+# fig_preproc(xvars,xlabs, histp,[Comp_pgqr], Aval, folder)
 
-@info "running FBS with our objective"
-ϕ.count = 0
-ϕ.hist = [Ival]
-g.count = 0
-solverpg = ProximalAlgorithms.ForwardBackward(tol=ϵ, verbose=true, freq=1, maxit=10)
-xpg, kpg = my_fbs(solverpg, ones(size(xi2)), f=ϕ, g=g)
-Histpg = ϕ.hist 
-
-xvars = [x0, xqr, xpg]
-xlabs = ["True", "QR", "PG"]
-histp = [Fhistqr+Hhistqr, Histpg]
-vals, pars = tab_preproc(f_obj, h_obj, xvars,[0,sum(Comp_pgqr), g.count],  histp, Aval, λ)
-
-fig_preproc(xvars,xlabs, histp,[Comp_pgqr], Aval, folder)
-
-dp, df = show_table(pars, vals, xlabs)
-_ = write_table(dp, df, string(folder, "fhl0_qr"))
+# dp, df = show_table(pars, vals, xlabs)
+# _ = write_table(dp, df, string(folder, "fhl0_qr"))
 # 	@info "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + χ_{||p||₀≤δ}; ||⋅||_∞  ≤Δ"

@@ -29,11 +29,12 @@ function B0Binf(compound=1)
   β = opnorm(A)^2 # 1/||Bk|| for exact Bk = A'*A
   Doptions = s_params(1 / β, λ; verbose=0, optTol=1e-16)
 
-  function gradF!(g,x)
-      g .= A'*(A*x - b)
-      return g
-    end
-  ϕ = LSR1Model(SmoothObj((x) -> .5*norm(A*x - b)^2, gradF!, xi))
+  # function gradF!(g,x)
+  #     g .= A'*(A*x - b)
+  #     return g
+  #   end
+  # ϕ = LSR1Model(SmoothObj((x) -> .5*norm(A*x - b)^2, gradF!, xi))
+  ϕ = ADNLSModel((x)-> A*x - b, xi, m)
   h = IndBallL0(k)
 
   ϵ = 1e-6
@@ -41,7 +42,8 @@ function B0Binf(compound=1)
   parameters = TRNCparams(;β = 1e16, ϵ=ϵ, verbose = 10)
 
   # input initial guess, parameters, options 
-  x_pr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, methods, parameters)
+  # x_pr, k, Fhist, Hhist, Comp_pg = TR(ϕ, h, methods, parameters)
+  x_pr, k, Fhist, Hhist, Comp_pg = LMTR(ϕ, h, methods, parameters)
   # final value, kth iteration, smooth history, nonsmooth history (with λ), # of evaluations in the inner PG loop 
 
   paramsQR = TRNCparams(; σk=1 / β, ϵ=ϵ, verbose=10) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e

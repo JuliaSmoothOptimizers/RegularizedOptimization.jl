@@ -10,29 +10,29 @@ xi = zeros(size(x0))
 b0 = A * x0
 α = .01
 b = b0 + α * randn(m, )
+xi = zeros(size(x0))
 
-function f_obj(x)
-	f = .5 * norm(A * x - b)^2
-	g = A' * (A * x - b)
-	return f, g
+function grad!(g, x)
+    g .= A'*(A*x - b)
+    return g
 end
-function h_obj(x)
-	return 0
-end
-m, n = size(A)
+ϕt = LBFGSModel(SmoothObj((z) -> norm(A*z-b)^2, grad!, xi))
+λ = 0.0 
+h = NormL1(λ)
+χ = NormL2(1.0)
+
+# set all options 
 MI = 1000
 TOL = 1e-6
-λ = 1.0 
-# set all options
-Doptions = s_options(1 / eigmax(A' * A); optTol=TOL, maxIter=1000, verbose=0)
-options = TRNCoptions(;verbose=0, ϵD=TOL, maxIter=MI)
-parameters = TRNCstruct(f_obj, h_obj, λ; FO_options=Doptions, s_alg=PG, HessApprox=LSR1Operator)
+Doptions = s_params(1 / eigmax(A' * A), λ; optTol=TOL*1e-4, maxIter=20000, verbose=0)
+methods= TRNCmethods(; FO_options = Doptions, s_alg=PG, χ = χ)
+params = TRNCparams(; maxIter = MI, verbose = 10, ϵ = TOL, β = 1e16, σk = 1e4)
 solverp = ProximalAlgorithms.PANOC(tol=TOL, verbose=true, freq=1, maxit=MI)
 solverz = ProximalAlgorithms.ZeroFPR(tol=TOL, verbose=true, freq=1, maxit=MI)
 
 @info "running LS bfgs, h=0"
 folder = string("figs/ls_bfgs/", compound, "/")
-xi = zeros(size(x0))
+
 
 function h_objmod(x)
 	if norm(x, 2) ≤ 100
@@ -49,9 +49,7 @@ end
 # g = IndBallL2(100)
 ϕ = LeastSquaresObjective((z) -> [norm(A * z - b)^2, A' * (A * z - b)], (z) -> 0, 0, [])
 g = ProxOp(h_objmod, (z, σ) -> tr_norm(z, σ, 1, 100), 1, 0)
-parameters.χk = (s) -> norm(s, 2)
-parameters.ψχprox = tr_norm 
-_, _ = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder)
+# _, _ = evalwrapper(x0, xi, A, ϕt, h, ϕ, g, λ, methods, params, solverp, solverz, folder)
 
 
 
@@ -70,14 +68,14 @@ b0 = A * x0
 b = b0 + α * randn(m, )
 λ = norm(A' * b, Inf) / 100 # this can change around 
 
-function f_obj(x)
-	f = .5 * norm(A * x - b)^2
-	g = A' * (A * x - b)
-	return f, g
+function grad!(g, x)
+    g .= A'*(A*x - b)
+    return g
 end
-ϕ.smooth = f_obj
-
-
+ϕt = LSR1Model(SmoothObj((z) -> norm(A*z-b)^2, grad!, xi))
+h = NormL1(λ)
+methods.χ = NormLinf(1.0)
+ϕ = LeastSquaresObjective((z) -> [norm(A * z - b)^2, A' * (A * z - b)], (z) -> 0, 0, [])
 
 Doptions.λ = λ
 xi = zeros(size(x0))
@@ -86,12 +84,7 @@ folder = string("figs/bpdn/LS_l1_Binf/", compound, "/")
 function h_obj(x)
 	return norm(x, 1)
 end
-function proxp(q, σ, xk, Δ)
-	ProjB(wp) = min.(max.(wp, q .- σ), q .+ σ)
-	ProjΔ(yp) = min.(max.(yp, -Δ), Δ)
-	s = ProjΔ(ProjB(-xk))
-	return s
-end
+
 ϕ.nonsmooth = h_obj 
 ϕ.count = 0
 ϕ.hist = []
@@ -100,12 +93,7 @@ g.count = 0
 g.proxh = (z, α) -> sign.(z) .* max.(abs.(z) .- (λ * α) * ones(size(z)), zeros(size(z)))
 g.λ = λ
 
-parameters.f_obj = f_obj
-parameters.h_obj = h_obj
-parameters.λ = λ
-parameters.χk = (s) -> norm(s, Inf)
-parameters.ψχprox = proxp
-l1binfv, l1binfp = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder)
+l1binfv, l1binfp = evalwrapper(x0, xi, A, ϕt, h, ϕ, g, λ, methods, params, solverp,solverz, folder)
 
 
 
@@ -113,65 +101,27 @@ l1binfv, l1binfp = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, op
 @info "running LS bfgs, h=l1, tr = l2"
 xi = zeros(size(x0))
 folder = string("figs/bpdn/LS_l1_B2/", compound, "/")
-function proxp(q, σ, xk, Δ) # q = s - ν*g, ν*λ, xk, Δ - > basically inputs the value you need
+ϕt = LSR1Model(SmoothObj((z) -> norm(A*z-b)^2, grad!, xi))
+h = NormL1(λ)
+methods.χ = NormL2(1.0)
 
-	ProjB(y) = min.(max.(y, q .- σ), q .+ σ)
-	froot(η) = η - norm(ProjB((-xk) .* (η / Δ)))
-
-	# %do the 2 norm projection
-	y1 = ProjB(-xk) # start with eta = tau
-
-	if (norm(y1) <= Δ)
-		y = y1  # easy case
-	else
-		η = fzero(froot, 1e-10, Inf)
-		y = ProjB((-xk) .* (η / Δ))
-	end
-	if (norm(y) <= Δ)
-		snew = y
-	else
-		snew = Δ .* y ./ norm(y)
-	end
-	return snew
-end 
-
-parameters.χk = (s) -> norm(s, 2)
-parameters.ψχprox = proxp
 ϕ.count = 0
 ϕ.hist = []
 g.count = 0
-l1b2v, l1b2p = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder)
-
-
-
+# l1b2v, l1b2p = evalwrapper(x0, xi, A, ϕt, h, ϕ, g, λ, methods, params, solverp,solverz, folder)
 
 
 @info "running LS bfgs, h=l0, tr = linf"
 xi = zeros(size(x0))
 folder = string("figs/bpdn/LS_l0_Binf/", compound, "/")
 
+ϕt = LSR1Model(SmoothObj((z) -> norm(A*z-b)^2, grad!, xi))
+h = NormL0(λ)
+methods.χ = NormLinf(1.0)
+
 function h_obj(x)
 	return norm(x, 0)
 end
-function proxp(q, σ, xk, Δ)
-	ProjB(y) = min.(max.(y, xk .- Δ), xk .+ Δ) # define outside? 
-	# @show σ/λ, λ
-	c = sqrt(2 * σ)
-	w = xk + q
-	st = zeros(size(w))
-
-	for i = 1:length(w)
-		absx = abs(w[i])
-		if absx <= c
-			st[i] = 0
-		else
-			st[i] = w[i]
-		end
-	end
-	s = ProjB(st) - xk
-	return s 
-end
-
 function proxl0(z, α)
     y = zeros(size(z))
     for i = 1:length(z)
@@ -181,16 +131,14 @@ function proxl0(z, α)
     end
     return y
 end
-parameters.h_obj = h_obj
-parameters.χk = (s) -> norm(s, Inf)
-parameters.ψχprox = proxp
+
 ϕ.nonsmooth = h_obj 
 ϕ.count = 0
 ϕ.hist = []
 g.count = 0 
 g.func = h_obj
 g.proxh = proxl0
-l0binfv, l0binfp = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder)
+# l0binfv, l0binfp = evalwrapper(x0, xi, A, ϕt, h, ϕ, g, λ, methods, params, solverp,solverz, folder)
 
 
 
@@ -201,6 +149,9 @@ l0binfv, l0binfp = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, op
 λ = k
 xi = zeros(size(x0))
 folder = string("figs/bpdn/LS_B0_Binf/", compound, "/")
+ϕt = LSR1Model(SmoothObj((z) -> norm(A*z-b)^2, grad!, xi))
+h = IndBallL0(λ)
+methods.χ = NormLinf(1.0)
 
 function h_obj(x)
 	if norm(x, 0) ≤ λ
@@ -211,15 +162,6 @@ function h_obj(x)
 	return h 
 end
 
-function proxp(q, σ, xk, Δ)
-	ProjB(w) = min.(max.(w, -Δ), +Δ)
-	w = q + xk 
-	# find largest entries
-	p = sortperm(abs.(w), rev=true)
-	w[p[λ + 1:end]] .= 0 # set smallest to zero 
-	s = ProjB(w - xk)# put all entries in projection?
-	return s 
-end
 function proxb0(q, σ)
     # find largest entries
     p = sortperm(abs.(q), rev=true)
@@ -227,9 +169,7 @@ function proxb0(q, σ)
     return q 
 end
 
-parameters.h_obj = h_obj
-parameters.χk = (s) -> norm(s, Inf)
-parameters.ψχprox = proxp
+
 ϕ.nonsmooth = h_obj 
 ϕ.count = 0
 ϕ.hist = []
@@ -238,7 +178,7 @@ g.count = 0
 g.func = h_obj
 g.proxh = proxb0
 
-b0binfv, b0binfp = evalwrapper(x0, xi, A, f_obj, h_obj,ϕ, g, λ, parameters, options, solverp,solverz, folder)
+# b0binfv, b0binfp = evalwrapper(x0, xi, A, ϕt, h, ϕ, g, λ, methods, params, solverp,solverz, folder)
 
 toplabs = ["\\(h=\\|\\cdot\\|_1\\), \\(\\Delta\\mathbb{B}_2\\)", "\\(h=\\|\\cdot\\|_0\\), \\(\\Delta\\mathbb{B}_\\infty\\)","\\(h=\\chi(\\cdot; \\lambda \\mathbb{B}_0)\\), \\(\\Delta\\mathbb{B}_\\infty\\)"]
 xlabs = ["True", "TR", "PANOC", "ZFP", "TR", "PANOC", "ZFP", "TR", "PANOC", "ZFP"]

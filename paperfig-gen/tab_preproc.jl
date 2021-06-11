@@ -7,7 +7,7 @@ function tab_preproc(f_obj, h_obj, xvars,pnumtab, hist, A, λ)
     partab = zeros(length(xvars))
     numtab = zeros(length(xvars))
     for i = 1:length(xvars)
-        ftab[i] = f_obj(xvars[i])[1] 
+        ftab[i] = obj(f_obj, xvars[i]) 
         htab[i] = h_obj(xvars[i])
         objtab[i] = ftab[i] + λ * htab[i]
         if isa(A, Array)
