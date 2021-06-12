@@ -38,7 +38,7 @@ Complex_hist: Array{Float64, 1}
 """
 QRalg(nlp::AbstractNLPModel, args...; kwargs...) = QRalg(x -> obj(nlp, x), x -> grad(nlp, x), args...; kwargs...)
 
-function QRalg(f, ∇f, h, x0, params, options)
+function QRalg(f, ∇f, h, x0, options)
   # initialize passed options
   ϵ = options.ϵ
   verbose = options.verbose
@@ -57,9 +57,6 @@ function QRalg(f, ∇f, h, x0, params, options)
   else
     ptf = 1
   end
-
-  # other parameters
-  χ = params.χ
 
   # initialize parameters
   xk = copy(x0)
@@ -96,7 +93,7 @@ function QRalg(f, ∇f, h, x0, params, options)
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk ξ ρk σk χ(xk) χ(s) TR_stat
+    k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk ξ ρk σk norm(xk) norm(s) TR_stat
 
     # define model
     φk(d) = dot(∇fk, d)
