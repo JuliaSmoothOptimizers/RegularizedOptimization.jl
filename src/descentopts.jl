@@ -1,5 +1,5 @@
 using NLPModels, ADNLPModels, ProximalOperators
-export s_params, TRNCparams, TRNCmethods, SmoothObj#, FObj, HObj
+export s_params, TRNCoptions, SmoothObj#, FObj, HObj
 
 mutable struct s_params
   ν
@@ -15,7 +15,7 @@ mutable struct s_params
   end
 end
 
-mutable struct TRNCparams
+mutable struct TRNCoptions
   ϵ # termination criteria
   Δk # trust region radius
   verbose # print every so often
@@ -25,11 +25,10 @@ mutable struct TRNCparams
   τ # linesearch buffer parameter 
   σk # quadratic model linesearch buffer parameter
   γ # trust region buffer 
-  mem # Bk iteration memory
   θ # TR inner loop "closeness" to Bk
   β # TR size for PG steps j>1
 
-  function TRNCparams(
+  function TRNCoptions(
     ;
     ϵ=1e-2,
     Δk=1.0,
@@ -40,11 +39,12 @@ mutable struct TRNCparams
     τ=0.01, # linesearch buffer parameter
     σk=1.0e-3, # LM parameter
     γ=3.0, # trust region buffer
-    mem=5, # L-BFGS memory
     θ=1e-3,
-    β=10.0
+    β=10.0,
+    FO_options = s_params(1.0, 1.0),
+    s_alg = PG,
     ) # default values for trust region parameters in algorithm 4.2
-    return new(ϵ, Δk, verbose, maxIter, η1, η2, τ, σk, γ, mem, θ, β)
+    return new(ϵ, Δk, verbose, maxIter, η1, η2, τ, σk, γ, θ, β, FO_options, s_alg)
   end
 end
 
@@ -74,19 +74,4 @@ function NLPModels.grad!(nlp::SmoothObj, x::AbstractVector, g :: AbstractVector)
   increment!(nlp, :neval_grad)
   nlp.g(g, x)
   return g
-end
-
-
-mutable struct TRNCmethods
-  FO_options # options for minimization routine you use for s; based on minconf_spg
-  s_alg # algorithm passed that determines descent direction 
-  χ # TR norm one computes for the trust region radius - default is l2 
-
-  function TRNCmethods(;
-    FO_options = s_params(1.0, 1.0),
-    s_alg = PG,
-    χ = NormL2(1.0),
-  )
-    return new(FO_options, s_alg, χ)
-  end
 end

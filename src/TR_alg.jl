@@ -3,12 +3,12 @@ using NLPModelsModifiers, LinearAlgebra, Arpack, ShiftedProximalOperators
 export TR
 
 """Interior method for Trust Region problem
-  TR(f, h, methods, params)
+  TR(f, h, methods, options)
 Arguments
 ----------
 x : Array{Float64,1}
   Initial guess for the x value used in the trust region
-params : mutable structure TR_params with:
+options : mutable structure TR_options with:
   --
   -ϵ, tolerance for primal convergence
   -Δk Float64, trust region radius
@@ -39,23 +39,25 @@ Complex_hist: Array{Float64, 1}
 function TR(
   f::AbstractNLPModel, 
   h::ProximableFunction, 
-  methods, 
-  params;
+  χ::ProximableFunction, 
+  options;
   x0::AbstractVector=f.meta.x0,
   )
 
   # initialize passed options
-  ϵ = params.ϵ
-  Δk = params.Δk
-  verbose = params.verbose
-  maxIter = params.maxIter
-  η1 = params.η1
-  η2 = params.η2 
-  γ = params.γ
-  τ = params.τ
-  θ = params.θ
-  β = params.β
-  mem = params.mem
+  ϵ = options.ϵ
+  Δk = options.Δk
+  verbose = options.verbose
+  maxIter = options.maxIter
+  η1 = options.η1
+  η2 = options.η2 
+  γ = options.γ
+  τ = options.τ
+  θ = options.θ
+  β = options.β
+  FO_options = options.FO_options
+  s_alg = options.s_alg
+
   if verbose == 0
     ptf = Inf
   elseif verbose == 1
@@ -65,11 +67,6 @@ function TR(
   else
     ptf = 1
   end
-
-  # other methods
-  FO_options = methods.FO_options
-  s_alg = methods.s_alg
-  χ = methods.χ 
 
   # initialize parameters
   xk = copy(x0)
@@ -142,9 +139,8 @@ function TR(
     end
     FO_options.optTol = k == 1 ? 1.0e-5 : max(ϵ, min(.01, sqrt(ξ1)) * ξ1)
     set_radius!(ψ, min(β * χ(s1), Δk))
-    inner_params = TRNCmethods(FO_options = methods.FO_options, χ = χ)
-    inner_options = TRNCparams(; maxIter = 90000, verbose = 0, ϵ = FO_options.optTol, σk = νInv)
-    s, funEvals, _, _, _ = s_alg(φ, ∇φ, ψ, s1, inner_params, inner_options)
+    inner_options = TRNCoptions(; maxIter = 90000, verbose = 0, ϵ = FO_options.optTol, σk = νInv)
+    s, funEvals, _, _, _ = s_alg(φ, ∇φ, ψ, s1, inner_options)
     # (s, funEvals) = s_alg(φ, ∇φ, ψ, s1, FO_options)
     # update Complexity history 
     Complex_hist[k] += funEvals 
