@@ -18,7 +18,7 @@ options : mutable struct TR_methods
   -f, smooth objective NLP Model
   -h, nonsmooth objective struct; h, ψ, ψχprox - function projecting onto the trust region ball or ψ+χ
   --
-  -FO_options, options for first order algorithm, see DescentMethods.jl for more
+  -subsolver_options, options for first order algorithm, see DescentMethods.jl for more
   -s_alg, algorithm for descent direction, see DescentMethods.jl for more
   -χk, function that is the TR norm ball; defaults to l2 
 
@@ -42,6 +42,8 @@ function TR(
   χ::ProximableFunction, 
   options;
   x0::AbstractVector=f.meta.x0,
+  s_alg = PG,
+  subsolver_options = TRNCoptions(),
   )
 
   # initialize passed options
@@ -55,8 +57,6 @@ function TR(
   τ = options.τ
   θ = options.θ
   β = options.β
-  FO_options = options.FO_options
-  s_alg = options.s_alg
 
   if verbose == 0
     ptf = Inf
@@ -126,8 +126,8 @@ function TR(
     mk(d) = φ(d) + ψ(d)
 
     # take initial step s1 and see if you can do more 
-    FO_options.ν = min(1 / νInv, Δk)
-    s1 = ShiftedProximalOperators.prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
+    subsolver_options.ν = min(1 / νInv, Δk)
+    s1 = ShiftedProximalOperators.prox(ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν) # -> PG on one step s1
     ξ1 = fk + hk - mk(s1)
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
@@ -137,10 +137,10 @@ function TR(
       @info "TR: terminating with ξ1 = $(ξ1)"
       continue
     end
-    FO_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(.01, sqrt(ξ1)) * ξ1)
-    FO_options.ν = 1 / νInv
+    subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(.01, sqrt(ξ1)) * ξ1)
+    subsolver_options.ν = 1 / νInv
     set_radius!(ψ, min(β * χ(s1), Δk))
-    s, funEvals, _, _, _ = s_alg(φ, ∇φ, ψ, FO_options; x0 = s1)
+    s, funEvals, _, _, _ = s_alg(φ, ∇φ, ψ, subsolver_options; x0 = s1)
     # update Complexity history 
     Complex_hist[k] += funEvals 
 
