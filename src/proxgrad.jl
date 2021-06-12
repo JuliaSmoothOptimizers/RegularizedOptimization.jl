@@ -1,245 +1,271 @@
 export PG, PGLnsch, PGΔ, PGE
 
-using Printf
+using Printf, ShiftedProximalOperators
 """
-    Proximal Gradient Descent  for
-    min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
+		Proximal Gradient Descent  for
+		min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
 
-    Input:
-        Fcn: function handle that returns f(x) and ∇f(x)
-        Gcn: function handle that returns g(x)
-        s: initial point
-        proxG: function handle that calculates prox_{νg}
-        options: see descentopts.jl
-    Output:
-        s⁺: s update
-        s : s^(k-1)
-        his : function history
-        feval : number of function evals (total objective )
+		Input:
+				f: function handle that returns f(x) and ∇f(x)
+				h: function handle that returns g(x)
+				s: initial point
+				proxG: function handle that calculates prox_{νg}
+				options: see descentopts.jl
+		Output:
+				s⁺: s update
+				s : s^(k-1)
+				his : function history
+				feval : number of function evals (total objective )
 """
-function PG(Fcn, GradFcn, Gcn, s, options)
+function PG(
+	f, 
+	∇f,
+	h, 
+	options;
+	x::AbstractVector=f.meta.x0,
+	)
 
-  ε=options.optTol
-  max_iter=options.maxIter
+	ϵ=options.ϵ
+	maxIter=options.maxIter
 
-  if options.verbose==0
-    print_freq = Inf
-  elseif options.verbose==1
-    print_freq = round(max_iter/10)
-  elseif options.verbose==2
-    print_freq = round(max_iter/100)
-  else
-    print_freq = 1
-  end
+	if options.verbose==0
+		print_freq = Inf
+	elseif options.verbose==1
+		print_freq = round(maxIter/10)
+	elseif options.verbose==2
+		print_freq = round(maxIter/100)
+	else
+		print_freq = 1
+	end
 
-  #Problem Initialize
-  ν = options.ν
-  s⁺ = deepcopy(s)
+	#Problem Initialize
+	ν = options.ν
+	x⁺ = deepcopy(x)
+	Fobj_hist = zeros(maxIter)
+	Hobj_hist = zeros(maxIter)
+	Complex_hist = zeros(Int, maxIter)
 
-  # Iteration set up
-  g = GradFcn(s⁺) #objInner/ quadratic model
-  feval = 1
-  k = 0
+	# Iteration set up
+	g = ∇f(x⁺) #objInner/ quadratic model
+	k = 0
+	fk = f(x⁺)
+	hk = h(x⁺)
 
-  #do iterations
-  optimal = false
-  tired = k ≥ max_iter
+	#do iterations
+	optimal = false
+	tired = k ≥ maxIter
 
-  while !(optimal || tired)
+	if verbose != 0
+		@info @sprintf "%6s %8s %8s %7s %8s %7s" "iter" "f(x)" "h(x)" "‖∂ϕ‖" "ν" "‖x‖" ""
+	end
 
-    gold = g
-    s = s⁺
+	while !(optimal || tired)
 
-    s⁺ = prox(Gcn, s - ν*g, ν) 
+		Fobj_hist[k] = fk
+		Hobj_hist[k] = hk
+		Complex_hist[k] += 1
 
-    g = GradFcn(s⁺)
+		gold = g
+		x = x⁺
 
-    feval+=1
-    k+=1
-    err = norm(g-gold - (s⁺-s)/ν)
-    optimal = err < ε 
-    tired = k ≥ max_iter
+		x⁺ = ShiftedProximalOperators.prox(h, x - ν*g, ν) 
 
-    k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
+		g = ∇f(x⁺)
+		fk = f(x⁺)
+		hk = h(x⁺)
+
+		feval+=1
+		k+=1
+		err = norm(g-gold - (x⁺-x)/ν)
+		optimal = err < ϵ 
+		tired = k ≥ maxIter
+
+		k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e " k fk hk err ν norm(xk)
  
-  end
-  return s⁺, feval
+	end
+	return x⁺, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
 end
 
-function PGΔ(Fcn, GradFcn, Gcn, s, options)
+function PGΔ(
+	f, 
+	∇f, 
+	h,
+	options;
+	x::AbstractVector=f.meta.x0,
+	)
 
-  ε=options.optTol
-  max_iter=options.maxIter
+	ε=options.optTol
+	maxIter=options.maxIter
 
-  if options.verbose==0
-      print_freq = Inf
-  elseif options.verbose==1
-      print_freq = round(max_iter/10)
-  elseif options.verbose==2
-      print_freq = round(max_iter/100)
-  else
-      print_freq = 1
-  end
-  #Problem Initialize
-  ν = options.ν
-  p = options.p 
-  FcnDec = options.FcnDec
+	if options.verbose==0
+			print_freq = Inf
+	elseif options.verbose==1
+			print_freq = round(maxIter/10)
+	elseif options.verbose==2
+			print_freq = round(maxIter/100)
+	else
+			print_freq = 1
+	end
+	#Problem Initialize
+	ν = options.ν
+	p = options.p 
+	fDec = options.fDec
 
-  k = 1
-  feval = 1
-  s⁺ = deepcopy(s)
+	k = 1
+	feval = 1
+	x⁺ = deepcopy(x)
 
-  # Iteration set up
-  g = GradFcn(s⁺) #objInner/ quadratic model
-  f = Fcn(s⁺)
+	# Iteration set up
+	g = ∇f(x⁺) #objInner/ quadratic model
+	fk = f(x⁺)
 
-  #do iterations
-  optimal = false
-  FD = false
-  tired = k ≥ max_iter
+	#do iterations
+	optimal = false
+	FD = false
+	tired = k ≥ maxIter
 
-  while !(optimal || tired || FD)
+	while !(optimal || tired || FD)
 
-    gold = g
-    fold = f
-    s = s⁺
+		gold = g
+		fold = f
+		x = x⁺
 
-    s⁺ = prox(Gcn, s - ν*g, ν)
-    # update function info
-    g = GradFcn(s⁺)
-    f = Fcn(s⁺)
+		x⁺ = ShiftedProximalOperators.prox(h, x - ν*g, ν)
+		# update function info
+		g = ∇f(x⁺)
+		f = f(x⁺)
 
-    feval+=1
-    k+=1
-    err = norm(g-gold - (s⁺-s)/ν)
-    optimal =  err < ε
-    tired = k ≥ max_iter
+		feval+=1
+		k+=1
+		err = norm(g-gold - (x⁺-x)/ν)
+		optimal =  err < ε
+		tired = k ≥ maxIter
 
-    k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
+		k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
-    DiffFcn = fold + Gcn(s) - f - Gcn(s⁺) # these do not work 
-    FD = abs(DiffFcn)<p*norm(FcnDec)
+		Difff = fold + h(x) - f - h(x⁺) # these do not work 
+		FD = abs(Difff)<p*norm(fDec)
 
-  end
-  return s⁺, feval
+	end
+	return x⁺, feval
 end
 
 
 
-function PGE(Fcn, Gcn, s, options)
+function PGE(f, h, s, options)
 
-  ε=options.optTol
-  max_iter=options.maxIter
+	ε=options.optTol
+	maxIter=options.maxIter
 
-  if options.verbose==0
-      print_freq = Inf
-  elseif options.verbose==1
-      print_freq = round(max_iter/10)
-  elseif options.verbose==2
-      print_freq = round(max_iter/100)
-  else
-      print_freq = 1
-  end
-  #Problem Initialize
-  ν = options.ν
-  p = options.p 
-  FcnDec = options.FcnDec
+	if options.verbose==0
+			print_freq = Inf
+	elseif options.verbose==1
+			print_freq = round(maxIter/10)
+	elseif options.verbose==2
+			print_freq = round(maxIter/100)
+	else
+			print_freq = 1
+	end
+	#Problem Initialize
+	ν = options.ν
+	p = options.p 
+	fDec = options.fDec
 
-  k = 1
-  feval = 1
-  s⁺ = deepcopy(s)
+	k = 1
+	feval = 1
+	s⁺ = deepcopy(s)
 
-  # Iteration set up
-  g = GradFcn(s⁺) #objInner/ quadratic model
+	# Iteration set up
+	g = ∇f(s⁺) #objInner/ quadratic model
 
-  #do iterations
-  FD = false 
-  optimal = false
-  tired = k ≥ max_iter 
-  
-  #do iterations
-  while !(optimal || tired || FD)
+	#do iterations
+	FD = false 
+	optimal = false
+	tired = k ≥ maxIter 
+	
+	#do iterations
+	while !(optimal || tired || FD)
 
-    gold = g
-    s = s⁺
+		gold = g
+		s = s⁺
 
-    ν = min(g'*g/(g'*Bk*g), ν) #no BK, will not work 
-    #prox step
-    s⁺ = prox(Gcn, s - ν*g, ν)
-    # update function info
-    g = GradFcn(s⁺)
-    f = Fcn(s⁺)
+		ν = min(g'*g/(g'*Bk*g), ν) #no BK, will not work 
+		#prox step
+		s⁺ = ShiftedProximalOperators.prox(h, s - ν*g, ν)
+		# update function info
+		g = ∇f(s⁺)
+		f = f(s⁺)
 
-    feval+=1
-    k+=1
-    err = norm(g-gold - (s⁺-s)/ν)
-    optimal =  err < ε
-    tired = k ≥ max_iter
+		feval+=1
+		k+=1
+		err = norm(g-gold - (s⁺-s)/ν)
+		optimal =  err < ε
+		tired = k ≥ maxIter
 
-    k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
+		k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
-    
-    DiffFcn = fold + Gcn(s) - f - Gcn(s⁺) # these do not work 
-    FD = abs(DiffFcn)<p*norm(FcnDec)
-  end
-  return s⁺, feval
+		
+		Difff = fold + h(s) - f - h(s⁺) # these do not work 
+		FD = abs(Difff)<p*norm(fDec)
+	end
+	return s⁺, feval
 end
 
-function PGLnsch(Fcn, GradFcn, Gcn, s, options)
+function PGLnsch(f, ∇f, h, s, options)
 
-  ε=options.optTol
-  max_iter=options.maxIter
+	ε=options.optTol
+	maxIter=options.maxIter
 
-  if options.verbose==0
-      print_freq = Inf
-  elseif options.verbose==1
-      print_freq = round(max_iter/10)
-  elseif options.verbose==2
-      print_freq = round(max_iter/100)
-  else
-      print_freq = 1
-  end
-  
-  #Problem Initialize
-  p = options.p
-  ν₀ = options.ν
-  k = 1
-  s⁺ = deepcopy(s)
+	if options.verbose==0
+			print_freq = Inf
+	elseif options.verbose==1
+			print_freq = round(maxIter/10)
+	elseif options.verbose==2
+			print_freq = round(maxIter/100)
+	else
+			print_freq = 1
+	end
+	
+	#Problem Initialize
+	p = options.p
+	ν₀ = options.ν
+	k = 1
+	s⁺ = deepcopy(s)
 
-  # Iteration set up
-  feval = 1
-  g = GradFcn(s⁺) #objInner/ quadratic model
-  f = Fcn(s⁺)
+	# Iteration set up
+	feval = 1
+	g = ∇f(s⁺) #objInner/ quadratic model
+	fk = f(s⁺)
 
-  #do iterations
-  optimal = false
-  tired = k ≥ max_iter
+	#do iterations
+	optimal = false
+	tired = k ≥ maxIter
 
-  while !(optimal || tired)
+	while !(optimal || tired)
 
-    gold = g
-    s = s⁺
+		gold = g
+		s = s⁺
 
-    s⁺ = prox(Gcn, s - ν*g, ν)
-    #linesearch but we don't pass in Fcn? 
-    while Fcn(s⁺) ≥ f + g'*(s⁺ - s) + 1/(ν*2)*norm(s⁺ - s)^2
-        ν *= p*ν
-        s⁺ = prox(Gcn, s - ν*g, ν)
-        feval+=1
-    end
-    # update function info
-    g = GradFcn(s⁺) #objInner/ quadratic model
-    f = Fcn(s⁺)
+		s⁺ = ShiftedProximalOperators.prox(h, s - ν*g, ν)
+		#linesearch but we don't pass in f? 
+		while f(s⁺) ≥ fk + g'*(s⁺ - s) + 1/(ν*2)*norm(s⁺ - s)^2
+				ν *= p*ν
+				s⁺ = prox(h, s - ν*g, ν)
+				feval+=1
+		end
+		# update function info
+		g = ∇f(s⁺) #objInner/ quadratic model
+		fk = f(s⁺)
 
-    feval+=1
-    k+=1
-    err = norm(g-gold - (s⁺-s)/ν)
-    optimal = err < ε 
-    tired = k ≥ max_iter
+		feval+=1
+		k+=1
+		err = norm(g-gold - (s⁺-s)/ν)
+		optimal = err < ε 
+		tired = k ≥ maxIter
 
-    k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
-    ν = ν₀
+		k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
+		ν = ν₀
 
-  end
-  return s⁺, feval
+	end
+	return s⁺, feval
 end
