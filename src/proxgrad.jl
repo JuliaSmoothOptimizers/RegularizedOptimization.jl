@@ -56,7 +56,7 @@ function PG(
 	tired = k ≥ maxIter
 
 	if verbose != 0
-		@info @sprintf "%6s %8s %8s %7s %8s %7s" "iter" "f(x)" "h(x)" "‖∂ϕ‖" "ν" "‖x‖" ""
+		@info @sprintf "%6s %8s %8s %7s %8s %7s" "iter" "f(x)" "h(x)" "‖∂ϕ‖" "ν" "‖x‖"
 	end
 
 	while !(optimal || tired)
