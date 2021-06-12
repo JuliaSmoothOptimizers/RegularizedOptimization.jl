@@ -4,14 +4,14 @@ export s_params, TRNCoptions, SmoothObj#, FObj, HObj
 mutable struct s_params
   ν
   λ
-  optTol
+  ϵ
   maxIter
   verbose
   p
   FcnDec
 
-  function s_params(ν, λ; optTol=1f-6, maxIter=10000, verbose=0, p=1.1, FcnDec=1e10)
-    return new(ν,λ, optTol, maxIter, verbose, p, FcnDec)
+  function s_params(ν, λ; ϵ=1f-6, maxIter=10000, verbose=0, p=1.1, FcnDec=1e10)
+    return new(ν,λ, ϵ, maxIter, verbose, p, FcnDec)
   end
 end
 
