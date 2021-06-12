@@ -1,7 +1,5 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
-
 using NLPModelsModifiers, LinearAlgebra, Arpack, ShiftedProximalOperators
-using ShiftedProximalOperators: prox
 export TR
 
 """Interior method for Trust Region problem
@@ -38,7 +36,13 @@ Complex_hist: Array{Float64, 1}
   inner algorithm iteration count 
 
 """
-function TR(f, h, methods, params)
+function TR(
+  f::AbstractNLPModel, 
+  h::ProximableFunction, 
+  methods, 
+  params;
+  x0::AbstractVector=f.meta.x0,
+  )
 
   # initialize passed options
   ϵ = params.ϵ
@@ -66,9 +70,12 @@ function TR(f, h, methods, params)
   FO_options = methods.FO_options
   s_alg = methods.s_alg
   χ = methods.χ 
-  xk = deepcopy(f.meta.x0) #try copy()
 
   # initialize parameters
+  xk = copy(x0)
+  xkn = similar(xk)
+  m = length(xk)
+  s = zero(xk)
   ψ = shifted(h, xk, Δk, χ)
 
   Fobj_hist = zeros(maxIter)
@@ -79,17 +86,8 @@ function TR(f, h, methods, params)
   k = 0
   ρk = -1.0
   α = 1.0
+  sNorm = 0.0
   TR_stat = ""
-
-  # main algorithm initialization
-  # test to see if user provided a hessian
-  # quasiNewtTest = (f_obj.Hess == LSR1Operator) || (f_obj.Hess==LBFGSOperator)
-  quasiNewtTest = isa(f, QuasiNewtonModel)
-  Bk = hess_op(f, xk)
-  # define the Hessian 
-  H = Symmetric(Matrix(Bk))
-  # νInv = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-  νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1, which=:LM)[1]))
 
   # keep track of old values, initialize functions
   ∇fk = grad(f, xk)
@@ -99,7 +97,12 @@ function TR(f, h, methods, params)
   ∇fk⁻ = copy(∇fk)
   funEvals = 1
 
-  sNorm = 0.0
+  quasiNewtTest = isa(f, QuasiNewtonModel)
+  Bk = hess_op(f, xk)
+  # define the Hessian 
+  H = Symmetric(Matrix(Bk))
+  νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1, which=:LM)[1]))
+
   ξ = 0.0
   ξ1 = 0.0
   optimal = false
@@ -108,82 +111,83 @@ function TR(f, h, methods, params)
   while !(optimal || tired)
     # update count
     k = k + 1 
-
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
     # Print values
     k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
 
     # define inner function 
-    ∇φ(d) = H * d + ∇fk # (∇φ) -> PGnew (eventually get to just PG)
-    φ(d) = 0.5 * (d' * (H * d)) + ∇fk' * d + fk
+    ∇φ(d) = begin
+      return H * d + ∇fk 
+    end
+
+    φ(d) = begin 
+        return 0.5 * (d' * (H * d)) + ∇fk' * d + fk
+    end
 
     # define model and update ρ
     mk(d) = φ(d) + ψ(d)
 
     # take initial step s1 and see if you can do more 
     FO_options.ν = min(1 / νInv, Δk)
-    s1 = prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
+    s1 = ShiftedProximalOperators.prox(ψ, -FO_options.ν * ∇fk, FO_options.ν) # -> PG on one step s1
     ξ1 = fk + hk - mk(s1)
+    ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
-    if ξ1 > ϵ || k==1 # final stopping criteria
-      FO_options.optTol = min(.01, sqrt(ξ1)) * ξ1 # stopping criteria for inner algorithm 
-      FO_options.FcnDec = ξ1
-      set_radius!(ψ, min(β * χ(s1), Δk))
-      # (s, funEvals) = QRalg(φ, ∇φ, ψ, s1, methods, params)
-      (s, funEvals) = s_alg(φ, ∇φ, ψ, s1, FO_options)
-      ξ = fk + hk - mk(s)
-    else
-      s .= s1
-      funEvals = 1 
-      ξ = ξ1
+    if ξ1 < ϵ
+      # the current xk is approximately first-order stationary
+      optimal = true
+      @info "TR: terminating with ξ1 = $(ξ1)"
+      continue
     end
-
+    FO_options.optTol = k == 1 ? 1.0e-5 : max(ϵ, min(.01, sqrt(ξ1)) * ξ1)
+    set_radius!(ψ, min(β * χ(s1), Δk))
+    inner_params = TRNCmethods(FO_options = methods.FO_options, χ = χ)
+    inner_options = TRNCparams(; maxIter = 90000, verbose = 0, ϵ = FO_options.optTol, σk = νInv)
+    s, funEvals, _, _, _ = s_alg(φ, ∇φ, ψ, s1, inner_params, inner_options)
+    # (s, funEvals) = s_alg(φ, ∇φ, ψ, s1, FO_options)
     # update Complexity history 
-    Complex_hist[k] += funEvals # doesn't really count because of quadratic model 
-    sNorm =  χ(s)
-    fkn = obj(f, xk + s)
-    hkn = h(xk+s)
+    Complex_hist[k] += funEvals 
 
-    Δobj = fk + hk - (fkn + hkn)
-    optimal = ξ1 < ϵ
+    sNorm =  χ(s)
+    xkn .= xk .+ s
+    fkn = obj(f, xkn)
+    hkn = h(xkn)
+
+    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+    ξ = fk + hk - mk(s)
 
     if (ξ ≤ 0 || isnan(ξ))
-      error("failed to compute a step")
+      error("TR: failed to compute a step: ξ = $ξ")
     end
 
-    ρk = (Δobj + 1e-16) / (ξ + 1e-16)
+    ρk = Δobj / ξ
 
     if η2 ≤ ρk < Inf
       TR_stat = "↗"
-      Δk = max(Δk, γ * ψ.χ(s))
+      Δk = max(Δk, γ * sNorm)
+      set_radius!(ψ, Δk)
     else
       TR_stat = "="
     end
 
     if η1 ≤ ρk < Inf
-      xk .+= s
+      xk .= xkn
 
       #update functions
       fk = fkn
       hk = hkn
-
-      #update gradient & hessian 
-      if !optimal 
-          ∇fk = grad(f, xk)
-          #grad!(f, xk, ∇fk)
-        if quasiNewtTest
-          push!(f, s, ∇fk - ∇fk⁻)
-        end
-        Bk = hess_op(f, xk)
-        # define the Hessian 
-        H = Symmetric(Matrix(Bk))
-        # β = eigmax(H) #make a Matrix? ||B_k|| = λ(B_k) # change to opNorm(Bk, 2), arPack? 
-        νInv = (1 + θ) * maximum(abs.(eigs(H;nev=1, which=:LM)[1]))
-            
-        # store previous iterates
-        ∇fk⁻ .= ∇fk
+      shift!(ψ, xk)
+      ∇fk = grad(f, xk)
+      #grad!(f, xk, ∇fk)
+      if quasiNewtTest
+        push!(f, s, ∇fk - ∇fk⁻)
       end
+      Bk = hess_op(f, xk)
+      H = Symmetric(Matrix(Bk)) 
+      νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1,  v0 = randn(m,), which=:LM)[1]))
+      # store previous iterates
+      ∇fk⁻ .= ∇fk
 
       #hist update 
       Complex_hist[k] += 1
@@ -193,10 +197,8 @@ function TR(f, h, methods, params)
       TR_stat = "↘"
       α = .5
       Δk = α * Δk	# change to reflect trust region 
+      set_radius!(ψ, Δk)
     end
-
-    shift!(ψ, xk) #inefficient but placed here for now 
-    set_radius!(ψ, Δk)
     tired = k ≥ maxIter
 
   end
