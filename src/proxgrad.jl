@@ -48,7 +48,7 @@ function PG(
 
 	# Iteration set up
 	g = ∇f(x⁺) #objInner/ quadratic model
-	k = 0
+	k = 1
 	fk = f(x⁺)
 	hk = h(x⁺)
 
