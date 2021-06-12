@@ -29,13 +29,13 @@ function PG(
 	maxIter=options.maxIter
 
 	if options.verbose==0
-		print_freq = Inf
+		ptf = Inf
 	elseif options.verbose==1
-		print_freq = round(maxIter/10)
+		ptf = round(maxIter/10)
 	elseif options.verbose==2
-		print_freq = round(maxIter/100)
+		ptf = round(maxIter/100)
 	else
-		print_freq = 1
+		ptf = 1
 	end
 
 	#Problem Initialize
@@ -98,13 +98,13 @@ function PGΔ(
 	maxIter=options.maxIter
 
 	if options.verbose==0
-			print_freq = Inf
+			ptf = Inf
 	elseif options.verbose==1
-			print_freq = round(maxIter/10)
+			ptf = round(maxIter/10)
 	elseif options.verbose==2
-			print_freq = round(maxIter/100)
+			ptf = round(maxIter/100)
 	else
-			print_freq = 1
+			ptf = 1
 	end
 	#Problem Initialize
 	ν = options.ν
@@ -141,7 +141,7 @@ function PGΔ(
 		optimal =  err < ε
 		tired = k ≥ maxIter
 
-		k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
+		k % ptf == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
 		Difff = fold + h(x) - f - h(x⁺) # these do not work 
 		FD = abs(Difff)<p*norm(fDec)
@@ -158,13 +158,13 @@ function PGE(f, h, s, options)
 	maxIter=options.maxIter
 
 	if options.verbose==0
-			print_freq = Inf
+			ptf = Inf
 	elseif options.verbose==1
-			print_freq = round(maxIter/10)
+			ptf = round(maxIter/10)
 	elseif options.verbose==2
-			print_freq = round(maxIter/100)
+			ptf = round(maxIter/100)
 	else
-			print_freq = 1
+			ptf = 1
 	end
 	#Problem Initialize
 	ν = options.ν
@@ -202,7 +202,7 @@ function PGE(f, h, s, options)
 		optimal =  err < ε
 		tired = k ≥ maxIter
 
-		k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
+		k % ptf == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
 		
 		Difff = fold + h(s) - f - h(s⁺) # these do not work 
@@ -217,13 +217,13 @@ function PGLnsch(f, ∇f, h, s, options)
 	maxIter=options.maxIter
 
 	if options.verbose==0
-			print_freq = Inf
+			ptf = Inf
 	elseif options.verbose==1
-			print_freq = round(maxIter/10)
+			ptf = round(maxIter/10)
 	elseif options.verbose==2
-			print_freq = round(maxIter/100)
+			ptf = round(maxIter/100)
 	else
-			print_freq = 1
+			ptf = 1
 	end
 	
 	#Problem Initialize
@@ -263,7 +263,7 @@ function PGLnsch(f, ∇f, h, s, options)
 		optimal = err < ε 
 		tired = k ≥ maxIter
 
-		k % print_freq == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
+		k % ptf == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 		ν = ν₀
 
 	end
