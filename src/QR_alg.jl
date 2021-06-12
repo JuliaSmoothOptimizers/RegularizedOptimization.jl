@@ -1,6 +1,6 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 
-using LinearAlgebra
+using LinearAlgebra, ShiftedProximalOperators
 export QRalg
 
 """Interior method for Trust Region problem
@@ -99,7 +99,7 @@ function QRalg(f, ∇f, h, x0, options)
     φk(d) = dot(∇fk, d)
     mk(d) = φk(d) + ψ(d)
 
-    s = prox(ψ, -ν * ∇fk, ν)
+    s = ShiftedProximalOperators.prox(ψ, -ν * ∇fk, ν)
     mks = mk(s)
     ξ = hk - mks
 

@@ -138,9 +138,9 @@ function TR(
       continue
     end
     FO_options.optTol = k == 1 ? 1.0e-5 : max(ϵ, min(.01, sqrt(ξ1)) * ξ1)
+    FO_options.σk = νInv
     set_radius!(ψ, min(β * χ(s1), Δk))
-    inner_options = TRNCoptions(; maxIter = 90000, verbose = 0, ϵ = FO_options.optTol, σk = νInv)
-    s, funEvals, _, _, _ = s_alg(φ, ∇φ, ψ, s1, inner_options)
+    s, funEvals, _, _, _ = s_alg(φ, ∇φ, ψ, s1, FO_options)
     # (s, funEvals) = s_alg(φ, ∇φ, ψ, s1, FO_options)
     # update Complexity history 
     Complex_hist[k] += funEvals 
