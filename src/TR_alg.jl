@@ -138,7 +138,7 @@ function TR(
       continue
     end
     FO_options.optTol = k == 1 ? 1.0e-5 : max(ϵ, min(.01, sqrt(ξ1)) * ξ1)
-    FO_options.σk = νInv
+    FO_options.ν = 1 / νInv
     set_radius!(ψ, min(β * χ(s1), Δk))
     s, funEvals, _, _, _ = s_alg(φ, ∇φ, ψ, s1, FO_options)
     # (s, funEvals) = s_alg(φ, ∇φ, ψ, s1, FO_options)

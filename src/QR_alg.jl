@@ -45,7 +45,7 @@ function QRalg(f, ∇f, h, x0, options)
   maxIter = options.maxIter
   η1 = options.η1
   η2 = options.η2
-  σk = options.σk
+  ν = options.ν
   γ = options.γ
 
   if verbose == 0
@@ -75,14 +75,11 @@ function QRalg(f, ∇f, h, x0, options)
   k = 0
   ρk = -1.0
   TR_stat = ""
+  σk = 1/ν
 
   fk = f(xk)
   ∇fk = ∇f(xk)
   hk = h(xk)
-
-  # main algorithm initialization
-  ν = 1 / σk
-  funEvals = 1
 
   ξ = 0.0
   optimal = false
@@ -104,7 +101,6 @@ function QRalg(f, ∇f, h, x0, options)
     ξ = hk - mks
 
     if (ξ < 0 || isnan(ξ))
-      @error "failed to obtain decrease" k ν ∇fk' hk mks ξ ψ s'
       error("QR: failed to compute a step: ξ = $ξ")
     end
 
