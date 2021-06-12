@@ -34,23 +34,22 @@ function L1BInf(compound=1)
 
   h = NormL1(λ)
 
-  β = opnorm(A)^2 #1/||Bk|| for exact Bk = A'*A
-  Doptions=s_params(1/β, λ; verbose=0, optTol=1e-16)
+  ν = opnorm(A)^2 #1/||Bk|| for exact Bk = A'*A
 
   ϵ = 1e-6
-  methods = TRNCmethods(; FO_options=Doptions, s_alg=QRalg2, χ=NormLinf(1.0))
-  parameters = TRNCparams(;β = 1e16, ϵ=ϵ, verbose = 10)
+  χ=NormLinf(1.0)
+  parameters = TRNCoptions(; ν = ν, β = 1e16, ϵ=ϵ, verbose = 10)
 
   # input initial guess, parameters, options 
-  xtr, ktr, Fhisttr, Hhisttr, Comp_pgtr = TRalg(ϕ, h, methods, parameters)
+  xtr, ktr, Fhisttr, Hhisttr, Comp_pgtr = TR(ϕ, h, χ, parameters; s_alg = QRalg)
 
 
   # input initial guess, parameters, options 
-  paramsQR = TRNCparams(; σk = 1/β, ϵ=ϵ, verbose = 10)
+  paramsQR = TRNCoptions(; ν = ν, ϵ=ϵ, verbose = 10)
   xi .= 0 
   reset!(ϕ)
 
-  xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QRalg(ϕ, h,xi, methods, paramsQR)
+  xqr, kqr, Fhistqr, Hhistqr, Comp_pgqr = QRalg(ϕ, h, paramsQR; x0 = xi)
 
 
   @info "TR relative error" norm(xtr - x0) / norm(x0)
