@@ -22,7 +22,7 @@ function PG(
 	∇f,
 	h, 
 	options;
-	x::AbstractVector=f.meta.x0,
+	x0::AbstractVector=f.meta.x0,
 	)
 
 	ϵ=options.ϵ
@@ -40,6 +40,7 @@ function PG(
 
 	#Problem Initialize
 	ν = options.ν
+	x = x0
 	x⁺ = deepcopy(x)
 	Fobj_hist = zeros(maxIter)
 	Hobj_hist = zeros(maxIter)
