@@ -23,7 +23,7 @@ mutable struct TRNCoptions
   η1 # ρ lower bound 
   η2 # ρ upper bound 
   τ # linesearch buffer parameter 
-  σk # quadratic model linesearch buffer parameter
+  ν 
   γ # trust region buffer 
   θ # TR inner loop "closeness" to Bk
   β # TR size for PG steps j>1
@@ -39,14 +39,14 @@ mutable struct TRNCoptions
     η1=1.0e-3, # ρ lower bound
     η2=0.9,  # ρ upper bound
     τ=0.01, # linesearch buffer parameter
-    σk=1.0e-3, # LM parameter
+    ν=1.0e-3, 
     γ=3.0, # trust region buffer
     θ=1e-3,
     β=10.0,
     FO_options = s_params(1.0, 1.0),
     s_alg = PG,
     ) # default values for trust region parameters in algorithm 4.2
-    return new(ϵ, Δk, verbose, maxIter, η1, η2, τ, σk, γ, θ, β, FO_options, s_alg)
+    return new(ϵ, Δk, verbose, maxIter, η1, η2, τ, ν, γ, θ, β, FO_options, s_alg)
   end
 end
 
