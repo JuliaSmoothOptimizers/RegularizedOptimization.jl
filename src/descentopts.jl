@@ -27,6 +27,8 @@ mutable struct TRNCoptions
   γ # trust region buffer 
   θ # TR inner loop "closeness" to Bk
   β # TR size for PG steps j>1
+  FO_options 
+  s_alg
 
   function TRNCoptions(
     ;
