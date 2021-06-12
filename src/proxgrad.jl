@@ -75,7 +75,6 @@ function PG(
 		fk = f(x⁺)
 		hk = h(x⁺)
 
-		feval+=1
 		k+=1
 		err = norm(g-gold - (x⁺-x)/ν)
 		optimal = err < ϵ 
