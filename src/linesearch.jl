@@ -1,6 +1,5 @@
 export linesearch, lsTR, directsearch, directsearch!
 
-
 function linesearch(x, zl, zu, s, dzl, dzu,l,u ;mult=.9, tau = .01)
 	α = 1.0
 	     while(
@@ -14,6 +13,7 @@ function linesearch(x, zl, zu, s, dzl, dzu,l,u ;mult=.9, tau = .01)
         end
         return α
 end
+
 function lsTR(x, s,l,u ;mult=.9, tau = .01)
 	α = 1.0
 	     while(
@@ -25,16 +25,19 @@ function lsTR(x, s,l,u ;mult=.9, tau = .01)
         end
         return α
 end
+
 function directsearch(xsl, usx, zkl, zku, s, dzl, dzu; tau = .01) #used to be .01
 	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s; (-tau*zkl)./dzl; (-tau*zku)./dzu]
     temp=filter((a) -> 1>=a>0, temp)
     return minimum(vcat(temp, 1.0))
 end
+
 function ds(xsl, usx, s; tau = .01) #used to be .01
 	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s]
     temp=filter((a) -> 1>=a>0, temp)
     return minimum(vcat(temp, 1.0))
 end
+
 function directsearch!(xsl, usx,α, zkl, zku, s, dzl, dzu; tau = .01) #used to be .01
 	temp = [(-tau *(xsl))./s; (-tau*(usx))./-s; (-tau*zkl)./dzl; (-tau*zku)./dzu]
     temp=filter((a) -> 1>=a>0, temp)

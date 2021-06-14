@@ -1,6 +1,5 @@
 export PG, PGLnsch, PGΔ, PGE
 
-using Printf, ShiftedProximalOperators
 """
 Proximal Gradient Descent  for
 

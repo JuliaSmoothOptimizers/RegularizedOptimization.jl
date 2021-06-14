@@ -1,4 +1,3 @@
-using NLPModels, ADNLPModels, ProximalOperators
 export TRNCoptions, SmoothObj
 
 mutable struct TRNCoptions
