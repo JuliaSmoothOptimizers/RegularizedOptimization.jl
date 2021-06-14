@@ -61,12 +61,10 @@ function solve_FH_LM(; λ = 1.0, ϵ = 1.0e-6)
     data, simulate, resid, misfit = FH_smooth_term()
     nls = ADNLSModel(resid, ones(5), 202)  # adbackend = ForwardDiff by default
     h = NormL0(λ)
-    # TODO: get rid of λ
-    inner_options = s_params(1.0, λ; verbose = 0)
-    params = TRNCmethods(FO_options = inner_options, χ = NormLinf(1.0))
-    options = TRNCparams(; maxIter = 2000, verbose = 10, ϵ = ϵ, β = 1e16, σk = 1.0e+1)
+    parameters = TRNCoptions(; ν = 1.0e-1, β = 1e16, ϵ = ϵ, verbose = 10)
+    χ = NormLinf(1.0)
 
-    xtr, k, Fhist, Hhist, Comp_pg = LM(nls, h, params, options)
+    xtr, k, Fhist, Hhist, Comp_pg = LM(nls, h, χ, parameters, s_alg = QRalg)
     return xtr, k, Fhist, Hhist, Comp_pg
 end
 
