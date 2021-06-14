@@ -19,7 +19,7 @@ options : mutable struct TR_methods
   --
   -subsolver_options, options for first order algorithm, see DescentMethods.jl for more
   -s_alg, algorithm for descent direction, see DescentMethods.jl for more
-  -χk, function that is the TR norm ball; defaults to l2 
+  -χk, function that is the TR norm ball; defaults to l2
 
 Returns
 -------
@@ -28,17 +28,17 @@ x   : Array{Float64,1}
 k   : Int
   number of iterations used
 Fobj_hist: Array{Float64,1}
-  smooth function history 
+  smooth function history
 Hobj_hist: Array{Float64, 1}
   nonsmooth function history
 Complex_hist: Array{Float64, 1}
-  inner algorithm iteration count 
+  inner algorithm iteration count
 
 """
 function TR(
-  f::AbstractNLPModel, 
-  h::ProximableFunction, 
-  χ::ProximableFunction, 
+  f::AbstractNLPModel,
+  h::ProximableFunction,
+  χ::ProximableFunction,
   options;
   x0::AbstractVector=f.meta.x0,
   s_alg = PG,
@@ -51,7 +51,7 @@ function TR(
   verbose = options.verbose
   maxIter = options.maxIter
   η1 = options.η1
-  η2 = options.η2 
+  η2 = options.η2
   γ = options.γ
   τ = options.τ
   θ = options.θ
@@ -95,7 +95,7 @@ function TR(
 
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
-  # define the Hessian 
+  # define the Hessian
   H = Symmetric(Matrix(Bk))
   νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1, which=:LM)[1]))
 
@@ -106,25 +106,25 @@ function TR(
 
   while !(optimal || tired)
     # update count
-    k = k + 1 
+    k = k + 1
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
     # Print values
     k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
 
-    # define inner function 
+    # define inner function
     ∇φ(d) = begin
-      return H * d + ∇fk 
+      return H * d + ∇fk
     end
 
-    φ(d) = begin 
+    φ(d) = begin
         return 0.5 * (d' * (H * d)) + ∇fk' * d + fk
     end
 
     # define model and update ρ
     mk(d) = φ(d) + ψ(d)
 
-    # take initial step s1 and see if you can do more 
+    # take initial step s1 and see if you can do more
     subsolver_options.ν = min(1 / νInv, Δk)
     s1 = ShiftedProximalOperators.prox(ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν) # -> PG on one step s1
     ξ1 = fk + hk - mk(s1)
@@ -140,8 +140,8 @@ function TR(
     subsolver_options.ν = 1 / νInv
     set_radius!(ψ, min(β * χ(s1), Δk))
     s, funEvals, _, _, _ = s_alg(φ, ∇φ, ψ, subsolver_options; x0 = s1)
-    # update Complexity history 
-    Complex_hist[k] += funEvals 
+    # update Complexity history
+    Complex_hist[k] += funEvals
 
     sNorm =  χ(s)
     xkn .= xk .+ s
@@ -178,19 +178,19 @@ function TR(
         push!(f, s, ∇fk - ∇fk⁻)
       end
       Bk = hess_op(f, xk)
-      H = Symmetric(Matrix(Bk)) 
+      H = Symmetric(Matrix(Bk))
       νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1,  v0 = randn(m,), which=:LM)[1]))
       # store previous iterates
       ∇fk⁻ .= ∇fk
 
-      #hist update 
+      #hist update
       Complex_hist[k] += 1
     end
 
     if ρk < η1 || ρk == Inf
       TR_stat = "↘"
       α = .5
-      Δk = α * Δk	# change to reflect trust region 
+      Δk = α * Δk	# change to reflect trust region
       set_radius!(ψ, Δk)
     end
     tired = k ≥ maxIter
