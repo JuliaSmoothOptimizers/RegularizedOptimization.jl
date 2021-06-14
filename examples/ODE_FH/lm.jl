@@ -24,13 +24,16 @@ where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; 
 ### Arguments
 
 * `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
+* `h::ProximableFunction`: a regularizer
+* `χ::ProximableFunction`: a norm used to define the trust region
 * `params::TRNCMethods`: insert description here
-* `options::TRNCParams`: insert description here
 
 ### Keyword arguments
 
 * `x0::AbstractVector`: an initial guess (default: the initial guess stored in `nls`)
-* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver.
+* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
+* `s_alg`: the procedure used to compute a step (`PG` or `QRalg`)
+* `subsolver_options::TRNCoptions`: default options to pass to the subsolver.
 
 ### Return values
 
@@ -43,21 +46,23 @@ where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; 
 function LMTR(
   nls::AbstractNLSModel,
   h::ProximableFunction,
-  params,
-  options;
+  χ::ProximableFunction,
+  params;
   x0::AbstractVector=nls.meta.x0,
-  subsolver_logger::Logging.AbstractLogger=Logging.NullLogger()
+  subsolver_logger::Logging.AbstractLogger=Logging.NullLogger(),
+  s_alg=QRalg,
+  subsolver_options=TRNCoptions()
  )
   # initialize passed options
-  ϵ = options.ϵ
-  Δk = options.Δk
-  verbose = options.verbose
-  maxIter = options.maxIter
-  η1 = options.η1
-  η2 = options.η2
-  γ = options.γ
-  θ = options.θ
-  β = options.β
+  ϵ = params.ϵ
+  Δk = params.Δk
+  verbose = params.verbose
+  maxIter = params.maxIter
+  η1 = params.η1
+  η2 = params.η2
+  γ = params.γ
+  θ = params.θ
+  β = params.β
 
   if verbose == 0
     ptf = Inf
@@ -69,11 +74,6 @@ function LMTR(
     ptf = 1
   end
 
-  # other parameters
-  FO_options = params.FO_options
-  s_alg = params.s_alg
-  χ = params.χ
-
   # initialize parameters
   xk = copy(x0)
   xkn = similar(xk)
@@ -83,7 +83,7 @@ function LMTR(
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
-  @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ" "Δm" "ρ" "Δ" "‖x‖" "‖s‖" "1/ν" "TR"
+  verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ" "Δm" "ρ" "Δ" "‖x‖" "‖s‖" "1/ν" "TR"
 
   k = 0
   ρk = -1.0
@@ -127,24 +127,22 @@ function LMTR(
     mk(d) = φ(d) + ψ(d)
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
-    FO_options.ν = min(1 / νInv, Δk)
-    s1 = ShiftedProximalOperators.prox(ψ, -FO_options.ν * ∇fk, FO_options.ν)
-    ξ1 = fk + hk - mk(s1)
+    subsolver_options.ν = min(1 / νInv, Δk)
+    s1 = ShiftedProximalOperators.prox(ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν)
+    ξ1 = fk + hk - mk(s1) + max(1, abs(fk + hk)) * 10 * eps()
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if ξ1 < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
-      @info "LMTR: terminating with ξ1 = $(ξ1)"
+      verbose == 0 || @info "LMTR: terminating with ξ1 = $(ξ1)"
       continue
     end
 
-    FO_options.optTol = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
+    subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
     set_radius!(ψ, min(β * χ(s1), Δk))
-    inner_params = TRNCmethods(FO_options=params.FO_options, χ=χ)
-    inner_options = TRNCparams(; maxIter=90_000, verbose=10, ϵ=FO_options.optTol, σk=1 / Δk)
     s, funEvals, _, _, _ = with_logger(subsolver_logger) do
-      QRalg(φ, ∇φ, ψ, s1, inner_params, inner_options)
+      QRalg(φ, ∇φ, ψ, subsolver_options, x0 = s1)
     end
 
     Complex_hist[k] += funEvals
@@ -156,7 +154,7 @@ function LMTR(
     hkn = h(xkn)
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ξ = fk + hk - mk(s)  # TODO: isn't mk(s) returned by s_alg?
+    ξ = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps() # TODO: isn't mk(s) returned by s_alg?
 
     @debug "computed step" s norm(s, Inf) Δk
 
@@ -226,13 +224,15 @@ and σ > 0 is a regularization parameter.
 ### Arguments
 
 * `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
+* `h::ProximableFunction`: a regularizer
 * `params::TRNCMethods`: insert description here
-* `options::TRNCParams`: insert description here
 
 ### Keyword arguments
 
 * `x0::AbstractVector`: an initial guess (default: the initial guess stored in `nls`)
-* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver.
+* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
+* `s_alg`: the procedure used to compute a step (`PG` or `QRalg`)
+* `subsolver_options::TRNCoptions`: default options to pass to the subsolver.
 
 ### Return values
 
@@ -244,16 +244,16 @@ and σ > 0 is a regularization parameter.
 """
 # params <- methods
 # options <- params
-function LM(nls::AbstractNLSModel, h::ProximableFunction, params, options; x0::AbstractVector=nls.meta.x0, subsolver_logger=Logging.NullLogger())
+function LM(nls::AbstractNLSModel, h::ProximableFunction, params; x0::AbstractVector=nls.meta.x0, subsolver_logger=Logging.NullLogger(), s_alg=QRalg, subsolver_options = TRNCoptions())
   # initialize passed options
-  ϵ = options.ϵ
-  σk = options.σk
-  verbose = options.verbose
-  maxIter = options.maxIter
-  η1 = options.η1
-  η2 = options.η2
-  γ = options.γ
-  θ = options.θ
+  ϵ = params.ϵ
+  σk = 1 / params.ν
+  verbose = params.verbose
+  maxIter = params.maxIter
+  η1 = params.η1
+  η2 = params.η2
+  γ = params.γ
+  θ = params.θ
 
   if verbose == 0
     ptf = Inf
@@ -265,11 +265,6 @@ function LM(nls::AbstractNLSModel, h::ProximableFunction, params, options; x0::A
     ptf = 1
   end
 
-  # other parameters
-  FO_options = params.FO_options
-  s_alg = params.s_alg
-  χ = params.χ
-
   # initialize parameters
   xk = copy(x0)
   xkn = similar(xk)
@@ -279,7 +274,7 @@ function LM(nls::AbstractNLSModel, h::ProximableFunction, params, options; x0::A
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
-  @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ" "Δm" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
+  verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ" "Δm" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
 
   k = 0
   ρk = -1.0
@@ -307,7 +302,7 @@ function LM(nls::AbstractNLSModel, h::ProximableFunction, params, options; x0::A
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk σk χ(xk) χ(s) νInv σ_stat
+    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk σk norm(xk) norm(s) νInv σ_stat
 
     # define inner function
     # TODO: use Jacobian operator and do not compute gradient unless necessary
@@ -329,26 +324,23 @@ function LM(nls::AbstractNLSModel, h::ProximableFunction, params, options; x0::A
     end
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
-    FO_options.ν = 1 / νInv
-    s1 = ShiftedProximalOperators.prox(ψ, -FO_options.ν * ∇fk, FO_options.ν)
-    ξ1 = fk + hk - mk(s1)  # TODO: isn't mk(s) returned by s_alg?
+    subsolver_options.ν = 1 / νInv
+    s1 = ShiftedProximalOperators.prox(ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν)
+    ξ1 = fk + hk - mk(s1) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by s_alg?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease!")
 
     if ξ1 < ϵ
       # the current xk is approximately first-order stationary
-      @info "LM: terminating with ξ1 = $(ξ1)"
+      verbose == 0 || @info "LM: terminating with ξ1 = $(ξ1)"
       optimal = true
       continue
     end
 
-    # FO_options.optTol = k == 1 ? 1.0e-4 : max(ϵ, min(1.0e-4, ξ1 / 5))
-    FO_options.optTol = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
-    @debug "setting inner stopping tolerance to" FO_options.optTol
-    FO_options.FcnDec = ξ1
-    inner_params = TRNCmethods(FO_options=params.FO_options, χ=χ)
-    inner_options = TRNCparams(; maxIter=90_000, verbose=10, ϵ=FO_options.optTol, σk=1.0)
+    # subsolver_options.ϵ = k == 1 ? 1.0e-4 : max(ϵ, min(1.0e-4, ξ1 / 5))
+    subsolver_options.ϵ = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
+    @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, funEvals, _, _, _ = with_logger(subsolver_logger) do
-      QRalg(φ, ∇φ, ψ, s1, inner_params, inner_options)
+      s_alg(φ, ∇φ, ψ, subsolver_options, x0 = s1)
     end
 
     Complex_hist[k] += funEvals
@@ -358,7 +350,7 @@ function LM(nls::AbstractNLSModel, h::ProximableFunction, params, options; x0::A
     fkn = dot(Fkn, Fkn) / 2
     hkn = h(xkn)
 
-    ξ = fk + hk - mk(s)  # TODO: isn't mk(s) returned by s_alg?
+    ξ = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by s_alg?
 
     if (ξ ≤ 0 || isnan(ξ))
       error("LM: failed to compute a step: ξ = $ξ")

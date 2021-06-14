@@ -73,9 +73,7 @@ function QRalg(
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
-  if verbose != 0
-     @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
-  end
+  verbose == 0 || @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
 
   k = 0
   ρk = -1.0
@@ -111,7 +109,7 @@ function QRalg(
 
     if ξ < ϵ
       optimal = true
-      @info "QR: terminating with ξ = $ξ"
+      verbose == 0 || @info "QR: terminating with ξ = $ξ"
       continue
     end
 
