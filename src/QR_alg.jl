@@ -1,6 +1,5 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 
-using LinearAlgebra, ShiftedProximalOperators
 export QRalg
 
 """Interior method for Trust Region problem

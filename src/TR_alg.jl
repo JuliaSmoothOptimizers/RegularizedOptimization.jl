@@ -1,5 +1,4 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
-using NLPModelsModifiers, LinearAlgebra, Arpack, ShiftedProximalOperators
 export TR
 
 """Interior method for Trust Region problem

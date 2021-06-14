@@ -1,5 +1,4 @@
 export GD_problem, GD_setting, GD_solver
-
 struct GD_problem{F <: Function, prox<: Function, A <: AbstractVecOrMat{<:Real}, R <: Real, B<: Real}
     
     # problem structure, contains information regarding the problem
@@ -13,9 +12,7 @@ struct GD_problem{F <: Function, prox<: Function, A <: AbstractVecOrMat{<:Real},
 end
 
 struct GD_setting
-    
     # user settings to solve the problem using Gradient Descent
-    
     ν::Float64 # the step size
     maxit::Int64 # maximum number of iteration
     tol::Float64 # tolerance, i.e., if ||∇f(x)|| ≤ tol, we take x to be an optimal solution
@@ -59,7 +56,6 @@ function GD_state(problem::GD_problem)
     
 end
 
-
 function GD_iteration!(problem::GD_problem, state::GD_state)
     
     # this is the main iteration function, that takes the problem information, and the previous state, 
@@ -88,7 +84,6 @@ function GD_iteration!(problem::GD_problem, state::GD_state)
     return state
     
 end
-
 
 ## The solver function
 

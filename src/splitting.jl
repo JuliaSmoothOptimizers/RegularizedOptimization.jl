@@ -82,9 +82,7 @@ function  prox_split_1w(proxp, s0, projq, options)
             k=0
 	end
 
-
     return s,s_, w
-
 end
 
 """Solves descent direction s for some objective function with the structure
@@ -177,14 +175,9 @@ function  prox_split_2w(proxp, s0, projq, options)
             k=1
     end
 
-
     return u - xk, u_ - xk, s_feas, err
 
 end
-
-
-
-
 
 function fastcg(A, x, b; epsilon=1f-5, maxiter=size(b,1))
 	r = b - A*x
