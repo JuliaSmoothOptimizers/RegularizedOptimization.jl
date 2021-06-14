@@ -118,7 +118,7 @@ function TR(
     end
 
     φ(d) = begin
-        return 0.5 * (d' * (H * d)) + ∇fk' * d + fk
+        return 0.5 * (d' * (H * d)) + ∇fk' * d
     end
 
     # define model and update ρ
@@ -127,7 +127,7 @@ function TR(
     # take initial step s1 and see if you can do more
     subsolver_options.ν = min(1 / νInv, Δk)
     s1 = ShiftedProximalOperators.prox(ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν) # -> PG on one step s1
-    ξ1 = fk + hk - mk(s1)
+    ξ1 = hk - mk(s1) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if ξ1 < ϵ
@@ -149,7 +149,7 @@ function TR(
     hkn = h(xkn)
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ξ = fk + hk - mk(s)
+    ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
 
     if (ξ ≤ 0 || isnan(ξ))
       error("TR: failed to compute a step: ξ = $ξ")
