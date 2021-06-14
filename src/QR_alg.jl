@@ -38,10 +38,10 @@ Complex_hist: Array{Float64, 1}
 QRalg(nlp::AbstractNLPModel, args...; kwargs...) = QRalg(x -> obj(nlp, x), x -> grad(nlp, x), args...; kwargs...)
 
 function QRalg(
-  f, 
-  ∇f, 
-  h, 
-  options; 
+  f,
+  ∇f,
+  h,
+  options;
   x0::AbstractVector=f.meta.x0,
   )
   # initialize passed options

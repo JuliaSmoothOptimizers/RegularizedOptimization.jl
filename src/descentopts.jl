@@ -5,11 +5,11 @@ mutable struct TRNCoptions
   Δk # trust region radius
   verbose # print every so often
   maxIter # maximum amount of inner iterations
-  η1 # ρ lower bound 
-  η2 # ρ upper bound 
-  τ # linesearch buffer parameter 
-  ν 
-  γ # trust region buffer 
+  η1 # ρ lower bound
+  η2 # ρ upper bound
+  τ # linesearch buffer parameter
+  ν
+  γ # trust region buffer
   θ # TR inner loop "closeness" to Bk
   β # TR size for PG steps j>1
 
@@ -22,7 +22,7 @@ mutable struct TRNCoptions
     η1=1.0e-3, # ρ lower bound
     η2=0.9,  # ρ upper bound
     τ=0.01, # linesearch buffer parameter
-    ν=1.0e-3, 
+    ν=1.0e-3,
     γ=3.0, # trust region buffer
     θ=1e-3,
     β=10.0,
@@ -35,14 +35,14 @@ mutable struct SmoothObj <: AbstractNLPModel
   meta :: NLPModelMeta
   counters :: Counters
 
-  #functions 
-  f 
+  #functions
+  f
   g
   function SmoothObj(f, g, x::AbstractVector{T};  name = "F(x)_smooth") where T
     meta = NLPModelMeta(length(x), x0 = x, name=name)
     return new(meta, Counters(), f, g)
   end
-end 
+end
 
 function NLPModels.obj(nlp::SmoothObj, x::AbstractVector)
   increment!(nlp, :neval_obj)

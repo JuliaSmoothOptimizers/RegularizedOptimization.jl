@@ -45,12 +45,12 @@ function FISTA(Fcn, GradFcn, Gcn, s,  options)
 
   optimal = false
   tired = k ≥ max_iter
-  
+
   while !(optimal || tired)
 
     copy!(s,s⁺)
-    gold = g 
-    s⁺ = prox(Gcn, s - ν*g, ν) 
+    gold = g
+    s⁺ = prox(Gcn, s - ν*g, ν)
 
     #update step
     t⁻ = t
@@ -64,14 +64,14 @@ function FISTA(Fcn, GradFcn, Gcn, s,  options)
     feval+=1
     k+=1
     err = norm(g-gold - (s⁺-s)/ν)
-    optimal = err < ε 
+    optimal = err < ε
     tired = k ≥ max_iter
   end
   return s⁺, feval
 
 end
 
-#enforces strict descent  for FISTA 
+#enforces strict descent  for FISTA
 function FISTAD(Fcn, GradFcn, Gcn, s, options)
   ε=options.optTol
   max_iter=options.maxIter
@@ -98,21 +98,21 @@ function FISTAD(Fcn, GradFcn, Gcn, s, options)
 
   #do iterations
   y = (1.0-t)*s + t*v
-  g = GradFcn(y) 
+  g = GradFcn(y)
   f = Fcn(y)
 
   optimal = false
   tired = k ≥ max_iter
-  
+
   while !(optimal || tired)
 
     copy!(s,s⁺)
-    gold = g 
+    gold = g
 
-    #complete prox step 
+    #complete prox step
     u = prox(Gcn, y - ν*g, ν)
 
-    if Fcn(u) ≤ f #this does not work 
+    if Fcn(u) ≤ f #this does not work
       s⁺ = u
     else
       s⁺ = s
@@ -126,7 +126,7 @@ function FISTAD(Fcn, GradFcn, Gcn, s, options)
     #update y
     # v = s⁺ + ((t⁻ - R(1.0))/t)*(s⁺-s)
     v = s⁺ + (1.0/t)*(u - s⁺)
-    y = (1.0-t)*s⁺ + t*v #I think this shold be s⁺ since it's at the end of the loop 
+    y = (1.0-t)*s⁺ + t*v #I think this shold be s⁺ since it's at the end of the loop
 
     #update parameters
     g = GradFcn(y)
@@ -136,7 +136,7 @@ function FISTAD(Fcn, GradFcn, Gcn, s, options)
     err = norm(s - s⁺)
     feval+=1
     k+=1
-    optimal = err < ε 
+    optimal = err < ε
     tired = k ≥ max_iter
 
   end

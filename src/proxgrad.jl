@@ -18,9 +18,9 @@ Output:
   feval : number of function evals (total objective )
 """
 function PG(
-  f, 
+  f,
   ∇f,
-  h, 
+  h,
   options;
   x0::AbstractVector=f.meta.x0,
   )
@@ -69,7 +69,7 @@ function PG(
     gold = g
     x = x⁺
 
-    x⁺ = ShiftedProximalOperators.prox(h, x - ν*g, ν) 
+    x⁺ = ShiftedProximalOperators.prox(h, x - ν*g, ν)
 
     g = ∇f(x⁺)
     fk = f(x⁺)
@@ -77,18 +77,18 @@ function PG(
 
     k+=1
     err = norm(g-gold - (x⁺-x)/ν)
-    optimal = err < ϵ 
+    optimal = err < ϵ
     tired = k ≥ maxIter
 
     k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e " k fk hk err ν norm(xk)
- 
+
   end
   return x⁺, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
 end
 
 function PGΔ(
-  f, 
-  ∇f, 
+  f,
+  ∇f,
   h,
   options;
   x::AbstractVector=f.meta.x0,
@@ -108,7 +108,7 @@ function PGΔ(
   end
   #Problem Initialize
   ν = options.ν
-  p = options.p 
+  p = options.p
   fDec = options.fDec
 
   k = 1
@@ -143,7 +143,7 @@ function PGΔ(
 
     k % ptf == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
-    Difff = fold + h(x) - f - h(x⁺) # these do not work 
+    Difff = fold + h(x) - f - h(x⁺) # these do not work
     FD = abs(Difff)<p*norm(fDec)
 
   end
@@ -166,7 +166,7 @@ function PGE(f, h, s, options)
   end
   #Problem Initialize
   ν = options.ν
-  p = options.p 
+  p = options.p
   fDec = options.fDec
 
   k = 1
@@ -177,17 +177,17 @@ function PGE(f, h, s, options)
   g = ∇f(s⁺) #objInner/ quadratic model
 
   #do iterations
-  FD = false 
+  FD = false
   optimal = false
-  tired = k ≥ maxIter 
-  
+  tired = k ≥ maxIter
+
   #do iterations
   while !(optimal || tired || FD)
 
     gold = g
     s = s⁺
 
-    ν = min(g'*g/(g'*Bk*g), ν) #no BK, will not work 
+    ν = min(g'*g/(g'*Bk*g), ν) #no BK, will not work
     #prox step
     s⁺ = ShiftedProximalOperators.prox(h, s - ν*g, ν)
     # update function info
@@ -202,8 +202,8 @@ function PGE(f, h, s, options)
 
     k % ptf == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
-    
-    Difff = fold + h(s) - f - h(s⁺) # these do not work 
+
+    Difff = fold + h(s) - f - h(s⁺) # these do not work
     FD = abs(Difff)<p*norm(fDec)
   end
   return s⁺, feval
@@ -223,7 +223,7 @@ function PGLnsch(f, ∇f, h, s, options)
   else
       ptf = 1
   end
-  
+
   #Problem Initialize
   p = options.p
   ν₀ = options.ν
@@ -245,7 +245,7 @@ function PGLnsch(f, ∇f, h, s, options)
     s = s⁺
 
     s⁺ = ShiftedProximalOperators.prox(h, s - ν*g, ν)
-    #linesearch but we don't pass in f? 
+    #linesearch but we don't pass in f?
     while f(s⁺) ≥ fk + g'*(s⁺ - s) + 1/(ν*2)*norm(s⁺ - s)^2
         ν *= p*ν
         s⁺ = prox(h, s - ν*g, ν)
@@ -258,7 +258,7 @@ function PGLnsch(f, ∇f, h, s, options)
     feval+=1
     k+=1
     err = norm(g-gold - (s⁺-s)/ν)
-    optimal = err < ε 
+    optimal = err < ε
     tired = k ≥ maxIter
 
     k % ptf == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
