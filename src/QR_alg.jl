@@ -103,7 +103,7 @@ function QRalg(
 
     s = ShiftedProximalOperators.prox(ψ, -ν * ∇fk, ν)
     mks = mk(s)
-    ξ = hk - mks
+    ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
     if (ξ < 0 || isnan(ξ))
       error("QR: failed to compute a step: ξ = $ξ")
