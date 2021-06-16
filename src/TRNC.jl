@@ -10,10 +10,9 @@ using Arpack, ProximalOperators
 using ADNLPModels, NLPModels, NLPModelsModifiers, ShiftedProximalOperators
 
 include("descentopts.jl")
-include("proxgrad.jl")
-include("fista.jl")
+include("PG_alg.jl")
+include("Fista_alg.jl")
 include("splitting.jl")
-include("linesearch.jl")
 include("TR_alg.jl")
 include("QR_alg.jl")
 include("LM_alg.jl")
