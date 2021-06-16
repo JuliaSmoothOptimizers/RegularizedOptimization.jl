@@ -1,39 +1,43 @@
 # Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
 export TR
 
-"""Interior method for Trust Region problem
-  TR(f, h, methods, options)
-Arguments
-----------
-x : Array{Float64,1}
-  Initial guess for the x value used in the trust region
-options : mutable structure TR_options with:
-  --
-  -ϵ, tolerance for primal convergence
-  -Δk Float64, trust region radius
-  -verbose Int, print every # options
-  -maxIter Float64, maximum number of inner iterations (note: does not influence TotalCount)
-options : mutable struct TR_methods
-  -f, smooth objective NLP Model
-  -h, nonsmooth objective struct; h, ψ, ψχprox - function projecting onto the trust region ball or ψ+χ
-  --
-  -subsolver_options, options for first order algorithm, see DescentMethods.jl for more
-  -s_alg, algorithm for descent direction, see DescentMethods.jl for more
-  -χk, function that is the TR norm ball; defaults to l2
+"""
+    TR(nls, params, options; x0=nls.meta.x0, subsolver_logger=Logging.NullLogger())
 
-Returns
--------
-x   : Array{Float64,1}
-  Final value of Algorithm 4.2 trust region
-k   : Int
-  number of iterations used
-Fobj_hist: Array{Float64,1}
-  smooth function history
-Hobj_hist: Array{Float64, 1}
-  nonsmooth function history
-Complex_hist: Array{Float64, 1}
-  inner algorithm iteration count
+A trust-region method for the problem
 
+    min ½ f(x) + h(x)
+
+where f: ℜⁿ → ℜ and h: ℜⁿ → ℜ is lower semi-continuous and proper.
+
+At each iteration, a step s is computed as an approximate solution of
+
+    min  ½ ‖s - (sⱼ - ν∇φ(sⱼ)‖₂² + ψ(s; x)  subject to  ‖s‖ ≤ Δ
+
+where ∇φ is the gradient of the quadratic approximation of f(x) at x, ψ(s; x) = h(x + s),
+‖⋅‖ is a user-defined norm and Δ > 0 is a trust-region radius.
+
+### Arguments
+
+* `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
+* `h::ProximableFunction`: a regularizer
+* `χ::ProximableFunction`: a norm used to define the trust region
+* `params::TRNCMethods`: insert description here
+
+### Keyword arguments
+
+* `x0::AbstractVector`: an initial guess (default: the initial guess stored in `nls`)
+* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
+* `s_alg`: the procedure used to compute a step (`PG` or `QRalg`)
+* `subsolver_options::TRNCoptions`: default options to pass to the subsolver.
+
+### Return values
+
+* `xk`: the final iterate
+* `k`: the overall number of iterations
+* `Fobj_hist`: an array with the history of values of the smooth objective
+* `Hobj_hist`: an array with the history of values of the nonsmooth objective
+* `Complex_hist`: an array with the history of number of inner iterations.
 """
 function TR(
   f::AbstractNLPModel,
@@ -41,7 +45,8 @@ function TR(
   χ::ProximableFunction,
   options;
   x0::AbstractVector=f.meta.x0,
-  s_alg = PG,
+  subsolver_logger::Logging.AbstractLogger=Logging.NullLogger(),
+  s_alg = QRalg,
   subsolver_options = TRNCoptions(),
   )
 
@@ -138,7 +143,9 @@ function TR(
     end
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(.01, sqrt(ξ1)) * ξ1)
     set_radius!(ψ, min(β * χ(s1), Δk))
-    s, funEvals, _, _, _ = s_alg(φ, ∇φ, ψ, subsolver_options; x0 = s1)
+    s, funEvals, _, _, _ = with_logger(subsolver_logger) do 
+      s_alg(φ, ∇φ, ψ, subsolver_options; x0 = s1)
+    end
     # update Complexity history
     Complex_hist[k] += funEvals
 
