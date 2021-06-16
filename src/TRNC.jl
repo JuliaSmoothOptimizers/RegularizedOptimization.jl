@@ -4,7 +4,7 @@ module TRNC
 using LinearAlgebra, Printf, Random
 
 # external dependencies
-using Arpack, ProximalOperators
+using Arpack, ProximalOperators, Logging
 
 # dependencies from us
 using ADNLPModels, NLPModels, NLPModelsModifiers, ShiftedProximalOperators
