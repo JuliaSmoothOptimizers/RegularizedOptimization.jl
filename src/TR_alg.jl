@@ -134,7 +134,7 @@ function TR(
     ξ1 = hk - mk(s1) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
-    if ξ1 < ϵ
+    if sqrt(ξ1)*νInv < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
       @info "TR: terminating with ξ1 = $(ξ1)"

@@ -107,7 +107,7 @@ function QRalg(
       error("QR: failed to compute a step: ξ = $ξ")
     end
 
-    if ξ < ϵ
+    if sqrt(ξ) < ϵ
       optimal = true
       verbose == 0 || @info "QR: terminating with ξ = $ξ"
       continue
