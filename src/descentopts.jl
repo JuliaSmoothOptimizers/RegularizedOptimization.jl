@@ -8,7 +8,7 @@ mutable struct TRNCoptions
   η1 # ρ lower bound
   η2 # ρ upper bound
   τ # linesearch buffer parameter
-  ν
+  ν # initial guess for ν
   γ # trust region buffer
   θ # TR inner loop "closeness" to Bk
   β # TR size for PG steps j>1
