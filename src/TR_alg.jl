@@ -57,7 +57,7 @@ function TR(
   η1 = options.η1
   η2 = options.η2
   γ = options.γ
-  τ = options.τ
+  α = options.α
   θ = options.θ
   β = options.β
 
@@ -85,7 +85,6 @@ function TR(
 
   k = 0
   ρk = -1.0
-  α = 1.0
   sNorm = 0.0
   TR_stat = ""
 
@@ -129,12 +128,12 @@ function TR(
     mk(d) = φ(d) + ψ(d)
 
     # take initial step s1 and see if you can do more
-    subsolver_options.ν = min(1 / νInv, Δk)
+    subsolver_options.ν = 1 / (νInv + 1/(Δk*α))
     s1 = ShiftedProximalOperators.prox(ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν) # -> PG on one step s1
     ξ1 = hk - mk(s1) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
-    if ξ1< ϵ
+    if ξ1 < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
       @info "TR: terminating with ξ1 = $(ξ1)"
@@ -194,8 +193,7 @@ function TR(
 
     if ρk < η1 || ρk == Inf
       TR_stat = "↘"
-      α = .5
-      Δk = α * Δk	# change to reflect trust region
+      Δk = .5 * Δk	# change to reflect trust region
       set_radius!(ψ, Δk)
     end
     tired = k ≥ maxIter

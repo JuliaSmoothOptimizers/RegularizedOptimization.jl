@@ -7,7 +7,7 @@ mutable struct TRNCoptions
   maxIter # maximum amount of inner iterations
   η1 # ρ lower bound
   η2 # ρ upper bound
-  τ # linesearch buffer parameter
+  α # νk Δ^{-1} parameter
   ν # initial guess for ν
   γ # trust region buffer
   θ # TR inner loop "closeness" to Bk
@@ -21,13 +21,13 @@ mutable struct TRNCoptions
     maxIter=10000,
     η1=1.0e-3, # ρ lower bound
     η2=0.9,  # ρ upper bound
-    τ=0.01, # linesearch buffer parameter
+    α=1e16, # νk Δ^{-1} parameter
     ν=1.0e-3,
     γ=3.0, # trust region buffer
     θ=1e-3,
     β=10.0,
     ) # default values for trust region parameters in algorithm 4.2
-    return new(ϵ, Δk, verbose, maxIter, η1, η2, τ, ν, γ, θ, β)
+    return new(ϵ, Δk, verbose, maxIter, η1, η2, α, ν, γ, θ, β)
   end
 end
 
