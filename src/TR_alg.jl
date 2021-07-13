@@ -99,8 +99,7 @@ function TR(
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
   # define the Hessian
-  H = Symmetric(Matrix(Bk))
-  νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1, which=:LM)[1]))
+  νInv = (1 + θ) * maximum(abs.(eigs(Bk; nev=1, which=:LM)[1]))
 
   ξ = 0.0
   ξ1 = 0.0
@@ -117,11 +116,11 @@ function TR(
 
     # define inner function
     ∇φ(d) = begin
-      return H * d + ∇fk
+      return Bk * d + ∇fk
     end
 
     φ(d) = begin
-        return 0.5 * (d' * (H * d)) + ∇fk' * d
+        return 0.5 * (d' * (Bk * d)) + ∇fk' * d
     end
 
     # define model and update ρ
@@ -182,8 +181,7 @@ function TR(
         push!(f, s, ∇fk - ∇fk⁻)
       end
       Bk = hess_op(f, xk)
-      H = Symmetric(Matrix(Bk))
-      νInv = (1 + θ) * maximum(abs.(eigs(H; nev=1,  v0 = randn(m,), which=:LM)[1]))
+      νInv = (1 + θ) * maximum(abs.(eigs(Bk; nev=1, ncv=m,  v0 = randn(m,), which=:LM)[1]))
       # store previous iterates
       ∇fk⁻ .= ∇fk
 

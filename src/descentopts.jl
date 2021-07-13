@@ -31,18 +31,20 @@ mutable struct TRNCoptions
   end
 end
 
-mutable struct SmoothObj <: AbstractNLPModel
-  meta :: NLPModelMeta
+mutable struct SmoothObj{T,S} <: AbstractNLPModel{T,S}
+  meta :: NLPModelMeta{T,S}
   counters :: Counters
 
   #functions
   f
   g
-  function SmoothObj(f, g, x::AbstractVector{T};  name = "F(x)_smooth") where T
+  function SmoothObj{T,S}(f, g, x::S;  name = "smooth") where {T,S}
     meta = NLPModelMeta(length(x), x0 = x, name=name)
-    return new(meta, Counters(), f, g)
+    return new{T,S}(meta, Counters(), f, g)
   end
 end
+SmoothObj(f, g, x::S; kwargs...) where {S} = 
+  SmoothObj{eltype(S), S}(f, g, x; kwargs...)
 
 function NLPModels.obj(nlp::SmoothObj, x::AbstractVector)
   increment!(nlp, :neval_obj)
