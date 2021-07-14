@@ -53,8 +53,8 @@ function figen_non(xvars, yvars, labels, savestring, titles, yax)
         end
 
     end
-    tkstring = string(savestring, ".pdf")
-    # tkstring = string(savestring, ".tikz")
+    # tkstring = string(savestring, ".pdf")
+    tkstring = string(savestring, ".tikz")
     # texstring = string(savestring, ".tex")
     savefig(tkstring)
     # run(`mv $texstring $tkstring`)

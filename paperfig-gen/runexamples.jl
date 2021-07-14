@@ -1,7 +1,7 @@
 
 using TRNC
 using Random, LinearAlgebra, Printf, Plots, DataFrames 
-using DifferentialEquations, Zygote, DiffEqSensitivity
+using DifferentialEquations, ForwardDiff
 using ShiftedProximalOperators, ProximalOperators, ProximalAlgorithms
 using ADNLPModels, NLPModelsModifiers,NLPModels
 
@@ -15,8 +15,12 @@ include("modded_panoc.jl")
 include("modded_zerofpr.jl")
 include("modded_fbs.jl")
 
-
 Random.seed!(123)
 
 include("runbpdn.jl")
-# include("runnonlin.jl")
+bpdntests()
+
+Random.seed!(1234)
+
+include("runnonlin.jl")
+nonlintests()

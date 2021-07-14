@@ -1,12 +1,12 @@
 # Julia Testing function
 # Generate Compressive Sensing Data
 
-function evalwrapper(x0, xi, A, ϕtr, h, ϕ, g, λ, methods, params, solverp, solverz, folder)
+function evalwrapper(x0, xi, A, ϕtr, h, ϕ, g, λ, χ, params, solverp, solverz, folder)
     xi2 = copy(xi)
     xi3 = copy(xi)
 
     @info "running TR with our own objective"
-    xtr, ktr, Fhisttr, Hhisttr, Comp_pg = TRalg(ϕtr, h, methods, params)
+    xtr, ktr, Fhisttr, Hhisttr, Comp_pg = TR(ϕtr, h, χ, params; s_alg = PG)
     proxnum = [0, sum(Comp_pg)]
 
     ival = obj(ϕtr, xi) + h(xi); 
