@@ -2,6 +2,7 @@ using Dates
 using Logging
 
 using PGFPlots
+using TRNC
 
 include("fh.jl")
 
@@ -25,7 +26,7 @@ function my_metafmt(solver_name::AbstractString, level::Logging.LogLevel, _modul
   return color, prefix, suffix
 end
 
-function plot_results(xtr, Comp_pg, name = "tr-qr")
+function plot_results(xtr, Comp_pg, objdec, name = "tr-qr")
   F = simulate(xtr)
   a = Axis([Plots.Linear(1:size(F, 2), F[1, :], mark="none", legendentry="V"),
             Plots.Linear(1:size(F, 2), F[2, :], mark="none", legendentry="W"),
@@ -44,6 +45,13 @@ function plot_results(xtr, Comp_pg, name = "tr-qr")
           ymode="log",
           )
   save("fh-inner-outer-$(name).pdf", b)
+
+  c = Axis(Plots.Linear(1:length(objdec), objdec, mark = "none"),
+          xlabel="\$ k^{th}\$  \$ \\nabla f \$ Call", 
+          ylabel="Objective Value",
+          ymode = "log"
+        )
+  save("fh-objdec-$(name).pdf",c)
 end
 
 outer_logger = ConsoleLogger(
@@ -63,27 +71,25 @@ nlp = ADNLPModel(misfit, ones(5))
 λ = 1.0
 ϵ = 1.0e-6
 h = NormL0(λ)
-# TODO: get rid of λ
-inner_options = s_params(1.0, λ; verbose = 0)
-params = TRNCmethods(FO_options = inner_options, χ = NormLinf(1.0))
-options = TRNCparams(; maxIter = 2000, verbose = 10, ϵ = ϵ, β = 1e16, σk = 1.0e+1)
+χ = NormLinf(1.0)
+options = TRNCoptions(; maxIter = 1000, verbose = 10, ϵ = ϵ, β = 1e16, ν = 1.0e+1)
 
 xtr, k, Fhist, Hhist, Comp_pg = with_logger(outer_logger) do
-  TRalg2(nlp, h, params, options, subsolver_logger = inner_logger)
+  TR(nlp, h, χ, options; subsolver_logger = inner_logger)
 end
 
-plot_results(xtr, Comp_pg, "tr-qr")
+plot_results(xtr, Comp_pg, Fhist+Hhist, "tr-qr")
 
 xtr, k, Fhist, Hhist, Comp_pg = with_logger(outer_logger) do
-  LMTR(nls, h, params, options, subsolver_logger = inner_logger)
+  LMTR(nls, h, χ, options; subsolver_logger = inner_logger)
 end
 
-plot_results(xtr, Comp_pg, "lmtr-qr")
+plot_results(xtr, Comp_pg,Fhist+Hhist, "lmtr-qr")
 
 reset!(nls)
 xtr, k, Fhist, Hhist, Comp_pg = with_logger(outer_logger) do
-  LM(nls, h, params, options, subsolver_logger = inner_logger)
+  LM(nls, h, options; subsolver_logger = inner_logger)
 end
 
-plot_results(xtr, Comp_pg, "lm-qr")
+plot_results(xtr, Comp_pg, Fhist+Hhist, "lm-qr")
 
