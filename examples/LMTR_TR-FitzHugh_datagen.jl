@@ -1,4 +1,4 @@
-using ADNLPModels, DiffEqSensitivity, DifferentialEquations, NLPModels, NLPModelsModifiers, ProximalOperators, Random
+using ADNLPModels, DifferentialEquations, NLPModels, NLPModelsModifiers, ProximalOperators, Random, LinearAlgebra
 
 function FH_smooth_term()
     function FH_ODE(dx, x, p, t)
@@ -64,19 +64,19 @@ function solve_FH_LM(; λ = 1.0, ϵ = 1.0e-6)
     parameters = TRNCoptions(; ν = 1.0e-1, β = 1e16, ϵ = ϵ, verbose = 10)
     χ = NormLinf(1.0)
 
-    xtr, k, Fhist, Hhist, Comp_pg = LM(nls, h, χ, parameters, s_alg = QRalg)
+    xtr, k, Fhist, Hhist, Comp_pg = LM(nls, h, χ, parameters)
     return xtr, k, Fhist, Hhist, Comp_pg
 end
 
 function solve_FH_TR(; λ = 1.0, ϵ = 1.0e-6)
     data, simulate, resid, misfit = FH_smooth_term()
-    nlp = ADNLPModel(misfit, ones(5))  # adbackend = ForwardDiff by default
+    nlp = LBFGSModel(ADNLPModel(misfit, ones(5))) # adbackend = ForwardDiff by default
     h = NormL0(λ)
     parameters = TRNCoptions(; β = 1e16, ϵ = ϵ, verbose = 10)
     χ = NormLinf(1.0)
 
     # standard logging
-    xtr, k, Fhist, Hhist, Comp_pg = TR(nlp, h, χ, parameters, s_alg = QRalg)
+    xtr, k, Fhist, Hhist, Comp_pg = TR(nlp, h, χ, parameters)
 
     return xtr, k, Fhist, Hhist, Comp_pg
 end
