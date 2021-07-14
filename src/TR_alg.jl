@@ -99,7 +99,7 @@ function TR(
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
   # define the Hessian
-  νInv = (1 + θ) * maximum(abs.(eigs(Bk; nev=1, which=:LM)[1]))
+  νInv = (1 + θ) * abs(eigs(Bk; nev=1, v0 = randn(m,), which=:LM)[1][1])
 
   ξ = 0.0
   ξ1 = 0.0
@@ -138,7 +138,7 @@ function TR(
       @info "TR: terminating with ξ1 = $(ξ1)"
       continue
     end
-    subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(.01, sqrt(ξ1)) * ξ1)
+    subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     set_radius!(ψ, min(β * χ(s1), Δk))
     s, funEvals, _, _, _ = with_logger(subsolver_logger) do 
       s_alg(φ, ∇φ, ψ, subsolver_options; x0 = s1)
@@ -181,7 +181,7 @@ function TR(
         push!(f, s, ∇fk - ∇fk⁻)
       end
       Bk = hess_op(f, xk)
-      νInv = (1 + θ) * maximum(abs.(eigs(Bk; nev=1, ncv=m,  v0 = randn(m,), which=:LM)[1]))
+      νInv = (1 + θ) * abs(eigs(Bk; nev=1,  v0 = randn(m,), which=:LM)[1][1])
       # store previous iterates
       ∇fk⁻ .= ∇fk
 
