@@ -1,8 +1,8 @@
 
 function show_table(mp, vals, labs)
-  dp = DataFrame([mp[:,i] for i in 1:length(labs)])
+  dp = DataFrame([mp[:,i] for i in 1:length(labs)], :auto)
   rename!(dp,  [Symbol(labs[i]) for i in 1:length(labs)])
-  df = DataFrame(hcat(["\$ f(x) \$", "\$ h(x) \$", "\$ ||x - x_0||_2 \$", "\$ \\nabla f \$ evals", "\$ \\prox{\\nu\\psi}\$ calls"], hcat([vals[:,i] for i in 1:length(labs)])))
+  df = DataFrame(hcat(["\$ f(x) \$", "\$ h(x) \$", "\$ ||x - x_0||_2 \$", "\$ \\nabla f \$ evals", "\$ \\prox{\\nu\\psi}\$ calls"], hcat([vals[:,i] for i in 1:length(labs)])), :auto)
   rename!(df,  vcat(:Function, [Symbol(labs[i]) for i in 1:length(labs)]))
   return dp, df
 end

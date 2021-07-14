@@ -22,7 +22,7 @@ import ProximalOperators.gradient, ProximalOperators.gradient!
 function gradient!(∇fx, f::LeastSquaresObjective, x)
 	r, g = f.smooth(x)
 	# append!(f.hist, r + λ*f.nonsmooth(x))
-	append!(f.hist, min(minimum(f.hist),r + λ*f.nonsmooth(x)))
+	append!(f.hist, min(minimum(f.hist),r + f.nonsmooth(x)))
 	∇fx .= g
 	return r
 end
@@ -40,20 +40,19 @@ import ProximalOperators.prox, ProximalOperators.prox!
 mutable struct ProxOp
 	func
 	proxh
-	λ
 	count
 end
 
 function (h::ProxOp)(x)
 	r = h.func(x)
 	h.count += 1
-	return f.λ*r
+	return r
 end
 # state.g_z = prox!(state.z, iter.g, state.y, state.gamma)
 function prox!(z, h::ProxOp, y, gamma)
 	h.count+=1
 	z.= h.proxh(y, gamma)
-	return h.λ*h.func(z)
+	return h.func(z)
 end
 
 # # z, g_z = prox(iter.g, y, gamma)
