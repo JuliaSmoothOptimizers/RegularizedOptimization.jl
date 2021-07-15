@@ -5,7 +5,7 @@ export TR
 
 A trust-region method for the problem
 
-    min ½ f(x) + h(x)
+    min f(x) + h(x)
 
 where f: ℜⁿ → ℜ and h: ℜⁿ → ℜ is lower semi-continuous and proper.
 
