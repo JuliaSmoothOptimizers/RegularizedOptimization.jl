@@ -1,7 +1,7 @@
 export TR
 
 """
-    TR(nls, params, options; x0=nls.meta.x0, subsolver_logger=Logging.NullLogger())
+    TR(nlp, params, options; x0=nls.meta.x0, subsolver_logger=Logging.NullLogger())
 
 A trust-region method for the problem
 
