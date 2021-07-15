@@ -18,7 +18,7 @@ where ∇φ is the gradient of the quadratic approximation of f(x) at x, ψ(s; x
 
 ### Arguments
 
-* `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
+* `nlp::AbstractNLPModel`: a smooth optimization problem (only the objective will be accessed)
 * `h::ProximableFunction`: a regularizer
 * `χ::ProximableFunction`: a norm used to define the trust region
 * `params::TRNCMethods`: insert description here
