@@ -25,7 +25,7 @@ where ∇φ is the gradient of the quadratic approximation of f(x) at x, ψ(s; x
 
 ### Keyword arguments
 
-* `x0::AbstractVector`: an initial guess (default: the initial guess stored in `nls`)
+* `x0::AbstractVector`: an initial guess (default: the initial guess stored in `nlp`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
 * `s_alg`: the procedure used to compute a step (`PG` or `QRalg`)
 * `subsolver_options::TRNCoptions`: default options to pass to the subsolver.
