@@ -2,8 +2,8 @@
 function show_table(mp, vals, labs)
   dp = DataFrame([mp[:,i] for i in 1:length(labs)], :auto)
   rename!(dp,  [Symbol(labs[i]) for i in 1:length(labs)])
-  df = DataFrame(hcat(["\$ f(x) \$", "\$ h(x) \$", "\$ ||x - x_0||_2 \$", "\$ \\nabla f \$ evals", "\$ \\prox{\\nu\\psi}\$ calls"], hcat([vals[:,i] for i in 1:length(labs)])), :auto)
-  rename!(df,  vcat(:Function, [Symbol(labs[i]) for i in 1:length(labs)]))
+  df = DataFrame(hcat(["\$ f(x) \$", "\$ h(x) \$", "\$ ||x - x_{\\text{true}}||_2 \$", "\$ \\nabla f \$ evals", "\$ \\prox{\\nu\\psi}\$ calls"], hcat([vals[:,i] for i in 1:length(labs)])), :auto)
+  rename!(df,  vcat(:Measure, [Symbol(labs[i]) for i in 1:length(labs)]))
   return dp, df
 end
 
@@ -11,7 +11,7 @@ end
 function write_table(dp, df, filename)
 
 # Generate table header
-  Table  = "\\footnotesize\n \\begin{tabular}{  " * "c  " ^ ncol(dp) * " ||  " * "c  " ^ ncol(df) * "}\n";
+  Table  = "\\footnotesize\n \\setlength{\\tabcolsep}{3pt}\n \\begin{tabular}{  " * "c  " ^ ncol(dp) * " ||  " * "c  " ^ ncol(df) * "}\n";
   Table *= "    % Table header\n";
   # Table *= "    \\rowcolor[gray]{0.9}\n";
   Table *="\\multicolumn{"* string(ncol(dp)) *"}{c||}{Parameters} & \\\\" #\\multicolumn{"*string(ncol(df))*"}{|c|}{Minima}\\\\ \\hline"

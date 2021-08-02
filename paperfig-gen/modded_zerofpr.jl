@@ -47,5 +47,5 @@ function my_zerofpr(solver::ZeroFPR{R},
 
     num_iters, state_final = loop(iter)
 
-    return state_final.x, num_iters
+    return state_final.x, num_iters, state_final.xbar
 end

@@ -19,9 +19,9 @@ function bpdntests()
     h = NormL1(λ)
     χ = NormL2(1.0)
 
-    # set all options 
-    MI = 1000
-    TOL = 1e-6
+    # # set all options 
+    MI = 5000
+    TOL = 1e-3
     params = TRNCoptions(; maxIter = MI, verbose = 10, ϵ = TOL, β = 1e16)
     solverp = ProximalAlgorithms.PANOC(tol=TOL, verbose=true, freq=1, maxit=MI)
     solverz = ProximalAlgorithms.ZeroFPR(tol=TOL, verbose=true, freq=1, maxit=MI)
@@ -87,9 +87,8 @@ function bpdntests()
     h = NormL1(λ)
     χ = NormL2(1.0)
 
-    ϕ.count = 0
-    ϕ.hist = []
-    g.count = 0
+    ϕ = LeastSquaresObjective((z) -> [norm(A * z - b)^2, A' * (A * z - b)], (x)->λ*norm(x, 1), 0, [])
+    g = ProxOp((x)->λ*norm(x, 1), (z, α) -> sign.(z) .* max.(abs.(z) .- (λ * α) * ones(size(z)), zeros(size(z))), 0)
     
     l1b2v, l1b2p = evalwrapper(x0, xi, A, ϕt, h, ϕ, g, λ, χ, params, solverp,solverz, folder)
 
@@ -97,7 +96,6 @@ function bpdntests()
     @info "running LS bfgs, h=l0, tr = linf"
     xi = zeros(size(x0))
     folder = string("figs/bpdn/LS_l0_Binf/", compound, "/")
-
     ϕt = LSR1Model(SmoothObj((z) -> norm(A*z-b)^2, grad!, xi))
     h = NormL0(λ)
     χ = NormLinf(1.0)
@@ -112,13 +110,9 @@ function bpdntests()
         return y
     end
 
-    ϕ.nonsmooth = (x) -> λ*norm(x, 0)
-    ϕ.count = 0
-    ϕ.hist = []
-    g.count = 0 
-    g.func = (x)->λ*norm(x, 0)
-    g.proxh = proxl0
-    l0binfv, l0binfp = evalwrapper(x0, xi, A, ϕt, h, ϕ, g, λ, χ, params, solverp,solverz, folder)
+    ϕ = LeastSquaresObjective((z) -> [norm(A * z - b)^2, A' * (A * z - b)], (x)->λ*norm(x, 0), 0, [])
+    g = ProxOp((x)->λ*norm(x, 0), proxl0, 0)
+    l0binfv, l0binfp = evalwrapper(x0, xi, A, ϕt, h, ϕ, g, λ, χ, params, solverp, solverz, folder)
 
 
 
@@ -150,21 +144,16 @@ function bpdntests()
     end
 
 
-    ϕ.nonsmooth = h_obj 
-    ϕ.count = 0
-    ϕ.hist = []
-    g.count = 0
-    g.func = h_obj
-    g.proxh = proxb0
+    ϕ = LeastSquaresObjective((z) -> [norm(A * z - b)^2, A' * (A * z - b)], h_obj, 0, [])
+    g = ProxOp(h_obj, proxb0, 0)
 
     b0binfv, b0binfp = evalwrapper(x0, xi, A, ϕt, h, ϕ, g, λ, χ, params, solverp, solverz, folder)
 
     toplabs = ["\\(h=\\|\\cdot\\|_1\\), \\(\\Delta\\mathbb{B}_2\\)", "\\(h=\\|\\cdot\\|_0\\), \\(\\Delta\\mathbb{B}_\\infty\\)","\\(h=\\chi(\\cdot; \\lambda \\mathbb{B}_0)\\), \\(\\Delta\\mathbb{B}_\\infty\\)"]
-    xlabs = ["True", "TR", "PANOC", "ZFP", "TR", "PANOC", "ZFP", "TR", "PANOC", "ZFP"]
+    xlabs = ["True", "TR-PG", "PANOC", "ZFP", "TR-PG", "PANOC", "ZFP", "TR-PG", "PANOC", "ZFP"]
 
     # pars = [l1b2p, l0binfp, b0binfp]
-    vals = hcat(l1b2v, l0binfv[:,2:end], b0binfv[:,2:end])
-
+    vals = hcat(l1b2v, l0binfv[:, 2:end], b0binfv[:, 2:end])
     df = show_table(toplabs, vals, xlabs)
     _ = write_table(toplabs, df, string("figs/bpdn/", "bpdn-table"))
 end

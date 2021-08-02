@@ -1,3 +1,4 @@
+using Base.Iterators: append!
 
 using TRNC
 using Random, LinearAlgebra, Printf, Plots, DataFrames 

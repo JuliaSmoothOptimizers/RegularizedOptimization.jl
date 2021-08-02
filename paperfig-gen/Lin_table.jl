@@ -1,7 +1,7 @@
 
 function show_table(mp, vals, labs)
-    df = DataFrame(hcat(["\$ f(x) \$", "\$ h(x) \$", "\$ \\|x - x_0\\|_2/\\|A\\| \$", "\$ \\nabla f \$ evals", "\$ \\prox{\\nu\\psi}\$ calls"], hcat([vals[:,k] for k in 1:length(labs)])), :auto)
-    rename!(df,  vcat(:Function, [Symbol(labs[i]) for i in 1:length(labs)]), makeunique=true)
+    df = DataFrame(hcat(["\$ f(x) \$", "\$ h(x) \$", "\$ \\|x - x_{\\text{true}}\\|_2/\\|A\\| \$", "\$ \\nabla f \$ evals", "\$ \\prox{\\nu\\psi}\$ calls"], hcat([vals[:,k] for k in 1:length(labs)])), :auto)
+    rename!(df,  vcat(:Measure, [Symbol(labs[i]) for i in 1:length(labs)]), makeunique=true)
     return df
 end
 
@@ -9,7 +9,7 @@ end
 function write_table(mp, df, filename)
 
 # Generate table header
-  Table = "\\footnotesize\\setlength{\\tabcolsep}{3pt}\n"
+  Table = "\\footnotesize\\setlength{\\tabcolsep}{2.5pt}\n"
   Table  *= "\\begin{tabular}{ cc " * "|ccc" ^ (length(mp)) * "}\n";
   Table *= "   &    & "
   for i = 1:length(mp)
