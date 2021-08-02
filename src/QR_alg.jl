@@ -72,8 +72,8 @@ function QRalg(
   k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, maxIter)
-  verbose == 0 || @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
+  Complex_hist = zeros(Int, (2,maxIter))
+  verbose == 0 || @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
 
   k = 0
   ρk = -1.0
@@ -83,6 +83,7 @@ function QRalg(
   fk = f(xk)
   ∇fk = ∇f(xk)
   hk = h(xk)
+  Hist_gradeval = [fk + hk]
 
   ξ = 0.0
   optimal = false
@@ -93,21 +94,22 @@ function QRalg(
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk ξ ρk σk norm(xk) norm(s) TR_stat
+    k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(s) TR_stat
 
     # define model
     φk(d) = dot(∇fk, d)
     mk(d) = φk(d) + ψ(d)
 
     s = ShiftedProximalOperators.prox(ψ, -ν * ∇fk, ν)
+    Complex_hist[2,k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
-    if (ξ < 0 || isnan(ξ))
+    if (sqrt(ξ) < 0 || isnan(ξ))
       error("QR: failed to compute a step: ξ = $ξ")
     end
 
-    if ξ < ϵ
+    if sqrt(ξ) < ϵ
       optimal = true
       verbose == 0 || @info "QR: terminating with ξ = $ξ"
       continue
@@ -134,7 +136,8 @@ function QRalg(
       hk = hkn
       ∇fk = ∇f(xk)
       shift!(ψ, xk)
-      Complex_hist[k] += 1
+      Complex_hist[1,k]+=1
+      append!(Hist_gradeval, fk + hk)
     end
 
     if ρk < η1 || ρk == Inf
@@ -148,5 +151,5 @@ function QRalg(
     tired = maxIter > 0 && k ≥ maxIter
   end
 
-  return xk, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
+  return xk, Hist_gradeval, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
 end
