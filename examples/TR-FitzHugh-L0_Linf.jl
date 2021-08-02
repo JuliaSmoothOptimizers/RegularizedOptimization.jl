@@ -54,7 +54,7 @@ function ODEFH()
 return CostFunc
 end
 
-function phirod(cfunc;λ = 1.0)
+function phirod(cfunc; λ = 1.0)
   nonsmoothfunc = NormL0(λ)
 
   # put in your initial guesses
@@ -66,12 +66,13 @@ function phirod(cfunc;λ = 1.0)
   return Smoothfunc, nonsmoothfunc
 end
 
-function runode(func, hunc; ϵ = 1e-10, λ = 1.0)
+function runode(func, hunc; ϵ = 1e-3)
+  Random.seed!(1234)
   # set all options
   params = TRNCoptions(; maxIter = 10000, verbose=10, ϵ=ϵ, β=1e16)
   subopts = params; 
-  # xtr, k, Fhist, Hhist, Comp_pg = TRalg(func, hunc, NormL2(1.0), params; s_alg = QRa, subsolver_options = subopts)
-  xtr, k, Fhist, Hhist, Comp_pg = TR(func, hunc, NormLinf(1.0), params; subsolver_options = subopts)
+  xtr, k, Fhist, Hhist, Comp_pg = TRalg(func, hunc, NormLinf(1.0), params; subsolver_options = subopts)
+  # xtr, k, Fhist, Hhist, Comp_pg = TR(func, hunc, NormLinf(1.0), params; subsolver_options = subopts)
   # xtr, k, Fhist, Hhist, Comp_pg = LMTR(func, hunc,  methods, params)
   return xtr
 end
