@@ -109,7 +109,6 @@ function TR(
     k = k + 1
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    # Print values
     k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(funEvals) fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
 
     φ(d) = begin
@@ -142,8 +141,8 @@ function TR(
     s, funEvals, _, _, _ = with_logger(subsolver_logger) do
       s_alg(φ, ∇φ!, ψ, subsolver_options, s1)
     end
-    
     Complex_hist[2,k] += length(funEvals)
+
     sNorm =  χ(s)
     xkn .= xk .+ s
     fkn = obj(f, xkn)
