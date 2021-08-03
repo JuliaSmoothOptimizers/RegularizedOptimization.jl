@@ -66,11 +66,11 @@ function nonlintests()
 	end
 
 	MI = 500
-	ϵ = 1e-6
+	ϵ = 1e-3
 	λ = 1.0 
 	# set all options
 	options = TRNCoptions(;verbose=10, ϵ=ϵ, maxIter=MI, β=1e16)
-	subopts = TRNCoptions(; maxIter = 1000)
+	subopts = TRNCoptions(; maxIter = 5000)
 
 	function Aval(x, ξ)
 		if ξ == 0
@@ -100,10 +100,9 @@ function nonlintests()
 	h = NormL0(λ)
 
 
-	@info "running TR with our own objective"
-	xtr, ktr, Fhisttr, Hhisttr, Comp_pg = TR(ϕt, h, χ, options; subsolver_options = subopts, s_alg = PG)
-	proxnum = [0, sum(Comp_pg)]
-
+	@info "running TR-PG with our own objective"
+	xtr, ktr, Fhisttr, Hhisttr, Comp_pg = TR(ϕt, h, χ, options; subsolver_options = subopts, s_alg=PG)
+	proxnum = [0, sum(Comp_pg[2, :])]
 	Ival = obj(ϕt, xi) + h(xi)
 
 	solverp = ProximalAlgorithms.PANOC(tol=ϵ, verbose=true, freq=1, maxit=MI)
@@ -129,10 +128,10 @@ function nonlintests()
 
 
 	xvars = [x0, xtr, xpanoc, xz]
-	xlabs = ["True", "TR", "PANOC", "ZFP"]
+	xlabs = ["True", "TR-PG", "PANOC", "ZFP"]
 
-	hist = [Fhisttr + Hhisttr, histpanoc, histz]
-	fig_preproc(xvars, xlabs, hist,[Comp_pg], Aval, folder)
+	hist = [ktr, histpanoc, histz]
+	fig_preproc(xvars, xlabs, hist,[Comp_pg[2,:]], Aval, folder)
 
 	vals, pars = tab_preproc(ϕt, h, xvars, proxnum, hist, Aval, λ)
 
@@ -140,7 +139,7 @@ function nonlintests()
 	_ = write_table(dp, df, string(folder, "fhl0"))
 
 
-	@info "running QR"
+	@info "running R2"
 	folder = "figs/nonlin/FH/pg_l0/"
 	optionsQR = TRNCoptions(; ϵ=ϵ, verbose=1, maxIter = MI*10) # options, such as printing (same as above), tolerance, γ, σ, τ, w/e
 
@@ -157,13 +156,21 @@ function nonlintests()
 	Histpg = ϕ.hist 
 
 	xvars = [x0, xqr, xpg]
-	xlabs = ["True", "QR", "PG"]
-	histp = [Fhistqr+Hhistqr, Histpg]
+	xlabs = ["True", "R2", "PG"]
+	histp = [kqr, Histpg]
 	vals, pars = tab_preproc(ϕt, h, xvars,[0,sum(Comp_pgqr), g.count],  histp, Aval, λ)
 
 	fig_preproc(xvars,xlabs, histp,[Comp_pgqr], Aval, folder)
 
 	dp, df = show_table(pars, vals, xlabs)
 	_ = write_table(dp, df, string(folder, "fhl0_qr"))
-		# @info "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + χ_{||p||₀≤δ}; ||⋅||_∞  ≤Δ"
+	# @info "Fitzhugh-Nagumo to Van-der-Pol: ||F(p) - b||² + χ_{||p||₀≤δ}; ||⋅||_∞  ≤Δ"
+
+	@info "running TR-R2 with our own objective"
+	xi = ones(size(pars_FH))
+	ϕt = LBFGSModel(ADNLPModel(Gradprob, xi))
+	xtrqr, ktrqr, Fhisttrqr, Hhisttrqr, Comp_pgtrqr = TR(ϕt, h, χ, options; subsolver_options = subopts)
+	@show length(ktrqr), norm(xtrqr - x0), sum(Comp_pgtrqr[2,:])
+	@show xtrqr, Fhisttrqr[end], Hhisttrqr[end], x0
+
 end

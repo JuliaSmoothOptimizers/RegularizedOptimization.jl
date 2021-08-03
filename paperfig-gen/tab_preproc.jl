@@ -8,8 +8,8 @@ function tab_preproc(f_obj, h_obj, xvars,pnumtab, hist, A, λ)
     numtab = zeros(length(xvars))
     for i = 1:length(xvars)
         ftab[i] = obj(f_obj, xvars[i]) 
-        htab[i] = h_obj(xvars[i])
-        objtab[i] = ftab[i] + λ * htab[i]
+        htab[i] = h_obj(xvars[i])/λ
+        objtab[i] = ftab[i] + htab[i]
         if isa(A, Array)
             partab[i] = norm(xvars[1] - xvars[i]) / opnorm(A)
         else
