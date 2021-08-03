@@ -104,8 +104,8 @@ function QRalg(
     φk(d) = dot(∇fk, d)
     mk(d) = φk(d) + ψ(d)
 
-    Complex_hist[2,k] += 1
     s = ShiftedProximalOperators.prox(ψ, mν∇fk, ν)
+    Complex_hist[2,k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
