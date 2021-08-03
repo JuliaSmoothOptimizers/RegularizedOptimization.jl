@@ -1,5 +1,4 @@
 export TR
-
 """
     TR(nlp, params, options; x0=nls.meta.x0, subsolver_logger=Logging.NullLogger())
 
@@ -80,8 +79,8 @@ function TR(
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, maxIter)
-  @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ1" "ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
+  Complex_hist = zeros(Int, (2, maxIter))
+  @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
 
   k = 0
   ρk = -1.0
@@ -95,6 +94,7 @@ function TR(
   s = zero(xk)
   ∇fk⁻ = copy(∇fk)
   funEvals = 1
+  Hist_gradeval = [fk + hk]
 
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
@@ -112,7 +112,7 @@ function TR(
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
     # Print values
-    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
+    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(funEvals) fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
 
     # define inner function
     ∇φ(d) = begin
@@ -132,10 +132,14 @@ function TR(
     ξ1 = hk - mk(s1) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
-    if ξ1 < ϵ
+<<<<<<< HEAD
+    if sqrt(ξ1) < ϵ
+=======
+    if ξ1< ϵ
+>>>>>>> 9884dc1 (revert back to normal convergence)
       # the current xk is approximately first-order stationary
       optimal = true
-      @info "TR: terminating with ξ1 = $(ξ1)"
+      @info "TR: terminating with ξ1 = $(sqrt(ξ1))"
       continue
     end
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
@@ -144,7 +148,7 @@ function TR(
       s_alg(φ, ∇φ, ψ, subsolver_options; x0 = s1)
     end
     # update Complexity history
-    Complex_hist[k] += funEvals
+    Complex_hist[2,k] += length(funEvals)
 
     sNorm =  χ(s)
     xkn .= xk .+ s
@@ -186,7 +190,8 @@ function TR(
       ∇fk⁻ .= ∇fk
 
       #hist update
-      Complex_hist[k] += 1
+      Complex_hist[1,k] += 1
+      append!(Hist_gradeval, fk+hk)
     end
 
     if ρk < η1 || ρk == Inf
@@ -198,5 +203,5 @@ function TR(
 
   end
 
-  return xk, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
+  return xk, Hist_gradeval, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
 end

@@ -3,7 +3,7 @@ export PG, PGLnsch, PGΔ, PGE
 """
 Proximal Gradient Descent  for
 
-  min_x ϕ(x) = f(x) + g(x), with f(x) cvx and β-smooth, g(x) closed cvx
+  min_x ϕ(x) = f(x) + g(x), with f(x) β-smooth, g(x) closed, lsc
 
 Input:
   f: function handle that returns f(x) and ∇f(x)
@@ -44,7 +44,7 @@ function PG(
   x⁺ = deepcopy(x)
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, maxIter)
+  Complex_hist = zeros(Int, (2,maxIter))
 
   # Iteration set up
   g = ∇f(x⁺) #objInner/ quadratic model
@@ -64,7 +64,8 @@ function PG(
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    Complex_hist[k] += 1
+    Complex_hist[2,k] += 1
+    Complex_hist[1,k] += 1
 
     gold = g
     x = x⁺
@@ -83,7 +84,7 @@ function PG(
     k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e " k fk hk err ν norm(xk)
 
   end
-  return x⁺, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
+  return x⁺, Fobj_hist[1:k]+Hobj_hist[1:k], Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
 end
 
 function PGΔ(
