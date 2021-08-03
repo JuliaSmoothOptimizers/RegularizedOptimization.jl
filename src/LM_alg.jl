@@ -74,8 +74,8 @@ function LM(
   k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, maxIter)
-  verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "ξ" "Δm" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
+  Complex_hist = zeros(Int, (2,maxIter))
+  verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
 
   k = 0
   ρk = -1.0
@@ -103,7 +103,7 @@ function LM(
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk σk norm(xk) norm(s) νInv σ_stat
+    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(funEvals) fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
 
     # define inner function
     # TODO: use Jacobian operator and do not compute gradient unless necessary
@@ -130,7 +130,7 @@ function LM(
     ξ1 = fk + hk - mk(s1) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by s_alg?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease!")
 
-    if ξ1< ϵ
+    if sqrt(ξ1)< ϵ
       # the current xk is approximately first-order stationary
       verbose == 0 || @info "LM: terminating with ξ1 = $(ξ1)"
       optimal = true
@@ -144,7 +144,7 @@ function LM(
       s_alg(φ, ∇φ, ψ, subsolver_options, x0 = s1)
     end
 
-    Complex_hist[k] += funEvals
+    Complex_hist[2,k] += length(funEvals)
 
     xkn .= xk .+ s
     Fkn = residual(nls, xkn)  # TODO: call residual!()
@@ -182,7 +182,7 @@ function LM(
       svd_info = svds(Jk, nsv=1, ritzvec=false)
       νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
 
-      Complex_hist[k] += 1
+      Complex_hist[1,k] += 1
     end
 
     if ρk < η1 || ρk == Inf
