@@ -38,12 +38,12 @@ and σ > 0 is a regularization parameter.
 """
 
 function LM(
-  nls::AbstractNLSModel, 
-  h::ProximableFunction, 
-  options; 
-  x0::AbstractVector=nls.meta.x0, 
-  subsolver_logger=Logging.NullLogger(), 
-  s_alg=QRalg, 
+  nls::AbstractNLSModel,
+  h::ProximableFunction,
+  options,
+  x0::AbstractVector=nls.meta.x0;
+  subsolver_logger=Logging.NullLogger(),
+  s_alg=QRalg,
   subsolver_options = TRNCoptions()
   )
   # initialize passed options
@@ -84,9 +84,11 @@ function LM(
 
   # main algorithm initialization
   Fk = residual(nls, xk)
+  Fkn = similar(Fk)
   fk = dot(Fk, Fk) / 2
-  Jk = jac_residual(nls, xk)
+  Jk = jac_op_residual(nls, xk)
   ∇fk = Jk' * Fk
+  JdFk = similar(Fk)   # temporary storage
   svd_info = svds(Jk, nsv=1, ritzvec=false)
   νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
   hk = h(xk)
@@ -105,30 +107,35 @@ function LM(
     Hobj_hist[k] = hk
     k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(funEvals) fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
 
-    # define inner function
-    # TODO: use Jacobian operator and do not compute gradient unless necessary
+    # TODO: reuse residual computation
     φ(d) = begin
-      JdFk = Jk * d + Fk
+      jprod_residual!(nls, xk, d, JdFk)
+      JdFk .+= Fk
       return dot(JdFk, JdFk) / 2 + σk * dot(d, d) / 2
-      # return [dot(JdFk, JdFk) / 2 + σk * dot(d, d) / 2, Jk' * JdFk + σk * d, nothing]
     end
 
-    ∇φ(d) = begin
-      JdFk = Jk * d + Fk
-      return Jk' * JdFk + σk * d
+    ∇φ!(g, d) = begin
+      jprod_residual!(nls, xk, d, JdFk)
+      JdFk .+= Fk
+      jtprod_residual!(nls, xk, JdFk, g)
+      g .+= σk * d
+      return g
     end
 
     # define model and update ρ
     mk(d) = begin
-      JdFk = Jk * d + Fk
+      jprod_residual!(nls, xk, d, JdFk)
+      JdFk .+= Fk
+      # JdFk = Jk * d + Fk
       return dot(JdFk, JdFk) / 2 + ψ(d)
     end
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     subsolver_options.ν = 1 / νInv
-    s1 = ShiftedProximalOperators.prox(ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν)
+    ∇fk .*= -subsolver_options.ν  # reuse gradient storage
+    s1 = ShiftedProximalOperators.prox(ψ, ∇fk, subsolver_options.ν)
     ξ1 = fk + hk - mk(s1) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by s_alg?
-    ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease!")
+    ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if sqrt(ξ1)< ϵ
       # the current xk is approximately first-order stationary
@@ -141,13 +148,13 @@ function LM(
     subsolver_options.ϵ = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, funEvals, _, _, _ = with_logger(subsolver_logger) do
-      s_alg(φ, ∇φ, ψ, subsolver_options, x0 = s1)
+      s_alg(φ, ∇φ!, ψ, subsolver_options, s1)
     end
 
     Complex_hist[2,k] += length(funEvals)
 
     xkn .= xk .+ s
-    Fkn = residual(nls, xkn)  # TODO: call residual!()
+    residual!(nls, xkn, Fkn)
     fkn = dot(Fkn, Fkn) / 2
     hkn = h(xkn)
 
@@ -175,10 +182,10 @@ function LM(
       fk = fkn
       hk = hkn
 
-      #update gradient & hessian
+      # update gradient & Hessian
       shift!(ψ, xk)
-      Jk = jac_residual(nls, xk)
-      mul!(∇fk, Jk', Fk)
+      Jk = jac_op_residual(nls, xk)
+      jtprod_residual!(nls, xk, Fk, ∇fk)
       svd_info = svds(Jk, nsv=1, ritzvec=false)
       νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
 

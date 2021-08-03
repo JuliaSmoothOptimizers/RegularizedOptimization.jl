@@ -1,13 +1,13 @@
 module TRNC
 
 # base dependencies
-using LinearAlgebra, Printf, Random
+using LinearAlgebra, Logging, Printf
 
 # external dependencies
-using Arpack, ProximalOperators, Logging
+using Arpack, ProximalOperators
 
 # dependencies from us
-using ADNLPModels, NLPModels, NLPModelsModifiers, ShiftedProximalOperators
+using NLPModels, NLPModelsModifiers, ShiftedProximalOperators
 
 include("descentopts.jl")
 include("PG_alg.jl")
