@@ -80,3 +80,4 @@ function solve_FH_TR(; λ = 1.0, ϵ = 1.0e-6)
 
     return xtr, k, Fhist, Hhist, Comp_pg
 end
+
