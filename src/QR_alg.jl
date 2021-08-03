@@ -35,14 +35,14 @@ Complex_hist: Array{Float64, 1}
     inner algorithm iteration count
 
 """
-QRalg(nlp::AbstractNLPModel, args...; kwargs...) = QRalg(x -> obj(nlp, x), x -> grad(nlp, x), args...; kwargs...)
+QRalg(nlp::AbstractNLPModel, args...; kwargs...) = QRalg(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args...; kwargs...)
 
 function QRalg(
   f,
-  ∇f,
+  ∇f!,
   h,
-  options;
-  x0::AbstractVector=f.meta.x0,
+  options,
+  x0::AbstractVector
   )
   # initialize passed options
   ϵ = options.ϵ
@@ -81,7 +81,9 @@ function QRalg(
   σk = 1/ν
 
   fk = f(xk)
-  ∇fk = ∇f(xk)
+  ∇fk = similar(xk)
+  ∇f!(∇fk, xk)
+  mν∇fk = -ν * ∇fk
   hk = h(xk)
 
   ξ = 0.0
@@ -93,13 +95,15 @@ function QRalg(
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk ξ ρk σk norm(xk) norm(s) TR_stat
+    if verbose > 0
+      k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk ξ ρk σk norm(xk) norm(s) TR_stat
+    end
 
     # define model
     φk(d) = dot(∇fk, d)
     mk(d) = φk(d) + ψ(d)
 
-    s = ShiftedProximalOperators.prox(ψ, -ν * ∇fk, ν)
+    s = ShiftedProximalOperators.prox(ψ, mν∇fk, ν)
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
@@ -132,7 +136,7 @@ function QRalg(
       xk .= xkn
       fk = fkn
       hk = hkn
-      ∇fk = ∇f(xk)
+      ∇f!(∇fk, xk)
       shift!(ψ, xk)
       Complex_hist[k] += 1
     end
@@ -146,6 +150,9 @@ function QRalg(
 
     ν = 1 / σk
     tired = maxIter > 0 && k ≥ maxIter
+    if !tired
+      @. mν∇fk = -ν * ∇fk
+    end
   end
 
   return xk, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]

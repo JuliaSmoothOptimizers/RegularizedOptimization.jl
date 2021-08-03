@@ -98,7 +98,6 @@ function TR(
 
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
-  # define the Hessian
   νInv = (1 + θ) * abs(eigs(Bk; nev=1, v0 = randn(m,), which=:LM)[1][1])
 
   ξ = 0.0
@@ -107,26 +106,25 @@ function TR(
   tired = k ≥ maxIter
 
   while !(optimal || tired)
-    # update count
     k = k + 1
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    # Print values
     k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
-
-    # define inner function
-    ∇φ(d) = begin
-      return Bk * d + ∇fk
-    end
 
     φ(d) = begin
         return 0.5 * (d' * (Bk * d)) + ∇fk' * d
     end
 
-    # define model and update ρ
+    ∇φ!(g, d) = begin
+      mul!(g, Bk, d)
+      # g = Bk * d
+      g .+= ∇fk
+      g
+    end
+
     mk(d) = φ(d) + ψ(d)
 
-    # take initial step s1 and see if you can do more
+    # take first proximal gradient step s1 and see if current xk is nearly stationary
     subsolver_options.ν = 1 / (νInv + 1/(Δk*α))
     s1 = ShiftedProximalOperators.prox(ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν) # -> PG on one step s1
     ξ1 = hk - mk(s1) + max(1, abs(hk)) * 10 * eps()
@@ -140,10 +138,9 @@ function TR(
     end
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     set_radius!(ψ, min(β * χ(s1), Δk))
-    s, funEvals, _, _, _ = with_logger(subsolver_logger) do 
-      s_alg(φ, ∇φ, ψ, subsolver_options; x0 = s1)
+    s, funEvals, _, _, _ = with_logger(subsolver_logger) do
+      s_alg(φ, ∇φ!, ψ, subsolver_options, s1)
     end
-    # update Complexity history
     Complex_hist[k] += funEvals
 
     sNorm =  χ(s)
@@ -176,7 +173,7 @@ function TR(
       hk = hkn
       shift!(ψ, xk)
       ∇fk = grad(f, xk)
-      #grad!(f, xk, ∇fk)
+      # grad!(f, xk, ∇fk)
       if quasiNewtTest
         push!(f, s, ∇fk - ∇fk⁻)
       end

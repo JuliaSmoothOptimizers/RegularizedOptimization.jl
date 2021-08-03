@@ -1,62 +1,35 @@
-export TRNCoptions, SmoothObj
+export TRNCoptions
 
-mutable struct TRNCoptions
-  ϵ # termination criteria
-  Δk # trust region radius
-  verbose # print every so often
-  maxIter # maximum amount of inner iterations
-  η1 # ρ lower bound
-  η2 # ρ upper bound
-  α # νk Δ^{-1} parameter
-  ν # initial guess for ν
-  γ # trust region buffer
-  θ # TR inner loop "closeness" to Bk
-  β # TR size for PG steps j>1
+mutable struct TRNCoptions{R}
+  ϵ :: R  # termination criteria
+  Δk :: R  # trust region radius
+  verbose :: Int  # print every so often
+  maxIter :: Int  # maximum amount of inner iterations
+  η1 :: R  # step acceptance threshold
+  η2 :: R  # trust-region increase threshold
+  α :: R  # νk Δ^{-1} parameter
+  ν :: R  # initial guess for step length
+  γ :: R  # trust region buffer
+  θ :: R  # step length factor in relation to Hessian norm
+  β :: R  # TR size as factor of first PG step
 
-  function TRNCoptions(
+  function TRNCoptions{R}(
     ;
-    ϵ=1e-2,
-    Δk=1.0,
-    verbose=0,
-    maxIter=10000,
-    η1=1.0e-3, # ρ lower bound
-    η2=0.9,  # ρ upper bound
-    α=1e16, # νk Δ^{-1} parameter
-    ν=1.0e-3,
-    γ=3.0, # trust region buffer
-    θ=1e-3,
-    β=10.0,
-    ) # default values for trust region parameters in algorithm 4.2
-    return new(ϵ, Δk, verbose, maxIter, η1, η2, α, ν, γ, θ, β)
+    ϵ :: R = √eps(R),
+    Δk :: R = one(R),
+    verbose :: Int = 0,
+    maxIter :: Int = 10000,
+    η1 :: R = √√eps(R),
+    η2 :: R = R(0.9),
+    α :: R = 1 / eps(R),
+    ν :: R = 1.0e-3,
+    γ :: R = R(3.0),
+    θ :: R = R(1e-3),
+    β :: R = R(10.0),
+    ) where {R <: Real}
+    return new{R}(ϵ, Δk, verbose, maxIter, η1, η2, α, ν, γ, θ, β)
   end
 end
 
-mutable struct SmoothObj{T,S} <: AbstractNLPModel{T,S}
-  meta :: NLPModelMeta{T,S}
-  counters :: Counters
+TRNCoptions(args...; kwargs...) = TRNCoptions{Float64}(args...; kwargs...)
 
-  #functions
-  f
-  g
-  function SmoothObj{T,S}(f, g, x::S;  name = "smooth") where {T,S}
-    meta = NLPModelMeta(length(x), x0 = x, name=name)
-    return new{T,S}(meta, Counters(), f, g)
-  end
-end
-SmoothObj(f, g, x::S; kwargs...) where {S} = 
-  SmoothObj{eltype(S), S}(f, g, x; kwargs...)
-
-function NLPModels.obj(nlp::SmoothObj, x::AbstractVector)
-  increment!(nlp, :neval_obj)
-  return nlp.f(x)
-end
-# function NLPModels.grad!(nlp::SmoothObj, x::AbstractVector, g :: AbstractVector)
-#   increment!(nlp, :neval_grad)
-#   g .= nlp.g(x)
-#   return g
-# end
-function NLPModels.grad!(nlp::SmoothObj, x::AbstractVector, g :: AbstractVector)
-  increment!(nlp, :neval_grad)
-  nlp.g(g, x)
-  return g
-end
