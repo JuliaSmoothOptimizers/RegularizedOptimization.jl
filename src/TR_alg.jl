@@ -109,8 +109,12 @@ function TR(
     k = k + 1
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
+<<<<<<< HEAD
     # Print values
     k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(funEvals) fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
+=======
+    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk ξ1 ξ ρk Δk χ(xk) sNorm νInv TR_stat
+>>>>>>> 6deb2a02c3339b33d70af6f8588e464f666d1f95
 
     φ(d) = begin
         return 0.5 * (d' * (Bk * d)) + ∇fk' * d
@@ -142,8 +146,13 @@ function TR(
     s, funEvals, _, _, _ = with_logger(subsolver_logger) do
       s_alg(φ, ∇φ!, ψ, subsolver_options, s1)
     end
+<<<<<<< HEAD
     
     Complex_hist[2,k] += length(funEvals)
+=======
+    Complex_hist[k] += funEvals
+
+>>>>>>> 6deb2a02c3339b33d70af6f8588e464f666d1f95
     sNorm =  χ(s)
     xkn .= xk .+ s
     fkn = obj(f, xkn)
