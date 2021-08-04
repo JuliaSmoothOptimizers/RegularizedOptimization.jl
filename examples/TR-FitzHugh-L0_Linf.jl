@@ -60,8 +60,8 @@ function phirod(cfunc; λ = 1.0)
   # put in your initial guesses
   xi = ones(5,)
   # this is for l0 norm 
-  # Smoothfunc = LBFGSModel(ADNLPModel(cfunc, xi))
-  Smoothfunc = LSR1Model(ADNLPModel(cfunc, xi))
+  Smoothfunc = LBFGSModel(ADNLPModel(cfunc, xi))
+  # Smoothfunc = LSR1Model(ADNLPModel(cfunc, xi))
   # Smoothfunc = ADNLPModel(cfunc, xi)
   return Smoothfunc, nonsmoothfunc
 end
@@ -71,6 +71,6 @@ function runode(func, hunc; ϵ = 1e-3)
   params = TRNCoptions(; maxIter = 10000, verbose=10, ϵ=ϵ, β=1e16)
   subopts = params; 
   xtr, k, Fhist, Hhist, Comp_pg = TR(func, hunc, NormLinf(1.0), params; subsolver_options = subopts)
-  xtr, k, Fhist, Hhist, Comp_pg = LMTR(func, hunc,  methods, params)
+  @info "" k neval_obj(func) neval_grad(func)
   return xtr
 end
