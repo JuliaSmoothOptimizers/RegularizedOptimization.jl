@@ -4,7 +4,7 @@ using Logging
 using PGFPlots
 using TRNC
 
-include("fh.jl")
+include("LMTR_TR-FitzHugh_datagen.jl")
 
 # fancy logging
 const fmt = Dates.@dateformat_str "yyyy-mm-dd HH:MM:SS:sss"
@@ -66,30 +66,30 @@ inner_logger = ConsoleLogger(
 
 data, simulate, resid, misfit = FH_smooth_term()
 nls = ADNLSModel(resid, ones(5), 202)  # adbackend = ForwardDiff by default
-nlp = ADNLPModel(misfit, ones(5))
+nlp = LBFGSModel(ADNLPModel(misfit, ones(5)))
 
 λ = 1.0
 ϵ = 1.0e-6
 h = NormL0(λ)
 χ = NormLinf(1.0)
-options = TRNCoptions(; maxIter = 1000, verbose = 10, ϵ = ϵ, β = 1e16, ν = 1.0e+1)
+options = TRNCoptions(; maxIter = 1000, verbose = 10, ϵ = ϵ, β = 1e16, ν = 1.0e+2)
 
-xtr, k, Fhist, Hhist, Comp_pg = with_logger(outer_logger) do
-  TR(nlp, h, χ, options; subsolver_logger = inner_logger)
-end
+# xtr, k, Fhist, Hhist, Comp_pg = with_logger(outer_logger) do
+#   TR(nlp, h, χ, options; subsolver_logger = inner_logger)
+# end
 
-plot_results(xtr, Comp_pg, Fhist+Hhist, "tr-qr")
+# plot_results(xtr, Comp_pg[2,:], Fhist+Hhist, "tr-qr")
 
 xtr, k, Fhist, Hhist, Comp_pg = with_logger(outer_logger) do
   LMTR(nls, h, χ, options; subsolver_logger = inner_logger)
 end
 
-plot_results(xtr, Comp_pg,Fhist+Hhist, "lmtr-qr")
+plot_results(xtr, Comp_pg[2,:],Fhist+Hhist, "lmtr-qr")
 
 reset!(nls)
 xtr, k, Fhist, Hhist, Comp_pg = with_logger(outer_logger) do
   LM(nls, h, options; subsolver_logger = inner_logger)
 end
 
-plot_results(xtr, Comp_pg, Fhist+Hhist, "lm-qr")
+plot_results(xtr, Comp_pg[2,:], Fhist+Hhist, "lm-qr")
 
