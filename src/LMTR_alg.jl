@@ -42,8 +42,8 @@ function LMTR(
   nls::AbstractNLSModel,
   h::ProximableFunction,
   χ::ProximableFunction,
-  params;
-  x0::AbstractVector=nls.meta.x0,
+  params, 
+  x0::AbstractVector=nls.meta.x0;
   subsolver_logger::Logging.AbstractLogger=Logging.NullLogger(),
   s_alg=QRalg,
   subsolver_options=TRNCoptions()
@@ -87,12 +87,15 @@ function LMTR(
   TR_stat = ""
 
   # main algorithm initialization
-  Fk = residual(nls, xk)  # TODO: use residual!()
+  Fk = residual(nls, xk)
+  Fkn = similar(Fk)
   fk = dot(Fk, Fk) / 2
-  Jk = jac_residual(nls, xk)  # TODO: use operator
+  Jk = jac_op_residual(nls, xk)
   ∇fk = Jk' * Fk
+  JdFk = similar(Fk)   # temporary storage
   svd_info = svds(Jk, nsv=1, ritzvec=false)
   νInv = (1 + θ) * maximum(svd_info[1].S)^2  # ‖J'J‖ = ‖J‖²
+  mν∇fk = -∇fk/νInv
   hk = h(xk)
   funEvals = 1
 
@@ -108,15 +111,17 @@ function LMTR(
     Hobj_hist[k] = hk
     k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(funEvals) fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
 
-    # define inner function
+    # TODO: reuse residual computation
     φ(d) = begin
-      JdFk = Jk * d + Fk
+      jprod_residual!(nls, xk, d, JdFk)
+      JdFk .+= Fk
       return dot(JdFk, JdFk) / 2
     end
 
     ∇φ!(g,d) = begin
-      JdFk = Jk * d + Fk
-      g .= Jk' * JdFk
+      jprod_residual!(nls, xk, d, JdFk)
+      JdFk .+= Fk
+      jtprod_residual!(nls, xk, JdFk, g) #profiler
       return g
     end
 
@@ -124,7 +129,7 @@ function LMTR(
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     subsolver_options.ν = 1 / (νInv + 1/(Δk*α))
-    s1 = ShiftedProximalOperators.prox(ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν)
+    s1 = ShiftedProximalOperators.prox(ψ, mν∇fk, subsolver_options.ν)
     ξ1 = fk + hk - mk(s1) + max(1, abs(fk + hk)) * 10 * eps()
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
@@ -145,7 +150,7 @@ function LMTR(
 
     sNorm = χ(s)
     xkn .= xk .+ s
-    Fkn = residual(nls, xkn)  # TODO: use residual!()
+    residual!(nls, xkn, Fkn)
     fkn = dot(Fkn, Fkn) / 2
     hkn = h(xkn)
 
@@ -177,12 +182,11 @@ function LMTR(
       hk = hkn
 
       shift!(ψ, xk)
-      Jk = jac_residual(nls, xk)
-      # ∇fk = Jk' * Fk
-      mul!(∇fk, Jk', Fk)
+      Jk = jac_op_residual(nls, xk)
+      jtprod_residual!(nls, xk, Fk, ∇fk)
       svd_info = svds(Jk, nsv=1, ritzvec=false)
       νInv = (1 + θ) * maximum(svd_info[1].S)^2
-
+      @. mν∇fk = -∇fk/νInv
       Complex_hist[1,k] += 1
     end
 

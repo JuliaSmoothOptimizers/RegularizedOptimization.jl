@@ -74,11 +74,11 @@ h = NormL0(λ)
 χ = NormLinf(1.0)
 options = TRNCoptions(; maxIter = 1000, verbose = 10, ϵ = ϵ, β = 1e16, ν = 1.0e+2)
 
-# xtr, k, Fhist, Hhist, Comp_pg = with_logger(outer_logger) do
-#   TR(nlp, h, χ, options; subsolver_logger = inner_logger)
-# end
+xtr, k, Fhist, Hhist, Comp_pg = with_logger(outer_logger) do
+  TR(nlp, h, χ, options; subsolver_logger = inner_logger)
+end
 
-# plot_results(xtr, Comp_pg[2,:], Fhist+Hhist, "tr-qr")
+plot_results(xtr, Comp_pg[2,:], Fhist+Hhist, "tr-qr")
 
 xtr, k, Fhist, Hhist, Comp_pg = with_logger(outer_logger) do
   LMTR(nls, h, χ, options; subsolver_logger = inner_logger)
