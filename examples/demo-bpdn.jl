@@ -11,13 +11,13 @@ function demo_solver(f, sol, h, χ, suffix = "l0-linf")
 
   @info "using R2 to solve with" h
   reset!(f)
-  xr2, Ghist, Fhistr2, Hhistr2, Comp_pgr2 = QRalg(f, h, options, f.meta.x0)
+  xr2, Fhistr2, Hhistr2, Comp_pgr2 = R2(f, h, options, f.meta.x0)
   @info "R2 relative error" norm(xr2 - sol) / norm(sol)
   plot_bpdn(Comp_pgr2[2,:], Fhistr2+Hhistr2, xr2, sol, "r2-$(suffix)")
 
   @info " using TR to solve with" h χ
   reset!(f)
-  xtr, k, Fhist, Hhist, Comp_pg = TR(f, h, χ, options, x0 = f.meta.x0)
+  xtr, Fhist, Hhist, Comp_pg = TR(f, h, χ, options, x0 = f.meta.x0)
   @info "TR relative error" norm(xtr - sol) / norm(sol)
   plot_bpdn(Comp_pg[2,:], Fhist+Hhist, xtr, sol, "tr-r2-$(suffix)")
 end

@@ -1,38 +1,44 @@
 export TR
+
 """
-    TR(nlp, params, options; x0=nls.meta.x0, subsolver_logger=Logging.NullLogger())
+    TR(nlp, h, χ, options; kwargs...)
 
 A trust-region method for the problem
 
     min f(x) + h(x)
 
-where f: ℜⁿ → ℜ and h: ℜⁿ → ℜ is lower semi-continuous and proper.
+where f: ℝⁿ → ℝ has a Lipschitz-continuous Jacobian, and h: ℝⁿ → ℝ is
+lower semi-continuous and proper.
 
-At each iteration, a step s is computed as an approximate solution of
+About each iterate xₖ, a step sₖ is computed as an approximate solution of
 
-    min  ½ ‖s - (sⱼ - ν∇φ(sⱼ)‖₂² + ψ(s; x)  subject to  ‖s‖ ≤ Δ
+    min  φ(s; xₖ) + ψ(s; xₖ)  subject to  ‖s‖ ≤ Δₖ
 
-where ∇φ is the gradient of the quadratic approximation of f(x) at x, ψ(s; x) = h(x + s),
-‖⋅‖ is a user-defined norm and Δ > 0 is a trust-region radius.
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Bₖ s  is a quadratic approximation of f about xₖ,
+ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm and Δₖ > 0 is the trust-region radius.
+The subproblem is solved inexactly by way of a first-order method such as the proximal-gradient
+method or the quadratic regularization method.
 
 ### Arguments
 
-* `nlp::AbstractNLPModel`: a smooth optimization problem (only the objective will be accessed)
+* `nlp::AbstractNLPModel`: a smooth optimization problem
 * `h::ProximableFunction`: a regularizer
 * `χ::ProximableFunction`: a norm used to define the trust region
-* `params::TRNCMethods`: insert description here
+* `options::TRNCoptions`: a structure containing algorithmic parameters
+
+The objective, gradient and Hessian of `nlp` will be accessed.
+The Hessian is accessed as an abstract operator and need not be the exact Hessian.
 
 ### Keyword arguments
 
-* `x0::AbstractVector`: an initial guess (default: the initial guess stored in `nlp`)
-* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
-* `s_alg`: the procedure used to compute a step (`PG` or `QRalg`)
-* `subsolver_options::TRNCoptions`: default options to pass to the subsolver.
+* `x0::AbstractVector`: an initial guess (default: `nlp.meta.x0`)
+* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver (default: the null logger)
+* `subsolver`: the procedure used to compute a step (`PG` or `R2`)
+* `subsolver_options::TRNCoptions`: default options to pass to the subsolver (default: all defaut options).
 
 ### Return values
 
 * `xk`: the final iterate
-* `k`: the overall number of iterations
 * `Fobj_hist`: an array with the history of values of the smooth objective
 * `Hobj_hist`: an array with the history of values of the nonsmooth objective
 * `Complex_hist`: an array with the history of number of inner iterations.
@@ -41,10 +47,10 @@ function TR(
   f::AbstractNLPModel,
   h::ProximableFunction,
   χ::ProximableFunction,
-  options;
-  x0::AbstractVector=f.meta.x0,
-  subsolver_logger::Logging.AbstractLogger=Logging.NullLogger(),
-  s_alg = QRalg,
+  options::TRNCoptions;
+  x0::AbstractVector = f.meta.x0,
+  subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
+  subsolver = R2,
   subsolver_options = TRNCoptions(),
   )
 
@@ -94,7 +100,6 @@ function TR(
   s = zero(xk)
   ∇fk⁻ = copy(∇fk)
   funEvals = 1
-  Hist_gradeval = [fk + hk]
 
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
@@ -109,7 +114,7 @@ function TR(
     k = k + 1
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(funEvals) fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
+    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
 
     φ(d) = begin
         return 0.5 * (d' * (Bk * d)) + ∇fk' * d
@@ -139,9 +144,9 @@ function TR(
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     set_radius!(ψ, min(β * χ(s1), Δk))
     s, funEvals, _, _, _ = with_logger(subsolver_logger) do
-      s_alg(φ, ∇φ!, ψ, subsolver_options, s1)
+      subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
     end
-    Complex_hist[2,k] += length(funEvals)
+    Complex_hist[2,k] += funEvals
 
     sNorm =  χ(s)
     xkn .= xk .+ s
@@ -184,7 +189,6 @@ function TR(
 
       #hist update
       Complex_hist[1,k] += 1
-      append!(Hist_gradeval, fk+hk)
     end
 
     if ρk < η1 || ρk == Inf
@@ -196,5 +200,5 @@ function TR(
 
   end
 
-  return xk, Hist_gradeval, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
+  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
 end
