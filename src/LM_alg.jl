@@ -1,12 +1,14 @@
 export LM
+
 """
-    LM(nls, options, options; x0=nls.meta.x0, subsolver_logger=Logging.NullLogger())
+    LM(nls, h, options; kwargs...)
 
 A Levenberg-Marquardt method for the problem
 
     min ½ ‖F(x)‖² + h(x)
 
-where F: ℜⁿ → ℜᵐ and its Jacobian J are Lipschitz continuous and h: ℜⁿ → ℜ is lower semi-continuous.
+where F: ℝⁿ → ℝᵐ and its Jacobian J are Lipschitz continuous and h: ℝⁿ → ℝ is
+lower semi-continuous, proper and prox-bounded.
 
 At each iteration, a step s is computed as an approximate solution of
 
@@ -19,31 +21,29 @@ and σ > 0 is a regularization parameter.
 
 * `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
 * `h::ProximableFunction`: a regularizer
-* `options::TRNCMethods`: insert description here
+* `options::TRNCoptions`: a structure containing algorithmic parameters
 
 ### Keyword arguments
 
-* `x0::AbstractVector`: an initial guess (default: the initial guess stored in `nls`)
+* `x0::AbstractVector`: an initial guess (default: `nls.meta.x0`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
-* `s_alg`: the procedure used to compute a step (`PG` or `QRalg`)
+* `subsolver`: the procedure used to compute a step (`PG` or `R2`)
 * `subsolver_options::TRNCoptions`: default options to pass to the subsolver.
 
 ### Return values
 
 * `xk`: the final iterate
-* `k`: the overall number of iterations
 * `Fobj_hist`: an array with the history of values of the smooth objective
 * `Hobj_hist`: an array with the history of values of the nonsmooth objective
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
-
 function LM(
   nls::AbstractNLSModel,
   h::ProximableFunction,
-  options,
-  x0::AbstractVector=nls.meta.x0;
-  subsolver_logger=Logging.NullLogger(),
-  s_alg=QRalg,
+  options::TRNCoptions;
+  x0::AbstractVector = nls.meta.x0,
+  subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
+  subsolver = R2,
   subsolver_options = TRNCoptions()
   )
   # initialize passed options
@@ -105,7 +105,7 @@ function LM(
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(funEvals) fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
+    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
 
     # TODO: reuse residual computation
     φ(d) = begin
@@ -134,7 +134,7 @@ function LM(
     subsolver_options.ν = 1 / νInv
     ∇fk .*= -subsolver_options.ν  # reuse gradient storage
     s1 = ShiftedProximalOperators.prox(ψ, ∇fk, subsolver_options.ν)
-    ξ1 = fk + hk - mk(s1) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by s_alg?
+    ξ1 = fk + hk - mk(s1) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if sqrt(ξ1)< ϵ
@@ -148,17 +148,17 @@ function LM(
     subsolver_options.ϵ = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, funEvals, _, _, _ = with_logger(subsolver_logger) do
-      s_alg(φ, ∇φ!, ψ, subsolver_options, s1)
+      subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
     end
 
-    Complex_hist[2,k] += length(funEvals)
+    Complex_hist[2,k] += funEvals
 
     xkn .= xk .+ s
     residual!(nls, xkn, Fkn)
     fkn = dot(Fkn, Fkn) / 2
     hkn = h(xkn)
 
-    ξ = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by s_alg?
+    ξ = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
 
     if (ξ ≤ 0 || isnan(ξ))
       error("LM: failed to compute a step: ξ = $ξ")
@@ -200,5 +200,5 @@ function LM(
     tired = k ≥ maxIter
   end
 
-  return xk, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
+  return xk, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
 end

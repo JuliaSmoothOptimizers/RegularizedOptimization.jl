@@ -1,50 +1,53 @@
-# Implements Algorithm 4.2 in "Interior-Point Trust-Region Method for Composite Optimization".
-
-export QRalg
-
-"""Interior method for Trust Region problem
-    QuadReg(x, params, options)
-Arguments
-----------
-x : Array{Float64,1}
-    Initial guess for the x value used in the trust region
-params : mutable structure TR_params with:
-    --
-    -ϵ, tolerance for primal convergence
-    -Δk Float64, trust region radius
-    -verbose Int, print every # options
-    -maxIter Float64, maximum number of inner iterations (note: does not influence TotalCount)
-options : mutable struct TR_methods
-    -f_obj, smooth objective struct; eval, grad, Hess
-    -ψ, nonsmooth objective struct; h, ψ, ψχprox - function projecting onto the trust region ball or ψ+χ
-    --
-    -FO_options, options for first order algorithm, see DescentMethods.jl for more
-    -s_alg, algorithm for descent direction, see DescentMethods.jl for more
-
-Returns
--------
-x   : Array{Float64,1}
-    Final value of Algorithm 4.2 trust region
-k   : Int
-    number of iterations used
-Fobj_hist: Array{Float64,1}
-    smooth function history
-Hobj_hist: Array{Float64, 1}
-    nonsmooth function history
-Complex_hist: Array{Float64, 1}
-    inner algorithm iteration count
+export R2
 
 """
-QRalg(nlp::AbstractNLPModel, args...; kwargs...) = QRalg(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args...; kwargs...)
+    R2(nlp, h, options, x0)
+    R2(f, ∇f!, h, options, x0)
 
-function QRalg(
-  f,
-  ∇f!,
-  h,
-  options,
+A first-order quadratic regularization method for the problem
+
+    min f(x) + h(x)
+
+where f: ℝⁿ → ℝ has a Lipschitz-continuous gradient, and h: ℝⁿ → ℝ is
+lower semi-continuous, proper and prox-bounded.
+
+About each iterate xₖ, a step sₖ is computed as a solution of
+
+    min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ)
+
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs is the Taylor linear approximation of f about xₖ,
+ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm and σₖ > 0 is the regularization parameter.
+
+### Arguments
+
+* `nlp::AbstractNLPModel`: a smooth optimization problem
+* `h::ProximableFunction`: a regularizer
+* `options::TRNCoptions`: a structure containing algorithmic parameters
+* `x0::AbstractVector`: an initial guess
+
+The objective and gradient of `nlp` will be accessed.
+
+In the second form, instead of `nlp`, the user may pass in
+
+* `f` a function such that `f(x)` returns the value of f at x
+* `∇f!` a function to evaluate the gradient in place, i.e., such that `∇f!(g, x)` store ∇f(x) in `g`.
+
+### Return values
+
+* `xk`: the final iterate
+* `Fobj_hist`: an array with the history of values of the smooth objective
+* `Hobj_hist`: an array with the history of values of the nonsmooth objective
+* `Complex_hist`: an array with the history of number of inner iterations.
+"""
+R2(nlp::AbstractNLPModel, args...; kwargs...) = R2(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args...; kwargs...)
+
+function R2(
+  f::F,
+  ∇f!::G,
+  h::ProximableFunction,
+  options::TRNCoptions,
   x0::AbstractVector
-  )
-  # initialize passed options
+  ) where {F <: Function, G <: Function}
   ϵ = options.ϵ
   verbose = options.verbose
   maxIter = options.maxIter
@@ -85,7 +88,6 @@ function QRalg(
   ∇f!(∇fk, xk)
   mν∇fk = -ν * ∇fk
   hk = h(xk)
-  Hist_gradeval = [fk + hk]
 
   ξ = 0.0
   optimal = false
@@ -141,7 +143,6 @@ function QRalg(
       ∇f!(∇fk, xk)
       shift!(ψ, xk)
       Complex_hist[1,k]+=1
-      append!(Hist_gradeval, fk + hk)
     end
 
     if ρk < η1 || ρk == Inf
@@ -158,5 +159,5 @@ function QRalg(
     end
   end
 
-  return xk, Hist_gradeval, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
+  return xk, k, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
 end

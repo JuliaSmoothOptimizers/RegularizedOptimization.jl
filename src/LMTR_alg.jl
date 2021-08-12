@@ -1,13 +1,14 @@
 export LMTR
 
 """
-    LMTR(nls, params, options; x0=nls.meta.x0, subsolver_logger=Logging.NullLogger())
+    LMTR(nls, h, χ, options; kwargs...)
 
 A trust-region Levenberg-Marquardt method for the problem
 
     min ½ ‖F(x)‖² + h(x)
 
-where F: ℜⁿ → ℜᵐ and its Jacobian J are Lipschitz continuous and h: ℜⁿ → ℜ is lower semi-continuous.
+where F: ℝⁿ → ℝᵐ and its Jacobian J are Lipschitz continuous and h: ℝⁿ → ℝ is
+lower semi-continuous and proper.
 
 At each iteration, a step s is computed as an approximate solution of
 
@@ -21,19 +22,18 @@ where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; 
 * `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
 * `h::ProximableFunction`: a regularizer
 * `χ::ProximableFunction`: a norm used to define the trust region
-* `params::TRNCMethods`: insert description here
+* `options::TRNCoptions`: a structure containing algorithmic parameters
 
 ### Keyword arguments
 
-* `x0::AbstractVector`: an initial guess (default: the initial guess stored in `nls`)
+* `x0::AbstractVector`: an initial guess (default: `nls.meta.x0`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
-* `s_alg`: the procedure used to compute a step (`PG` or `QRalg`)
+* `subsolver`: the procedure used to compute a step (`PG` or `R2`)
 * `subsolver_options::TRNCoptions`: default options to pass to the subsolver.
 
 ### Return values
 
 * `xk`: the final iterate
-* `k`: the overall number of iterations
 * `Fobj_hist`: an array with the history of values of the smooth objective
 * `Hobj_hist`: an array with the history of values of the nonsmooth objective
 * `Complex_hist`: an array with the history of number of inner iterations.
@@ -42,22 +42,22 @@ function LMTR(
   nls::AbstractNLSModel,
   h::ProximableFunction,
   χ::ProximableFunction,
-  params, 
-  x0::AbstractVector=nls.meta.x0;
-  subsolver_logger::Logging.AbstractLogger=Logging.NullLogger(),
-  s_alg=QRalg,
-  subsolver_options=TRNCoptions()
+  options::TRNCoptions;
+  x0::AbstractVector = nls.meta.x0,
+  subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
+  subsolver = R2,
+  subsolver_options = TRNCoptions()
  )
   # initialize passed options
-  ϵ = params.ϵ
-  Δk = params.Δk
-  verbose = params.verbose
-  maxIter = params.maxIter
-  η1 = params.η1
-  η2 = params.η2
-  γ = params.γ
-  θ = params.θ
-  β = params.β
+  ϵ = options.ϵ
+  Δk = options.Δk
+  verbose = options.verbose
+  maxIter = options.maxIter
+  η1 = options.η1
+  η2 = options.η2
+  γ = options.γ
+  θ = options.θ
+  β = options.β
 
   if verbose == 0
     ptf = Inf
@@ -109,7 +109,7 @@ function LMTR(
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(funEvals) fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
+    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
 
     # TODO: reuse residual computation
     φ(d) = begin
@@ -143,10 +143,10 @@ function LMTR(
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
     set_radius!(ψ, min(β * χ(s1), Δk))
     s, funEvals, _, _, _ = with_logger(subsolver_logger) do
-      s_alg(φ, ∇φ!, ψ, subsolver_options, s1)
+      subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
     end
 
-    Complex_hist[2,k] += length(funEvals)
+    Complex_hist[2,k] += funEvals
 
     sNorm = χ(s)
     xkn .= xk .+ s
@@ -155,7 +155,7 @@ function LMTR(
     hkn = h(xkn)
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ξ = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps() # TODO: isn't mk(s) returned by s_alg?
+    ξ = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps() # TODO: isn't mk(s) returned by subsolver?
 
     @debug "computed step" s norm(s, Inf) Δk
 
@@ -201,5 +201,5 @@ function LMTR(
     tired = k ≥ maxIter
   end
 
-  return xk, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
+  return xk, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
 end
