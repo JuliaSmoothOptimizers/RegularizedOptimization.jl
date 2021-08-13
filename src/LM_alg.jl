@@ -75,12 +75,10 @@ function LM(
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, (2,maxIter))
-  verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
+  verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
 
   k = 0
-  ρk = -1.0
   α = 1.0
-  σ_stat = ""
 
   # main algorithm initialization
   Fk = residual(nls, xk)
@@ -93,10 +91,7 @@ function LM(
   νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
   hk = h(xk)
   s = zero(xk)
-  funEvals = 1
 
-  ξ1 = 0.0
-  ξ = 0.0
   optimal = false
   tired = k ≥ maxIter
 
@@ -105,7 +100,6 @@ function LM(
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
 
     # TODO: reuse residual computation
     φ(d) = begin
@@ -147,11 +141,11 @@ function LM(
     # subsolver_options.ϵ = k == 1 ? 1.0e-4 : max(ϵ, min(1.0e-4, ξ1 / 5))
     subsolver_options.ϵ = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
-    s, funEvals, _, _, _ = with_logger(subsolver_logger) do
+    s, sub_fhist, sub_hhist, sub_cmplx = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
     end
 
-    Complex_hist[2,k] += funEvals
+    Complex_hist[2,k] += length(sub_fhist)
 
     xkn .= xk .+ s
     residual!(nls, xkn, Fkn)
@@ -167,11 +161,14 @@ function LM(
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ρk = Δobj / ξ
 
+    σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
+
+    if (verbose > 0) && (k % ptf == 0)
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(sub_fhist) fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
+    end
+
     if η2 ≤ ρk < Inf
-      σ_stat = "↘"
       σk = σk / γ
-    else
-      σ_stat = "="
     end
 
     if η1 ≤ ρk < Inf
@@ -193,11 +190,14 @@ function LM(
     end
 
     if ρk < η1 || ρk == Inf
-      σ_stat = "↗"
       σk = max(σk * γ, 1e-6)
     end
 
     tired = k ≥ maxIter
+  end
+
+  if (verbose > 0) && (k == 1)
+    @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
   end
 
   return xk, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]

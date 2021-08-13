@@ -79,8 +79,6 @@ function R2(
   verbose == 0 || @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
 
   k = 0
-  ρk = -1.0
-  TR_stat = ""
   σk = 1/ν
 
   fk = f(xk)
@@ -89,7 +87,6 @@ function R2(
   mν∇fk = -ν * ∇fk
   hk = h(xk)
 
-  ξ = 0.0
   optimal = false
   tired = maxIter > 0 && k ≥ maxIter
 
@@ -98,9 +95,6 @@ function R2(
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    if verbose > 0
-      k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(s) TR_stat
-    end
 
     # define model
     φk(d) = dot(∇fk, d)
@@ -127,16 +121,17 @@ function R2(
     Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ρk = Δobj / ξ
 
+    σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
+
+    if (verbose > 0) && (k % ptf == 0)
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(s) σ_stat
+    end
+
     if η2 ≤ ρk < Inf
-      @debug "very successful step"
-      TR_stat = "↘"
       σk = σk / γ
-    else
-      TR_stat = "="
     end
 
     if η1 ≤ ρk < Inf
-      ρk < η2 && @debug "successful step"
       xk .= xkn
       fk = fkn
       hk = hkn
@@ -146,10 +141,7 @@ function R2(
     end
 
     if ρk < η1 || ρk == Inf
-      @debug "unsuccessful step"
-      TR_stat = "↗"
       σk = σk * γ
-      # σk = max(σk * γ, 1e-6)
     end
 
     ν = 1 / σk
@@ -159,5 +151,9 @@ function R2(
     end
   end
 
-  return xk, k, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
+  if (verbose > 0) && (k == 1)
+    @info @sprintf "%6d %8.1e %8.1e" k fk hk
+  end
+
+  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
 end
