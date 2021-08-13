@@ -86,12 +86,11 @@ function TR(
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, (2, maxIter))
-  @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
+  if verbose > 0
+    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
+  end
 
   k = 0
-  ρk = -1.0
-  sNorm = 0.0
-  TR_stat = ""
 
   # keep track of old values, initialize functions
   ∇fk = grad(f, xk)
@@ -99,14 +98,11 @@ function TR(
   hk = ψ.h(xk)
   s = zero(xk)
   ∇fk⁻ = copy(∇fk)
-  funEvals = 1
 
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
   νInv = (1 + θ) * abs(eigs(Bk; nev=1, v0 = randn(m,), which=:LM)[1][1])
 
-  ξ = 0.0
-  ξ1 = 0.0
   optimal = false
   tired = k ≥ maxIter
 
@@ -114,7 +110,6 @@ function TR(
     k = k + 1
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
 
     φ(d) = begin
         return 0.5 * (d' * (Bk * d)) + ∇fk' * d
@@ -122,7 +117,6 @@ function TR(
 
     ∇φ!(g, d) = begin
       mul!(g, Bk, d)
-      # g = Bk * d
       g .+= ∇fk
       g
     end
@@ -143,10 +137,10 @@ function TR(
     end
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     set_radius!(ψ, min(β * χ(s1), Δk))
-    s, funEvals, _, _, _ = with_logger(subsolver_logger) do
+    s, sub_fhist, sub_hhist, sub_cmplx = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
     end
-    Complex_hist[2,k] += funEvals
+    Complex_hist[2,k] += length(sub_fhist)
 
     sNorm =  χ(s)
     xkn .= xk .+ s
@@ -162,12 +156,15 @@ function TR(
 
     ρk = Δobj / ξ
 
+    TR_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
+
+    if (verbose > 0) && (k % ptf == 0)
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(sub_fhist) fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
+    end
+
     if η2 ≤ ρk < Inf
-      TR_stat = "↗"
       Δk = max(Δk, γ * sNorm)
       set_radius!(ψ, Δk)
-    else
-      TR_stat = "="
     end
 
     if η1 ≤ ρk < Inf
@@ -192,12 +189,15 @@ function TR(
     end
 
     if ρk < η1 || ρk == Inf
-      TR_stat = "↘"
       Δk = .5 * Δk	# change to reflect trust region
       set_radius!(ψ, Δk)
     end
     tired = k ≥ maxIter
 
+  end
+
+  if (verbose > 0) && (k == 1)
+    @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
   end
 
   return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]

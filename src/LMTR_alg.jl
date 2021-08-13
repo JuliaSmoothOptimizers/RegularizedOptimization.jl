@@ -78,13 +78,10 @@ function LMTR(
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, (2, maxIter))
-  verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "iter" "PG iter" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "1/ν" "TR"
+  verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "1/ν" "TR"
 
   k = 0
-  ρk = -1.0
   α = 1.0
-  sNorm = 0.0
-  TR_stat = ""
 
   # main algorithm initialization
   Fk = residual(nls, xk)
@@ -99,8 +96,6 @@ function LMTR(
   hk = h(xk)
   funEvals = 1
 
-  ξ = 0.0
-  ξ1 = 0.0
   optimal = false
   tired = k ≥ maxIter
 
@@ -109,7 +104,6 @@ function LMTR(
 
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    k % ptf == 0 && @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k funEvals fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
 
     # TODO: reuse residual computation
     φ(d) = begin
@@ -142,11 +136,11 @@ function LMTR(
 
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
     set_radius!(ψ, min(β * χ(s1), Δk))
-    s, funEvals, _, _, _ = with_logger(subsolver_logger) do
+    s, sub_fhist, sub_hhist, sub_cmplx = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
     end
 
-    Complex_hist[2,k] += funEvals
+    Complex_hist[2,k] += length(sub_fhist)
 
     sNorm = χ(s)
     xkn .= xk .+ s
@@ -165,12 +159,15 @@ function LMTR(
 
     ρk = Δobj / ξ
 
+    TR_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
+
+    if (verbose > 0) && (k % ptf == 0)
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(sub_fhist) fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
+    end
+
     if η2 ≤ ρk < Inf
-      TR_stat = "↗"
       Δk = max(Δk, γ * sNorm)
       set_radius!(ψ, Δk)
-    else
-      TR_stat = "="
     end
 
     if η1 ≤ ρk < Inf
@@ -191,14 +188,16 @@ function LMTR(
     end
 
     if ρk < η1 || ρk == Inf
-      TR_stat = "↘"
-      # Δk = sNorm / γ
       α = .5
       Δk = α * Δk
       set_radius!(ψ, Δk)
     end
 
     tired = k ≥ maxIter
+  end
+
+  if (verbose > 0) && (k == 1)
+    @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
   end
 
   return xk, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
