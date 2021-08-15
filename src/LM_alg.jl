@@ -75,7 +75,7 @@ function LM(
   k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, (2,maxIter))
+  Complex_hist = zeros(Int, (2, maxIter))
   verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
 
   k = 0
@@ -132,7 +132,7 @@ function LM(
     ξ1 = fk + hk - mk(s1) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
-    if sqrt(ξ1)< ϵ
+    if sqrt(ξ1) < ϵ
       # the current xk is approximately first-order stationary
       verbose == 0 || @info "LM: terminating with ξ1 = $(ξ1)"
       optimal = true
