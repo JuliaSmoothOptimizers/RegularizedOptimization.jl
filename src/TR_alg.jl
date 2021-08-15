@@ -133,7 +133,7 @@ function TR(
     if sqrt(ξ1) < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
-      @info "TR: terminating with ξ1 = $(sqrt(ξ1))"
+      verbose == 0 || @info "TR: terminating with ξ1 = $(sqrt(ξ1))"
       continue
     end
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
