@@ -71,6 +71,7 @@ function LM(
   xkn = similar(xk)
   ψ = shifted(h, xk)
 
+  local ξ1
   k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -141,7 +142,7 @@ function LM(
     # subsolver_options.ϵ = k == 1 ? 1.0e-4 : max(ϵ, min(1.0e-4, ξ1 / 5))
     subsolver_options.ϵ = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
-    s, sub_fhist, sub_hhist, sub_cmplx = with_logger(subsolver_logger) do
+    s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
     end
 
@@ -200,5 +201,5 @@ function LM(
     @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
   end
 
-  return xk, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
+  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k], ξ1
 end

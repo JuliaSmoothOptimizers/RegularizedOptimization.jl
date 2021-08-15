@@ -86,6 +86,7 @@ function R2(
   Complex_hist = zeros(Int, (2,maxIter))
   verbose == 0 || @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
 
+  local ξ
   k = 0
   σk = 1/ν
 
@@ -163,5 +164,5 @@ function R2(
     @info @sprintf "%6d %8.1e %8.1e" k fk hk
   end
 
-  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
+  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k], ξ
 end
