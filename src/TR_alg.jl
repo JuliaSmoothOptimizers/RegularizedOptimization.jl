@@ -90,6 +90,7 @@ function TR(
     @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
   end
 
+  local ξ1
   k = 0
 
   # keep track of old values, initialize functions
@@ -137,7 +138,7 @@ function TR(
     end
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     set_radius!(ψ, min(β * χ(s1), Δk))
-    s, sub_fhist, sub_hhist, sub_cmplx = with_logger(subsolver_logger) do
+    s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
     end
     Complex_hist[2,k] += length(sub_fhist)
@@ -200,5 +201,5 @@ function TR(
     @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
   end
 
-  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
+  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k], ξ1
 end

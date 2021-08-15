@@ -80,6 +80,7 @@ function LMTR(
   Complex_hist = zeros(Int, (2, maxIter))
   verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "1/ν" "TR"
 
+  local ξ1
   k = 0
   α = 1.0
 
@@ -136,7 +137,7 @@ function LMTR(
 
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
     set_radius!(ψ, min(β * χ(s1), Δk))
-    s, sub_fhist, sub_hhist, sub_cmplx = with_logger(subsolver_logger) do
+    s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
     end
 
@@ -200,5 +201,5 @@ function LMTR(
     @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
   end
 
-  return xk, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
+  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k], ξ1
 end
