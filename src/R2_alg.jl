@@ -1,7 +1,7 @@
 export R2
 
 """
-    R2(nlp, h, options, x0)
+    R2(nlp, h, options)
     R2(f, ∇f!, h, options, x0)
 
 A first-order quadratic regularization method for the problem
@@ -23,7 +23,11 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs is the Taylor linear approximation
 * `nlp::AbstractNLPModel`: a smooth optimization problem
 * `h::ProximableFunction`: a regularizer
 * `options::TRNCoptions`: a structure containing algorithmic parameters
-* `x0::AbstractVector`: an initial guess
+* `x0::AbstractVector`: an initial guess (in the second calling form)
+
+### Keyword Arguments
+
+* `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
 
 The objective and gradient of `nlp` will be accessed.
 
@@ -39,7 +43,11 @@ In the second form, instead of `nlp`, the user may pass in
 * `Hobj_hist`: an array with the history of values of the nonsmooth objective
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
-R2(nlp::AbstractNLPModel, args...; kwargs...) = R2(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args...; kwargs...)
+function R2(nlp::AbstractNLPModel, args...; kwargs...)
+  kwargs_dict = Dict(kwargs...)
+  x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
+  R2(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
+end
 
 function R2(
   f::F,
