@@ -68,8 +68,18 @@ function LM(
 
   # initialize parameters
   xk = copy(x0)
-  xkn = similar(xk)
+  hk = h(xk)
+  if hk == Inf
+    verbose > 0 && @info "LM: finding initial guess where nonsmooth term is finite"
+    prox!(xk, h, x0, one(eltype(x0)))
+    hk = h(xk)
+    hk < Inf || error("prox computation must be erroneous")
+    verbose > 0 && @debug "LM: found point where h has value" hk
+  end
+  hk == -Inf && error("nonsmooth term is not proper")
   ψ = shifted(h, xk)
+
+  xkn = similar(xk)
 
   local ξ1
   k = 0
@@ -90,7 +100,6 @@ function LM(
   JdFk = similar(Fk)   # temporary storage
   svd_info = svds(Jk, nsv=1, ritzvec=false)
   νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
-  hk = h(xk)
   s = zero(xk)
 
   optimal = false
@@ -128,8 +137,8 @@ function LM(
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     subsolver_options.ν = 1 / νInv
     ∇fk .*= -subsolver_options.ν  # reuse gradient storage
-    s1 = ShiftedProximalOperators.prox(ψ, ∇fk, subsolver_options.ν)
-    ξ1 = fk + hk - mk(s1) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
+    prox!(s, ψ, ∇fk, subsolver_options.ν)
+    ξ1 = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if sqrt(ξ1) < ϵ
@@ -143,7 +152,7 @@ function LM(
     subsolver_options.ϵ = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
+      subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
 
     Complex_hist[2,k] += length(sub_fhist)
@@ -152,6 +161,7 @@ function LM(
     residual!(nls, xkn, Fkn)
     fkn = dot(Fkn, Fkn) / 2
     hkn = h(xkn)
+    hkn == -Inf && error("nonsmooth term is not proper")
 
     ξ = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
 
