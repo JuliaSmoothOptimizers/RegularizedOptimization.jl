@@ -78,6 +78,16 @@ function TR(
 
   # initialize parameters
   xk = copy(x0)
+  hk = h(xk)
+  if hk == Inf
+    verbose > 0 && @info "TR: finding initial guess where nonsmooth term is finite"
+    prox!(xk, h, x0, one(eltype(x0)))
+    hk = h(xk)
+    hk < Inf || error("prox computation must be erroneous")
+    verbose > 0 && @debug "TR: found point where h has value" hk
+  end
+  hk == -Inf && error("nonsmooth term is not proper")
+
   xkn = similar(xk)
   m = length(xk)
   s = zero(xk)
@@ -96,8 +106,6 @@ function TR(
   # keep track of old values, initialize functions
   ∇fk = grad(f, xk)
   fk = obj(f, xk)
-  hk = ψ.h(xk)
-  s = zero(xk)
   ∇fk⁻ = copy(∇fk)
 
   quasiNewtTest = isa(f, QuasiNewtonModel)
@@ -126,8 +134,8 @@ function TR(
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     subsolver_options.ν = 1 / (νInv + 1/(Δk*α))
-    s1 = ShiftedProximalOperators.prox(ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν) # -> PG on one step s1
-    ξ1 = hk - mk(s1) + max(1, abs(hk)) * 10 * eps()
+    prox!(s, ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν) # -> PG on one step s1
+    ξ1 = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if sqrt(ξ1) < ϵ
@@ -137,9 +145,9 @@ function TR(
       continue
     end
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
-    set_radius!(ψ, min(β * χ(s1), Δk))
+    set_radius!(ψ, min(β * χ(s), Δk))
     s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
+      subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
     Complex_hist[2,k] += length(sub_fhist)
 
@@ -147,6 +155,7 @@ function TR(
     xkn .= xk .+ s
     fkn = obj(f, xkn)
     hkn = h(xkn)
+    hkn == -Inf && error("nonsmooth term is not proper")
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()

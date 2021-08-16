@@ -76,6 +76,16 @@ function R2(
 
   # initialize parameters
   xk = copy(x0)
+  hk = h(xk)
+  if hk == Inf
+    verbose > 0 && @info "R2: finding initial guess where nonsmooth term is finite"
+    prox!(xk, h, x0, one(eltype(x0)))
+    hk = h(xk)
+    hk < Inf || error("prox computation must be erroneous")
+    verbose > 0 && @debug "R2: found point where h has value" hk
+  end
+  hk == -Inf && error("nonsmooth term is not proper")
+
   xkn = similar(xk)
   s = zero(xk)
   ψ = shifted(h, xk)
@@ -94,7 +104,6 @@ function R2(
   ∇fk = similar(xk)
   ∇f!(∇fk, xk)
   mν∇fk = -ν * ∇fk
-  hk = h(xk)
 
   optimal = false
   tired = maxIter > 0 && k ≥ maxIter
@@ -109,24 +118,23 @@ function R2(
     φk(d) = dot(∇fk, d)
     mk(d) = φk(d) + ψ(d)
 
-    s = ShiftedProximalOperators.prox(ψ, mν∇fk, ν)
+    prox!(s, ψ, mν∇fk, ν)
     Complex_hist[2,k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
-
-    if (sqrt(ξ) < 0 || isnan(ξ))
-      error("QR: failed to compute a step: ξ = $ξ")
-    end
+    ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
     if sqrt(ξ) < ϵ
       optimal = true
-      verbose == 0 || @info "QR: terminating with ξ = $ξ"
+      verbose == 0 || @info "R2: terminating with ξ = $ξ"
       continue
     end
 
     xkn .= xk .+ s
     fkn = f(xkn)
     hkn = h(xkn)
+    hkn == -Inf && error("nonsmooth term is not proper")
+
     Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ρk = Δobj / ξ
 

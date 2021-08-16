@@ -71,6 +71,16 @@ function LMTR(
 
   # initialize parameters
   xk = copy(x0)
+  hk = h(xk)
+  if hk == Inf
+    verbose > 0 && @info "LMTR: finding initial guess where nonsmooth term is finite"
+    prox!(xk, h, x0, one(eltype(x0)))
+    hk = h(xk)
+    hk < Inf || error("prox computation must be erroneous")
+    verbose > 0 && @debug "LMTR: found point where h has value" hk
+  end
+  hk == -Inf && error("nonsmooth term is not proper")
+
   xkn = similar(xk)
   s = zero(xk)
   ψ = shifted(h, xk, Δk, χ)
@@ -94,7 +104,6 @@ function LMTR(
   svd_info = svds(Jk, nsv=1, ritzvec=false)
   νInv = (1 + θ) * maximum(svd_info[1].S)^2  # ‖J'J‖ = ‖J‖²
   mν∇fk = -∇fk/νInv
-  hk = h(xk)
   funEvals = 1
 
   optimal = false
@@ -124,8 +133,8 @@ function LMTR(
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     subsolver_options.ν = 1 / (νInv + 1/(Δk*α))
-    s1 = ShiftedProximalOperators.prox(ψ, mν∇fk, subsolver_options.ν)
-    ξ1 = fk + hk - mk(s1) + max(1, abs(fk + hk)) * 10 * eps()
+    prox!(s, ψ, mν∇fk, subsolver_options.ν)
+    ξ1 = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if sqrt(ξ1) < ϵ
@@ -136,9 +145,9 @@ function LMTR(
     end
 
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
-    set_radius!(ψ, min(β * χ(s1), Δk))
+    set_radius!(ψ, min(β * χ(s), Δk))
     s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
+      subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
 
     Complex_hist[2,k] += length(sub_fhist)
@@ -148,6 +157,7 @@ function LMTR(
     residual!(nls, xkn, Fkn)
     fkn = dot(Fkn, Fkn) / 2
     hkn = h(xkn)
+    hkn == -Inf && error("nonsmooth term is not proper")
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ξ = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps() # TODO: isn't mk(s) returned by subsolver?
