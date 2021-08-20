@@ -48,6 +48,7 @@ function LMTR(
   subsolver = R2,
   subsolver_options = TRNCoptions()
  )
+
   # initialize passed options
   ϵ = options.ϵ
   Δk = options.Δk
@@ -56,6 +57,7 @@ function LMTR(
   η1 = options.η1
   η2 = options.η2
   γ = options.γ
+  α = options.α
   θ = options.θ
   β = options.β
 
@@ -88,13 +90,13 @@ function LMTR(
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, (2, maxIter))
-  verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "1/ν" "TR"
+  if verbose > 0
+    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "1/ν" "TR"
+  end
 
   local ξ1
   k = 0
-  α = 1.0
 
-  # main algorithm initialization
   Fk = residual(nls, xk)
   Fkn = similar(Fk)
   fk = dot(Fk, Fk) / 2
@@ -111,7 +113,6 @@ function LMTR(
 
   while !(optimal || tired)
     k = k + 1
-
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
 
@@ -119,14 +120,14 @@ function LMTR(
     φ(d) = begin
       jprod_residual!(nls, xk, d, JdFk)
       JdFk .+= Fk
-      return dot(JdFk, JdFk) / 2
+      dot(JdFk, JdFk) / 2
     end
 
     ∇φ!(g,d) = begin
       jprod_residual!(nls, xk, d, JdFk)
       JdFk .+= Fk
       jtprod_residual!(nls, xk, JdFk, g) #profiler
-      return g
+      g
     end
 
     mk(d) = φ(d) + ψ(d)
