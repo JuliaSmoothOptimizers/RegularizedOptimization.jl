@@ -24,7 +24,7 @@ method or the quadratic regularization method.
 * `nlp::AbstractNLPModel`: a smooth optimization problem
 * `h::ProximableFunction`: a regularizer
 * `χ::ProximableFunction`: a norm used to define the trust region
-* `options::TRNCoptions`: a structure containing algorithmic parameters
+* `options::ROSolverOptions`: a structure containing algorithmic parameters
 
 The objective, gradient and Hessian of `nlp` will be accessed.
 The Hessian is accessed as an abstract operator and need not be the exact Hessian.
@@ -34,7 +34,7 @@ The Hessian is accessed as an abstract operator and need not be the exact Hessia
 * `x0::AbstractVector`: an initial guess (default: `nlp.meta.x0`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver (default: the null logger)
 * `subsolver`: the procedure used to compute a step (`PG` or `R2`)
-* `subsolver_options::TRNCoptions`: default options to pass to the subsolver (default: all defaut options).
+* `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options).
 
 ### Return values
 
@@ -47,11 +47,11 @@ function TR(
   f::AbstractNLPModel,
   h::ProximableFunction,
   χ::ProximableFunction,
-  options::TRNCoptions;
+  options::ROSolverOptions;
   x0::AbstractVector = f.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
-  subsolver_options = TRNCoptions(),
+  subsolver_options = ROSolverOptions(),
   )
 
   # initialize passed options

@@ -21,14 +21,14 @@ and σ > 0 is a regularization parameter.
 
 * `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
 * `h::ProximableFunction`: a regularizer
-* `options::TRNCoptions`: a structure containing algorithmic parameters
+* `options::ROSolverOptions`: a structure containing algorithmic parameters
 
 ### Keyword arguments
 
 * `x0::AbstractVector`: an initial guess (default: `nls.meta.x0`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
 * `subsolver`: the procedure used to compute a step (`PG` or `R2`)
-* `subsolver_options::TRNCoptions`: default options to pass to the subsolver.
+* `subsolver_options::ROSolverOptions`: default options to pass to the subsolver.
 
 ### Return values
 
@@ -40,11 +40,11 @@ and σ > 0 is a regularization parameter.
 function LM(
   nls::AbstractNLSModel,
   h::ProximableFunction,
-  options::TRNCoptions;
+  options::ROSolverOptions;
   x0::AbstractVector = nls.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
-  subsolver_options = TRNCoptions()
+  subsolver_options = ROSolverOptions()
   )
   # initialize passed options
   ϵ = options.ϵ

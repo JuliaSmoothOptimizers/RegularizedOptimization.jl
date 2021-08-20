@@ -1,4 +1,4 @@
-module TRNC
+module RegularizedOptimization
 
 # base dependencies
 using LinearAlgebra, Logging, Printf
@@ -18,4 +18,5 @@ include("R2_alg.jl")
 include("LM_alg.jl")
 include("LMTR_alg.jl")
 
-end  # module TRNC
+end  # module RegularizedOptimization
+

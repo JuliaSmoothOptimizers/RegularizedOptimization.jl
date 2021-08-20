@@ -1,10 +1,10 @@
 using LinearAlgebra, Random, Test
 using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, TRNC
+using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
 
 const global compound = 1
 const global nz = 10 * compound
-const global options = TRNCoptions(ν = 1.0,  β = 1e16, ϵ = 1e-6, verbose = 0)
+const global options = ROSolverOptions(ν = 1.0,  β = 1e16, ϵ = 1e-6, verbose = 0)
 const global bpdn, sol = bpdn_model(compound)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 
