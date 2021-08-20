@@ -1,6 +1,6 @@
-export TRNCoptions
+export ROSolverOptions
 
-mutable struct TRNCoptions{R}
+mutable struct ROSolverOptions{R}
   ϵ :: R  # termination criteria
   Δk :: R  # trust region radius
   verbose :: Int  # print every so often
@@ -13,7 +13,7 @@ mutable struct TRNCoptions{R}
   θ :: R  # step length factor in relation to Hessian norm
   β :: R  # TR size as factor of first PG step
 
-  function TRNCoptions{R}(
+  function ROSolverOptions{R}(
     ;
     ϵ :: R = √eps(R),
     Δk :: R = one(R),
@@ -31,5 +31,5 @@ mutable struct TRNCoptions{R}
   end
 end
 
-TRNCoptions(args...; kwargs...) = TRNCoptions{Float64}(args...; kwargs...)
+ROSolverOptions(args...; kwargs...) = ROSolverOptions{Float64}(args...; kwargs...)
 

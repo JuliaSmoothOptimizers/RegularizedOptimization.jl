@@ -1,4 +1,4 @@
-name = "TRNC"
+name = "RegularizedOptimization"
 uuid = "196f2941-2d58-45ba-9f13-43a2532b2fa8"
 author = ["Robert Baraldi <rbaraldi@uw.edu>"]
 version = "0.1.0"

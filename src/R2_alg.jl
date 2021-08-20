@@ -22,7 +22,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs is the Taylor linear approximation
 
 * `nlp::AbstractNLPModel`: a smooth optimization problem
 * `h::ProximableFunction`: a regularizer
-* `options::TRNCoptions`: a structure containing algorithmic parameters
+* `options::ROSolverOptions`: a structure containing algorithmic parameters
 * `x0::AbstractVector`: an initial guess (in the second calling form)
 
 ### Keyword Arguments
@@ -53,7 +53,7 @@ function R2(
   f::F,
   ∇f!::G,
   h::ProximableFunction,
-  options::TRNCoptions,
+  options::ROSolverOptions,
   x0::AbstractVector
   ) where {F <: Function, G <: Function}
   ϵ = options.ϵ
