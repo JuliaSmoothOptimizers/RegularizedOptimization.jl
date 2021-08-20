@@ -89,7 +89,6 @@ function TR(
   hk == -Inf && error("nonsmooth term is not proper")
 
   xkn = similar(xk)
-  m = length(xk)
   s = zero(xk)
   ψ = shifted(h, xk, Δk, χ)
 
@@ -103,9 +102,8 @@ function TR(
   local ξ1
   k = 0
 
-  # keep track of old values, initialize functions
-  ∇fk = grad(f, xk)
   fk = obj(f, xk)
+  ∇fk = grad(f, xk)
   ∇fk⁻ = copy(∇fk)
 
   quasiNewtTest = isa(f, QuasiNewtonModel)
@@ -120,9 +118,7 @@ function TR(
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
 
-    φ(d) = begin
-        return 0.5 * (d' * (Bk * d)) + ∇fk' * d
-    end
+    φ(d) = (d' * (Bk * d)) / 2 + ∇fk' * d
 
     ∇φ!(g, d) = begin
       mul!(g, Bk, d)
@@ -144,6 +140,7 @@ function TR(
       verbose == 0 || @info "TR: terminating with ξ1 = $(sqrt(ξ1))"
       continue
     end
+
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     set_radius!(ψ, min(β * χ(s), Δk))
     s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
