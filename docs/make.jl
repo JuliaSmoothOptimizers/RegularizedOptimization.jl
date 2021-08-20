@@ -13,4 +13,8 @@ makedocs(
   pages = Any["Home" => "index.md", "Tutorial" => "tutorial.md", "Reference" => "reference.md"],
 )
 
-deploydocs(repo = "github.com/UW-AMO/RegularizedOptimization.git")
+deploydocs(
+  repo = "github.com/UW-AMO/RegularizedOptimization.jl.git",
+  push_preview = true
+)
+
