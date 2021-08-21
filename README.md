@@ -1,7 +1,7 @@
 # RegularizedOptimization
 
 [![CI](https://github.com/UW-AMO/RegularizedOptimization/actions/workflows/ci.yml/badge.svg)](https://github.com/UW-AMO/RegularizedOptimization/actions/workflows/ci.yml)
-[![](https://img.shields.io/badge/docs-latest-3f51b5.svg)](https://rjbaraldi.github.io/ShiftedProximalOperators.jl/dev)
+[![](https://img.shields.io/badge/docs-latest-3f51b5.svg)](https://UW-AMO.github.io/RegularizedOptimization.jl/dev)
 [![codecov](https://codecov.io/gh/UW-AMO/RegularizedOptimization/branch/master/graph/badge.svg?token=LFPTDGDTP6)](https://codecov.io/gh/UW-AMO/RegularizedOptimization)
 
 ## Synopsis
