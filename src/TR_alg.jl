@@ -108,7 +108,7 @@ function TR(
 
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
-  νInv = (1 + θ) * abs(eigs(Bk; nev=1, v0 = randn(m,), which=:LM)[1][1])
+  νInv = (1 + θ) * abs(eigs(Bk; nev=1, which=:LM)[1][1])
 
   optimal = false
   tired = k ≥ maxIter
@@ -187,7 +187,7 @@ function TR(
         push!(f, s, ∇fk - ∇fk⁻)
       end
       Bk = hess_op(f, xk)
-      νInv = (1 + θ) * abs(eigs(Bk; nev=1,  v0 = randn(m,), which=:LM)[1][1])
+      νInv = (1 + θ) * abs(eigs(Bk; nev=1, which=:LM)[1][1])
       # store previous iterates
       ∇fk⁻ .= ∇fk
 
