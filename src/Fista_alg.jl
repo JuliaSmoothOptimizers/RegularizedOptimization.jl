@@ -16,16 +16,25 @@ export FISTA, FISTAD
     his : function history
     feval : number of function evals (total objective)
 """
-function FISTA(
-  f, 
-  ∇f, 
-  h, 
-  options;
-  x0::AbstractVector=f.meta.x0
-  )
+function FISTA(nlp::AbstractNLPModel, args...; kwargs...)
+  kwargs_dict = Dict(kwargs...)
+  x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
+  FISTA(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
+end
 
+function FISTA(
+  f::F,
+  ∇f!::G,
+  h::ProximableFunction,
+  options::TRNCoptions,
+  x0::AbstractVector
+  ) where {F <: Function, G <: Function}
+  start_time = time()
+  elapsed_time = 0.0
   ϵ=options.ϵ
   maxIter=options.maxIter
+  maxTime = options.maxTime
+  ν = options.ν
 
   if options.verbose==0
     ptf = Inf
@@ -38,10 +47,12 @@ function FISTA(
   end
 
   #Problem Initialize
-  ν = options.ν
-  x = x0
-  y = deepcopy(x)
-  x⁺ = zero(x)
+  xk = copy(x0)
+  y = similar(xk)
+  ∇fk = zero(xk)
+  ∇fkn = similar(∇fk)
+  xkn = zero(xk)
+  fstep = xk .- ν .* ∇fk
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
@@ -49,64 +60,91 @@ function FISTA(
   #initialize parameters
   t = 1.0
   # Iteration set up
-  k = 1
+  local ξ
+  k = 0
 
   #do iterations
-  g = ∇f(x⁺) #objInner/ quadratic model
-  fk = f(x⁺)
-  hk = h(x⁺)
+  ∇f!(∇fk, xk) #objInner/ quadratic model
+  fk = f(xk)
+  hk = h(xk)
 
   optimal = false
-  tired = k ≥ maxIter
+  tired = k ≥ maxIter || elapsed_time ≥ maxTime
 
   if options.verbose != 0
     @info @sprintf "%6s %8s %8s %7s %8s %7s" "iter" "f(x)" "h(x)" "‖∂ϕ‖" "ν" "‖x‖"
   end
 
   while !(optimal || tired)
+    k = k + 1
+    elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
     Complex_hist[k] += 1
 
-    copy!(x,x⁺)
-    gold = g
-    x⁺ = ShiftedProximalOperators.prox(h, x - ν*g, ν)
+    ∇fkn .= ∇fk
+    xkn .= xk
+    fstep .= xk .- ν .* ∇fk
+    prox!(xk, h, fstep, ν)
 
     #update step
     t⁻ = t
     t = 0.5*(1.0 + sqrt(1.0+4.0*t⁻^2))
 
     #update y
-    y .= x⁺ .+ ((t⁻ - 1.0)/t) .* (x⁺.- x)
+    y .= xk .+ ((t⁻ - 1.0)/t) .* (xk.- xkn)
 
-    g = ∇f(x⁺)
-    fk = f(x⁺)
-    hk = h(x⁺)
+    ∇f!(∇fk, xk)
+    fk = f(xk)
+    hk = h(xk)
 
     k+=1
-    err = norm(g-gold - (x⁺-x)/ν)
-    optimal = err < ϵ
-    tired = k ≥ maxIter
+    ξ = norm(∇fk .- ∇fkn .- (xk .- xkn) ./ ν)
+    optimal = ξ < ϵ
+    tired = k ≥ maxIter || elapsed_time > maxTime
 
-    k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e " k fk hk err ν norm(xk)
+    if (verbose > 0) && (k % ptf == 0)
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e " k fk hk ξ ν norm(xk)
+    end
 
   end
-  return x⁺, k, Fobj_hist[Fobj_hist .!= 0], Hobj_hist[Fobj_hist .!= 0], Complex_hist[Complex_hist .!= 0]
 
+  status = if optimal
+    :first_order
+  elseif elapsed_time > max_tim
+    :max_time
+  elseif tired
+    :max_iter
+  else
+    :exception
+  end
+  return GenericExecutionStats(
+    status,
+    f,
+    h,
+    solution = xk,
+    objective = fk + hk,
+    ξ₁ = sqrt(ξ),
+    Fhist = Fobj_hist[1:k],
+    Hhist = Hobj_hist[1:k],
+    SubsolverCounter = Complex_hist[1:k],
+    iter = k,
+    elapsed_time = elapsed_time
+  )
 end
 
 #enforces strict descent  for FISTA
-function FISTAD(  
-  f, 
-  ∇f, 
-  h, 
+function FISTAD(
+  f,
+  ∇f,
+  h,
   options;
   x0::AbstractVector=f.meta.x0
   )
 
   ϵ=options.ϵ
   maxIter=options.maxIter
-  
+
 
   if options.verbose==0
     ptf = Inf
