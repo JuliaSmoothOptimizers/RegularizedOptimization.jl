@@ -57,7 +57,7 @@ mutable struct GenericExecutionStats{T, V} <: AbstractExecutionStats
   SubsolverCounter::Vector{Int} # number of iterations the subsolver takes
   iter::Int
   counters::NLPModels.NLSCounters
-  elapsed_time::Real
+  elapsed_time::Float64
   solver_specific::Dict{Symbol, Any}
 end
 
