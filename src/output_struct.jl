@@ -53,7 +53,7 @@ mutable struct GenericExecutionStats{T, V} <: AbstractExecutionStats
   objective::T # f(x) + h(x)
   ξ₁::Real # f(x) + h(x) - mₖ(s₁) = ξ₁
   Fhist::Vector{T} # objective history in f
-  Hhist::AbstractArray # objective history in h
+  Hhist::Vector{T} # objective history in h
   SubsolverCounter::AbstractArray # number of iterations the subsolver takes
   iter::Int
   counters::NLPModels.NLSCounters
