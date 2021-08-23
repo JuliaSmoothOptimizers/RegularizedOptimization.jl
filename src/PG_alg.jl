@@ -95,9 +95,19 @@ function PG(
     tired = k ≥ maxIter || elapsed_time > maxTime
 
     if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e " k fk hk err ν norm(xk)
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e " k fk hk ξ ν norm(xk)
     end
 
+  end
+
+  status = if optimal
+    :first_order
+  elseif elapsed_time > max_tim
+    :max_time
+  elseif tired
+    :max_iter
+  else
+    :exception
   end
   return GenericExecutionStats(
     status,
