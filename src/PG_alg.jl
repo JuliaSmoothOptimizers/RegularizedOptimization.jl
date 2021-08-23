@@ -17,16 +17,25 @@ Output:
   his : function history
   feval : number of function evals (total objective )
 """
-function PG(
-  f,
-  ∇f,
-  h,
-  options;
-  x0::AbstractVector=f.meta.x0,
-  )
+function PG(nlp::AbstractNLPModel, args...; kwargs...)
+  kwargs_dict = Dict(kwargs...)
+  x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
+  PG(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
+end
 
+function PG(
+  f::F,
+  ∇f!::G,
+  h::ProximableFunction,
+  options::TRNCoptions,
+  x0::AbstractVector
+  ) where {F <: Function, G <: Function}
+  start_time = time()
+  elapsed_time = 0.0
   ϵ=options.ϵ
   maxIter=options.maxIter
+  maxTime = options.maxTime
+  ν = options.ν
 
   if options.verbose==0
     ptf = Inf
@@ -39,52 +48,70 @@ function PG(
   end
 
   #Problem Initialize
-  ν = options.ν
-  x = x0
-  x⁺ = deepcopy(x)
+  xk = copy(x0)
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, (2,maxIter))
+  Complex_hist = zeros(Int, maxIter)
 
   # Iteration set up
-  g = ∇f(x⁺) #objInner/ quadratic model
-  k = 1
-  fk = f(x⁺)
-  hk = h(x⁺)
+  ∇fk = similar(xk)
+  ∇f!(∇fk, xk) #objInner/ quadratic model
+  fk = f(xk)
+  hk = h(xk)
+  ∇fkn = similar(∇fk)
+  xkn = similar(xk)
+  fstep = xkn .- ν.*∇fk
 
   #do iterations
+  local ξ
+  k = 0
   optimal = false
-  tired = k ≥ maxIter
+  tired = k ≥ maxIter || elapsed_time ≥ maxTime
 
   if options.verbose != 0
     @info @sprintf "%6s %8s %8s %7s %8s %7s" "iter" "f(x)" "h(x)" "‖∂ϕ‖" "ν" "‖x‖"
   end
 
   while !(optimal || tired)
-
+    k = k + 1
+    elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    Complex_hist[2,k] += 1
-    Complex_hist[1,k] += 1
+    Complex_hist[k] += 1
 
-    gold = g
-    x = x⁺
+    ∇fkn .= ∇fk
+    xk .= xkn
 
-    x⁺ = ShiftedProximalOperators.prox(h, x - ν*g, ν)
+    prox!(xk, h, fstep, ν)
 
-    g = ∇f(x⁺)
-    fk = f(x⁺)
-    hk = h(x⁺)
+    ∇f!(∇fk, xk)
+    fk = f(xk)
+    hk = h(xk)
+    fstep .= xk .- ν .* ∇fk
 
     k+=1
-    err = norm(g-gold - (x⁺-x)/ν)
-    optimal = err < ϵ
-    tired = k ≥ maxIter
+    ξ = norm(∇fk .- ∇fkn .- (xk .- xkn) ./ ν)
+    optimal = ξ < ϵ
+    tired = k ≥ maxIter || elapsed_time > maxTime
 
-    k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e " k fk hk err ν norm(xk)
+    if (verbose > 0) && (k % ptf == 0)
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e " k fk hk err ν norm(xk)
+    end
 
   end
-  return x⁺, Fobj_hist[1:k]+Hobj_hist[1:k], Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
+  return GenericExecutionStats(
+    status,
+    f,
+    h,
+    solution = xk,
+    objective = fk + hk,
+    ξ₁ = sqrt(ξ),
+    Fhist = Fobj_hist[1:k],
+    Hhist = Hobj_hist[1:k],
+    SubsolverCounter = Complex_hist[1:k],
+    iter = k,
+    elapsed_time = elapsed_time
+  )
 end
 
 function PGΔ(

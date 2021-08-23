@@ -36,7 +36,7 @@ It contains the following fields:
 - `status`: Indicates the output of the solver. Use `show_statuses()` for the full list;
 - `solution`: The final approximation returned by the solver (default: `[]`);
 - `objective`: The objective value at `solution` (default: `Inf`);
-- `ξ₁`: The stopping condtion at the `solution` (default: `Inf`);
+- `√ξ₁`: The stopping condtion at the `solution` (default: `Inf`);
 - `Fhist`: Objective history of smooth function (default: `[]`);
 - `Hhist`: Objective history of nonsmooth function (default: `[]`);
 - `iter`: The number of iterations computed by the solver (default: `-1`);
@@ -141,7 +141,7 @@ function print(io::IO, stats::GenericExecutionStats; showvec::Function = disp_ve
   println(io, "Generic Execution stats")
   println(io, "  status: " * getStatus(stats))
   println(io, "  objective value: ", stats.objective)
-  println(io, "  ξ₁: ", stats.ξ₁)
+  println(io, "  √ξ₁: ", stats.ξ₁)
   print(io, "  solution: ")
   showvec(io, stats.solution)
   println(io, "")

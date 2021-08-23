@@ -1,6 +1,7 @@
 module TRNC
 
 # base dependencies
+using Base: Float64
 using LinearAlgebra, Logging, Printf
 
 # external dependencies
