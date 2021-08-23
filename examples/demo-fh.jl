@@ -11,6 +11,7 @@ function demo_fh()
   χ = NormLinf(1.0)
   options = ROSolverOptions(; verbose = 10, ϵ = 1e-6, β = 1e16, ν = 1.0e+2)
 
+<<<<<<< HEAD
   # lbfgs_model = LBFGSModel(model)
   # TR_out = TR(lbfgs_model, h, χ, options)
   # plot_fh(TR_out, simulate(TR_out.solution), data, "tr-r2")
@@ -18,6 +19,15 @@ function demo_fh()
   nls_model = ADNLSModel(resid, ones(5), 202)
   # LMTR_out = LMTR(nls_model, h, χ, options)
   # plot_fh(LMTR_out, simulate(LMTR_out.solution), data, "lmtr-r2")
+=======
+  lbfgs_model = LBFGSModel(model)
+  TR_out = TR(lbfgs_model, h, χ, options)
+  plot_fh(TR_out, simulate(TR_out.solution), data, "tr-r2")
+
+  nls_model = ADNLSModel(resid, ones(5), 202)
+  LMTR_out = LMTR(nls_model, h, χ, options)
+  plot_fh(LMTR_out, simulate(LMTR_out.solution), data, "lmtr-r2")
+>>>>>>> 6350f1888ce3e2d66956b78bd70500ccce95de3f
 
   reset!(nls_model)
   LM_out = LM(nls_model, h, options)

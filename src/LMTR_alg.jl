@@ -46,7 +46,11 @@ function LMTR(
   x0::AbstractVector = nls.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
+<<<<<<< HEAD
   subsolver_options = ROSolverOptions()
+=======
+  subsolver_options = TRNCoptions()
+>>>>>>> 6350f1888ce3e2d66956b78bd70500ccce95de3f
   )
   start_time = time()
   elapsed_time = 0.0
