@@ -158,7 +158,7 @@ function LM(
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
 
-    s = subsolver_out.solution
+    s .= subsolver_out.solution
     Complex_hist[k] = subsolver_out.iter
 
     xkn .= xk .+ s
