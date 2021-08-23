@@ -46,11 +46,7 @@ function LMTR(
   x0::AbstractVector = nls.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
-<<<<<<< HEAD
   subsolver_options = ROSolverOptions()
-=======
-  subsolver_options = TRNCoptions()
->>>>>>> 6350f1888ce3e2d66956b78bd70500ccce95de3f
   )
   start_time = time()
   elapsed_time = 0.0
@@ -112,7 +108,6 @@ function LMTR(
   svd_info = svds(Jk, nsv=1, ritzvec=false)
   νInv = (1 + θ) * maximum(svd_info[1].S)^2  # ‖J'J‖ = ‖J‖²
   mν∇fk = -∇fk/νInv
-  funEvals = 1
 
   optimal = false
   tired = k ≥ maxIter || elapsed_time > maxTime
