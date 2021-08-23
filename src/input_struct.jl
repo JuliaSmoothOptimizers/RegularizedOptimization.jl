@@ -5,6 +5,7 @@ mutable struct TRNCoptions{R}
   Δk :: R  # trust region radius
   verbose :: Int  # print every so often
   maxIter :: Int  # maximum amount of inner iterations
+  maxTime :: R #maximum time allotted to the algorithm in s
   η1 :: R  # step acceptance threshold
   η2 :: R  # trust-region increase threshold
   α :: R  # νk Δ^{-1} parameter
@@ -19,6 +20,7 @@ mutable struct TRNCoptions{R}
     Δk :: R = one(R),
     verbose :: Int = 0,
     maxIter :: Int = 10000,
+    maxTime :: R = R(10000),
     η1 :: R = √√eps(R),
     η2 :: R = R(0.9),
     α :: R = 1 / eps(R),
@@ -27,7 +29,7 @@ mutable struct TRNCoptions{R}
     θ :: R = R(1e-3),
     β :: R = R(10.0),
     ) where {R <: Real}
-    return new{R}(ϵ, Δk, verbose, maxIter, η1, η2, α, ν, γ, θ, β)
+    return new{R}(ϵ, Δk, verbose, maxIter, maxTime, η1, η2, α, ν, γ, θ, β)
   end
 end
 

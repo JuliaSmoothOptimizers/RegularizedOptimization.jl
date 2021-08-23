@@ -46,11 +46,14 @@ function LM(
   subsolver = R2,
   subsolver_options = TRNCoptions()
   )
+  start_time = time()
+  elapsed_time = 0.0
   # initialize passed options
   ϵ = options.ϵ
   σk = 1 / options.ν
   verbose = options.verbose
   maxIter = options.maxIter
+  maxTime = options.maxTime
   η1 = options.η1
   η2 = options.η2
   γ = options.γ
@@ -85,7 +88,7 @@ function LM(
   k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, (2, maxIter))
+  Complex_hist = zeros(Int, maxIter)
   verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
 
   k = 0
@@ -103,11 +106,11 @@ function LM(
   s = zero(xk)
 
   optimal = false
-  tired = k ≥ maxIter
+  tired = k ≥ maxIter || elapsed_time > maxTime
 
   while !(optimal || tired)
     k = k + 1
-
+    elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
 
@@ -151,11 +154,12 @@ function LM(
     # subsolver_options.ϵ = k == 1 ? 1.0e-4 : max(ϵ, min(1.0e-4, ξ1 / 5))
     subsolver_options.ϵ = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
-    s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
+    subsolver_out = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
 
-    Complex_hist[2,k] += length(sub_fhist)
+    s = subsolver_out.solution
+    Complex_hist[k] = subsolver_out.iter
 
     xkn .= xk .+ s
     residual!(nls, xkn, Fkn)
@@ -175,7 +179,7 @@ function LM(
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
     if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(sub_fhist) fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k subsolver_out.iter fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
     end
 
     if η2 ≤ ρk < Inf
@@ -204,12 +208,33 @@ function LM(
       σk = max(σk * γ, 1e-6)
     end
 
-    tired = k ≥ maxIter
+    tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
   if (verbose > 0) && (k == 1)
     @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
   end
+  status = if optimal
+    :first_order
+  elseif elapsed_time > max_tim
+    :max_time
+  elseif tired
+    :max_iter
+  else
+    :exception
+  end
 
-  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k], ξ1
+  return GenericExecutionStats(
+    status,
+    nls,
+    h,
+    solution = xk,
+    objective = fk + hk,
+    ξ₁ = ξ1,
+    Fhist = Fobj_hist[1:k],
+    Hhist = Hobj_hist[1:k],
+    SubsolverCounter = Complex_hist[1:k],
+    iter = k,
+    elapsed_time = elapsed_time
+  )
 end

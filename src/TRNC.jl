@@ -9,7 +9,8 @@ using Arpack, ProximalOperators
 # dependencies from us
 using NLPModels, NLPModelsModifiers, ShiftedProximalOperators
 
-include("descentopts.jl")
+include("input_struct.jl")
+include("output_struct.jl")
 include("PG_alg.jl")
 include("Fista_alg.jl")
 include("splitting.jl")
