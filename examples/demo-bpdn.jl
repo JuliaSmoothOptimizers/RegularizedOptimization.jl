@@ -1,14 +1,14 @@
 using Random
 using LinearAlgebra
 using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, TRNC
+using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
 
 include("plot-utils-bpdn.jl")
 
 Random.seed!(1234)
 
 function demo_solver(f, sol, h, χ, suffix = "l0-linf")
-  options = TRNCoptions(ν = 1.0,  β = 1e16, ϵ = 1e-6, verbose = 10)
+  options = ROSolverOptions(ν = 1.0,  β = 1e16, ϵ = 1e-6, verbose = 10)
 
   @info "using R2 to solve with" h
   reset!(f)

@@ -1,5 +1,5 @@
 using DifferentialEquations, ProximalOperators
-using ADNLPModels, NLPModels, NLPModelsModifiers, RegularizedProblems, TRNC
+using ADNLPModels, NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
 
 include("plot-utils-fh.jl")
 
@@ -9,15 +9,15 @@ function demo_fh()
 
   h = NormL0(1.0)
   χ = NormLinf(1.0)
-  options = TRNCoptions(; verbose = 10, ϵ = 1e-6, β = 1e16, ν = 1.0e+2)
+  options = ROSolverOptions(; verbose = 10, ϵ = 1e-6, β = 1e16, ν = 1.0e+2)
 
-  lbfgs_model = LBFGSModel(model)
-  TR_out = TR(lbfgs_model, h, χ, options)
-  plot_fh(TR_out, simulate(TR_out.solution), data, "tr-r2")
+  # lbfgs_model = LBFGSModel(model)
+  # TR_out = TR(lbfgs_model, h, χ, options)
+  # plot_fh(TR_out, simulate(TR_out.solution), data, "tr-r2")
 
   nls_model = ADNLSModel(resid, ones(5), 202)
-  LMTR_out = LMTR(nls_model, h, χ, options)
-  plot_fh(LMTR_out, simulate(LMTR_out.solution), data, "lmtr-r2")
+  # LMTR_out = LMTR(nls_model, h, χ, options)
+  # plot_fh(LMTR_out, simulate(LMTR_out.solution), data, "lmtr-r2")
 
   reset!(nls_model)
   LM_out = LM(nls_model, h, options)

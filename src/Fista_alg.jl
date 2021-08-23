@@ -26,7 +26,7 @@ function FISTA(
   f::F,
   ∇f!::G,
   h::ProximableFunction,
-  options::TRNCoptions,
+  options::ROSolverOptions,
   x0::AbstractVector
   ) where {F <: Function, G <: Function}
   start_time = time()

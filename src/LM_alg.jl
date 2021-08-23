@@ -201,7 +201,7 @@ function LM(
       svd_info = svds(Jk, nsv=1, ritzvec=false)
       νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
 
-      Complex_hist[1,k] += 1
+      Complex_hist[k] += 1
     end
 
     if ρk < η1 || ρk == Inf
