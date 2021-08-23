@@ -1,6 +1,9 @@
 using PGFPlots
 
-function plot_bpdn(Comp_pg, objdec, x, sol, name = "tr-qr")
+function plot_bpdn(outstruct, sol, name = "tr-qr")
+  Comp_pg = outstruct.SubsolverCounter
+  objdec = outstruct.Fhist + outstruct.Hhist
+  x = outstruct.solution
   a = Axis([Plots.Linear(1:length(x), x, mark="none", legendentry="computed"),
             Plots.Linear(1:length(sol), sol, mark="none", legendentry="exact"),
           ],
