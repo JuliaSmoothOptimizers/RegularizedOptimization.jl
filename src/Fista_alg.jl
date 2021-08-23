@@ -26,11 +26,7 @@ function FISTA(
   f::F,
   ∇f!::G,
   h::ProximableFunction,
-<<<<<<< HEAD
   options::ROSolverOptions,
-=======
-  options::TRNCoptions,
->>>>>>> 6350f1888ce3e2d66956b78bd70500ccce95de3f
   x0::AbstractVector
   ) where {F <: Function, G <: Function}
   start_time = time()
@@ -63,11 +59,8 @@ function FISTA(
 
   #initialize parameters
   t = 1.0
-  # Iteration set up
   local ξ
   k = 0
-
-  #do iterations
   ∇f!(∇fk, xk) #objInner/ quadratic model
   fk = f(xk)
   hk = h(xk)
