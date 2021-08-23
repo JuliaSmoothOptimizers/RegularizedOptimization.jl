@@ -151,10 +151,10 @@ function LMTR(
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
     set_radius!(ψ, min(β * χ(s), Δk))
     subsolver_out = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s1)
+      subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
 
-    s = subsolver_out.solution
+    s .= subsolver_out.solution
     Complex_hist[k] = subsolver_out.iter
 
     sNorm = χ(s)
