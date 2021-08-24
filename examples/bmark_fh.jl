@@ -1,4 +1,4 @@
-include("LMTR_TR-FitzHugh_datagen.jl")
+include("demo-fh.jl")
 using BenchmarkTools
 using DiffEqSensitivity  # for reverse AD in DifferentialEquations
 using ReverseDiff  # for ADNLPModels
@@ -14,7 +14,7 @@ function bmark(model)
   J = jac_op_residual(model, x)
   out = @benchmark mul!($v, $J, $u)
   @info "op * u" out
-  out = @benchmark mul!($u, $J', $v)
+  out = @benchmark mul!($u, $(J'), $v)
   @info "op' * v" out
 end
 
