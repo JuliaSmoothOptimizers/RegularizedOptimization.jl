@@ -56,9 +56,12 @@ function R2(
   options::ROSolverOptions,
   x0::AbstractVector
   ) where {F <: Function, G <: Function}
+  start_time = time()
+  elapsed_time = 0.0
   ϵ = options.ϵ
   verbose = options.verbose
   maxIter = options.maxIter
+  maxTime = options.maxTime
   η1 = options.η1
   η2 = options.η2
   ν = options.ν
@@ -93,7 +96,7 @@ function R2(
   k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, (2,maxIter))
+  Complex_hist = zeros(Int, maxIter)
   verbose == 0 || @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
 
   local ξ
@@ -106,11 +109,11 @@ function R2(
   mν∇fk = -ν * ∇fk
 
   optimal = false
-  tired = maxIter > 0 && k ≥ maxIter
+  tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
 
   while !(optimal || tired)
     k = k + 1
-
+    elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
 
@@ -119,7 +122,7 @@ function R2(
     mk(d) = φk(d) + ψ(d)
 
     prox!(s, ψ, mν∇fk, ν)
-    Complex_hist[2,k] += 1
+    Complex_hist[k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
@@ -154,7 +157,6 @@ function R2(
       hk = hkn
       ∇f!(∇fk, xk)
       shift!(ψ, xk)
-      Complex_hist[1,k]+=1
     end
 
     if ρk < η1 || ρk == Inf
@@ -172,5 +174,27 @@ function R2(
     @info @sprintf "%6d %8.1e %8.1e" k fk hk
   end
 
-  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k], ξ
+  status = if optimal
+    :first_order
+  elseif elapsed_time > maxTime
+    :max_time
+  elseif tired
+    :max_iter
+  else
+    :exception
+  end
+
+  return GenericExecutionStats(
+    status,
+    f,
+    h,
+    solution = xk,
+    objective = fk + hk,
+    ξ₁ = sqrt(ξ),
+    Fhist = Fobj_hist[1:k],
+    Hhist = Hobj_hist[1:k],
+    SubsolverCounter = Complex_hist[1:k],
+    iter = k,
+    elapsed_time = elapsed_time
+  )
 end
