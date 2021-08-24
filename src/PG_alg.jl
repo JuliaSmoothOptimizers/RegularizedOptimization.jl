@@ -60,8 +60,8 @@ function PG(
   fk = f(xk)
   hk = h(xk)
   ∇fkn = similar(∇fk)
-  xkn = similar(xk)
-  fstep = xkn .- ν.*∇fk
+  xkn = similar(x0)
+  fstep = xk .- ν.*∇fk
 
   #do iterations
   local ξ
@@ -81,14 +81,13 @@ function PG(
     Complex_hist[k] += 1
 
     ∇fkn .= ∇fk
-    xk .= xkn
-
+    xkn .= xk
+    fstep .= xk .- ν .* ∇fk
     prox!(xk, h, fstep, ν)
 
     ∇f!(∇fk, xk)
     fk = f(xk)
     hk = h(xk)
-    fstep .= xk .- ν .* ∇fk
 
     k+=1
     ξ = norm(∇fk .- ∇fkn .- (xk .- xkn) ./ ν)
@@ -100,10 +99,9 @@ function PG(
     end
 
   end
-
   status = if optimal
     :first_order
-  elseif elapsed_time > max_tim
+  elseif elapsed_time > maxTime
     :max_time
   elseif tired
     :max_iter
