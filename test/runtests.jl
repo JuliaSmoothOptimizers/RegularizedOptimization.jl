@@ -13,6 +13,7 @@ for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "l
   for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * compound), "B0"))
     for solver_sym ∈ (:R2, :TR)
       solver_sym == :TR && mod_name == "exact" && continue
+      solver_sym == :TR && h_name == "B0" && continue  # FIXME
       solver_name = string(solver_sym)
       solver = eval(solver_sym)
       @testset "bpdn-$(mod_name)-$(solver_name)-$(h_name)" begin
@@ -64,6 +65,7 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * com
   for solver_sym ∈ (:LM, :LMTR)
     solver_name = string(solver_sym)
     solver = eval(solver_sym)
+    solver_sym == :LMTR && h_name == "B0" && continue  # FIXME
     @testset "bpdn-ls-$(solver_name)-$(h_name)" begin
       x0 = zeros(bpdn_nls.meta.nvar)
       p  = randperm(bpdn_nls.meta.nvar)[1:nz]
