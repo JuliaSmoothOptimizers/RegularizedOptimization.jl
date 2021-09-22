@@ -38,178 +38,182 @@ and σ > 0 is a regularization parameter.
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
 function LM(
-  nls::AbstractNLSModel,
-  h::ProximableFunction,
-  options::ROSolverOptions;
-  x0::AbstractVector = nls.meta.x0,
-  subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
-  subsolver = R2,
-  subsolver_options = ROSolverOptions()
-  )
-  # initialize passed options
-  ϵ = options.ϵ
-  σk = 1 / options.ν
-  verbose = options.verbose
-  maxIter = options.maxIter
-  η1 = options.η1
-  η2 = options.η2
-  γ = options.γ
-  θ = options.θ
+    nls::AbstractNLSModel,
+    h::ProximableFunction,
+    options::ROSolverOptions;
+    x0::AbstractVector = nls.meta.x0,
+    subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
+    subsolver = R2,
+    subsolver_options = ROSolverOptions(),
+)
+    # initialize passed options
+    ϵ = options.ϵ
+    σk = 1 / options.ν
+    verbose = options.verbose
+    maxIter = options.maxIter
+    η1 = options.η1
+    η2 = options.η2
+    γ = options.γ
+    θ = options.θ
 
-  if verbose == 0
-    ptf = Inf
-  elseif verbose == 1
-    ptf = round(maxIter / 10)
-  elseif verbose == 2
-    ptf = round(maxIter / 100)
-  else
-    ptf = 1
-  end
+    if verbose == 0
+        ptf = Inf
+    elseif verbose == 1
+        ptf = round(maxIter / 10)
+    elseif verbose == 2
+        ptf = round(maxIter / 100)
+    else
+        ptf = 1
+    end
 
-  # initialize parameters
-  xk = copy(x0)
-  hk = h(xk)
-  if hk == Inf
-    verbose > 0 && @info "LM: finding initial guess where nonsmooth term is finite"
-    prox!(xk, h, x0, one(eltype(x0)))
+    # initialize parameters
+    xk = copy(x0)
     hk = h(xk)
-    hk < Inf || error("prox computation must be erroneous")
-    verbose > 0 && @debug "LM: found point where h has value" hk
-  end
-  hk == -Inf && error("nonsmooth term is not proper")
-  ψ = shifted(h, xk)
-
-  xkn = similar(xk)
-
-  local ξ1
-  k = 0
-  Fobj_hist = zeros(maxIter)
-  Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, (2, maxIter))
-  verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
-
-  k = 0
-  α = 1.0
-
-  # main algorithm initialization
-  Fk = residual(nls, xk)
-  Fkn = similar(Fk)
-  fk = dot(Fk, Fk) / 2
-  Jk = jac_op_residual(nls, xk)
-  ∇fk = Jk' * Fk
-  JdFk = similar(Fk)   # temporary storage
-  svd_info = svds(Jk, nsv=1, ritzvec=false)
-  νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
-  s = zero(xk)
-
-  optimal = false
-  tired = k ≥ maxIter
-
-  while !(optimal || tired)
-    k = k + 1
-
-    Fobj_hist[k] = fk
-    Hobj_hist[k] = hk
-
-    # TODO: reuse residual computation
-    φ(d) = begin
-      jprod_residual!(nls, xk, d, JdFk)
-      JdFk .+= Fk
-      return dot(JdFk, JdFk) / 2 + σk * dot(d, d) / 2
+    if hk == Inf
+        verbose > 0 && @info "LM: finding initial guess where nonsmooth term is finite"
+        prox!(xk, h, x0, one(eltype(x0)))
+        hk = h(xk)
+        hk < Inf || error("prox computation must be erroneous")
+        verbose > 0 && @debug "LM: found point where h has value" hk
     end
+    hk == -Inf && error("nonsmooth term is not proper")
+    ψ = shifted(h, xk)
 
-    ∇φ!(g, d) = begin
-      jprod_residual!(nls, xk, d, JdFk)
-      JdFk .+= Fk
-      jtprod_residual!(nls, xk, JdFk, g)
-      g .+= σk * d
-      return g
-    end
+    xkn = similar(xk)
 
-    # define model and update ρ
-    mk(d) = begin
-      jprod_residual!(nls, xk, d, JdFk)
-      JdFk .+= Fk
-      # JdFk = Jk * d + Fk
-      return dot(JdFk, JdFk) / 2 + ψ(d)
-    end
+    local ξ1
+    k = 0
+    Fobj_hist = zeros(maxIter)
+    Hobj_hist = zeros(maxIter)
+    Complex_hist = zeros(Int, (2, maxIter))
+    verbose == 0 ||
+        @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
 
-    # take first proximal gradient step s1 and see if current xk is nearly stationary
-    subsolver_options.ν = 1 / νInv
-    ∇fk .*= -subsolver_options.ν  # reuse gradient storage
-    prox!(s, ψ, ∇fk, subsolver_options.ν)
-    ξ1 = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
-    ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    k = 0
+    α = 1.0
 
-    if sqrt(ξ1) < ϵ
-      # the current xk is approximately first-order stationary
-      verbose == 0 || @info "LM: terminating with ξ1 = $(ξ1)"
-      optimal = true
-      continue
-    end
+    # main algorithm initialization
+    Fk = residual(nls, xk)
+    Fkn = similar(Fk)
+    fk = dot(Fk, Fk) / 2
+    Jk = jac_op_residual(nls, xk)
+    ∇fk = Jk' * Fk
+    JdFk = similar(Fk)   # temporary storage
+    svd_info = svds(Jk, nsv = 1, ritzvec = false)
+    νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+    s = zero(xk)
 
-    # subsolver_options.ϵ = k == 1 ? 1.0e-4 : max(ϵ, min(1.0e-4, ξ1 / 5))
-    subsolver_options.ϵ = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
-    @debug "setting inner stopping tolerance to" subsolver_options.optTol
-    s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s)
-    end
-
-    Complex_hist[2,k] += length(sub_fhist)
-
-    xkn .= xk .+ s
-    residual!(nls, xkn, Fkn)
-    fkn = dot(Fkn, Fkn) / 2
-    hkn = h(xkn)
-    hkn == -Inf && error("nonsmooth term is not proper")
-
-    ξ = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
-
-    if (ξ ≤ 0 || isnan(ξ))
-      error("LM: failed to compute a step: ξ = $ξ")
-    end
-
-    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ρk = Δobj / ξ
-
-    σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
-
-    if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(sub_fhist) fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
-    end
-
-    if η2 ≤ ρk < Inf
-      σk = σk / γ
-    end
-
-    if η1 ≤ ρk < Inf
-      xk .= xkn
-
-      # update functions
-      Fk .= Fkn
-      fk = fkn
-      hk = hkn
-
-      # update gradient & Hessian
-      shift!(ψ, xk)
-      Jk = jac_op_residual(nls, xk)
-      jtprod_residual!(nls, xk, Fk, ∇fk)
-      svd_info = svds(Jk, nsv=1, ritzvec=false)
-      νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
-
-      Complex_hist[1,k] += 1
-    end
-
-    if ρk < η1 || ρk == Inf
-      σk = max(σk * γ, 1e-6)
-    end
-
+    optimal = false
     tired = k ≥ maxIter
-  end
 
-  if (verbose > 0) && (k == 1)
-    @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
-  end
+    while !(optimal || tired)
+        k = k + 1
 
-  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k], ξ1
+        Fobj_hist[k] = fk
+        Hobj_hist[k] = hk
+
+        # TODO: reuse residual computation
+        φ(d) = begin
+            jprod_residual!(nls, xk, d, JdFk)
+            JdFk .+= Fk
+            return dot(JdFk, JdFk) / 2 + σk * dot(d, d) / 2
+        end
+
+        ∇φ!(g, d) = begin
+            jprod_residual!(nls, xk, d, JdFk)
+            JdFk .+= Fk
+            jtprod_residual!(nls, xk, JdFk, g)
+            g .+= σk * d
+            return g
+        end
+
+        # define model and update ρ
+        mk(d) = begin
+            jprod_residual!(nls, xk, d, JdFk)
+            JdFk .+= Fk
+            # JdFk = Jk * d + Fk
+            return dot(JdFk, JdFk) / 2 + ψ(d)
+        end
+
+        # take first proximal gradient step s1 and see if current xk is nearly stationary
+        subsolver_options.ν = 1 / νInv
+        ∇fk .*= -subsolver_options.ν  # reuse gradient storage
+        prox!(s, ψ, ∇fk, subsolver_options.ν)
+        ξ1 = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
+        ξ1 > 0 ||
+            error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+
+        if sqrt(ξ1) < ϵ
+            # the current xk is approximately first-order stationary
+            verbose == 0 || @info "LM: terminating with ξ1 = $(ξ1)"
+            optimal = true
+            continue
+        end
+
+        # subsolver_options.ϵ = k == 1 ? 1.0e-4 : max(ϵ, min(1.0e-4, ξ1 / 5))
+        subsolver_options.ϵ = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
+        @debug "setting inner stopping tolerance to" subsolver_options.optTol
+        s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
+            subsolver(φ, ∇φ!, ψ, subsolver_options, s)
+        end
+
+        Complex_hist[2, k] += length(sub_fhist)
+
+        xkn .= xk .+ s
+        residual!(nls, xkn, Fkn)
+        fkn = dot(Fkn, Fkn) / 2
+        hkn = h(xkn)
+        hkn == -Inf && error("nonsmooth term is not proper")
+
+        ξ = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
+
+        if (ξ ≤ 0 || isnan(ξ))
+            error("LM: failed to compute a step: ξ = $ξ")
+        end
+
+        Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+        ρk = Δobj / ξ
+
+        σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
+
+        if (verbose > 0) && (k % ptf == 0)
+            @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(
+                sub_fhist,
+            ) fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
+        end
+
+        if η2 ≤ ρk < Inf
+            σk = σk / γ
+        end
+
+        if η1 ≤ ρk < Inf
+            xk .= xkn
+
+            # update functions
+            Fk .= Fkn
+            fk = fkn
+            hk = hkn
+
+            # update gradient & Hessian
+            shift!(ψ, xk)
+            Jk = jac_op_residual(nls, xk)
+            jtprod_residual!(nls, xk, Fk, ∇fk)
+            svd_info = svds(Jk, nsv = 1, ritzvec = false)
+            νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+
+            Complex_hist[1, k] += 1
+        end
+
+        if ρk < η1 || ρk == Inf
+            σk = max(σk * γ, 1e-6)
+        end
+
+        tired = k ≥ maxIter
+    end
+
+    if (verbose > 0) && (k == 1)
+        @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
+    end
+
+    return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:, 1:k], ξ1
 end

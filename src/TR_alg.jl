@@ -44,168 +44,171 @@ The Hessian is accessed as an abstract operator and need not be the exact Hessia
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
 function TR(
-  f::AbstractNLPModel,
-  h::ProximableFunction,
-  χ::ProximableFunction,
-  options::ROSolverOptions;
-  x0::AbstractVector = f.meta.x0,
-  subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
-  subsolver = R2,
-  subsolver_options = ROSolverOptions(),
-  )
+    f::AbstractNLPModel,
+    h::ProximableFunction,
+    χ::ProximableFunction,
+    options::ROSolverOptions;
+    x0::AbstractVector = f.meta.x0,
+    subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
+    subsolver = R2,
+    subsolver_options = ROSolverOptions(),
+)
 
-  # initialize passed options
-  ϵ = options.ϵ
-  Δk = options.Δk
-  verbose = options.verbose
-  maxIter = options.maxIter
-  η1 = options.η1
-  η2 = options.η2
-  γ = options.γ
-  α = options.α
-  θ = options.θ
-  β = options.β
+    # initialize passed options
+    ϵ = options.ϵ
+    Δk = options.Δk
+    verbose = options.verbose
+    maxIter = options.maxIter
+    η1 = options.η1
+    η2 = options.η2
+    γ = options.γ
+    α = options.α
+    θ = options.θ
+    β = options.β
 
-  if verbose == 0
-    ptf = Inf
-  elseif verbose == 1
-    ptf = round(maxIter / 10)
-  elseif verbose == 2
-    ptf = round(maxIter / 100)
-  else
-    ptf = 1
-  end
+    if verbose == 0
+        ptf = Inf
+    elseif verbose == 1
+        ptf = round(maxIter / 10)
+    elseif verbose == 2
+        ptf = round(maxIter / 100)
+    else
+        ptf = 1
+    end
 
-  # initialize parameters
-  xk = copy(x0)
-  hk = h(xk)
-  if hk == Inf
-    verbose > 0 && @info "TR: finding initial guess where nonsmooth term is finite"
-    prox!(xk, h, x0, one(eltype(x0)))
+    # initialize parameters
+    xk = copy(x0)
     hk = h(xk)
-    hk < Inf || error("prox computation must be erroneous")
-    verbose > 0 && @debug "TR: found point where h has value" hk
-  end
-  hk == -Inf && error("nonsmooth term is not proper")
+    if hk == Inf
+        verbose > 0 && @info "TR: finding initial guess where nonsmooth term is finite"
+        prox!(xk, h, x0, one(eltype(x0)))
+        hk = h(xk)
+        hk < Inf || error("prox computation must be erroneous")
+        verbose > 0 && @debug "TR: found point where h has value" hk
+    end
+    hk == -Inf && error("nonsmooth term is not proper")
 
-  xkn = similar(xk)
-  s = zero(xk)
-  ψ = shifted(h, xk, Δk, χ)
+    xkn = similar(xk)
+    s = zero(xk)
+    ψ = shifted(h, xk, Δk, χ)
 
-  Fobj_hist = zeros(maxIter)
-  Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, (2, maxIter))
-  if verbose > 0
-    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
-  end
-
-  local ξ1
-  k = 0
-
-  fk = obj(f, xk)
-  ∇fk = grad(f, xk)
-  ∇fk⁻ = copy(∇fk)
-
-  quasiNewtTest = isa(f, QuasiNewtonModel)
-  Bk = hess_op(f, xk)
-  νInv = (1 + θ) * abs(eigs(Bk; nev=1, which=:LM)[1][1])
-
-  optimal = false
-  tired = k ≥ maxIter
-
-  while !(optimal || tired)
-    k = k + 1
-    Fobj_hist[k] = fk
-    Hobj_hist[k] = hk
-
-    φ(d) = (d' * (Bk * d)) / 2 + ∇fk' * d
-
-    ∇φ!(g, d) = begin
-      mul!(g, Bk, d)
-      g .+= ∇fk
-      g
+    Fobj_hist = zeros(maxIter)
+    Hobj_hist = zeros(maxIter)
+    Complex_hist = zeros(Int, (2, maxIter))
+    if verbose > 0
+        @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
     end
 
-    mk(d) = φ(d) + ψ(d)
+    local ξ1
+    k = 0
 
-    # take first proximal gradient step s1 and see if current xk is nearly stationary
-    subsolver_options.ν = 1 / (νInv + 1/(Δk*α))
-    prox!(s, ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν) # -> PG on one step s1
-    ξ1 = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
-    ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    fk = obj(f, xk)
+    ∇fk = grad(f, xk)
+    ∇fk⁻ = copy(∇fk)
 
-    if sqrt(ξ1) < ϵ
-      # the current xk is approximately first-order stationary
-      optimal = true
-      verbose == 0 || @info "TR: terminating with ξ1 = $(sqrt(ξ1))"
-      continue
-    end
+    quasiNewtTest = isa(f, QuasiNewtonModel)
+    Bk = hess_op(f, xk)
+    νInv = (1 + θ) * abs(eigs(Bk; nev = 1, which = :LM)[1][1])
 
-    subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
-    set_radius!(ψ, min(β * χ(s), Δk))
-    s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s)
-    end
-    Complex_hist[2,k] += length(sub_fhist)
-
-    sNorm =  χ(s)
-    xkn .= xk .+ s
-    fkn = obj(f, xkn)
-    hkn = h(xkn)
-    hkn == -Inf && error("nonsmooth term is not proper")
-
-    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
-
-    if (ξ ≤ 0 || isnan(ξ))
-      error("TR: failed to compute a step: ξ = $ξ")
-    end
-
-    ρk = Δobj / ξ
-
-    TR_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
-
-    if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(sub_fhist) fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
-    end
-
-    if η2 ≤ ρk < Inf
-      Δk = max(Δk, γ * sNorm)
-      set_radius!(ψ, Δk)
-    end
-
-    if η1 ≤ ρk < Inf
-      xk .= xkn
-
-      #update functions
-      fk = fkn
-      hk = hkn
-      shift!(ψ, xk)
-      ∇fk = grad(f, xk)
-      # grad!(f, xk, ∇fk)
-      if quasiNewtTest
-        push!(f, s, ∇fk - ∇fk⁻)
-      end
-      Bk = hess_op(f, xk)
-      νInv = (1 + θ) * abs(eigs(Bk; nev=1, which=:LM)[1][1])
-      # store previous iterates
-      ∇fk⁻ .= ∇fk
-
-      #hist update
-      Complex_hist[1,k] += 1
-    end
-
-    if ρk < η1 || ρk == Inf
-      Δk = .5 * Δk	# change to reflect trust region
-      set_radius!(ψ, Δk)
-    end
+    optimal = false
     tired = k ≥ maxIter
 
-  end
+    while !(optimal || tired)
+        k = k + 1
+        Fobj_hist[k] = fk
+        Hobj_hist[k] = hk
 
-  if (verbose > 0) && (k == 1)
-    @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
-  end
+        φ(d) = (d' * (Bk * d)) / 2 + ∇fk' * d
 
-  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k], ξ1
+        ∇φ!(g, d) = begin
+            mul!(g, Bk, d)
+            g .+= ∇fk
+            g
+        end
+
+        mk(d) = φ(d) + ψ(d)
+
+        # take first proximal gradient step s1 and see if current xk is nearly stationary
+        subsolver_options.ν = 1 / (νInv + 1 / (Δk * α))
+        prox!(s, ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν) # -> PG on one step s1
+        ξ1 = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
+        ξ1 > 0 ||
+            error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+
+        if sqrt(ξ1) < ϵ
+            # the current xk is approximately first-order stationary
+            optimal = true
+            verbose == 0 || @info "TR: terminating with ξ1 = $(sqrt(ξ1))"
+            continue
+        end
+
+        subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
+        set_radius!(ψ, min(β * χ(s), Δk))
+        s, sub_fhist, sub_hhist, sub_cmplx, sub_ξ = with_logger(subsolver_logger) do
+            subsolver(φ, ∇φ!, ψ, subsolver_options, s)
+        end
+        Complex_hist[2, k] += length(sub_fhist)
+
+        sNorm = χ(s)
+        xkn .= xk .+ s
+        fkn = obj(f, xkn)
+        hkn = h(xkn)
+        hkn == -Inf && error("nonsmooth term is not proper")
+
+        Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+        ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
+
+        if (ξ ≤ 0 || isnan(ξ))
+            error("TR: failed to compute a step: ξ = $ξ")
+        end
+
+        ρk = Δobj / ξ
+
+        TR_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
+
+        if (verbose > 0) && (k % ptf == 0)
+            @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k length(
+                sub_fhist,
+            ) fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
+        end
+
+        if η2 ≤ ρk < Inf
+            Δk = max(Δk, γ * sNorm)
+            set_radius!(ψ, Δk)
+        end
+
+        if η1 ≤ ρk < Inf
+            xk .= xkn
+
+            #update functions
+            fk = fkn
+            hk = hkn
+            shift!(ψ, xk)
+            ∇fk = grad(f, xk)
+            # grad!(f, xk, ∇fk)
+            if quasiNewtTest
+                push!(f, s, ∇fk - ∇fk⁻)
+            end
+            Bk = hess_op(f, xk)
+            νInv = (1 + θ) * abs(eigs(Bk; nev = 1, which = :LM)[1][1])
+            # store previous iterates
+            ∇fk⁻ .= ∇fk
+
+            #hist update
+            Complex_hist[1, k] += 1
+        end
+
+        if ρk < η1 || ρk == Inf
+            Δk = 0.5 * Δk# change to reflect trust region
+            set_radius!(ψ, Δk)
+        end
+        tired = k ≥ maxIter
+
+    end
+
+    if (verbose > 0) && (k == 1)
+        @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
+    end
+
+    return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:, 1:k], ξ1
 end

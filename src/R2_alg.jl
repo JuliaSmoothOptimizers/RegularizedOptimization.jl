@@ -44,133 +44,136 @@ In the second form, instead of `nlp`, the user may pass in
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
 function R2(nlp::AbstractNLPModel, args...; kwargs...)
-  kwargs_dict = Dict(kwargs...)
-  x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
-  R2(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
+    kwargs_dict = Dict(kwargs...)
+    x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
+    R2(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
 end
 
 function R2(
-  f::F,
-  ∇f!::G,
-  h::ProximableFunction,
-  options::ROSolverOptions,
-  x0::AbstractVector
-  ) where {F <: Function, G <: Function}
-  ϵ = options.ϵ
-  verbose = options.verbose
-  maxIter = options.maxIter
-  η1 = options.η1
-  η2 = options.η2
-  ν = options.ν
-  γ = options.γ
+    f::F,
+    ∇f!::G,
+    h::ProximableFunction,
+    options::ROSolverOptions,
+    x0::AbstractVector,
+) where {F<:Function,G<:Function}
+    ϵ = options.ϵ
+    verbose = options.verbose
+    maxIter = options.maxIter
+    η1 = options.η1
+    η2 = options.η2
+    ν = options.ν
+    γ = options.γ
 
-  if verbose == 0
-    ptf = Inf
-  elseif verbose == 1
-    ptf = round(maxIter / 10)
-  elseif verbose == 2
-    ptf = round(maxIter / 100)
-  else
-    ptf = 1
-  end
+    if verbose == 0
+        ptf = Inf
+    elseif verbose == 1
+        ptf = round(maxIter / 10)
+    elseif verbose == 2
+        ptf = round(maxIter / 100)
+    else
+        ptf = 1
+    end
 
-  # initialize parameters
-  xk = copy(x0)
-  hk = h(xk)
-  if hk == Inf
-    verbose > 0 && @info "R2: finding initial guess where nonsmooth term is finite"
-    prox!(xk, h, x0, one(eltype(x0)))
+    # initialize parameters
+    xk = copy(x0)
     hk = h(xk)
-    hk < Inf || error("prox computation must be erroneous")
-    verbose > 0 && @debug "R2: found point where h has value" hk
-  end
-  hk == -Inf && error("nonsmooth term is not proper")
-
-  xkn = similar(xk)
-  s = zero(xk)
-  ψ = shifted(h, xk)
-
-  k = 0
-  Fobj_hist = zeros(maxIter)
-  Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, (2,maxIter))
-  verbose == 0 || @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
-
-  local ξ
-  k = 0
-  σk = 1/ν
-
-  fk = f(xk)
-  ∇fk = similar(xk)
-  ∇f!(∇fk, xk)
-  mν∇fk = -ν * ∇fk
-
-  optimal = false
-  tired = maxIter > 0 && k ≥ maxIter
-
-  while !(optimal || tired)
-    k = k + 1
-
-    Fobj_hist[k] = fk
-    Hobj_hist[k] = hk
-
-    # define model
-    φk(d) = dot(∇fk, d)
-    mk(d) = φk(d) + ψ(d)
-
-    prox!(s, ψ, mν∇fk, ν)
-    Complex_hist[2,k] += 1
-    mks = mk(s)
-    ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
-    ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
-
-    if sqrt(ξ) < ϵ
-      optimal = true
-      verbose == 0 || @info "R2: terminating with ξ = $ξ"
-      continue
+    if hk == Inf
+        verbose > 0 && @info "R2: finding initial guess where nonsmooth term is finite"
+        prox!(xk, h, x0, one(eltype(x0)))
+        hk = h(xk)
+        hk < Inf || error("prox computation must be erroneous")
+        verbose > 0 && @debug "R2: found point where h has value" hk
     end
+    hk == -Inf && error("nonsmooth term is not proper")
 
-    xkn .= xk .+ s
-    fkn = f(xkn)
-    hkn = h(xkn)
-    hkn == -Inf && error("nonsmooth term is not proper")
+    xkn = similar(xk)
+    s = zero(xk)
+    ψ = shifted(h, xk)
 
-    Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ρk = Δobj / ξ
+    k = 0
+    Fobj_hist = zeros(maxIter)
+    Hobj_hist = zeros(maxIter)
+    Complex_hist = zeros(Int, (2, maxIter))
+    verbose == 0 ||
+        @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
 
-    σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
+    local ξ
+    k = 0
+    σk = 1 / ν
 
-    if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(s) σ_stat
-    end
+    fk = f(xk)
+    ∇fk = similar(xk)
+    ∇f!(∇fk, xk)
+    mν∇fk = -ν * ∇fk
 
-    if η2 ≤ ρk < Inf
-      σk = σk / γ
-    end
-
-    if η1 ≤ ρk < Inf
-      xk .= xkn
-      fk = fkn
-      hk = hkn
-      ∇f!(∇fk, xk)
-      shift!(ψ, xk)
-      Complex_hist[1,k]+=1
-    end
-
-    if ρk < η1 || ρk == Inf
-      σk = σk * γ
-    end
-
-    ν = 1 / σk
+    optimal = false
     tired = maxIter > 0 && k ≥ maxIter
-    if !tired
-      @. mν∇fk = -ν * ∇fk
+
+    while !(optimal || tired)
+        k = k + 1
+
+        Fobj_hist[k] = fk
+        Hobj_hist[k] = hk
+
+        # define model
+        φk(d) = dot(∇fk, d)
+        mk(d) = φk(d) + ψ(d)
+
+        prox!(s, ψ, mν∇fk, ν)
+        Complex_hist[2, k] += 1
+        mks = mk(s)
+        ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
+        ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
+
+        if sqrt(ξ) < ϵ
+            optimal = true
+            verbose == 0 || @info "R2: terminating with ξ = $ξ"
+            continue
+        end
+
+        xkn .= xk .+ s
+        fkn = f(xkn)
+        hkn = h(xkn)
+        hkn == -Inf && error("nonsmooth term is not proper")
+
+        Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+        ρk = Δobj / ξ
+
+        σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
+
+        if (verbose > 0) && (k % ptf == 0)
+            @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(
+                ξ,
+            ) ρk σk norm(xk) norm(s) σ_stat
+        end
+
+        if η2 ≤ ρk < Inf
+            σk = σk / γ
+        end
+
+        if η1 ≤ ρk < Inf
+            xk .= xkn
+            fk = fkn
+            hk = hkn
+            ∇f!(∇fk, xk)
+            shift!(ψ, xk)
+            Complex_hist[1, k] += 1
+        end
+
+        if ρk < η1 || ρk == Inf
+            σk = σk * γ
+        end
+
+        ν = 1 / σk
+        tired = maxIter > 0 && k ≥ maxIter
+        if !tired
+            @. mν∇fk = -ν * ∇fk
+        end
     end
-  end
 
-  if (verbose > 0) && (k == 1)
-    @info @sprintf "%6d %8.1e %8.1e" k fk hk
-  end
+    if (verbose > 0) && (k == 1)
+        @info @sprintf "%6d %8.1e %8.1e" k fk hk
+    end
 
-  return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k], ξ
+    return xk, Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:, 1:k], ξ
 end
