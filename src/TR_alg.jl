@@ -226,6 +226,6 @@ function TR(
     dual_feas = sqrt(ξ1),
     iter = k,
     elapsed_time = elapsed_time,
-    solver_specific = Dict(:Fhist=>Fobj_hist[1:k], :Hhist=>Hobj_hist[1:k], :h = h, :SubsolverCounter=>Complex_hist[1:k])
+    solver_specific = Dict(:Fhist=>Fobj_hist[1:k], :Hhist=>Hobj_hist[1:k], :NonSmooth = h, :SubsolverCounter=>Complex_hist[1:k])
   )
 end
