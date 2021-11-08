@@ -10,7 +10,6 @@ using Arpack, ProximalOperators
 using NLPModels, NLPModelsModifiers, ShiftedProximalOperators
 
 include("input_struct.jl")
-include("output_struct.jl")
 include("PG_alg.jl")
 include("Fista_alg.jl")
 include("splitting.jl")
