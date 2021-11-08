@@ -221,14 +221,11 @@ function TR(
   return GenericExecutionStats(
     status,
     f,
-    h,
     solution = xk,
     objective = fk + hk,
-    ξ₁ = sqrt(ξ1),
-    Fhist = Fobj_hist[1:k],
-    Hhist = Hobj_hist[1:k],
-    SubsolverCounter = Complex_hist[1:k],
+    dual_feas = sqrt(ξ1),
     iter = k,
-    elapsed_time = elapsed_time
+    elapsed_time = elapsed_time,
+    solver_specific = Dict(:Fhist=>Fobj_hist[1:k], :Hhist=>Hobj_hist[1:k], :h = h, :SubsolverCounter=>Complex_hist[1:k])
   )
 end
