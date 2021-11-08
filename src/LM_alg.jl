@@ -229,7 +229,7 @@ function LM(
     f,
     solution = xk,
     objective = fk + hk,
-    dual_feas = sqrt(ξ1),
+    dual_feas = sqrt(ξ),
     iter = k,
     elapsed_time = elapsed_time,
     solver_specific = Dict(:Fhist=>Fobj_hist[1:k], :Hhist=>Hobj_hist[1:k], :NonSmooth=>h, :SubsolverCounter=>Complex_hist[1:k])
