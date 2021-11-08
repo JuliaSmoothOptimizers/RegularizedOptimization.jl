@@ -7,7 +7,7 @@ using LinearAlgebra, Logging, Printf
 using Arpack, ProximalOperators
 
 # dependencies from us
-using NLPModels, NLPModelsModifiers, ShiftedProximalOperators
+using NLPModels, NLPModelsModifiers, ShiftedProximalOperators, SolverCore
 
 include("input_struct.jl")
 include("PG_alg.jl")
