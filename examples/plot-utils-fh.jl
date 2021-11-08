@@ -1,8 +1,8 @@
 using PGFPlots
 
 function plot_fh(outstruct, F, data, name = "tr-qr")
-  Comp_pg = outstruct.SubsolverCounter
-  objdec = outstruct.Fhist + outstruct.Hhist
+  Comp_pg = outstruct.solver_specific[:SubsolverCounter]
+  objdec = outstruct.solver_specific[:Fhist] + outstruct.solver_specific[:Hhist]
   F1 = @view F[1:2:end-1]
   F2 = @view F[2:2:end]
   data1 = @view data[1:2:end-1]
