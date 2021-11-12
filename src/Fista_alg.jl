@@ -19,7 +19,18 @@ export FISTA, FISTAD
 function FISTA(nlp::AbstractNLPModel, args...; kwargs...)
   kwargs_dict = Dict(kwargs...)
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
-  FISTA(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
+  xk, k, outdict = FISTA(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
+
+  return GenericExecutionStats(
+    outdict[:status],
+    nlp,
+    solution = xk,
+    objective = outdict[:fk] + outdict[:hk],
+    dual_feas = sqrt(outdict[:ξ]),
+    iter = k,
+    elapsed_time = outdict[:elapsed_time],
+    solver_specific = Dict(:Fhist=>outdict[:Fhist], :Hhist=>outdict[:Hhist], :NonSmooth=>outdict[:NonSmooth], :SubsolverCounter=>outdict[:Chist])
+  )
 end
 
 function FISTA(
@@ -116,19 +127,20 @@ function FISTA(
   else
     :exception
   end
-  return GenericExecutionStats(
-    status,
-    f,
-    h,
-    solution = xk,
-    objective = fk + hk,
-    ξ₁ = sqrt(ξ),
-    Fhist = Fobj_hist[1:k],
-    Hhist = Hobj_hist[1:k],
-    SubsolverCounter = Complex_hist[1:k],
-    iter = k,
-    elapsed_time = elapsed_time
+
+  outdict = Dict(:Fhist=>Fobj_hist[1:k],
+  :Hhist=>Hobj_hist[1:k],
+  :Chist=>Complex_hist[1:k],
+  :NonSmooth=>h,
+  :status=>status,
+  :fk => fk,
+  :hk => hk,
+  :ξ => ξ,
+  :elapsed_time=>elapsed_time
   )
+
+  return xk, k, outdict
+
 end
 
 #enforces strict descent  for FISTA
