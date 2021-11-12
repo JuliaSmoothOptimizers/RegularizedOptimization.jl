@@ -46,7 +46,18 @@ In the second form, instead of `nlp`, the user may pass in
 function R2(nlp::AbstractNLPModel, args...; kwargs...)
   kwargs_dict = Dict(kwargs...)
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
-  R2(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
+  xk, k, outdict = R2(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
+
+  return GenericExecutionStats(
+    outdict[:status],
+    nlp,
+    solution = xk,
+    objective = outdict[:fk] + outdict[:hk],
+    dual_feas = sqrt(outdict[:ξ]),
+    iter = k,
+    elapsed_time = outdict[:elapsed_time],
+    solver_specific = Dict(:Fhist=>outdict[:Fhist], :Hhist=>outdict[:Hhist], :NonSmooth=>outdict[:NonSmooth], :SubsolverCounter=>outdict[:Chist])
+  )
 end
 
 function R2(
@@ -183,15 +194,16 @@ function R2(
   else
     :exception
   end
+  outdict = Dict(:Fhist=>Fobj_hist[1:k],
+                 :Hhist=>Hobj_hist[1:k],
+                 :Chist=>Complex_hist[1:k],
+                 :NonSmooth=>h,
+                 :status=>status,
+                 :fk => fk,
+                 :hk => hk,
+                 :ξ => ξ,
+                 :elapsed_time=>elapsed_time
+                 )
 
-  return GenericExecutionStats(
-    status,
-    f,
-    solution = xk,
-    objective = fk + hk,
-    dual_feas = sqrt(ξ),
-    iter = k,
-    elapsed_time = elapsed_time,
-    solver_specific = Dict(:Fhist=>Fobj_hist[1:k], :Hhist=>Hobj_hist[1:k], :NonSmooth=>h, :SubsolverCounter=>Complex_hist[1:k])
-  )
+  return xk, k, outdict
 end
