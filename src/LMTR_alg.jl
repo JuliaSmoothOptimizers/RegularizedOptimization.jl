@@ -225,7 +225,7 @@ function LMTR(
 
   return GenericExecutionStats(
     status,
-    f,
+    nls,
     solution = xk,
     objective = fk + hk,
     dual_feas = sqrt(ξ1),
