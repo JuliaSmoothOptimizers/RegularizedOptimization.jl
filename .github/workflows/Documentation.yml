@@ -18,7 +18,7 @@ jobs:
         run: |
           using Pkg
           pkg1 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl.git")
-          pkg2 = PackageSpec(url = "https://github.com/rjbaraldi/ShiftedProximalOperators.jl.git")
+          pkg2 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl.git")
           pkg_list = [pkg1, pkg2]
           Pkg.add(pkg_list)
         shell: julia --project=docs --color=yes {0}
