@@ -14,7 +14,7 @@ makedocs(
 )
 
 deploydocs(
-  repo = "github.com/UW-AMO/RegularizedOptimization.jl.git",
+  repo = "github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl.git",
   push_preview = true
 )
 
