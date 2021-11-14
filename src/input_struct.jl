@@ -5,7 +5,7 @@ mutable struct ROSolverOptions{R}
   Δk :: R  # trust region radius
   verbose :: Int  # print every so often
   maxIter :: Int  # maximum amount of inner iterations
-  maxTime :: R #maximum time allotted to the algorithm in s
+  maxTime :: Float64 #maximum time allotted to the algorithm in s
   η1 :: R  # step acceptance threshold
   η2 :: R  # trust-region increase threshold
   α :: R  # νk Δ^{-1} parameter
@@ -20,7 +20,7 @@ mutable struct ROSolverOptions{R}
     Δk :: R = one(R),
     verbose :: Int = 0,
     maxIter :: Int = 10000,
-    maxTime :: R = R(10000),
+    maxTime :: Float64 = 3600.0,
     η1 :: R = √√eps(R),
     η2 :: R = R(0.9),
     α :: R = 1 / eps(R),

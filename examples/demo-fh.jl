@@ -1,5 +1,5 @@
 using DifferentialEquations, ProximalOperators
-using ADNLPModels, NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
+using ADNLPModels, NLPModels, NLPModelsModifiers, RegularizedOptimization, RegularizedProblems
 
 include("plot-utils-fh.jl")
 
