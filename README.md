@@ -1,8 +1,8 @@
 # RegularizedOptimization
 
-[![CI](https://github.com/UW-AMO/RegularizedOptimization.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/UW-AMO/RegularizedOptimization.jl/actions/workflows/ci.yml)
+[![CI](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl/actions/workflows/ci.yml)
 [![](https://img.shields.io/badge/docs-latest-3f51b5.svg)](https://UW-AMO.github.io/RegularizedOptimization.jl/dev)
-[![codecov](https://codecov.io/gh/UW-AMO/RegularizedOptimization/branch/master/graph/badge.svg?token=LFPTDGDTP6)](https://codecov.io/gh/UW-AMO/RegularizedOptimization)
+[![codecov](https://codecov.io/gh/JuliaSmoothOptimizers/RegularizedOptimization.jl/branch/master/graph/badge.svg?token=lTbRmyBspS)](https://codecov.io/gh/JuliaSmoothOptimizers/RegularizedOptimization.jl)
 
 ## Synopsis
 
@@ -21,12 +21,17 @@ Both f and h can be nonconvex.
 
 To install the package, hit `]` from the Julia command line to enter the package manager and type
 ```julia
-pkg> add https://github.com/UW-AMO/RegularizedOptimization.jl
+pkg> add https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl
 ```
 
 ## What is Implemented?
 
 Please refer to the documentation.
+
+## Related Software
+
+* [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl)
+* [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl)
 
 ## References
 
