@@ -101,7 +101,8 @@ function PG(
     hk = h(xk)
 
     k+=1
-    ξ = norm(∇fk .- ∇fkn .- (xk .- xkn) ./ ν)
+    ∇fkn .= ∇fk .- ∇fkn .- (xk .- xkn) ./ ν
+    ξ = norm(∇fkn)
     optimal = ξ < ϵ
     tired = k ≥ maxIter || elapsed_time > maxTime
 
