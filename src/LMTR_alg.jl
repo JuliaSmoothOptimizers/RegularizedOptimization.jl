@@ -46,8 +46,8 @@ function LMTR(
   x0::AbstractVector = nls.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
-  subsolver_options = ROSolverOptions()
-  )
+  subsolver_options = ROSolverOptions(),
+)
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
@@ -105,9 +105,9 @@ function LMTR(
   Jk = jac_op_residual(nls, xk)
   ∇fk = Jk' * Fk
   JdFk = similar(Fk)   # temporary storage
-  svd_info = svds(Jk, nsv=1, ritzvec=false)
+  svd_info = svds(Jk, nsv = 1, ritzvec = false)
   νInv = (1 + θ) * maximum(svd_info[1].S)^2  # ‖J'J‖ = ‖J‖²
-  mν∇fk = -∇fk/νInv
+  mν∇fk = -∇fk / νInv
 
   optimal = false
   tired = k ≥ maxIter || elapsed_time > maxTime
@@ -125,7 +125,7 @@ function LMTR(
       dot(JdFk, JdFk) / 2
     end
 
-    ∇φ!(g,d) = begin
+    ∇φ!(g, d) = begin
       jprod_residual!(nls, xk, d, JdFk)
       JdFk .+= Fk
       jtprod_residual!(nls, xk, JdFk, g) #profiler
@@ -135,7 +135,7 @@ function LMTR(
     mk(d) = φ(d) + ψ(d)
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
-    subsolver_options.ν = 1 / (νInv + 1/(Δk*α))
+    subsolver_options.ν = 1 / (νInv + 1 / (Δk * α))
     prox!(s, ψ, mν∇fk, subsolver_options.ν)
     ξ1 = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
@@ -176,7 +176,9 @@ function LMTR(
     TR_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
 
     if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(
+        ξ1,
+      ) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
     end
 
     if η2 ≤ ρk < Inf
@@ -195,13 +197,13 @@ function LMTR(
       shift!(ψ, xk)
       Jk = jac_op_residual(nls, xk)
       jtprod_residual!(nls, xk, Fk, ∇fk)
-      svd_info = svds(Jk, nsv=1, ritzvec=false)
+      svd_info = svds(Jk, nsv = 1, ritzvec = false)
       νInv = (1 + θ) * maximum(svd_info[1].S)^2
-      @. mν∇fk = -∇fk/νInv
+      @. mν∇fk = -∇fk / νInv
     end
 
     if ρk < η1 || ρk == Inf
-      α = .5
+      α = 0.5
       Δk = α * Δk
       set_radius!(ψ, Δk)
     end
@@ -231,6 +233,11 @@ function LMTR(
     dual_feas = sqrt(ξ1),
     iter = k,
     elapsed_time = elapsed_time,
-    solver_specific = Dict(:Fhist=>Fobj_hist[1:k], :Hhist=>Hobj_hist[1:k], :NonSmooth=>h, :SubsolverCounter=>Complex_hist[1:k])
+    solver_specific = Dict(
+      :Fhist => Fobj_hist[1:k],
+      :Hhist => Hobj_hist[1:k],
+      :NonSmooth => h,
+      :SubsolverCounter => Complex_hist[1:k],
+    ),
   )
 end

@@ -44,8 +44,8 @@ function LM(
   x0::AbstractVector = nls.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
-  subsolver_options = ROSolverOptions()
-  )
+  subsolver_options = ROSolverOptions(),
+)
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
@@ -89,7 +89,8 @@ function LM(
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
-  verbose == 0 || @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
+  verbose == 0 ||
+    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
 
   k = 0
   α = 1.0
@@ -101,7 +102,7 @@ function LM(
   Jk = jac_op_residual(nls, xk)
   ∇fk = Jk' * Fk
   JdFk = similar(Fk)   # temporary storage
-  svd_info = svds(Jk, nsv=1, ritzvec=false)
+  svd_info = svds(Jk, nsv = 1, ritzvec = false)
   νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
   s = zero(xk)
 
@@ -178,7 +179,9 @@ function LM(
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
     if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(
+        ξ1,
+      ) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
     end
 
     if η2 ≤ ρk < Inf
@@ -197,7 +200,7 @@ function LM(
       shift!(ψ, xk)
       Jk = jac_op_residual(nls, xk)
       jtprod_residual!(nls, xk, Fk, ∇fk)
-      svd_info = svds(Jk, nsv=1, ritzvec=false)
+      svd_info = svds(Jk, nsv = 1, ritzvec = false)
       νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
 
       Complex_hist[k] += 1
@@ -231,6 +234,11 @@ function LM(
     dual_feas = sqrt(ξ1),
     iter = k,
     elapsed_time = elapsed_time,
-    solver_specific = Dict(:Fhist=>Fobj_hist[1:k], :Hhist=>Hobj_hist[1:k], :NonSmooth=>h, :SubsolverCounter=>Complex_hist[1:k])
+    solver_specific = Dict(
+      :Fhist => Fobj_hist[1:k],
+      :Hhist => Hobj_hist[1:k],
+      :NonSmooth => h,
+      :SubsolverCounter => Complex_hist[1:k],
+    ),
   )
 end
