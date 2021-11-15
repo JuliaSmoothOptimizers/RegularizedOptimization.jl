@@ -11,7 +11,7 @@ task:
   install_script:
     - sh -c "$(fetch https://raw.githubusercontent.com/ararslan/CirrusCI.jl/master/bin/install.sh -o -)"
   build_script:
-    - julia -e 'using Pkg; pkg1 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl.git", rev = "main"); pkg2 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl.git", rev = "master"); Pkg.add([pkg1, pkg2])'
+    - julia --color=yes --project=. -e 'using Pkg; pkg1 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl.git", rev = "main"); pkg2 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl.git", rev = "master"); Pkg.add([pkg1, pkg2])'
     - cirrusjl build
   test_script:
     - cirrusjl test
