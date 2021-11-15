@@ -27,4 +27,3 @@ bmark(nls_fd)
 @info "ReverseDiff model"
 nls_rd = ADNLSModel(resid, ones(5), 202, adbackend = ADNLPModels.ReverseDiffAD(5, 202))
 bmark(nls_rd)
-

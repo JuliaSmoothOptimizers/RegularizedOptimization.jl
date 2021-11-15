@@ -30,7 +30,12 @@ function PG(nlp::AbstractNLPModel, args...; kwargs...)
     dual_feas = sqrt(outdict[:ξ]),
     iter = k,
     elapsed_time = outdict[:elapsed_time],
-    solver_specific = Dict(:Fhist=>outdict[:Fhist], :Hhist=>outdict[:Hhist], :NonSmooth=>outdict[:NonSmooth], :SubsolverCounter=>outdict[:Chist])
+    solver_specific = Dict(
+      :Fhist => outdict[:Fhist],
+      :Hhist => outdict[:Hhist],
+      :NonSmooth => outdict[:NonSmooth],
+      :SubsolverCounter => outdict[:Chist],
+    ),
   )
 end
 
@@ -39,22 +44,22 @@ function PG(
   ∇f!::G,
   h::ProximableFunction,
   options::ROSolverOptions,
-  x0::AbstractVector
-  ) where {F <: Function, G <: Function}
+  x0::AbstractVector,
+) where {F <: Function, G <: Function}
   start_time = time()
   elapsed_time = 0.0
-  ϵ=options.ϵ
-  maxIter=options.maxIter
+  ϵ = options.ϵ
+  maxIter = options.maxIter
   maxTime = options.maxTime
   ν = options.ν
   verbose = options.verbose
 
-  if options.verbose==0
+  if options.verbose == 0
     ptf = Inf
-  elseif options.verbose==1
-    ptf = round(maxIter/10)
-  elseif options.verbose==2
-    ptf = round(maxIter/100)
+  elseif options.verbose == 1
+    ptf = round(maxIter / 10)
+  elseif options.verbose == 2
+    ptf = round(maxIter / 100)
   else
     ptf = 1
   end
@@ -72,7 +77,7 @@ function PG(
   hk = h(xk)
   ∇fkn = similar(∇fk)
   xkn = similar(x0)
-  fstep = xk .- ν.*∇fk
+  fstep = xk .- ν .* ∇fk
 
   #do iterations
   local ξ
@@ -100,7 +105,7 @@ function PG(
     fk = f(xk)
     hk = h(xk)
 
-    k+=1
+    k += 1
     ∇fkn .= ∇fk .- ∇fkn .- (xk .- xkn) ./ ν
     ξ = norm(∇fkn)
     optimal = ξ < ϵ
@@ -109,7 +114,6 @@ function PG(
     if (verbose > 0) && (k % ptf == 0)
       @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e " k fk hk ξ ν norm(xk)
     end
-
   end
   status = if optimal
     :first_order
@@ -121,39 +125,33 @@ function PG(
     :exception
   end
 
-  outdict = Dict(:Fhist=>Fobj_hist[1:k],
-  :Hhist=>Hobj_hist[1:k],
-  :Chist=>Complex_hist[1:k],
-  :NonSmooth=>h,
-  :status=>status,
-  :fk => fk,
-  :hk => hk,
-  :ξ => ξ,
-  :elapsed_time=>elapsed_time
+  outdict = Dict(
+    :Fhist => Fobj_hist[1:k],
+    :Hhist => Hobj_hist[1:k],
+    :Chist => Complex_hist[1:k],
+    :NonSmooth => h,
+    :status => status,
+    :fk => fk,
+    :hk => hk,
+    :ξ => ξ,
+    :elapsed_time => elapsed_time,
   )
 
   return xk, k, outdict
 end
 
-function PGΔ(
-  f,
-  ∇f,
-  h,
-  options;
-  x::AbstractVector=f.meta.x0,
-  )
+function PGΔ(f, ∇f, h, options; x::AbstractVector = f.meta.x0)
+  ε = options.optTol
+  maxIter = options.maxIter
 
-  ε=options.optTol
-  maxIter=options.maxIter
-
-  if options.verbose==0
-      ptf = Inf
-  elseif options.verbose==1
-      ptf = round(maxIter/10)
-  elseif options.verbose==2
-      ptf = round(maxIter/100)
+  if options.verbose == 0
+    ptf = Inf
+  elseif options.verbose == 1
+    ptf = round(maxIter / 10)
+  elseif options.verbose == 2
+    ptf = round(maxIter / 100)
   else
-      ptf = 1
+    ptf = 1
   end
   #Problem Initialize
   ν = options.ν
@@ -174,44 +172,41 @@ function PGΔ(
   tired = k ≥ maxIter
 
   while !(optimal || tired || FD)
-
     gold = g
     fold = f
     x = x⁺
 
-    x⁺ = ShiftedProximalOperators.prox(h, x - ν*g, ν)
+    x⁺ = ShiftedProximalOperators.prox(h, x - ν * g, ν)
     # update function info
     g = ∇f(x⁺)
     f = f(x⁺)
 
-    feval+=1
-    k+=1
-    err = norm(g-gold - (x⁺-x)/ν)
-    optimal =  err < ε
+    feval += 1
+    k += 1
+    err = norm(g - gold - (x⁺ - x) / ν)
+    optimal = err < ε
     tired = k ≥ maxIter
 
     k % ptf == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
     Difff = fold + h(x) - f - h(x⁺) # these do not work
-    FD = abs(Difff)<p*norm(fDec)
-
+    FD = abs(Difff) < p * norm(fDec)
   end
   return x⁺, feval
 end
 
 function PGE(f, h, s, options)
+  ε = options.optTol
+  maxIter = options.maxIter
 
-  ε=options.optTol
-  maxIter=options.maxIter
-
-  if options.verbose==0
-      ptf = Inf
-  elseif options.verbose==1
-      ptf = round(maxIter/10)
-  elseif options.verbose==2
-      ptf = round(maxIter/100)
+  if options.verbose == 0
+    ptf = Inf
+  elseif options.verbose == 1
+    ptf = round(maxIter / 10)
+  elseif options.verbose == 2
+    ptf = round(maxIter / 100)
   else
-      ptf = 1
+    ptf = 1
   end
   #Problem Initialize
   ν = options.ν
@@ -232,45 +227,42 @@ function PGE(f, h, s, options)
 
   #do iterations
   while !(optimal || tired || FD)
-
     gold = g
     s = s⁺
 
-    ν = min(g'*g/(g'*Bk*g), ν) #no BK, will not work
+    ν = min(g' * g / (g' * Bk * g), ν) #no BK, will not work
     #prox step
-    s⁺ = ShiftedProximalOperators.prox(h, s - ν*g, ν)
+    s⁺ = ShiftedProximalOperators.prox(h, s - ν * g, ν)
     # update function info
     g = ∇f(s⁺)
     f = f(s⁺)
 
-    feval+=1
-    k+=1
-    err = norm(g-gold - (s⁺-s)/ν)
-    optimal =  err < ε
+    feval += 1
+    k += 1
+    err = norm(g - gold - (s⁺ - s) / ν)
+    optimal = err < ε
     tired = k ≥ maxIter
 
     k % ptf == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
 
-
     Difff = fold + h(s) - f - h(s⁺) # these do not work
-    FD = abs(Difff)<p*norm(fDec)
+    FD = abs(Difff) < p * norm(fDec)
   end
   return s⁺, feval
 end
 
 function PGLnsch(f, ∇f, h, s, options)
+  ε = options.optTol
+  maxIter = options.maxIter
 
-  ε=options.optTol
-  maxIter=options.maxIter
-
-  if options.verbose==0
-      ptf = Inf
-  elseif options.verbose==1
-      ptf = round(maxIter/10)
-  elseif options.verbose==2
-      ptf = round(maxIter/100)
+  if options.verbose == 0
+    ptf = Inf
+  elseif options.verbose == 1
+    ptf = round(maxIter / 10)
+  elseif options.verbose == 2
+    ptf = round(maxIter / 100)
   else
-      ptf = 1
+    ptf = 1
   end
 
   #Problem Initialize
@@ -289,30 +281,28 @@ function PGLnsch(f, ∇f, h, s, options)
   tired = k ≥ maxIter
 
   while !(optimal || tired)
-
     gold = g
     s = s⁺
 
-    s⁺ = ShiftedProximalOperators.prox(h, s - ν*g, ν)
+    s⁺ = ShiftedProximalOperators.prox(h, s - ν * g, ν)
     #linesearch but we don't pass in f?
-    while f(s⁺) ≥ fk + g'*(s⁺ - s) + 1/(ν*2)*norm(s⁺ - s)^2
-        ν *= p*ν
-        s⁺ = prox(h, s - ν*g, ν)
-        feval+=1
+    while f(s⁺) ≥ fk + g' * (s⁺ - s) + 1 / (ν * 2) * norm(s⁺ - s)^2
+      ν *= p * ν
+      s⁺ = prox(h, s - ν * g, ν)
+      feval += 1
     end
     # update function info
     g = ∇f(s⁺) #objInner/ quadratic model
     fk = f(s⁺)
 
-    feval+=1
-    k+=1
-    err = norm(g-gold - (s⁺-s)/ν)
+    feval += 1
+    k += 1
+    err = norm(g - gold - (s⁺ - s) / ν)
     optimal = err < ε
     tired = k ≥ maxIter
 
     k % ptf == 0 && @info @sprintf "%4d ‖xᵏ⁺¹ - xᵏ‖=%1.5e ν = %1.5e" k err ν
     ν = ν₀
-
   end
   return s⁺, feval
 end

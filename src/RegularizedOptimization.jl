@@ -19,4 +19,3 @@ include("LM_alg.jl")
 include("LMTR_alg.jl")
 
 end  # module RegularizedOptimization
-

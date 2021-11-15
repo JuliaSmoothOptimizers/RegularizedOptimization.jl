@@ -56,7 +56,12 @@ function R2(nlp::AbstractNLPModel, args...; kwargs...)
     dual_feas = sqrt(outdict[:ξ]),
     iter = k,
     elapsed_time = outdict[:elapsed_time],
-    solver_specific = Dict(:Fhist=>outdict[:Fhist], :Hhist=>outdict[:Hhist], :NonSmooth=>outdict[:NonSmooth], :SubsolverCounter=>outdict[:Chist])
+    solver_specific = Dict(
+      :Fhist => outdict[:Fhist],
+      :Hhist => outdict[:Hhist],
+      :NonSmooth => outdict[:NonSmooth],
+      :SubsolverCounter => outdict[:Chist],
+    ),
   )
 end
 
@@ -65,8 +70,8 @@ function R2(
   ∇f!::G,
   h::ProximableFunction,
   options::ROSolverOptions,
-  x0::AbstractVector
-  ) where {F <: Function, G <: Function}
+  x0::AbstractVector,
+) where {F <: Function, G <: Function}
   start_time = time()
   elapsed_time = 0.0
   ϵ = options.ϵ
@@ -108,11 +113,12 @@ function R2(
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
-  verbose == 0 || @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
+  verbose == 0 ||
+    @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
 
   local ξ
   k = 0
-  σk = 1/ν
+  σk = 1 / ν
 
   fk = f(xk)
   ∇fk = similar(xk)
@@ -155,7 +161,9 @@ function R2(
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
     if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(s) σ_stat
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(
+        xk,
+      ) norm(s) σ_stat
     end
 
     if η2 ≤ ρk < Inf
@@ -194,16 +202,17 @@ function R2(
   else
     :exception
   end
-  outdict = Dict(:Fhist=>Fobj_hist[1:k],
-                 :Hhist=>Hobj_hist[1:k],
-                 :Chist=>Complex_hist[1:k],
-                 :NonSmooth=>h,
-                 :status=>status,
-                 :fk => fk,
-                 :hk => hk,
-                 :ξ => ξ,
-                 :elapsed_time=>elapsed_time
-                 )
+  outdict = Dict(
+    :Fhist => Fobj_hist[1:k],
+    :Hhist => Hobj_hist[1:k],
+    :Chist => Complex_hist[1:k],
+    :NonSmooth => h,
+    :status => status,
+    :fk => fk,
+    :hk => hk,
+    :ξ => ξ,
+    :elapsed_time => elapsed_time,
+  )
 
   return xk, k, outdict
 end
