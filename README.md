@@ -1,7 +1,7 @@
 # RegularizedOptimization
 
 [![CI](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl/actions/workflows/ci.yml)
-[![](https://img.shields.io/badge/docs-latest-3f51b5.svg)](https://UW-AMO.github.io/RegularizedOptimization.jl/dev)
+[![](https://img.shields.io/badge/docs-latest-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/RegularizedOptimization.jl/dev)
 [![codecov](https://codecov.io/gh/JuliaSmoothOptimizers/RegularizedOptimization.jl/branch/master/graph/badge.svg?token=lTbRmyBspS)](https://codecov.io/gh/JuliaSmoothOptimizers/RegularizedOptimization.jl)
 
 ## Synopsis
