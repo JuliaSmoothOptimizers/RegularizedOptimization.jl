@@ -1,8 +1,8 @@
-export RS1, RS2
+export ReSp1, ReSp2
 
 """
-    RS1(nlp, h, options)
-    RS1(f, ∇f!, h, options, x0)
+    ReSp1(nlp, h, options)
+    ReSp1(f, ∇f!, h, options, x0)
 
 A first-order quadratic regularization method for the problem
 
@@ -43,10 +43,10 @@ In the second form, instead of `nlp`, the user may pass in
 * `Hobj_hist`: an array with the history of values of the nonsmooth objective
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
-function RS1(nlp::AbstractNLPModel, args...; kwargs...)
+function ReSp1(nlp::AbstractNLPModel, args...; kwargs...)
   kwargs_dict = Dict(kwargs...)
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
-  xk, k, outdict = RS1(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
+  xk, k, outdict = ReSp1(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
 
   return GenericExecutionStats(
     outdict[:status],
@@ -60,19 +60,26 @@ function RS1(nlp::AbstractNLPModel, args...; kwargs...)
   )
 end
 
-function RS1(
+function ReSp1(
   f::F,
   ∇f!::G,
   h::ProximableFunction,
-  options::RegOptoptions,
+  options::ROSolverOptions,
   x0::AbstractVector;
   JtJ,
-  JtF
+  JtF,
+  ξ1,
+  fkhk
   ) where {F <: Function, G <: Function}
+  start_time = time()
+  elapsed_time = 0.0
   ϵ = options.ϵ
   verbose = options.verbose
   maxIter = options.maxIter
-  ν = options.ν
+  maxTime = options.maxTime
+  η1 = options.η1
+  η2 = options.η2
+  ν = 1/options.ν #||Bk|| -> being very large at k=0
   γ = options.γ
 
   if options.verbose==0
@@ -85,56 +92,111 @@ function RS1(
       print_freq = 1
   end
 
-  xk = copy(x0)
-  zk = zero(xk)
+  #initialize parameters
+  xk = zero(x0)
+  hk = h(xk)
+  if hk == Inf
+    verbose > 0 && @info "ReSp1: finding initial guess where nonsmooth term is finite"
+    prox!(xk, h, x0, one(eltype(x0)))
+    hk = h(xk)
+    hk < Inf || error("prox computation must be erroneous")
+    verbose > 0 && @debug "ReSp1: found point where h has value" hk
+  end
+  hk == -Inf && error("nonsmooth term is not proper")
 
-  k = 0
+  xkn = similar(xk)
+  z = zero(xk)
+  ψ = shifted(h, xk)
+
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, (2,maxIter))
-  verbose == 0 || @info @sprintf "%6s %8s %8s %7s %8s %7s %7s" "iter" "f(x)" "h(x)" "‖∂ϕ‖" "ν" "‖x‖" "‖x - z‖"
+  Complex_hist = zeros(Int, maxIter)
+  verbose == 0 || @info @sprintf "%6s %8s %8s %7s %8s %7s %7s" "iter" "f(x)" "h(x)" "ξ" "ν" "‖x‖" "‖x - z‖"
+
+  local ξ
+  k = 0
 
   fk = f(xk)
-  hk = h(xk)
-  ∇fk = similar(xk)
-  ∇f!(∇fk, xk)
+  # ∇fk = similar(xk)
+  # ∇f!(∇fk, xk)
+
   optimal = false
-  tired = maxIter > 0 && k ≥ maxIter
+  tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
 
   while !(optimal || tired)
     k = k + 1
-
+    elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
 
-    xk .= (JtJ + I/ν)\( z./ν+  JtF)
-    z = ShiftedProximalOperators.prox(h, xk, ν)
+    op = JtJ + opDiagonal(size(xk,1), size(xk,1), ones(size(xk))./ν)
+    # xk, stats = cg(op, z./ν - JtF)
+    xk = Matrix(op)\(z./ν - JtF)
+    prox!(z, h, xk, ν)
+    Complex_hist[k] += 1
+    ξ = fkhk - (f(z) + h(z))
+    # ξ > 0 || error("RS1: prox-gradient step should produce a decrease but ξ = $(ξ)")
+    @show ξ, fkhk - (f(xk) + h(xk)), ξ1, h.Δ - h.χ(z), fkhk, f(z)+h(z)
+    if ξ > .01*ξ1 && h.Δ - h.χ(z) ≥ 0
+      optimal = true
+      verbose == 0 || @info "R2: terminating with ξ = $ξ"
+      continue
+    end
 
     fk = f(z)
     hk = h(z)
-    ν /= γ
-    k % ptf == 0 && @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e " k fk hk err ν norm(xk) norm(xk - z)
 
-    err = norm(∇f!(∇fk, xk) + (z - x)/ν) #optimality conditions?
-    optimal = err < ϵ && h.χ(xk) < h.Δ
-    tired = k ≥ maxIter
+    if (verbose > 0) && (k % ptf == 0)
+      @info @sprintf "%6s %8s %8s %7s %8s %7s %7s" k fk hk sqrt(ξ) ν norm(xk) norm(z - xk)
     end
 
-    return xk, Fobj_hist[1:k]+Hobj_hist[1:k], Fobj_hist[1:k], Hobj_hist[1:k], Complex_hist[:,1:k]
+    ν /= γ # put floor of 1e-6, more exit crit
+    tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
+  end
+
+  if (verbose > 0) && (k == 1)
+      @info @sprintf "%6d %8.1e %8.1e" k fk hk
+  end
+
+  status = if optimal
+    :first_order
+  elseif elapsed_time > maxTime
+    :max_time
+  elseif tired
+    :max_iter
+  else
+    :exception
+  end
+  outdict = Dict(
+    :Fhist => Fobj_hist[1:k],
+    :Hhist => Hobj_hist[1:k],
+    :Chist => Complex_hist[1:k],
+    :NonSmooth => h,
+    :status => status,
+    :fk => fk,
+    :hk => hk,
+    :ξ => ξ,
+    :elapsed_time => elapsed_time,
+  )
+  if norm(z)==0.0
+    return x0, k, outdict
+  else
+    return z, k, outdict
+  end
 end
 
-function RS2(nlp::AbstractNLPModel, args...; kwargs...)
+function ReSp2(nlp::AbstractNLPModel, args...; kwargs...)
   kwargs_dict = Dict(kwargs...)
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
   R2(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
 end
 
-function  RS2(
+function  ReSp2(
   f::F,
   ∇f!::G,
   h::ProximableFunction,
   χ::ProximableFunction,
-  options::RegOptoptions,
+  options::ROSolverOptions,
   x0::AbstractVector;
   JtJ,
   JtF

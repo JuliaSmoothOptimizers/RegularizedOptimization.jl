@@ -4,7 +4,7 @@ module RegularizedOptimization
 using LinearAlgebra, Logging, Printf
 
 # external dependencies
-using Arpack, ProximalOperators
+using Arpack, ProximalOperators, LinearOperators, Krylov
 
 # dependencies from us
 using NLPModels, NLPModelsModifiers, ShiftedProximalOperators, SolverCore
@@ -12,7 +12,7 @@ using NLPModels, NLPModelsModifiers, ShiftedProximalOperators, SolverCore
 include("input_struct.jl")
 include("PG_alg.jl")
 include("Fista_alg.jl")
-include("splitting.jl")
+include("RS_alg.jl")
 include("TR_alg.jl")
 include("R2_alg.jl")
 include("LM_alg.jl")

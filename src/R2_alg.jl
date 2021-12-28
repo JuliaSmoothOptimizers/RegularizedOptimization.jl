@@ -109,7 +109,6 @@ function R2(
   s = zero(xk)
   ψ = shifted(h, xk)
 
-  k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
@@ -183,7 +182,7 @@ function R2(
     end
 
     ν = 1 / σk
-    tired = maxIter > 0 && k ≥ maxIter
+    tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
     if !tired
       @. mν∇fk = -ν * ∇fk
     end

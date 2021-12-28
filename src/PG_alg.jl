@@ -109,12 +109,17 @@ function PG(
     ∇fkn .= ∇fk .- ∇fkn .- (xk .- xkn) ./ ν
     ξ = norm(∇fkn)
     optimal = ξ < ϵ
-    tired = k ≥ maxIter || elapsed_time > maxTime
+    tired =  maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
 
     if (verbose > 0) && (k % ptf == 0)
       @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e " k fk hk ξ ν norm(xk)
     end
   end
+
+  if (verbose > 0) && (k == 1)
+    @info @sprintf "%6d %8.1e %8.1e" k fk hk
+  end
+
   status = if optimal
     :first_order
   elseif elapsed_time > maxTime
