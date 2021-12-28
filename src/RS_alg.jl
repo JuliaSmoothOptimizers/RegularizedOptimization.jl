@@ -117,7 +117,7 @@ function ReSp1(
   k = 0
 
   fk = f(xk)
-  # ∇fk = similar(xk) # can we use these instead of passing more arguments?
+  # ∇fk = similar(xk)
   # ∇f!(∇fk, xk)
 
   optimal = false
