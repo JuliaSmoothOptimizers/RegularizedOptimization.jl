@@ -117,7 +117,7 @@ function ReSp1(
   k = 0
 
   fk = f(xk)
-  # ∇fk = similar(xk)
+  # ∇fk = similar(xk) # can we use these instead of passing more arguments?
   # ∇f!(∇fk, xk)
 
   optimal = false
@@ -130,11 +130,12 @@ function ReSp1(
     Hobj_hist[k] = hk
 
     op = JtJ + opDiagonal(size(xk,1), size(xk,1), ones(size(xk))./ν)
-    # xk, stats = cg(op, z./ν - JtF)
+    # xk, stats = cg(op, z./ν - JtF) #which one should be faster?
     xk = Matrix(op)\(z./ν - JtF)
     prox!(z, h, xk, ν)
     Complex_hist[k] += 1
     ξ = fkhk - (f(z) + h(z))
+    # This isn't a good metric for determining error
     # ξ > 0 || error("RS1: prox-gradient step should produce a decrease but ξ = $(ξ)")
     @show ξ, fkhk - (f(xk) + h(xk)), ξ1, h.Δ - h.χ(z), fkhk, f(z)+h(z)
     if ξ > .01*ξ1 && h.Δ - h.χ(z) ≥ 0
@@ -150,7 +151,7 @@ function ReSp1(
       @info @sprintf "%6s %8s %8s %7s %8s %7s %7s" k fk hk sqrt(ξ) ν norm(xk) norm(z - xk)
     end
 
-    ν /= γ # put floor of 1e-6, more exit crit
+    ν = max(ν/γ, 1e-6) # put floor of 1e-6, more exit crit
     tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
   end
 
