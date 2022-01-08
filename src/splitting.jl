@@ -193,7 +193,7 @@ function prox_split_2w(proxp, s0, projq, options)
   return u - xk, u_ - xk, s_feas, err
 end
 
-function fastcg(A, x, b; epsilon = 1f-5, maxiter = size(b, 1))
+function fastcg(A, x, b; epsilon = 1.0f-5, maxiter = size(b, 1))
   r = b - A * x
   p = r
   rsold = r' * r
