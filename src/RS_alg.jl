@@ -130,17 +130,18 @@ function ReSp1(
     Hobj_hist[k] = hk
 
     op = JtJ + opDiagonal(size(xk,1), size(xk,1), ones(size(xk))./ν)
-    # xk, stats = cg(op, z./ν - JtF) #which one should be faster?
-    xk = Matrix(op)\(z./ν - JtF)
+    # xk, stats = cg(op, z./ν - JtF)#, itmax = 100) #which one should be faster?
+    xk, stats = lsqr(op, z./ν - JtF)# wrong calls - check krylov
+    # xk = Matrix(op)\(z./ν - JtF)
     prox!(z, h, xk, ν)
     Complex_hist[k] += 1
     ξ = fkhk - (f(z) + h(z))
     # This isn't a good metric for determining error
     # ξ > 0 || error("RS1: prox-gradient step should produce a decrease but ξ = $(ξ)")
-    @show ξ, fkhk - (f(xk) + h(xk)), ξ1, h.Δ - h.χ(z), fkhk, f(z)+h(z)
-    if ξ > .01*ξ1 && h.Δ - h.χ(z) ≥ 0
+    @show ξ, fkhk - (f(xk) + h(xk)), ξ1, h.Δ - h.χ(z), fkhk, f(z)+h(z), ν
+    if ξ > ξ1 #&& h.Δ - h.χ(xk) ≥ 0
       optimal = true
-      verbose == 0 || @info "R2: terminating with ξ = $ξ"
+      verbose == 0 || @info "ReSp1: terminating with ξ = $ξ"
       continue
     end
 
@@ -151,8 +152,9 @@ function ReSp1(
       @info @sprintf "%6s %8s %8s %7s %8s %7s %7s" k fk hk sqrt(ξ) ν norm(xk) norm(z - xk)
     end
 
-    ν = max(ν/γ, 1e-6) # put floor of 1e-6, more exit crit
-    tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
+
+    ν = max(ν/1.25, 1e-6) # put floor of 1e-6, more exit crit
+    tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime || ν <= 1e-6
   end
 
   if (verbose > 0) && (k == 1)
@@ -179,11 +181,7 @@ function ReSp1(
     :ξ => ξ,
     :elapsed_time => elapsed_time,
   )
-  if norm(z)==0.0
-    return x0, k, outdict
-  else
-    return z, k, outdict
-  end
+  return z, k, outdict
 end
 
 function ReSp2(nlp::AbstractNLPModel, args...; kwargs...)

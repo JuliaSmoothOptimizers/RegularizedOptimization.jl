@@ -141,6 +141,9 @@ function R2(
     Complex_hist[k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
+    if !isfinite(mks)
+      @show ψ.χ(s + xk), ψ.Δ
+    end
     ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
     if sqrt(ξ) < ϵ

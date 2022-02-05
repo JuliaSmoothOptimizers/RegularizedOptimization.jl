@@ -105,8 +105,9 @@ function LMTR(
   Jk = jac_op_residual(nls, xk)
   ∇fk = Jk' * Fk
   JdFk = similar(Fk)   # temporary storage
-  svd_info = svds(Jk, nsv = 1, ritzvec = false)
-  νInv = (1 + θ) * maximum(svd_info[1].S)^2  # ‖J'J‖ = ‖J‖²
+  # svd_info = svds(Jk, nsv = 10, ritzvec = false)
+  νInv = (1 + θ) * maximum(svdvals(Matrix(Jk)))^2
+  # νInv = (1 + θ) * maximum(svd_info[1].S)^2  # ‖J'J‖ = ‖J‖²
   mν∇fk = -∇fk / νInv
 
   optimal = false
@@ -197,8 +198,9 @@ function LMTR(
       shift!(ψ, xk)
       Jk = jac_op_residual(nls, xk)
       jtprod_residual!(nls, xk, Fk, ∇fk)
-      svd_info = svds(Jk, nsv = 1, ritzvec = false)
-      νInv = (1 + θ) * maximum(svd_info[1].S)^2
+      νInv = (1 + θ) * maximum(svdvals(Matrix(Jk)))^2
+      # svd_info = svds(Jk, nsv = 1, ritzvec = false)
+      # νInv = (1 + θ) * maximum(svd_info[1].S)^2
       @. mν∇fk = -∇fk / νInv
     end
 
