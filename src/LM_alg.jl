@@ -135,7 +135,7 @@ function LM(
       jprod_residual!(nls, xk, d, JdFk)
       JdFk .+= Fk
       # JdFk = Jk * d + Fk
-      return dot(JdFk, JdFk) / 2 + ψ(d)
+      return dot(JdFk, JdFk) / 2 + σk * dot(d, d) / 2 + ψ(d)
     end
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
