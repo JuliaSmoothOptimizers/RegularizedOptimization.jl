@@ -209,7 +209,7 @@ function TR(
   end
   status = if optimal
     :first_order
-  elseif elapsed_time > max_tim
+  elseif elapsed_time > maxTime
     :max_time
   elseif tired
     :max_iter
