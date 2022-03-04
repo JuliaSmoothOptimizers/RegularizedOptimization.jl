@@ -135,7 +135,7 @@ function R2(
 
     # define model
     φk(d) = dot(∇fk, d)
-    mk(d) = φk(d) + ψ(d)
+    mk(d) = φk(d) + σk * dot(d, d) / 2 + ψ(d)
 
     prox!(s, ψ, mν∇fk, ν)
     Complex_hist[k] += 1
