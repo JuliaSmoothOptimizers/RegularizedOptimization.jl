@@ -109,7 +109,6 @@ function R2(
   s = zero(xk)
   ψ = shifted(h, xk)
 
-  k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
@@ -126,7 +125,7 @@ function R2(
   mν∇fk = -ν * ∇fk
 
   optimal = false
-  tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
+  tired = k ≥ maxIter || elapsed_time > maxTime
 
   while !(optimal || tired)
     k = k + 1
@@ -141,7 +140,7 @@ function R2(
     prox!(s, ψ, mν∇fk, ν)
     Complex_hist[k] += 1
     mks = mk(s)
-    ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
+    ξ = hk - mks - σk * dot(s,s) / 2 + max(1, abs(hk)) * 10 * eps()
     ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
     if sqrt(ξ) < ϵ
@@ -156,7 +155,7 @@ function R2(
     hkn == -Inf && error("nonsmooth term is not proper")
 
     Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ρk = Δobj / ξ
+    ρk = Δobj / (hk - mks + max(1, abs(hk)) * 10 * eps())
 
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
@@ -167,7 +166,7 @@ function R2(
     end
 
     if η2 ≤ ρk < Inf
-      σk = σk / γ
+      σk = max(σk / γ, 1e-5)
     end
 
     if η1 ≤ ρk < Inf
@@ -179,11 +178,11 @@ function R2(
     end
 
     if ρk < η1 || ρk == Inf
-      σk = σk * γ
+      σk = min(σk * γ, 1e5)
     end
 
     ν = 1 / σk
-    tired = maxIter > 0 && k ≥ maxIter
+    tired = k ≥ maxIter || elapsed_time > maxTime
     if !tired
       @. mν∇fk = -ν * ∇fk
     end

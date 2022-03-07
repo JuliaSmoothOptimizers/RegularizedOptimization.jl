@@ -93,7 +93,6 @@ function LM(
     @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
 
   k = 0
-  α = 1.0
 
   # main algorithm initialization
   Fk = residual(nls, xk)
@@ -115,13 +114,6 @@ function LM(
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
 
-    # TODO: reuse residual computation
-    φ(d) = begin
-      jprod_residual!(nls, xk, d, JdFk)
-      JdFk .+= Fk
-      return dot(JdFk, JdFk) / 2 + σk * dot(d, d) / 2
-    end
-
     ∇φ!(g, d) = begin
       jprod_residual!(nls, xk, d, JdFk)
       JdFk .+= Fk
@@ -142,7 +134,7 @@ function LM(
     subsolver_options.ν = 1 / νInv
     ∇fk .*= -subsolver_options.ν  # reuse gradient storage
     prox!(s, ψ, ∇fk, subsolver_options.ν)
-    ξ1 = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
+    ξ1 = fk + hk - (mk(s) + σk * dot(s, s)) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if sqrt(ξ1) < ϵ
@@ -166,15 +158,15 @@ function LM(
     fkn = dot(Fkn, Fkn) / 2
     hkn = h(xkn)
     hkn == -Inf && error("nonsmooth term is not proper")
-
-    ξ = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
+    mks = mk(s)
+    ξ = fk + hk - (mks + σk * dot(s, s)) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
 
     if (ξ ≤ 0 || isnan(ξ))
       error("LM: failed to compute a step: ξ = $ξ")
     end
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ρk = Δobj / ξ
+    ρk = Δobj / (fk + hk - mks + max(1, abs(fk + hk)) * 10 * eps())
 
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
@@ -185,7 +177,7 @@ function LM(
     end
 
     if η2 ≤ ρk < Inf
-      σk = σk / γ
+      σk = max(σk / γ, 1e-5)
     end
 
     if η1 ≤ ρk < Inf
@@ -207,7 +199,7 @@ function LM(
     end
 
     if ρk < η1 || ρk == Inf
-      σk = max(σk * γ, 1e-6)
+      σk = max(σk * γ, 1e5)
     end
 
     tired = k ≥ maxIter || elapsed_time > maxTime
