@@ -6,8 +6,7 @@ using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimizatio
 const global compound = 1
 const global nz = 10 * compound
 const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵ = 1e-6, verbose = 10)
-const global bpdn, sol = bpdn_model(compound)
-const global bpdn_nls, sol_nls = bpdn_nls_model(compound)
+const global bpdn, bpdn_nls, sol = bpdn_model(compound)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
