@@ -132,12 +132,7 @@ function LM(
     end
 
     # define model and update ρ
-    mk(d) = begin
-      jprod_residual!(nls, xk, d, JdFk)
-      JdFk .+= Fk
-      # JdFk = Jk * d + Fk
-      return dot(JdFk, JdFk) / 2 + σk * dot(d, d) / 2 + ψ(d)
-    end
+    mk(d) = φ(d) + ψ(d)
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     subsolver_options.ν = 1 / νInv
@@ -175,7 +170,7 @@ function LM(
     end
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ρk = Δobj / ξ
+    ρk = Δobj / (ξ + σk * dot(s, s) / 2)
 
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
