@@ -78,6 +78,8 @@ function R2(
   verbose = options.verbose
   maxIter = options.maxIter
   maxTime = options.maxTime
+  σmax = options.σmax
+  σmin = options.σmin
   η1 = options.η1
   η2 = options.η2
   ν = options.ν
@@ -167,7 +169,7 @@ function R2(
     end
 
     if η2 ≤ ρk < Inf
-      σk = σk / γ
+      σk = max(σk / γ, σmin)
     end
 
     if η1 ≤ ρk < Inf
@@ -179,7 +181,7 @@ function R2(
     end
 
     if ρk < η1 || ρk == Inf
-      σk = σk * γ
+      σk = min(σk * γ, σmax)
     end
 
     ν = 1 / σk

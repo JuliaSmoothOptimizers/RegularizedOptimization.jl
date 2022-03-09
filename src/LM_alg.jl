@@ -54,6 +54,8 @@ function LM(
   verbose = options.verbose
   maxIter = options.maxIter
   maxTime = options.maxTime
+  σmax = options.σmax
+  σmin = options.σmin
   η1 = options.η1
   η2 = options.η2
   γ = options.γ
@@ -185,7 +187,7 @@ function LM(
     end
 
     if η2 ≤ ρk < Inf
-      σk = σk / γ
+      σk = max(σk / γ, σmin)
     end
 
     if η1 ≤ ρk < Inf
@@ -207,7 +209,7 @@ function LM(
     end
 
     if ρk < η1 || ρk == Inf
-      σk = max(σk * γ, 1e-6)
+      σk = min(σk * γ, σmax)
     end
 
     tired = k ≥ maxIter || elapsed_time > maxTime
