@@ -6,7 +6,6 @@ mutable struct ROSolverOptions{R}
   verbose::Int  # print every so often
   maxIter::Int  # maximum amount of inner iterations
   maxTime::Float64 #maximum time allotted to the algorithm in s
-  σmax::R #maximum sigma value allowed in R2/LM
   σmin::R #minimum sigma value allowed in R2/LM
   η1::R  # step acceptance threshold
   η2::R  # trust-region increase threshold
@@ -22,7 +21,6 @@ mutable struct ROSolverOptions{R}
     verbose::Int = 0,
     maxIter::Int = 10000,
     maxTime::Float64 = 3600.0,
-    σmax::R = R(1.0e16),
     σmin::R = eps(R),
     η1::R = √√eps(R),
     η2::R = R(0.9),
@@ -32,7 +30,7 @@ mutable struct ROSolverOptions{R}
     θ::R = R(1e-3),
     β::R = R(10.0),
   ) where {R <: Real}
-    return new{R}(ϵ, Δk, verbose, maxIter, maxTime,σmax, σmin, η1, η2, α, ν, γ, θ, β)
+    return new{R}(ϵ, Δk, verbose, maxIter, maxTime, σmin, η1, η2, α, ν, γ, θ, β)
   end
 end
 
