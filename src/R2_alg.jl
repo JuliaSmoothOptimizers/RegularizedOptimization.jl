@@ -156,7 +156,7 @@ function R2(
     hkn == -Inf && error("nonsmooth term is not proper")
 
     Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ρk = Δobj / (hk - mks +  max(1, abs(hk)) * 10 * eps())
+    ρk = Δobj / Δm
 
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
