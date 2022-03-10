@@ -7,3 +7,8 @@ PGFPlots = "3b7a836e-365b-5785-a47d-02c71176b4aa"
 ProximalOperators = "a725b495-10eb-56fe-b38b-717eba820537"
 RegularizedOptimization = "196f2941-2d58-45ba-9f13-43a2532b2fa8"
 RegularizedProblems = "ea076b23-609f-44d2-bb12-a4ae45328278"
+ShiftedProximalOperators = "d4fd37fa-580c-4e43-9b30-361c21aae263"
+SolverCore = "ff4d7338-4cf1-434d-91df-b86cb86fb843"
+
+[extras]
+CPUSummary = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"

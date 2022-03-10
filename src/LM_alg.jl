@@ -139,7 +139,8 @@ function LM(
     subsolver_options.ν = 1 / νInv
     ∇fk .*= -subsolver_options.ν  # reuse gradient storage
     prox!(s, ψ, ∇fk, subsolver_options.ν)
-    ξ1 = fk + hk - (φ(s) + ψ(s)) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
+    reg = σk * dot(s, s) / 2
+    ξ1 = fk + hk - mk(s) - reg + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if sqrt(ξ1) < ϵ
@@ -163,9 +164,8 @@ function LM(
     fkn = dot(Fkn, Fkn) / 2
     hkn = h(xkn)
     hkn == -Inf && error("nonsmooth term is not proper")
-    mks = mk(s)
-    Δm = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
-    ξ = Δm - σk * dot(s, s) / 2  # TODO: isn't mk(s) returned by subsolver?
+    Δm = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
+    ξ = Δm - reg
 
     if (ξ ≤ 0 || isnan(ξ))
       error("LM: failed to compute a step: ξ = $ξ")
