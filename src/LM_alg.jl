@@ -167,7 +167,7 @@ function LM(
     hkn == -Inf && error("nonsmooth term is not proper")
     mks = mk(s)
     Δm = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
-    ξ = Δm - σk * dot(s, s)/2  # TODO: isn't mk(s) returned by subsolver?
+    ξ = Δm - σk * dot(s, s) / 2  # TODO: isn't mk(s) returned by subsolver?
 
     if (ξ ≤ 0 || isnan(ξ))
       error("LM: failed to compute a step: ξ = $ξ")
