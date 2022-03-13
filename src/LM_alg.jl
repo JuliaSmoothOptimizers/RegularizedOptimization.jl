@@ -50,7 +50,6 @@ function LM(
   elapsed_time = 0.0
   # initialize passed options
   ϵ = options.ϵ
-  σk = 1 / options.ν
   verbose = options.verbose
   maxIter = options.maxIter
   maxTime = options.maxTime
@@ -93,10 +92,8 @@ function LM(
   verbose == 0 ||
     @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
 
-  k = 0
-  α = 1.0
-
   # main algorithm initialization
+  σk = max(1.0 / options.ν, σmin)
   Fk = residual(nls, xk)
   Fkn = similar(Fk)
   fk = dot(Fk, Fk) / 2
