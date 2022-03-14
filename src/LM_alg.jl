@@ -50,7 +50,6 @@ function LM(
   elapsed_time = 0.0
   # initialize passed options
   ϵ = options.ϵ
-  σk = 1 / options.ν
   verbose = options.verbose
   maxIter = options.maxIter
   maxTime = options.maxTime
@@ -58,6 +57,7 @@ function LM(
   η2 = options.η2
   γ = options.γ
   θ = options.θ
+  σmin = options.σmin
 
   if verbose == 0
     ptf = Inf
@@ -70,6 +70,7 @@ function LM(
   end
 
   # initialize parameters
+  σk = max(1 / options.ν, σmin)
   xk = copy(x0)
   hk = h(xk)
   if hk == Inf
@@ -91,9 +92,6 @@ function LM(
   Complex_hist = zeros(Int, maxIter)
   verbose == 0 ||
     @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
-
-  k = 0
-  α = 1.0
 
   # main algorithm initialization
   Fk = residual(nls, xk)
@@ -185,7 +183,7 @@ function LM(
     end
 
     if η2 ≤ ρk < Inf
-      σk = σk / γ
+      σk = max(σk / γ, σmin)
     end
 
     if η1 ≤ ρk < Inf
@@ -207,7 +205,7 @@ function LM(
     end
 
     if ρk < η1 || ρk == Inf
-      σk = max(σk * γ, 1e-6)
+      σk = σk * γ
     end
 
     tired = k ≥ maxIter || elapsed_time > maxTime
