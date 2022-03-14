@@ -78,6 +78,7 @@ function R2(
   verbose = options.verbose
   maxIter = options.maxIter
   maxTime = options.maxTime
+  σmin = options.σmin
   η1 = options.η1
   η2 = options.η2
   ν = options.ν
@@ -117,7 +118,7 @@ function R2(
 
   local ξ
   k = 0
-  σk = 1 / ν
+  σk = max(1 / ν, σmin)
 
   fk = f(xk)
   ∇fk = similar(xk)
@@ -167,7 +168,7 @@ function R2(
     end
 
     if η2 ≤ ρk < Inf
-      σk = σk / γ
+      σk = max(σk / γ, σmin)
     end
 
     if η1 ≤ ρk < Inf
