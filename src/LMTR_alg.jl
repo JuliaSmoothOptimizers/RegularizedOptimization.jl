@@ -105,6 +105,7 @@ function LMTR(
   Jk = jac_op_residual(nls, xk)
   ∇fk = Jk' * Fk
   JdFk = similar(Fk)   # temporary storage
+  Jt_Fk = similar(∇fk)   # temporary storage
 
   σmax, found_σ = opnorm(Jk)
   found_σ || error("operator norm computation failed")
@@ -121,7 +122,16 @@ function LMTR(
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
 
+    # model for first prox-gradient iteration
+    φ1(d) = begin
+      jtprod_residual!(nls, xk, Fk, Jt_Fk)
+      dot(Fk, Fk) / 2 + dot(Jt_Fk, d)
+    end
+
+    mk1(d) = φ1(d) + ψ(d)
+
     # TODO: reuse residual computation
+    # model for subsequent prox-gradient iterations
     φ(d) = begin
       jprod_residual!(nls, xk, d, JdFk)
       JdFk .+= Fk
@@ -131,16 +141,17 @@ function LMTR(
     ∇φ!(g, d) = begin
       jprod_residual!(nls, xk, d, JdFk)
       JdFk .+= Fk
-      jtprod_residual!(nls, xk, JdFk, g) #profiler
+      jtprod_residual!(nls, xk, JdFk, g)
       g
     end
 
     mk(d) = φ(d) + ψ(d)
 
-    # take first proximal gradient step s1 and see if current xk is nearly stationary
+    # Take first proximal gradient step s1 and see if current xk is nearly stationary.
+    # s1 minimizes φ1(d) + ‖d‖² / 2 / ν + ψ(d).
     subsolver_options.ν = 1 / (νInv + 1 / (Δk * α))
     prox!(s, ψ, mν∇fk, subsolver_options.ν)
-    ξ1 = fk + hk - mk(s) + max(1, abs(fk + hk)) * 10 * eps()
+    ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if sqrt(ξ1) < ϵ
