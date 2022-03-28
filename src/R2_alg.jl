@@ -142,8 +142,7 @@ function R2(
     prox!(s, ψ, mν∇fk, ν)
     Complex_hist[k] += 1
     mks = mk(s)
-    Δm = hk - mks + max(1, abs(hk)) * 10 * eps()
-    ξ = Δm - σk * dot(s, s) / 2
+    ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
     if sqrt(ξ) < ϵ
@@ -157,7 +156,7 @@ function R2(
     hkn == -Inf && error("nonsmooth term is not proper")
 
     Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ρk = Δobj / Δm
+    ρk = Δobj / ξ
 
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 

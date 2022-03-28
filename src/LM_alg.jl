@@ -100,6 +100,7 @@ function LM(
   Jk = jac_op_residual(nls, xk)
   ∇fk = Jk' * Fk
   JdFk = similar(Fk)   # temporary storage
+  Jt_Fk = similar(∇fk)
 
   σmax, found_σ = opnorm(Jk)
   found_σ || error("operator norm computation failed")
@@ -116,7 +117,16 @@ function LM(
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
 
+    # model for first prox-gradient iteration
+    φ1(d) = begin
+      jtprod_residual!(nls, xk, Fk, Jt_Fk)
+      dot(Fk, Fk) / 2 + dot(Jt_Fk, d)
+    end
+
+    mk1(d) = φ1(d) + ψ(d)
+
     # TODO: reuse residual computation
+    # model for subsequent prox-gradient iterations
     φ(d) = begin
       jprod_residual!(nls, xk, d, JdFk)
       JdFk .+= Fk
@@ -131,18 +141,17 @@ function LM(
       return g
     end
 
-    # define model and update ρ
     mk(d) = begin
       jprod_residual!(nls, xk, d, JdFk)
       JdFk .+= Fk
-      return dot(JdFk, JdFk) / 2 + ψ(d)
+      return dot(JdFk, JdFk) / 2 + σk * dot(d, d) / 2 + ψ(d)
     end
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     subsolver_options.ν = 1 / νInv
     ∇fk .*= -subsolver_options.ν  # reuse gradient storage
     prox!(s, ψ, ∇fk, subsolver_options.ν)
-    ξ1 = fk + hk - (φ(s) + ψ(s)) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
+    ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if sqrt(ξ1) < ϵ
@@ -166,15 +175,14 @@ function LM(
     hkn = h(xkn)
     hkn == -Inf && error("nonsmooth term is not proper")
     mks = mk(s)
-    Δm = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
-    ξ = Δm - σk * dot(s, s) / 2  # TODO: isn't mk(s) returned by subsolver?
+    ξ = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
 
     if (ξ ≤ 0 || isnan(ξ))
       error("LM: failed to compute a step: ξ = $ξ")
     end
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ρk = Δobj / Δm
+    ρk = Δobj / ξ
 
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
