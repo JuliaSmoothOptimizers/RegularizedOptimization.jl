@@ -121,6 +121,13 @@ function TR(
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
 
+    subsolver_options.ν = 1 / (νInv + 1 / (Δk * α))
+
+    # model for first prox-gradient step and ξ1
+    φ1(d) = dot(d, d) / 2 / subsolver_options.ν + ∇fk' * d
+    mk1(d) = φ1(d) + ψ(d)
+
+    # model for subsequent prox-gradient steps and ξ
     φ(d) = (d' * (Bk * d)) / 2 + ∇fk' * d
 
     ∇φ!(g, d) = begin
@@ -132,9 +139,8 @@ function TR(
     mk(d) = φ(d) + ψ(d)
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
-    subsolver_options.ν = 1 / (νInv + 1 / (Δk * α))
     prox!(s, ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν) # -> PG on one step s1
-    ξ1 = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
+    ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if sqrt(ξ1) < ϵ

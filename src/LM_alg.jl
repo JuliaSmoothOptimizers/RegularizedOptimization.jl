@@ -100,6 +100,7 @@ function LM(
   Jk = jac_op_residual(nls, xk)
   ∇fk = Jk' * Fk
   JdFk = similar(Fk)   # temporary storage
+  Jt_Fk = similar(∇fk)
   svd_info = svds(Jk, nsv = 1, ritzvec = false)
   νInv = (1 + θ) * (maximum(svd_info[1].S)^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
   s = zero(xk)
@@ -113,11 +114,22 @@ function LM(
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
 
+    subsolver_options.ν = 1 / νInv
+
+    # model for first prox-gradient iteration
+    φ1(d) = begin
+      jtprod_residual!(nls, xk, Fk, Jt_Fk)
+      dot(Fk, Fk) / 2 + dot(Jt_Fk, d) #+ dot(d, d) / 2 / subsolver_options.ν
+    end
+
+    mk1(d) = φ1(d) + ψ(d)
+
     # TODO: reuse residual computation
+    # model for subsequent prox-gradient iterations
     φ(d) = begin
       jprod_residual!(nls, xk, d, JdFk)
       JdFk .+= Fk
-      return dot(JdFk, JdFk) / 2 + σk * dot(d, d) / 2
+      return dot(JdFk, JdFk) / 2 #+ dot(d, d) / 2 / subsolver_options.ν
     end
 
     ∇φ!(g, d) = begin
@@ -128,7 +140,6 @@ function LM(
       return g
     end
 
-    # define model and update ρ
     mk(d) = begin
       jprod_residual!(nls, xk, d, JdFk)
       JdFk .+= Fk
@@ -136,11 +147,10 @@ function LM(
     end
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
-    subsolver_options.ν = 1 / νInv
     ∇fk .*= -subsolver_options.ν  # reuse gradient storage
     prox!(s, ψ, ∇fk, subsolver_options.ν)
-    reg = σk * dot(s, s) / 2
-    ξ1 = fk + hk - mk(s) - reg + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
+    reg = dot(s, s) / 2 / subsolver_options.ν
+    ξ1 = fk + hk - mk1(s) - reg + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if sqrt(ξ1) < ϵ
