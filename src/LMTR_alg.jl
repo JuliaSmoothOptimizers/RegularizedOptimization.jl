@@ -51,7 +51,8 @@ function LMTR(
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
-  ϵ = options.ϵ
+  ϵ = options.ϵa
+  ϵr = options.ϵr
   Δk = options.Δk
   verbose = options.verbose
   maxIter = options.maxIter
@@ -155,13 +156,17 @@ function LMTR(
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
+    if ξ1 ≥ 0 && k == 1
+      ϵ += ϵr * sqrt(ξ1)  # make stopping test absolute and relative
+    end
+
     if sqrt(ξ1) < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
       continue
     end
 
-    subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
+    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
     set_radius!(ψ, min(β * χ(s), Δk))
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s; JtJ = Jk'*Jk, JtF = Jk'*Fk, ξ1 = ξ1, fkhk = fk+hk)
