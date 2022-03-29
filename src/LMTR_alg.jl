@@ -154,6 +154,10 @@ function LMTR(
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
+    if k == 1
+      ϵ += ϵ * sqrt(ξ1)  # make stopping test absolute and relative
+    end
+
     if sqrt(ξ1) < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
