@@ -49,7 +49,8 @@ function LM(
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
-  ϵ = options.ϵ
+  ϵ = options.ϵa
+  ϵr = options.ϵr
   verbose = options.verbose
   maxIter = options.maxIter
   maxTime = options.maxTime
@@ -158,14 +159,17 @@ function LM(
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
+    if ξ1 ≥ 0 && k == 1
+      ϵ += ϵr * sqrt(ξ1)  # make stopping test absolute and relative
+    end
+
     if sqrt(ξ1) < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
       continue
     end
 
-    # subsolver_options.ϵ = k == 1 ? 1.0e-4 : max(ϵ, min(1.0e-4, ξ1 / 5))
-    subsolver_options.ϵ = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
+    subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)

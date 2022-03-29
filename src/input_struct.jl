@@ -1,7 +1,8 @@
 export ROSolverOptions
 
 mutable struct ROSolverOptions{R}
-  ϵ::R  # termination criteria
+  ϵa::R  # termination criteria
+  ϵr::R  # relative stopping tolerance
   neg_tol::R # tolerance when ξ < 0
   Δk::R  # trust region radius
   verbose::Int  # print every so often
@@ -17,7 +18,8 @@ mutable struct ROSolverOptions{R}
   β::R  # TR size as factor of first PG step
 
   function ROSolverOptions{R}(;
-    ϵ::R = √eps(R),
+    ϵa::R = √eps(R),
+    ϵr::R = √eps(R),
     neg_tol::R = eps(R)^(1 / 3),
     Δk::R = one(R),
     verbose::Int = 0,
@@ -32,7 +34,8 @@ mutable struct ROSolverOptions{R}
     θ::R = R(1e-3),
     β::R = R(10),
   ) where {R <: Real}
-    @assert ϵ ≥ 0
+    @assert ϵa ≥ 0
+    @assert ϵr ≥ 0
     @assert neg_tol ≥ 0
     @assert Δk > 0
     @assert verbose ≥ 0
@@ -45,7 +48,7 @@ mutable struct ROSolverOptions{R}
     @assert γ > 1
     @assert θ > 0
     @assert β ≥ 1
-    return new{R}(ϵ, neg_tol, Δk, verbose, maxIter, maxTime, σmin, η1, η2, α, ν, γ, θ, β)
+    return new{R}(ϵa, ϵr, neg_tol, Δk, verbose, maxIter, maxTime, σmin, η1, η2, α, ν, γ, θ, β)
   end
 end
 
