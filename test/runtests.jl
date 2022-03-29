@@ -5,7 +5,7 @@ using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimizatio
 
 const global compound = 1
 const global nz = 10 * compound
-const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵ = 1e-6, verbose = 10)
+const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10)
 const global bpdn, bpdn_nls, sol = bpdn_model(compound)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 
@@ -32,7 +32,7 @@ for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "l
         @test length(out.solver_specific[:Fhist]) == length(out.solver_specific[:SubsolverCounter])
         @test obj(bpdn, out.solution) == out.solver_specific[:Fhist][end]
         @test h(out.solution) == out.solver_specific[:Hhist][end]
-        @test out.dual_feas < options.ϵ
+        @test out.status == :first_order
       end
     end
   end
@@ -57,7 +57,7 @@ for (mod, mod_name) ∈ ((LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
             length(TR_out.solver_specific[:SubsolverCounter])
       @test obj(bpdn, TR_out.solution) == TR_out.solver_specific[:Fhist][end]
       @test h(TR_out.solution) == TR_out.solver_specific[:Hhist][end]
-      @test TR_out.dual_feas < options.ϵ
+      @test TR_out.status == :first_order
     end
   end
 end
@@ -83,7 +83,7 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * com
       @test length(out.solver_specific[:Fhist]) == length(out.solver_specific[:SubsolverCounter])
       @test obj(bpdn_nls, out.solution) == out.solver_specific[:Fhist][end]
       @test h(out.solution) == out.solver_specific[:Hhist][end]
-      @test out.dual_feas < options.ϵ
+      @test out.status == :first_order
     end
   end
 end
@@ -106,6 +106,6 @@ for (h, h_name) ∈ ((NormL1(λ), "l1"),)
           length(LMTR_out.solver_specific[:SubsolverCounter])
     @test obj(bpdn_nls, LMTR_out.solution) == LMTR_out.solver_specific[:Fhist][end]
     @test h(LMTR_out.solution) == LMTR_out.solver_specific[:Hhist][end]
-    @test LMTR_out.dual_feas < options.ϵ
+    @test LMTR_out.status == :first_order
   end
 end

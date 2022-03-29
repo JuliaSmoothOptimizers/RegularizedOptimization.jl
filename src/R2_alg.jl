@@ -71,7 +71,8 @@ function R2(
 ) where {F <: Function, G <: Function, H, R <: Real}
   start_time = time()
   elapsed_time = 0.0
-  ϵ = options.ϵ
+  ϵ = options.ϵa
+  ϵr = options.ϵr
   neg_tol = options.neg_tol
   verbose = options.verbose
   maxIter = options.maxIter
@@ -144,6 +145,10 @@ function R2(
     Complex_hist[k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
+
+    if ξ ≥ 0 && k == 1
+      ϵ += ϵr * sqrt(ξ)  # make stopping test absolute and relative
+    end
     
     if (ξ < 0 && sqrt(-ξ) ≤ -neg_tol) || (ξ ≥ 0 && sqrt(ξ) ≤ ϵ)
       optimal = true
