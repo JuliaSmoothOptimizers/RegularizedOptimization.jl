@@ -98,6 +98,7 @@ function LMTR(
 
   local ξ1
   k = 0
+  inner_tol = Inf
 
   Fk = residual(nls, xk)
   Fkn = similar(Fk)
@@ -164,7 +165,12 @@ function LMTR(
       continue
     end
 
-    subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
+    inner_tol = max(ϵ, sqrt(ξ1) / 10)
+    inner_tol = max(ϵ, min(1.0e-1, sqrt(ξ1) / 10, inner_tol / 5))
+    subsolver_options.ϵ = inner_tol
+    # subsolver_options.ϵ = k == 1 ? 1.0e-2 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
+    # subsolver_options.ϵ = k == 1 ? 1.0e-2 : max(ϵ, min(1.0e-2, sqrt(ξ1) / 10))
+    # subsolver_options.ϵ = k == 1 ? 1.0e-2 : min(1.0e-2, sqrt(ξ1) / 10)
     set_radius!(ψ, min(β * χ(s), Δk))
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
