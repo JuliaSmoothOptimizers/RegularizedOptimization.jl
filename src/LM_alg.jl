@@ -153,6 +153,10 @@ function LM(
     ξ1 = fk + hk - mk1(s) - reg + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
+    if k == 1
+      ϵ += ϵ * sqrt(ξ1)  # make stopping test absolute and relative
+    end
+
     if sqrt(ξ1) < ϵ
       # the current xk is approximately first-order stationary
       verbose == 0 || @info "LM: terminating with ξ1 = $(ξ1)"

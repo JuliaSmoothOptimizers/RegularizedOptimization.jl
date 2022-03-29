@@ -145,6 +145,10 @@ function R2(
     ξ = Δm - σk * dot(s, s) / 2
     ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
+    if k == 1
+      ϵ += ϵ * sqrt(ξ)  # make stopping test absolute and relative
+    end
+
     if sqrt(ξ) < ϵ
       optimal = true
       verbose == 0 || @info "R2: terminating with ξ = $ξ"
