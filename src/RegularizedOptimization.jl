@@ -9,6 +9,7 @@ using Arpack, ProximalOperators
 # dependencies from us
 using NLPModels, NLPModelsModifiers, ShiftedProximalOperators, SolverCore
 
+include("utils.jl")
 include("input_struct.jl")
 include("PG_alg.jl")
 include("Fista_alg.jl")
