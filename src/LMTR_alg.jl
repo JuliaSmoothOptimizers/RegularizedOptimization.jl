@@ -105,8 +105,11 @@ function LMTR(
   Jk = jac_op_residual(nls, xk)
   ∇fk = Jk' * Fk
   JdFk = similar(Fk)   # temporary storage
-  svd_info = svds(Jk, nsv = 1, ritzvec = false)
-  νInv = (1 + θ) * maximum(svd_info[1].S)^2  # ‖J'J‖ = ‖J‖²
+
+  σmax, found_σ = opnorm(Jk)
+  found_σ || error("operator norm computation failed")
+  νInv = (1 + θ) * σmax^2  # ‖J'J‖ = ‖J‖²
+
   mν∇fk = -∇fk / νInv
 
   optimal = false
@@ -197,8 +200,9 @@ function LMTR(
       shift!(ψ, xk)
       Jk = jac_op_residual(nls, xk)
       jtprod_residual!(nls, xk, Fk, ∇fk)
-      svd_info = svds(Jk, nsv = 1, ritzvec = false)
-      νInv = (1 + θ) * maximum(svd_info[1].S)^2
+      σmax, found_σ = opnorm(Jk)
+      found_σ || error("operator norm computation failed")
+      νInv = (1 + θ) * σmax^2  # ‖J'J‖ = ‖J‖²
       @. mν∇fk = -∇fk / νInv
     end
 
