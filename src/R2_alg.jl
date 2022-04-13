@@ -78,7 +78,7 @@ function R2(
   verbose = options.verbose
   maxIter = options.maxIter
   maxTime = options.maxTime
-  σmin = options.σmin
+  σmin = 1/options.ν
   η1 = options.η1
   η2 = options.η2
   ν = options.ν
