@@ -140,7 +140,6 @@ function TR(
     if sqrt(ξ1) < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
-      verbose == 0 || @info "TR: terminating with ξ1 = $(sqrt(ξ1))"
       continue
     end
 
@@ -169,9 +168,7 @@ function TR(
     TR_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
 
     if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(
-        ξ1,
-      ) sqrt(ξ) ρk Δk χ(xk) sNorm νInv TR_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk ψ.Δ χ(xk) sNorm νInv TR_stat
     end
 
     if η2 ≤ ρk < Inf
@@ -198,15 +195,21 @@ function TR(
     end
 
     if ρk < η1 || ρk == Inf
-      Δk = 0.5 * Δk# change to reflect trust region
+      Δk = Δk / 2
       set_radius!(ψ, Δk)
     end
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
-  if (verbose > 0) && (k == 1)
-    @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
+  if verbose > 0
+    if k == 1
+      @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
+    elseif optimal
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" ψ.Δ χ(xk) χ(s) νInv
+      @info "TR: terminating with √ξ1 = $(sqrt(ξ1))"
+    end
   end
+
   status = if optimal
     :first_order
   elseif elapsed_time > maxTime
