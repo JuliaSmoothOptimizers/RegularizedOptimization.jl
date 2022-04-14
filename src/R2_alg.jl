@@ -147,7 +147,6 @@ function R2(
 
     if sqrt(ξ) < ϵ
       optimal = true
-      verbose == 0 || @info "R2: terminating with ξ = $ξ"
       continue
     end
 
@@ -162,9 +161,7 @@ function R2(
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
     if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(
-        xk,
-      ) norm(s) σ_stat
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(s) σ_stat
     end
 
     if η2 ≤ ρk < Inf
@@ -190,8 +187,13 @@ function R2(
     end
   end
 
-  if (verbose > 0) && (k == 1)
-    @info @sprintf "%6d %8.1e %8.1e" k fk hk
+  if verbose > 0
+    if k == 1
+      @info @sprintf "%6d %8.1e %8.1e" k fk hk
+    elseif optimal
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e" k fk hk sqrt(ξ) "" σk norm(xk) norm(s)
+      @info "R2: terminating with √ξ = $(sqrt(ξ))"
+    end
   end
 
   status = if optimal
