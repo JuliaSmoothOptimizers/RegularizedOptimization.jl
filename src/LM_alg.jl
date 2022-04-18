@@ -217,7 +217,7 @@ function LM(
     if k == 1
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k iter fk hk sqrt(ξ1) sqrt(ξ1) "" σk norm(xk) norm(s) νInv
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" σk norm(xk) norm(s) νInv
       @info "LM: terminating with √ξ1 = $(sqrt(ξ1))"
     end
   end
