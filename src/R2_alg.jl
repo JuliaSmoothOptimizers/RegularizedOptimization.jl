@@ -119,6 +119,7 @@ function R2(
   local ξ
   k = 0
   σk = max(1 / ν, σmin)
+  ν = 1 / σk
 
   fk = f(xk)
   ∇fk = similar(xk)
