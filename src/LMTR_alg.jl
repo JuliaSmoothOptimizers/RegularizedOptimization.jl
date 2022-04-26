@@ -148,7 +148,7 @@ function LMTR(
     mk(d) = φ(d) + ψ(d)
 
     # Take first proximal gradient step s1 and see if current xk is nearly stationary.
-    # s1 minimizes φ1(d) + ‖d‖² / 2 / ν + ψ(d).
+    # s1 minimizes φ1(d) + ‖d‖² / 2 / ν + ψ(d) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0))
     subsolver_options.ν = 1 / (νInv + 1 / (Δk * α))
     prox!(s, ψ, mν∇fk, subsolver_options.ν)
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
