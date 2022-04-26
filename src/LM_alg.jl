@@ -148,6 +148,7 @@ function LM(
     end
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
+    # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
     subsolver_options.ν = 1 / νInv
     ∇fk .*= -subsolver_options.ν  # reuse gradient storage
     prox!(s, ψ, ∇fk, subsolver_options.ν)
