@@ -48,6 +48,7 @@ function TR(
   h::ProximableFunction,
   χ::ProximableFunction,
   options::ROSolverOptions;
+  selected::AbstractVector,
   x0::AbstractVector = f.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
@@ -92,7 +93,7 @@ function TR(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = shifted(h, xk, Δk, χ)
+  ψ = shifted(h, xk, Δk, selected, χ)
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -142,7 +143,7 @@ function TR(
     # Take first proximal gradient step s1 and see if current xk is nearly stationary.
     # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
     subsolver_options.ν = 1 / (νInv + 1 / (Δk * α))
-    prox!(s, ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν)
+    prox!(s, ψ, -subsolver_options.ν * ∇fk, selected,subsolver_options.ν)
     ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
