@@ -93,7 +93,7 @@ function TR(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = shifted(h, xk, Δk, selected, χ)
+  ψ = shifted(h, xk, Δk, χ)
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
