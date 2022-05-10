@@ -48,12 +48,12 @@ function TR(
   h::ProximableFunction,
   χ::ProximableFunction,
   options::ROSolverOptions;
-  selected::AbstractVector{Integer},
+  selected::AbstractVector{T},
   x0::AbstractVector = f.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
-)
+) where {T<: Integer}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
