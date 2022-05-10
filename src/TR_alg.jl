@@ -48,7 +48,7 @@ function TR(
   h::ProximableFunction,
   χ::ProximableFunction,
   options::ROSolverOptions;
-  selected::AbstractVector,
+  selected::AbstractVector{Int},
   x0::AbstractVector = f.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
