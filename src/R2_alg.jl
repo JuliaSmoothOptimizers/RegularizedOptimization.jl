@@ -71,7 +71,8 @@ function R2(
   h::ProximableFunction,
   options::ROSolverOptions,
   x0::AbstractVector,
-) where {F <: Function, G <: Function}
+  selected::AbstractVector{T}
+) where {F <: Function, G <: Function,T<:Integer}
   start_time = time()
   elapsed_time = 0.0
   ϵ = options.ϵ
@@ -139,7 +140,7 @@ function R2(
     φk(d) = dot(∇fk, d)
     mk(d) = φk(d) + ψ(d)
 
-    prox!(s, ψ, mν∇fk, ν)
+    prox!(s, ψ, mν∇fk, ν,selected)
     Complex_hist[k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
