@@ -140,7 +140,7 @@ function R2(
     φk(d) = dot(∇fk, d)
     mk(d) = φk(d) + ψ(d)
 
-    prox!(s, ψ, mν∇fk, ν,selected)
+    prox!(s, ψ, mν∇fk, selected,ν)
     Complex_hist[k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
