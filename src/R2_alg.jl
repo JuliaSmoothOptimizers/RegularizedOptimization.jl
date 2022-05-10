@@ -43,10 +43,10 @@ In the second form, instead of `nlp`, the user may pass in
 * `Hobj_hist`: an array with the history of values of the nonsmooth objective
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
-function R2(nlp::AbstractNLPModel, args..., selected::AbstractVector{T}; kwargs...) where {T<:Integer}
+function R2(nlp::AbstractNLPModel, selected::AbstractVector{T},args...; kwargs...) where {T<:Integer}
   kwargs_dict = Dict(kwargs...)
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
-  xk, k, outdict = R2(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0,selected; kwargs_dict...)
+  xk, k, outdict = R2(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), selected,args..., x0; kwargs_dict...)
 
   return GenericExecutionStats(
     outdict[:status],
@@ -68,10 +68,10 @@ end
 function R2(
   f::F,
   ∇f!::G,
+  selected::AbstractVector{T},
   h::ProximableFunction,
   options::ROSolverOptions,
   x0::AbstractVector,
-  selected::AbstractVector{T}
 ) where {F <: Function, G <: Function,T<:Integer}
   start_time = time()
   elapsed_time = 0.0
