@@ -155,9 +155,10 @@ function TR(
 
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     set_radius!(ψ, min(β * χ(s), Δk))
-    s, iter, _ = with_logger(subsolver_logger) do
-      subsolver(φ,∇φ!,selected, ψ, subsolver_options, s)
-    end
+    # s, iter, _ = with_logger(subsolver_logger) do
+    #   subsolver(φ,∇φ!,selected, ψ, subsolver_options, s)
+    # end
+    s, iter, _ = subsolver(φ,∇φ!,selected, ψ, subsolver_options, s)
     Complex_hist[k] = iter
 
     sNorm = χ(s)
