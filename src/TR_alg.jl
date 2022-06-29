@@ -49,6 +49,7 @@ function TR(
   χ::X,
   options::ROSolverOptions;
   x0::AbstractVector = f.meta.x0,
+  selected::UnitRange{T} = 1:length(f.meta.x0),
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
@@ -69,6 +70,12 @@ function TR(
   θ = options.θ
   β = options.β
 
+  local l_bound, u_bound
+  if has_bounds(f)
+    l_bound = f.meta.lvar
+    u_bound = f.meta.uvar
+  end
+
   if verbose == 0
     ptf = Inf
   elseif verbose == 1
@@ -81,11 +88,11 @@ function TR(
 
   # initialize parameters
   xk = copy(x0)
-  hk = h(xk)
+  hk = h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "TR: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, x0, one(eltype(x0)))
-    hk = h(xk)
+    hk = h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "TR: found point where h has value" hk
   end
@@ -93,7 +100,9 @@ function TR(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = shifted(h, xk, Δk, χ)
+  ψ =
+    has_bounds(f) ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), Δk, selected) :
+    shifted(h, xk, Δk, χ)
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -160,6 +169,7 @@ function TR(
 
     subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     set_radius!(ψ, min(β * χ(s), Δk))
+    has_bounds(f) && set_bounds!(ψ, max.(-ψ.Δ, l_bound - xk), min.(ψ.Δ, u_bound - xk))
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
@@ -168,7 +178,7 @@ function TR(
     sNorm = χ(s)
     xkn .= xk .+ s
     fkn = obj(f, xkn)
-    hkn = h(xkn)
+    hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
@@ -195,7 +205,7 @@ function TR(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-
+      has_bounds(f) && set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk))
       #update functions
       fk = fkn
       hk = hkn
@@ -214,6 +224,7 @@ function TR(
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
       set_radius!(ψ, Δk)
+      has_bounds(f) && set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk))
     end
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
