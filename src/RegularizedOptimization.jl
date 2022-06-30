@@ -19,6 +19,4 @@ include("R2_alg.jl")
 include("LM_alg.jl")
 include("LMTR_alg.jl")
 
-include("TR_alg_constr.jl")
-
 end  # module RegularizedOptimization
