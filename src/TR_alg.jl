@@ -68,6 +68,9 @@ function TR(
   θ = options.θ
   β = options.β
 
+  bounded = any((f.meta.lvar .!= -Inf) .| (f.meta.uvar .!= Inf)) # true if any variable is bounded
+  bounded ? (l_bound = f.meta.lvar ; u_bound = f.meta.uvar) : nothing
+
   if verbose == 0
     ptf = Inf
   elseif verbose == 1
@@ -92,7 +95,7 @@ function TR(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = shifted(h, xk, Δk, χ)
+  bounded ? (ψ = shifted(h, xk, max.(-Δk,l_bound-xk), min.(Δk, u_bound-xk))) : (ψ = shifted(h, xk, Δk, χ))
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -153,7 +156,7 @@ function TR(
     end
 
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
-    set_radius!(ψ, min(β * χ(s), Δk))
+    bounded ? set_bounds!(ψ, max.(-min(β * χ(s), Δk), l_bound-xk), min.(min(β * χ(s), Δk), u_bound-xk)) : set_radius!(ψ, min(β * χ(s), Δk))
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
@@ -182,7 +185,7 @@ function TR(
 
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
-      set_radius!(ψ, Δk)
+      bounded ? set_bounds!(ψ, max.(-Δk, l_bound-xk), min.(Δk, u_bound-xk)) : set_radius!(ψ, Δk)
     end
 
     if η1 ≤ ρk < Inf
@@ -206,7 +209,7 @@ function TR(
 
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
-      set_radius!(ψ, Δk)
+      bounded ? set_bounds!(ψ, max.(-Δk, l_bound-xk), min.(Δk, u_bound-xk)) : set_radius!(ψ, Δk)
     end
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
