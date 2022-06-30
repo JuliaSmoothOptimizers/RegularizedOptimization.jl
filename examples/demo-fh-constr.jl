@@ -10,10 +10,10 @@ function demo_fh()
   lbfgs_model = LBFGSModel(model)
   h = NormL0(1.0)
   @info " using TR to solve with" h χ
-  res0 = TR_constr(lbfgs_model, h, χ, options)
+  res0 = TR(lbfgs_model, h, χ, options)
   h = NormL1(1.0)
   @info " using TR to solve with" h χ
-  res1 = TR_constr(lbfgs_model, h, χ, options)
+  res1 = TR(lbfgs_model, h, χ, options)
   return res0, res1
 end
 

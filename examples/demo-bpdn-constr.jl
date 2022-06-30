@@ -10,7 +10,7 @@ function demo_solver(f, sol, h, χ, suffix = "l0-linf")
   options = ROSolverOptions(ν = 1.0, β = 1e16, ϵ = 1e-6, verbose = 10)
   @info " using TR to solve with" h χ
   reset!(f)
-  TR_out = TR_constr(f, h, χ, options)
+  TR_out = TR(f, h, χ, options)
 end
 
 function demo_bpdn(compound = 1)
