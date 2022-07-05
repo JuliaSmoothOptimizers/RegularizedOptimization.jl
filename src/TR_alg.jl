@@ -22,8 +22,8 @@ method or the quadratic regularization method.
 ### Arguments
 
 * `nlp::AbstractNLPModel`: a smooth optimization problem
-* `h::ProximableFunction`: a regularizer
-* `χ::ProximableFunction`: a norm used to define the trust region
+* `h`: a regularizer such as those defined in ProximalOperators
+* `χ`: a norm used to define the trust region in the form of a regularizer
 * `options::ROSolverOptions`: a structure containing algorithmic parameters
 
 The objective, gradient and Hessian of `nlp` will be accessed.
@@ -45,14 +45,14 @@ The Hessian is accessed as an abstract operator and need not be the exact Hessia
 """
 function TR(
   f::AbstractNLPModel,
-  h::ProximableFunction,
-  χ::ProximableFunction,
+  h::H,
+  χ::X,
   options::ROSolverOptions;
   x0::AbstractVector = f.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
-)
+) where {H, X}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options

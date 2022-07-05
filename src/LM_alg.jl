@@ -20,7 +20,7 @@ and σ > 0 is a regularization parameter.
 ### Arguments
 
 * `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
-* `h::ProximableFunction`: a regularizer
+* `h`: a regularizer such as those defined in ProximalOperators
 * `options::ROSolverOptions`: a structure containing algorithmic parameters
 
 ### Keyword arguments
@@ -39,13 +39,13 @@ and σ > 0 is a regularization parameter.
 """
 function LM(
   nls::AbstractNLSModel,
-  h::ProximableFunction,
+  h::H,
   options::ROSolverOptions;
   x0::AbstractVector = nls.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
-)
+) where H
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
