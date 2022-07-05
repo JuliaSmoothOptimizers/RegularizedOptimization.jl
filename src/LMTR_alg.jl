@@ -20,8 +20,8 @@ where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; 
 ### Arguments
 
 * `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
-* `h::ProximableFunction`: a regularizer
-* `χ::ProximableFunction`: a norm used to define the trust region
+* `h`: a regularizer such as those defined in ProximalOperators
+* `χ`: a norm used to define the trust region in the form of a regularizer
 * `options::ROSolverOptions`: a structure containing algorithmic parameters
 
 ### Keyword arguments
@@ -40,14 +40,14 @@ where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; 
 """
 function LMTR(
   nls::AbstractNLSModel,
-  h::ProximableFunction,
-  χ::ProximableFunction,
+  h::H,
+  χ::X,
   options::ROSolverOptions;
   x0::AbstractVector = nls.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
-)
+) where {H, X}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options

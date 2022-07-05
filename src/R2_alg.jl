@@ -21,7 +21,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs is the Taylor linear approximation
 ### Arguments
 
 * `nlp::AbstractNLPModel`: a smooth optimization problem
-* `h::ProximableFunction`: a regularizer
+* `h`: a regularizer such as those defined in ProximalOperators
 * `options::ROSolverOptions`: a structure containing algorithmic parameters
 * `x0::AbstractVector`: an initial guess (in the second calling form)
 
@@ -68,10 +68,10 @@ end
 function R2(
   f::F,
   ∇f!::G,
-  h::ProximableFunction,
+  h::H,
   options::ROSolverOptions,
   x0::AbstractVector,
-) where {F <: Function, G <: Function}
+) where {F <: Function, G <: Function, H}
   start_time = time()
   elapsed_time = 0.0
   ϵ = options.ϵ
