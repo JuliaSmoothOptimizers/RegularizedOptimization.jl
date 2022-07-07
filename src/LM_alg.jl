@@ -45,7 +45,7 @@ function LM(
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
-) where H
+) where {H}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
