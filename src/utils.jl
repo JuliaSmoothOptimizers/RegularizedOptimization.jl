@@ -15,7 +15,8 @@ function opnorm_eig(B; max_attempts::Int = 3)
   ncv = max(20, 2 * nev + 1)
   while !(have_eig || attempt > max_attempts)
     attempt += 1
-    (d, nconv, niter, nmult, resid) = eigs(B; nev = nev, ncv = ncv, which = :LM, ritzvec = false, check = 1)
+    (d, nconv, niter, nmult, resid) =
+      eigs(B; nev = nev, ncv = ncv, which = :LM, ritzvec = false, check = 1)
     have_eig = nconv == 1
     if (have_eig)
       λ = abs(d[1])
@@ -48,4 +49,3 @@ function opnorm_svd(J; max_attempts::Int = 3)
   end
   return σ, success
 end
-
