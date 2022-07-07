@@ -45,7 +45,7 @@ function LM(
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
-) where H
+) where {H}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
@@ -188,7 +188,9 @@ function LM(
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
     if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(
+        ξ1,
+      ) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
     end
 
     if η2 ≤ ρk < Inf
@@ -226,7 +228,9 @@ function LM(
     if k == 1
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" σk norm(xk) norm(s) νInv
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(
+        ξ1,
+      ) sqrt(ξ1) "" σk norm(xk) norm(s) νInv
       @info "LM: terminating with √ξ1 = $(sqrt(ξ1))"
     end
   end
