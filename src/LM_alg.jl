@@ -20,7 +20,7 @@ and σ > 0 is a regularization parameter.
 ### Arguments
 
 * `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
-* `h::ProximableFunction`: a regularizer
+* `h`: a regularizer such as those defined in ProximalOperators
 * `options::ROSolverOptions`: a structure containing algorithmic parameters
 
 ### Keyword arguments
@@ -39,13 +39,13 @@ and σ > 0 is a regularization parameter.
 """
 function LM(
   nls::AbstractNLSModel,
-  h::ProximableFunction,
+  h::H,
   options::ROSolverOptions;
   x0::AbstractVector = nls.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
-)
+) where {H}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
@@ -90,8 +90,11 @@ function LM(
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
-  verbose == 0 ||
+  if verbose > 0
+    #! format: off
     @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
+    #! format: on
+  end
 
   # main algorithm initialization
   Fk = residual(nls, xk)
@@ -188,7 +191,9 @@ function LM(
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
     if (verbose > 0) && (k % ptf == 0)
+      #! format: off
       @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
+      #! format: off
     end
 
     if η2 ≤ ρk < Inf
@@ -226,7 +231,9 @@ function LM(
     if k == 1
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
+      #! format: off
       @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" σk norm(xk) norm(s) νInv
+      #! format: on
       @info "LM: terminating with √ξ1 = $(sqrt(ξ1))"
     end
   end

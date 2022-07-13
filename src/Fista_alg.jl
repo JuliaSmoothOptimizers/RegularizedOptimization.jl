@@ -41,10 +41,10 @@ end
 function FISTA(
   f::F,
   ∇f!::G,
-  h::ProximableFunction,
+  h::H,
   options::ROSolverOptions,
   x0::AbstractVector,
-) where {F <: Function, G <: Function}
+) where {F <: Function, G <: Function, H}
   start_time = time()
   elapsed_time = 0.0
   ϵ = options.ϵ

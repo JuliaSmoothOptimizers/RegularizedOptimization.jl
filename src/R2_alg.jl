@@ -21,7 +21,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs is the Taylor linear approximation
 ### Arguments
 
 * `nlp::AbstractNLPModel`: a smooth optimization problem
-* `h::ProximableFunction`: a regularizer
+* `h`: a regularizer such as those defined in ProximalOperators
 * `options::ROSolverOptions`: a structure containing algorithmic parameters
 * `x0::AbstractVector`: an initial guess (in the second calling form)
 
@@ -68,10 +68,10 @@ end
 function R2(
   f::F,
   ∇f!::G,
-  h::ProximableFunction,
+  h::H,
   options::ROSolverOptions,
   x0::AbstractVector,
-) where {F <: Function, G <: Function}
+) where {F <: Function, G <: Function, H}
   start_time = time()
   elapsed_time = 0.0
   ϵ = options.ϵ
@@ -113,8 +113,11 @@ function R2(
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
-  verbose == 0 ||
+  if verbose > 0
+    #! format: off
     @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
+    #! format: off
+  end
 
   local ξ
   k = 0
@@ -161,7 +164,9 @@ function R2(
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
     if (verbose > 0) && (k % ptf == 0)
+      #! format: off
       @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(s) σ_stat
+      #! format: on
     end
 
     if η2 ≤ ρk < Inf
@@ -191,7 +196,9 @@ function R2(
     if k == 1
       @info @sprintf "%6d %8.1e %8.1e" k fk hk
     elseif optimal
+      #! format: off
       @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e" k fk hk sqrt(ξ) "" σk norm(xk) norm(s)
+      #! format: on
       @info "R2: terminating with √ξ = $(sqrt(ξ))"
     end
   end

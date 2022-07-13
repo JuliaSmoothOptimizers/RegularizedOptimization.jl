@@ -20,8 +20,8 @@ where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; 
 ### Arguments
 
 * `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
-* `h::ProximableFunction`: a regularizer
-* `χ::ProximableFunction`: a norm used to define the trust region
+* `h`: a regularizer such as those defined in ProximalOperators
+* `χ`: a norm used to define the trust region in the form of a regularizer
 * `options::ROSolverOptions`: a structure containing algorithmic parameters
 
 ### Keyword arguments
@@ -40,14 +40,14 @@ where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; 
 """
 function LMTR(
   nls::AbstractNLSModel,
-  h::ProximableFunction,
-  χ::ProximableFunction,
+  h::H,
+  χ::X,
   options::ROSolverOptions;
   x0::AbstractVector = nls.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
-)
+) where {H, X}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
@@ -93,7 +93,9 @@ function LMTR(
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
   if verbose > 0
+    #! format: off
     @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "1/ν" "TR"
+    #! format: on
   end
 
   local ξ1
@@ -189,7 +191,9 @@ function LMTR(
     TR_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
 
     if (verbose > 0) && (k % ptf == 0)
+      #! format: off
       @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk ψ.Δ χ(xk) sNorm νInv TR_stat
+      #! format: on
     end
 
     if η2 ≤ ρk < Inf
@@ -226,7 +230,9 @@ function LMTR(
     if k == 1
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
+      #! format: off
       @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" ψ.Δ χ(xk) χ(s) νInv
+      #! format: on
       @info "LMTR: terminating with √ξ1 = $(sqrt(ξ1))"
     end
   end
