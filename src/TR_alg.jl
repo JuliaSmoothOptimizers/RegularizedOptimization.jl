@@ -68,8 +68,7 @@ function TR(
   θ = options.θ
   β = options.β
 
-  bounded = any((f.meta.lvar .!= -Inf) .| (f.meta.uvar .!= Inf)) # true if any variable is bounded
-  bounded ? (l_bound = f.meta.lvar ; u_bound = f.meta.uvar) : nothing
+  has_bounds(f) ? (l_bound = f.meta.lvar ; u_bound = f.meta.uvar) : nothing
 
   if verbose == 0
     ptf = Inf
