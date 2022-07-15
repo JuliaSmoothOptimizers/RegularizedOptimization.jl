@@ -102,7 +102,7 @@ function TR(
   if verbose > 0
     #! format: off
     if has_bounds(f)
-      @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
+      @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
     else
       @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
     end
