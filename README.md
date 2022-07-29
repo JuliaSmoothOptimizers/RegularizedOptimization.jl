@@ -44,7 +44,7 @@ Please refer to the documentation.
 2. R. Baraldi, R. Kumar, and A. Aravkin (2019), [*Basis Pursuit De-noise with Non-smooth Constraints*](https://doi.org/10.1109/TSP.2019.2946029), IEEE Transactions on Signal Processing, vol. 67, no. 22, pp. 5811-5823.
 
 ```bibtex
-@article{doi:10.1137/21M1409536,
+@article{aravkin-baraldi-orban-2022,
   author = {Aravkin, Aleksandr Y. and Baraldi, Robert and Orban, Dominique},
   title = {A Proximal Quasi-{N}ewton Trust-Region Method for Nonsmooth Regularized Optimization},
   journal = {SIAM Journal on Optimization},
