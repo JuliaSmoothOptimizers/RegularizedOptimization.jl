@@ -71,7 +71,8 @@ function R2(
   h::H,
   options::ROSolverOptions,
   x0::AbstractVector,
-) where {F <: Function, G <: Function, H}
+  T::R,
+) where {F <: Function, G <: Function, H, R <: Real}
   start_time = time()
   elapsed_time = 0.0
   ϵ = options.ϵ
@@ -143,9 +144,9 @@ function R2(
     Complex_hist[k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
-    ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
+    ξ > T || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
-    if sqrt(ξ) < ϵ
+    if sqrt(abs(T)) <= sqrt(abs(ξ)) < ϵ
       optimal = true
       continue
     end
@@ -161,7 +162,7 @@ function R2(
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
     if (verbose > 0) && (k % ptf == 0)
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(s) σ_stat
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(abs(ξ)) ρk σk norm(xk) norm(s) σ_stat
     end
 
     if η2 ≤ ρk < Inf
@@ -191,7 +192,7 @@ function R2(
     if k == 1
       @info @sprintf "%6d %8.1e %8.1e" k fk hk
     elseif optimal
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e" k fk hk sqrt(ξ) "" σk norm(xk) norm(s)
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e" k fk hk sqrt(abs(ξ)) "" σk norm(xk) norm(s)
       @info "R2: terminating with √ξ = $(sqrt(ξ))"
     end
   end
