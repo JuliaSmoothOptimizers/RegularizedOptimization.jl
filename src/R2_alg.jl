@@ -53,7 +53,7 @@ function R2(nlp::AbstractNLPModel, args...; kwargs...)
     nlp,
     solution = xk,
     objective = outdict[:fk] + outdict[:hk],
-    dual_feas = sqrt(outdict[:ξ]),
+    dual_feas = sqrt(abs(outdict[:ξ])),
     iter = k,
     elapsed_time = outdict[:elapsed_time],
     solver_specific = Dict(
@@ -69,9 +69,9 @@ function R2(
   f::F,
   ∇f!::G,
   h::H,
-  options::ROSolverOptions,
-  x0::AbstractVector,
-  T::R,
+  options::ROSolverOptions{R},
+  x0::AbstractVector{R},
+  neg_tol::R = -eps(R)^(1/3) ,
 ) where {F <: Function, G <: Function, H, R <: Real}
   start_time = time()
   elapsed_time = 0.0
@@ -84,6 +84,7 @@ function R2(
   η2 = options.η2
   ν = options.ν
   γ = options.γ
+  neg_tol < 0 || error("neg_tol must be negative")
 
   if verbose == 0
     ptf = Inf
@@ -147,9 +148,9 @@ function R2(
     Complex_hist[k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
-    ξ > T || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
+    ξ > neg_tol || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
-    if sqrt(abs(T)) <= sqrt(abs(ξ)) < ϵ
+    if  sqrt(abs(ξ)) < max(ϵ, abs(neg_tol))
       optimal = true
       continue
     end
@@ -200,7 +201,7 @@ function R2(
       #! format: off
       @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e" k fk hk sqrt(abs(ξ)) "" σk norm(xk) norm(s)
       #! format: on
-      @info "R2: terminating with √ξ = $(sqrt(ξ))"
+      @info "R2: terminating with √ξ = $(sqrt(abs(ξ)))"
     end
   end
 
