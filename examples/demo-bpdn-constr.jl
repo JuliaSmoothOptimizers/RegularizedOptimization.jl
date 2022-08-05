@@ -13,8 +13,8 @@ function demo_solver(f, sol, h, χ, suffix = "l0-linf")
   TR_out = TR(f, h, χ, options)
 end
 
-function demo_bpdn(compound = 1)
-  model, model2, sol = bpdn_model(compound)
+function demo_bpdn_constr(compound = 1)
+  model, sol = bpdn_constr_model(compound)
   f = LSR1Model(model)
   λ = norm(grad(model, zeros(model.meta.nvar)), Inf) / 10
   res0 = demo_solver(f, sol, NormL0(λ), NormLinf(1.0))
@@ -22,4 +22,4 @@ function demo_bpdn(compound = 1)
   return sol, res0, res1
 end
 
-bpdn_true, bpdn_l0, bpdn_l1 = demo_bpdn()
+bpdn_true, bpdn_l0, bpdn_l1 = demo_bpdn_constr()
