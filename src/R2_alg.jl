@@ -53,7 +53,7 @@ function R2(nlp::AbstractNLPModel, args...; kwargs...)
     nlp,
     solution = xk,
     objective = outdict[:fk] + outdict[:hk],
-    dual_feas = sqrt(abs(outdict[:ξ])),
+    dual_feas = sqrt(outdict[:ξ]),
     iter = k,
     elapsed_time = outdict[:elapsed_time],
     solver_specific = Dict(
@@ -148,13 +148,14 @@ function R2(
     Complex_hist[k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
-    ξ > neg_tol || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
-
-    if  sqrt(abs(ξ)) < max(ϵ, abs(neg_tol))
+    
+    if neg_tol <= ξ <= ϵ^2
       optimal = true
+      ξ = abs(ξ)
       continue
     end
 
+    ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
     xkn .= xk .+ s
     fkn = f(xkn)
     hkn = h(xkn)
@@ -167,7 +168,7 @@ function R2(
 
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(abs(ξ)) ρk σk norm(xk) norm(s) σ_stat
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(s) σ_stat
       #! format: on
     end
 
@@ -199,9 +200,9 @@ function R2(
       @info @sprintf "%6d %8.1e %8.1e" k fk hk
     elseif optimal
       #! format: off
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e" k fk hk sqrt(abs(ξ)) "" σk norm(xk) norm(s)
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e" k fk hk sqrt(ξ) "" σk norm(xk) norm(s)
       #! format: on
-      @info "R2: terminating with √ξ = $(sqrt(abs(ξ)))"
+      @info "R2: terminating with √ξ = $(sqrt(ξ))"
     end
   end
 
