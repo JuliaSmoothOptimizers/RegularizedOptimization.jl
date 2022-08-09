@@ -49,10 +49,11 @@ function TR(
   χ::X,
   options::ROSolverOptions;
   x0::AbstractVector = f.meta.x0,
+  selected::UnitRange{T} = 1:length(f.meta.x0),
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
-) where {H, X}
+) where {H, X, T <: Integer}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
@@ -94,7 +95,7 @@ function TR(
 
   xkn = similar(xk)
   s = zero(xk)
-  has_bounds(f) ? (ψ = shifted(h, xk, max.(-Δk,l_bound-xk), min.(Δk, u_bound-xk), Δk, f.selected)) : (ψ = shifted(h, xk, Δk, χ))
+  has_bounds(f) ? (ψ = shifted(h, xk, max.(-Δk,l_bound-xk), min.(Δk, u_bound-xk), Δk, selected)) : (ψ = shifted(h, xk, Δk, χ))
   
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
