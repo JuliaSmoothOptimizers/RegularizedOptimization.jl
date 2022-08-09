@@ -94,8 +94,8 @@ function TR(
 
   xkn = similar(xk)
   s = zero(xk)
-  has_bounds(f) ? (ψ = shifted(h, xk, max.(-Δk,l_bound-xk), min.(Δk, u_bound-xk))) : (ψ = shifted(h, xk, Δk, χ))
-
+  has_bounds(f) ? (ψ = shifted(h, xk, max.(-Δk,l_bound-xk), min.(Δk, u_bound-xk), Δk, f.selected)) : (ψ = shifted(h, xk, Δk, χ))
+  
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
