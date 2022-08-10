@@ -83,11 +83,11 @@ function TR(
 
   # initialize parameters
   xk = copy(x0)
-  hk = h(xk)
+  hk = h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "TR: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, x0, one(eltype(x0)))
-    hk = h(xk)
+    hk = h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "TR: found point where h has value" hk
   end
@@ -167,7 +167,7 @@ function TR(
     sNorm = χ(s)
     xkn .= xk .+ s
     fkn = obj(f, xkn)
-    hkn = h(xkn)
+    hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
