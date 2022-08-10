@@ -160,7 +160,7 @@ function TR(
     subsolver_options.ϵ = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     has_bounds(f) ? set_bounds!(ψ, max.(-min(β * χ(s), Δk), l_bound-xk), min.(min(β * χ(s), Δk), u_bound-xk)) : set_radius!(ψ, min(β * χ(s), Δk))
     s, iter, _ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s)
+      subsolver(φ, ∇φ!, ψ, subsolver_options, s, selected)
     end
     Complex_hist[k] = iter
 
