@@ -15,7 +15,7 @@ function demo_solver(f, h, χ, suffix, selected)
 end
 
 function demo_nnmf()
-  model = nnmf_model(1000,500,100)
+  model = nnmf_model(100,50,10)
   f = LSR1Model(model)
   λ = norm(grad(model, rand(model.meta.nvar)), Inf) / 1000000
   res0 = demo_solver(f, NormL0(λ), NormLinf(1.0), "l0-linf", model.selected)

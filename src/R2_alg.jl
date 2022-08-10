@@ -71,7 +71,8 @@ function R2(
   h::H,
   options::ROSolverOptions,
   x0::AbstractVector,
-) where {F <: Function, G <: Function, H}
+  selected::UnitRange{T}
+) where {F <: Function, G <: Function, H, T <: Integer}
   start_time = time()
   elapsed_time = 0.0
   ϵ = options.ϵ
@@ -96,11 +97,11 @@ function R2(
 
   # initialize parameters
   xk = copy(x0)
-  hk = h(xk)
+  hk = h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "R2: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, x0, one(eltype(x0)))
-    hk = h(xk)
+    hk = h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "R2: found point where h has value" hk
   end
@@ -155,7 +156,7 @@ function R2(
 
     xkn .= xk .+ s
     fkn = f(xkn)
-    hkn = h(xkn)
+    hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
 
     Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
