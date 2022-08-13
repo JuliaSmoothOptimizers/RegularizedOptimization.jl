@@ -71,11 +71,11 @@ function R2(
   h::H,
   options::ROSolverOptions{R},
   x0::AbstractVector{R},
-  neg_tol::R = -eps(R)^(1/3) ,
 ) where {F <: Function, G <: Function, H, R <: Real}
   start_time = time()
   elapsed_time = 0.0
   ϵ = options.ϵ
+  neg_tol = options.neg_tol
   verbose = options.verbose
   maxIter = options.maxIter
   maxTime = options.maxTime
@@ -84,7 +84,6 @@ function R2(
   η2 = options.η2
   ν = options.ν
   γ = options.γ
-  neg_tol < 0 || error("neg_tol must be negative")
 
   if verbose == 0
     ptf = Inf
@@ -149,9 +148,8 @@ function R2(
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     
-    if neg_tol <= ξ <= ϵ^2
+    if (ξ < 0 && sqrt(-ξ) ≤ -neg_tol) || (ξ ≥ 0 && sqrt(ξ) ≤ ϵ)
       optimal = true
-      ξ = abs(ξ)
       continue
     end
 
