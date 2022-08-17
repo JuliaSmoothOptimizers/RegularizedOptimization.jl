@@ -1,9 +1,7 @@
 using Random
 using LinearAlgebra
 using ProximalOperators
-using NLPModels, NLPModelsModifiers#, RegularizedProblems, RegularizedOptimization
-include("/Users/joshuawolff/Documents/GERAD/src/RegularizedOptimization.jl/src/RegularizedOptimization.jl")
-include("/Users/joshuawolff/Documents/GERAD/src/RegularizedProblems.jl/src/RegularizedProblems.jl")
+using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
 using Printf
 
 Random.seed!(1234)

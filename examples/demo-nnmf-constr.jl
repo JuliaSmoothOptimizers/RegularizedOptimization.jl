@@ -1,9 +1,7 @@
 using Random
 using LinearAlgebra
 using ProximalOperators
-using NLPModels, NLPModelsModifiers#, RegularizedProblems, RegularizedOptimization
-include("/Users/joshuawolff/Documents/GERAD/src/RegularizedOptimization.jl/src/RegularizedOptimization.jl")
-include("/Users/joshuawolff/Documents/GERAD/src/RegularizedProblems.jl/src/RegularizedProblems.jl")
+using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
 using Printf
 
 Random.seed!(1234)
@@ -17,7 +15,7 @@ function demo_solver(f, h, χ, suffix, selected)
 end
 
 function demo_nnmf()
-  model = nnmf_model(500,2000,15)
+  model = nnmf_model(1000,500,20)
   f = LSR1Model(model)
   λ = norm(grad(model, rand(model.meta.nvar)), Inf) / 10
   res0 = demo_solver(f, NormL0(λ), NormLinf(1.0), "l0-linf", model.selected)
