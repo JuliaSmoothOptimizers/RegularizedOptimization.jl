@@ -65,16 +65,29 @@ function R2(nlp::AbstractNLPModel, args...; kwargs...)
   )
 end
 
+"""
+    R2(
+  f::F,
+  ∇f!::G,
+  h::H,
+<<<<<<< HEAD
+  options::ROSolverOptions,
+  x0::AbstractVector
+) where {F <: Function, G <: Function, H}
+
+TBW
+"""
 function R2(
   f::F,
   ∇f!::G,
   h::H,
-  options::ROSolverOptions,
-  x0::AbstractVector
-) where {F <: Function, G <: Function, H}
+  options::ROSolverOptions{R},
+  x0::AbstractVector{R},
+) where {F <: Function, G <: Function, H, R <: Real}
   start_time = time()
   elapsed_time = 0.0
   ϵ = options.ϵ
+  neg_tol = options.neg_tol
   verbose = options.verbose
   maxIter = options.maxIter
   maxTime = options.maxTime
@@ -145,13 +158,13 @@ function R2(
     Complex_hist[k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
-    ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
-
-    if sqrt(ξ) < ϵ
+    
+    if (ξ < 0 && sqrt(-ξ) ≤ -neg_tol) || (ξ ≥ 0 && sqrt(ξ) ≤ ϵ)
       optimal = true
       continue
     end
 
+    ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
     xkn .= xk .+ s
     fkn = f(xkn)
     hkn = h(xkn)
