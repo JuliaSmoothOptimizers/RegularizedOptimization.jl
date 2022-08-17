@@ -1,7 +1,9 @@
 using Random
 using LinearAlgebra
 using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
+using NLPModels, NLPModelsModifiers#, RegularizedProblems, RegularizedOptimization
+include("/Users/joshuawolff/Documents/GERAD/src/RegularizedOptimization.jl/src/RegularizedOptimization.jl")
+include("/Users/joshuawolff/Documents/GERAD/src/RegularizedProblems.jl/src/RegularizedProblems.jl")
 using Printf
 
 Random.seed!(1234)
@@ -10,7 +12,7 @@ function demo_solver(f, sol, h, χ, suffix = "l0-linf")
   options = ROSolverOptions(ν = 1.0, β = 1e16, ϵ = 1e-6, verbose = 10)
   @info " using TR to solve with" h χ
   reset!(f)
-  TR_out = TR(f, h, χ, options)
+  TR_out = TR(f, h, χ, options, x0 = f.meta.x0)
 end
 
 function demo_bpdn_constr(compound = 1)
