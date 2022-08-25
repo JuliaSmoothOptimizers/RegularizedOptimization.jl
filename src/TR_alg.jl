@@ -191,12 +191,11 @@ function TR(
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
       set_radius!(ψ, Δk)
-      has_bounds(f) ? set_bounds!(ψ, max.(-Δk, l_bound-xk), min.(Δk, u_bound-xk)) : nothing
     end
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-
+      has_bounds(f) ? set_bounds!(ψ, max.(-Δk, l_bound-xk), min.(Δk, u_bound-xk)) : nothing
       #update functions
       fk = fkn
       hk = hkn
