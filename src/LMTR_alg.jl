@@ -246,19 +246,16 @@ function LMTR(
     :exception
   end
 
-  return GenericExecutionStats(
-    status,
-    nls,
-    solution = xk,
-    objective = fk + hk,
-    dual_feas = sqrt(ξ1),
-    iter = k,
-    elapsed_time = elapsed_time,
-    solver_specific = Dict(
-      :Fhist => Fobj_hist[1:k],
-      :Hhist => Hobj_hist[1:k],
-      :NonSmooth => h,
-      :SubsolverCounter => Complex_hist[1:k],
-    ),
-  )
+  stats = GenericExecutionStats(nls)
+  set_status!(stats, status)
+  set_solution!(stats, xk)
+  set_objective!(stats, fk + hk)
+  set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt(ξ1) : ξ1)
+  set_iter!(stats, k)
+  set_time!(stats, elapsed_time)
+  set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])
+  set_solver_specific!(stats, :Hhist, Hobj_hist[1:k])
+  set_solver_specific!(stats, :NonSmooth, h)
+  set_solver_specific!(stats, :SubsolverCounter, Complex_hist[1:k])
+  return stats
 end
