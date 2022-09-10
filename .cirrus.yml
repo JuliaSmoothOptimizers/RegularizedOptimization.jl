@@ -9,13 +9,7 @@ task:
       - JULIA_VERSION: nightly
   allow_failures: $JULIA_VERSION == 'nightly'
   install_script:
-    - export ASSUME_ALWAYS_YES=yes
-    - export JULIA_CIRRUS_DEBUG=true
-    - pkg clean -y
-    - pkg bootstrap -f
-    - pkg update
-    - pkg upgrade -y
-    - sh -c "$(fetch https://raw.githubusercontent.com/dpo/CirrusCI.jl/debug/bin/install.sh -o -)"
+    - sh -c "$(https://raw.githubusercontent.com/ararslan/CirrusCI.jl/master/bin/install.sh -o -)"
   build_script:
     - julia --color=yes --project=. -e 'using Pkg; pkg1 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl.git", rev = "main"); pkg2 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl.git", rev = "master"); Pkg.add([pkg1, pkg2])'
     - cirrusjl build
