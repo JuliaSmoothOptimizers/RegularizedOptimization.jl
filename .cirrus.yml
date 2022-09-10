@@ -10,6 +10,7 @@ task:
   allow_failures: $JULIA_VERSION == 'nightly'
   install_script:
     - export ASSUME_ALWAYS_YES=yes
+    - export JULIA_CIRRUS_DEBUG=true
     - pkg clean -y
     - pkg bootstrap -f
     - pkg update
