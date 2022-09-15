@@ -4,7 +4,7 @@ module RegularizedOptimization
 using LinearAlgebra, Logging, Printf
 
 # external dependencies
-using Arpack, ProximalOperators, LinearOperators, Krylov
+using ProximalOperators, TSVD
 
 # dependencies from us
 using NLPModels, NLPModelsModifiers, ShiftedProximalOperators, SolverCore
