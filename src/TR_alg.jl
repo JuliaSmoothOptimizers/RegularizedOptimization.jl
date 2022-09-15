@@ -114,8 +114,7 @@ function TR(
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
 
-  λmax, found_λ = opnorm(Bk)
-  found_λ || error("operator norm computation failed")
+  λmax = opnorm(Bk)
   νInv = (1 + θ) * λmax
 
   optimal = false
@@ -207,8 +206,7 @@ function TR(
         push!(f, s, ∇fk - ∇fk⁻)
       end
       Bk = hess_op(f, xk)
-      λmax, found_λ = opnorm(Bk)
-      found_λ || error("operator norm computation failed")
+      λmax = opnorm(Bk)
       νInv = (1 + θ) * λmax
       ∇fk⁻ .= ∇fk
     end
