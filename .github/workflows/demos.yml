@@ -1,0 +1,81 @@
+name: demos
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  test:
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        version:
+          # - '1.6'
+          - '1'
+          # - 'nightly'
+        os:
+          - ubuntu-latest
+          # - macOS-latest
+          # - windows-latest
+        arch:
+          - x64
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: actions/cache@v1
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - name: Setup TeX Live
+        uses: teatimeguest/setup-texlive-action@v2
+        with:
+          packages: >-
+            scheme-minimal
+            latex-bin
+            pgf
+            pgfplots
+            standalone
+            xkeyval
+            luatex85
+            infwarerr
+            ltxcmds
+            epstopdf-pkg
+      # - name: Setup tmate session
+      #   uses: mxschmitt/action-tmate@v3
+      - name: Installing non-registered dependencies
+        run: |
+          using Pkg
+          pkg1 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl.git", rev = "main")
+          pkg2 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl.git", rev = "master")
+          pkg_list = [pkg1, pkg2]
+          Pkg.add(pkg_list)
+          Pkg.develop(path = ".")
+          Pkg.instantiate()
+        shell: julia --project="examples" --color=yes {0}
+      - name: Run BPDN demo
+        run: |
+          pkg_path = dirname(Base.find_package("RegularizedOptimization"))
+          include(joinpath(pkg_path, "..", "examples", "demo-bpdn.jl"))
+        shell: julia --project="examples" --color=yes {0}
+      - name: Run FH demo
+        run: |
+          pkg_path = dirname(Base.find_package("RegularizedOptimization"))
+          include(joinpath(pkg_path, "..", "examples", "demo-fh.jl"))
+        shell: julia --project="examples" --color=yes {0}
+      - name: Upload results
+        uses: actions/upload-artifact@v3
+        with:
+          name: demos-results
+          path: ${{ github.workspace }}/*.pdf
