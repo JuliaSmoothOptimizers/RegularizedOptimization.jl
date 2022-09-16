@@ -7,3 +7,14 @@ PGFPlots = "3b7a836e-365b-5785-a47d-02c71176b4aa"
 ProximalOperators = "a725b495-10eb-56fe-b38b-717eba820537"
 RegularizedOptimization = "196f2941-2d58-45ba-9f13-43a2532b2fa8"
 RegularizedProblems = "ea076b23-609f-44d2-bb12-a4ae45328278"
+
+[compat]
+ADNLPModels = "0.4"
+DifferentialEquations = "7"
+NLPModels = "0.19"
+NLPModelsModifiers = "0.6"
+PGFPlots = "3"
+ProximalOperators = "0.15"
+RegularizedOptimization = "0.1"
+RegularizedProblems = "0.1"
+

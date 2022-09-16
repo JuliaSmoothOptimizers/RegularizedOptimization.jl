@@ -8,7 +8,7 @@ include("plot-utils-bpdn.jl")
 Random.seed!(1234)
 
 function demo_solver(f, sol, h, χ, suffix = "l0-linf")
-  options = ROSolverOptions(ν = 1.0, β = 1e16, ϵ = 1e-6, verbose = 10)
+  options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10)
 
   @info "using R2 to solve with" h
   reset!(f)
@@ -24,7 +24,7 @@ function demo_solver(f, sol, h, χ, suffix = "l0-linf")
 end
 
 function demo_bpdn(compound = 1)
-  model, sol = bpdn_model(compound)
+  model, nls_model, sol = bpdn_model(compound)
   f = LSR1Model(model)
 
   λ = norm(grad(model, zeros(model.meta.nvar)), Inf) / 10
