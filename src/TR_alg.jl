@@ -49,7 +49,6 @@ function TR(
   χ::X,
   options::ROSolverOptions;
   x0::AbstractVector = f.meta.x0,
-  selected::UnitRange{T} = 1:length(f.meta.x0),
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
@@ -69,6 +68,7 @@ function TR(
   α = options.α
   θ = options.θ
   β = options.β
+  selected = f.selected
 
   local l_bound, u_bound
   if has_bounds(f)
