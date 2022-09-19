@@ -83,6 +83,8 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * com
       @test typeof(out.dual_feas) == eltype(out.solution)
       @test length(out.solver_specific[:Fhist]) == length(out.solver_specific[:Hhist])
       @test length(out.solver_specific[:Fhist]) == length(out.solver_specific[:SubsolverCounter])
+      @test length(out.solver_specific[:Fhist]) == length(out.solver_specific[:NLSGradHist])
+      @test out.solver_specific[:NLSGradHist][end] == bpdn_nls.counters.neval_jprod_residual
       @test obj(bpdn_nls, out.solution) == out.solver_specific[:Fhist][end]
       @test h(out.solution) == out.solver_specific[:Hhist][end]
       @test out.status == :first_order
@@ -106,6 +108,8 @@ for (h, h_name) ∈ ((NormL1(λ), "l1"),)
     @test length(LMTR_out.solver_specific[:Fhist]) == length(LMTR_out.solver_specific[:Hhist])
     @test length(LMTR_out.solver_specific[:Fhist]) ==
           length(LMTR_out.solver_specific[:SubsolverCounter])
+    @test length(LMTR_out.solver_specific[:Fhist]) == length(LMTR_out.solver_specific[:NLSGradHist])
+    @test LMTR_out.solver_specific[:NLSGradHist][end] == bpdn_nls.counters.neval_jprod_residual
     @test obj(bpdn_nls, LMTR_out.solution) == LMTR_out.solver_specific[:Fhist][end]
     @test h(LMTR_out.solution) == LMTR_out.solver_specific[:Hhist][end]
     @test LMTR_out.status == :first_order
