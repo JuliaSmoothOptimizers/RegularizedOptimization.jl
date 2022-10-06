@@ -168,7 +168,7 @@ function LMTR(
       continue
     end
 
-    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
+    subsolver_options.ϵa = k == 1 ? 1.0e0 : max(ϵ, min(1.0e0, ξ1/2))
     set_radius!(ψ, min(β * χ(s), Δk))
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
