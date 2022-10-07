@@ -106,6 +106,8 @@ function LM(
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
   Grad_hist = zeros(Int, maxIter)
+  Resid_hist = zeros(Int, maxIter)
+
   if verbose > 0
     #! format: off
     @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
@@ -134,7 +136,8 @@ function LM(
     elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    Grad_hist[k] = nls.counters.neval_jprod_residual
+    Grad_hist[k] = nls.counters.neval_jtprod_residual + nls.counters.neval_jprod_residual
+    Resid_hist[k] = nls.counters.neval_residual
 
     # model for first prox-gradient iteration
     φ1(d) = begin
@@ -284,5 +287,6 @@ function LM(
   set_solver_specific!(stats, :NonSmooth, h)
   set_solver_specific!(stats, :SubsolverCounter, Complex_hist[1:k])
   set_solver_specific!(stats, :NLSGradHist, Grad_hist[1:k])
+  set_solver_specific!(stats, :ResidHist, Resid_hist[1:k])
   return stats
 end
