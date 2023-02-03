@@ -166,7 +166,8 @@ function LMTR(
     end
 
     subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
-    set_radius!(ψ, min(β * χ(s), Δk))
+    Δk2 = min(β * χ(s), Δk)
+    set_radius!(ψ, Δk2)
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s; JtJ = Jk'*Jk, JtF = Jk'*Fk, ξ1 = ξ1, fkhk = fk+hk)
     end
@@ -195,7 +196,7 @@ function LMTR(
 
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk ψ.Δ χ(xk) sNorm νInv TR_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk Δk2 χ(xk) sNorm νInv TR_stat
       #! format: on
     end
 
@@ -233,7 +234,7 @@ function LMTR(
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" ψ.Δ χ(xk) χ(s) νInv
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" Δk χ(xk) χ(s) νInv
       #! format: on
       @info "LMTR: terminating with √ξ1 = $(sqrt(ξ1))"
     end
