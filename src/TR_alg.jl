@@ -159,8 +159,8 @@ function TR(
     end
 
     subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
-    Δk2 = min(β * χ(s), Δk)
-    set_radius!(ψ, Δk2)
+    ∆_effective = min(β * χ(s), Δk)
+    set_radius!(ψ, ∆_effective)
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
@@ -185,7 +185,7 @@ function TR(
 
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk Δk2 χ(xk) sNorm νInv TR_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk ∆_effective χ(xk) sNorm νInv TR_stat
       #! format: on
     end
 
