@@ -7,7 +7,6 @@ for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "l
       @testset "bpdn-with-bounds-$(mod_name)-$(solver_name)-$(h_name)" begin
         x0 = zeros(bpdn2.meta.nvar)
         p = randperm(bpdn2.meta.nvar)[1:nz]
-        x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
         args = solver_sym == :R2 ? () : (NormLinf(1.0),)
         @test has_bounds(mod(bpdn2))
         out = solver(mod(bpdn2), h, args..., options, x0 = x0)
