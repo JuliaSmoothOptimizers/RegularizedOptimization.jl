@@ -224,7 +224,6 @@ function TR(
 
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
-      set_radius!(ψ, Δk)
       has_bounds(f) ? set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) : set_radius!(ψ, Δk)
     end
     tired = k ≥ maxIter || elapsed_time > maxTime
