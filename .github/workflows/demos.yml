@@ -69,10 +69,20 @@ jobs:
           pkg_path = dirname(Base.find_package("RegularizedOptimization"))
           include(joinpath(pkg_path, "..", "examples", "demo-bpdn.jl"))
         shell: julia --project="examples" --color=yes {0}
+      - name: Run contrained BPDN demo
+        run: |
+          pkg_path = dirname(Base.find_package("RegularizedOptimization"))
+          include(joinpath(pkg_path, "..", "examples", "demo-bpdn-constr.jl"))
+        shell: julia --project="examples" --color=yes {0}
       - name: Run FH demo
         run: |
           pkg_path = dirname(Base.find_package("RegularizedOptimization"))
           include(joinpath(pkg_path, "..", "examples", "demo-fh.jl"))
+        shell: julia --project="examples" --color=yes {0}
+      - name: Run NNMF demo
+        run: |
+          pkg_path = dirname(Base.find_package("RegularizedOptimization"))
+          include(joinpath(pkg_path, "..", "examples", "demo-nnmf-constr.jl"))
         shell: julia --project="examples" --color=yes {0}
       - name: Upload results
         uses: actions/upload-artifact@v3
