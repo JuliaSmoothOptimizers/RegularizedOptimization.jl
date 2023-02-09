@@ -30,6 +30,7 @@ where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; 
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
 * `subsolver`: the procedure used to compute a step (`PG` or `R2`)
 * `subsolver_options::ROSolverOptions`: default options to pass to the subsolver.
+* `selected::AbstractVector{<:Integer}`: (default `1:f.meta.nvar`).
 
 ### Return values
 
@@ -47,6 +48,7 @@ function LMTR(
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
+  selected::AbstractVector{<:Integer} = 1:nls.meta.nvar,
 ) where {H, X}
   start_time = time()
   elapsed_time = 0.0
@@ -64,6 +66,12 @@ function LMTR(
   θ = options.θ
   β = options.β
 
+  local l_bound, u_bound
+  if has_bounds(nls)
+    l_bound = nls.meta.lvar
+    u_bound = nls.meta.uvar
+  end
+
   if verbose == 0
     ptf = Inf
   elseif verbose == 1
@@ -76,11 +84,11 @@ function LMTR(
 
   # initialize parameters
   xk = copy(x0)
-  hk = h(xk)
+  hk = h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "LMTR: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, x0, one(eltype(x0)))
-    hk = h(xk)
+    hk = h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "LMTR: found point where h has value" hk
   end
@@ -88,7 +96,9 @@ function LMTR(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = shifted(h, xk, Δk, χ)
+  ψ = has_bounds(nls) ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
+    shifted(h, xk, Δk, χ)
+
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -168,7 +178,8 @@ function LMTR(
 
     subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
     ∆_effective = min(β * χ(s), Δk)
-    set_radius!(ψ, ∆_effective)
+    has_bounds(nls) ? set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
+      set_radius!(ψ, ∆_effective)
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
@@ -179,7 +190,7 @@ function LMTR(
     xkn .= xk .+ s
     residual!(nls, xkn, Fkn)
     fkn = dot(Fkn, Fkn) / 2
-    hkn = h(xkn)
+    hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
@@ -203,11 +214,12 @@ function LMTR(
 
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
-      set_radius!(ψ, Δk)
+      !has_bounds(nls) && set_radius!(ψ, Δk)
     end
 
     if η1 ≤ ρk < Inf
       xk .= xkn
+      has_bounds(nls) && set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk))
 
       #update functions
       Fk .= Fkn
@@ -224,7 +236,7 @@ function LMTR(
 
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
-      set_radius!(ψ, Δk)
+      has_bounds(nls) ? set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) : set_radius!(ψ, Δk)
     end
 
     tired = k ≥ maxIter || elapsed_time > maxTime
