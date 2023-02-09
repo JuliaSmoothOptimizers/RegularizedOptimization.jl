@@ -28,6 +28,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs is the Taylor linear approximation
 ### Keyword Arguments
 
 * `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
+* `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`).
 
 The objective and gradient of `nlp` will be accessed.
 
@@ -46,7 +47,15 @@ In the second form, instead of `nlp`, the user may pass in
 function R2(nlp::AbstractNLPModel, args...; kwargs...)
   kwargs_dict = Dict(kwargs...)
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
-  xk, k, outdict = R2(x -> obj(nlp, x), (g, x) -> grad!(nlp, x, g), args..., x0; kwargs_dict...)
+  xk, k, outdict = R2(
+    x -> obj(nlp, x),
+    (g, x) -> grad!(nlp, x, g),
+    args..., 
+    x0;
+    l_bound = nlp.meta.lvar,
+    u_bound = nlp.meta.uvar,
+    kwargs_dict...,
+  )
   ξ = outdict[:ξ]
   stats = GenericExecutionStats(nlp)
   set_status!(stats, outdict[:status])
@@ -67,7 +76,9 @@ function R2(
   ∇f!::G,
   h::H,
   options::ROSolverOptions{R},
-  x0::AbstractVector{R},
+  x0::AbstractVector{R};
+  selected::AbstractVector{<:Integer} = 1:length(x0),
+  kwargs...,
 ) where {F <: Function, G <: Function, H, R <: Real}
   start_time = time()
   elapsed_time = 0.0
@@ -83,6 +94,18 @@ function R2(
   ν = options.ν
   γ = options.γ
 
+  local l_bound, u_bound
+  has_bnds = false
+  for (key, val) in kwargs
+    if key == :l_bound
+      l_bound = val
+      has_bnds = has_bnds || any(l_bound .!= R(-Inf))
+    elseif key == :u_bound
+      u_bound = val
+      has_bnds = has_bnds || any(u_bound .!= R(Inf))
+    end
+  end
+
   if verbose == 0
     ptf = Inf
   elseif verbose == 1
@@ -95,11 +118,11 @@ function R2(
 
   # initialize parameters
   xk = copy(x0)
-  hk = h(xk)
+  hk = h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "R2: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, x0, one(eltype(x0)))
-    hk = h(xk)
+    hk = h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "R2: found point where h has value" hk
   end
@@ -107,7 +130,7 @@ function R2(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = shifted(h, xk)
+  ψ = has_bnds ? shifted(h, xk, l_bound - xk, u_bound - xk, selected) : shifted(h, xk)
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -158,7 +181,7 @@ function R2(
     ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
     xkn .= xk .+ s
     fkn = f(xkn)
-    hkn = h(xkn)
+    hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
 
     Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
@@ -178,6 +201,7 @@ function R2(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
+      has_bnds && set_bounds!(ψ, l_bound - xk, u_bound - xk)
       fk = fkn
       hk = hkn
       ∇f!(∇fk, xk)
