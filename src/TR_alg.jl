@@ -34,7 +34,8 @@ The Hessian is accessed as an abstract operator and need not be the exact Hessia
 * `x0::AbstractVector`: an initial guess (default: `nlp.meta.x0`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver (default: the null logger)
 * `subsolver`: the procedure used to compute a step (`PG` or `R2`)
-* `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options).
+* `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options)
+* `selected::AbstractVector{<:Integer}`: (default `1:f.meta.nvar`).
 
 ### Return values
 
@@ -52,6 +53,7 @@ function TR(
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
+  selected::AbstractVector{<:Integer} = 1:f.meta.nvar,
 ) where {H, X}
   start_time = time()
   elapsed_time = 0.0
@@ -69,6 +71,12 @@ function TR(
   θ = options.θ
   β = options.β
 
+  local l_bound, u_bound
+  if has_bounds(f)
+    l_bound = f.meta.lvar
+    u_bound = f.meta.uvar
+  end
+
   if verbose == 0
     ptf = Inf
   elseif verbose == 1
@@ -81,11 +89,11 @@ function TR(
 
   # initialize parameters
   xk = copy(x0)
-  hk = h(xk)
+  hk = h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "TR: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, x0, one(eltype(x0)))
-    hk = h(xk)
+    hk = h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "TR: found point where h has value" hk
   end
@@ -93,7 +101,8 @@ function TR(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = shifted(h, xk, Δk, χ)
+  ψ = has_bounds(f) ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
+    shifted(h, xk, Δk, χ)
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -160,7 +169,8 @@ function TR(
 
     subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     ∆_effective = min(β * χ(s), Δk)
-    set_radius!(ψ, ∆_effective)
+    has_bounds(f) ? set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
+      set_radius!(ψ, ∆_effective)
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
@@ -169,7 +179,7 @@ function TR(
     sNorm = χ(s)
     xkn .= xk .+ s
     fkn = obj(f, xkn)
-    hkn = h(xkn)
+    hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
@@ -191,11 +201,12 @@ function TR(
 
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
-      set_radius!(ψ, Δk)
+      !has_bounds(f) && set_radius!(ψ, Δk)
     end
 
     if η1 ≤ ρk < Inf
       xk .= xkn
+      has_bounds(f) && set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk))
 
       #update functions
       fk = fkn
@@ -214,7 +225,7 @@ function TR(
 
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
-      set_radius!(ψ, Δk)
+      has_bounds(f) ? set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) : set_radius!(ψ, Δk)
     end
     tired = k ≥ maxIter || elapsed_time > maxTime
   end

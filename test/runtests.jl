@@ -7,6 +7,7 @@ const global compound = 1
 const global nz = 10 * compound
 const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10)
 const global bpdn, bpdn_nls, sol = bpdn_model(compound)
+const global bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
@@ -109,3 +110,5 @@ for (h, h_name) ∈ ((NormL1(λ), "l1"),)
     @test LMTR_out.status == :first_order
   end
 end
+
+include("test_bounds.jl")
