@@ -30,4 +30,11 @@ function plot_bpdn(outstruct, sol, name = "tr-qr")
     ymode = "log",
   )
   save("bpdn-objdec-$(name).pdf", c)
+
+  d = Axis(
+    Plots.Linear(1:length(x), abs.(x - sol), mark = "none"),
+    xlabel = "index",
+    ylabel = "error \$|x - x^*|\$",
+  )
+  save("bpdn-error-$(name).pdf", d)
 end
