@@ -7,7 +7,7 @@ using LinearAlgebra, Logging, Printf
 using ProximalOperators, TSVD
 
 # dependencies from us
-using NLPModels, NLPModelsModifiers, ShiftedProximalOperators, SolverCore
+using LinearOperators, NLPModels, NLPModelsModifiers, ShiftedProximalOperators, SolverCore
 
 include("utils.jl")
 include("input_struct.jl")
@@ -15,6 +15,7 @@ include("PG_alg.jl")
 include("Fista_alg.jl")
 include("splitting.jl")
 include("TR_alg.jl")
+include("TRDH_alg.jl")
 include("R2_alg.jl")
 include("LM_alg.jl")
 include("LMTR_alg.jl")
