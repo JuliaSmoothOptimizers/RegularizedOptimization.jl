@@ -1,6 +1,6 @@
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
   for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
-    for solver_sym ∈ (:TR, :R2)
+    for solver_sym ∈ (:TR, :R2, :TRDH)
       solver_sym == :TR && mod_name == "exact" && continue
       solver_name = string(solver_sym)
       solver = eval(solver_sym)
