@@ -8,12 +8,30 @@ function plot_nnmf(outstruct, Avec, m, n, k, name = "tr-qr")
   W = reshape(x[1:(m * k)], m, k)
   H = reshape(x[(m * k + 1):end], k, n)
   WH = W * H
-  
+
   a = GroupPlot(2, 2, groupStyle = "horizontal sep = 2.5cm")
-  push!(a, Axis(Plots.Image(A, (1, m), (1, n), colormap=ColorMaps.Named("Jet")), xlabel = "A matrix (reference)"))
-  push!(a, Axis(Plots.Image(WH, (1, m), (1, n), colormap=ColorMaps.Named("Jet")), xlabel = "WH matrix"))
-  push!(a, Axis(Plots.Image(H, (1, k), (1, n), colormap=ColorMaps.Named("Jet")), xlabel = "H matrix"))
-  push!(a, Axis(Plots.Image(abs.(A - WH), (1, m), (1, n), colormap=ColorMaps.Named("Jet")), xlabel = "|A-WH| matrix"))
+  push!(
+    a,
+    Axis(
+      Plots.Image(A, (1, m), (1, n), colormap = ColorMaps.Named("Jet")),
+      xlabel = "A matrix (reference)",
+    ),
+  )
+  push!(
+    a,
+    Axis(Plots.Image(WH, (1, m), (1, n), colormap = ColorMaps.Named("Jet")), xlabel = "WH matrix"),
+  )
+  push!(
+    a,
+    Axis(Plots.Image(H, (1, k), (1, n), colormap = ColorMaps.Named("Jet")), xlabel = "H matrix"),
+  )
+  push!(
+    a,
+    Axis(
+      Plots.Image(abs.(A - WH), (1, m), (1, n), colormap = ColorMaps.Named("Jet")),
+      xlabel = "|A-WH| matrix",
+    ),
+  )
   save("nnmf-$(name).pdf", a)
 
   b = Axis(
