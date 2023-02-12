@@ -53,7 +53,7 @@ function TR(
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(),
-  selected::AbstractVector{<:Integer} = 1:f.meta.nvar,
+  selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
 ) where {H, X}
   start_time = time()
   elapsed_time = 0.0
@@ -101,7 +101,8 @@ function TR(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = has_bounds(f) ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
+  ψ =
+    has_bounds(f) ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
     shifted(h, xk, Δk, χ)
 
   Fobj_hist = zeros(maxIter)
@@ -169,8 +170,9 @@ function TR(
 
     subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     ∆_effective = min(β * χ(s), Δk)
-    has_bounds(f) ? set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
-      set_radius!(ψ, ∆_effective)
+    has_bounds(f) ?
+    set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
+    set_radius!(ψ, ∆_effective)
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
@@ -225,7 +227,8 @@ function TR(
 
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
-      has_bounds(f) ? set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) : set_radius!(ψ, Δk)
+      has_bounds(f) ? set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) :
+      set_radius!(ψ, Δk)
     end
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
