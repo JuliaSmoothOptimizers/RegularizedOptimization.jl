@@ -50,7 +50,7 @@ function R2(nlp::AbstractNLPModel, args...; kwargs...)
   xk, k, outdict = R2(
     x -> obj(nlp, x),
     (g, x) -> grad!(nlp, x, g),
-    args..., 
+    args...,
     x0;
     l_bound = nlp.meta.lvar,
     u_bound = nlp.meta.uvar,
