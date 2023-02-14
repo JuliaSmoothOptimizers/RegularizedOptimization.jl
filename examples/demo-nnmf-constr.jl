@@ -13,12 +13,29 @@ function demo_solver(f, h, χ, selected, Avec, m, n, k, suffix = "l0-linf")
   @info " using TR to solve with" h χ
   reset!(f)
   TR_out = TR(f, h, χ, options, selected = selected)
-  plot_nnmf(TR_out, Avec, m, n, k, "tr-r2-$suffix")
+  # plot_nnmf(TR_out, Avec, m, n, k, "tr-r2-$suffix")
 
   @info " using R2 to solve with" h
   reset!(f)
   R2_out = R2(f, h, options, selected = selected)
-  plot_nnmf(R2_out, Avec, m, n, k, "r2-$suffix")
+  # plot_nnmf(R2_out, Avec, m, n, k, "r2-$suffix")
+
+  options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10, maxIter = 500, spectral = true)
+  @info " using TR with R2 as subproblem to solve with" h χ
+  reset!(f)
+  TR_out = TR(f, h, χ, options, selected = selected)
+  # plot_nnmf(TR_out, Avec, m, n, k, "tr-r2-$suffix")
+
+  subsolver_options = ROSolverOptions(spectral = false, psb = true)
+  @info " using TR with TRDH as subproblem to solve with" h χ
+  reset!(f)
+  TR2_out = TR(f, h, χ, options, selected = selected, subsolver = TRDH, subsolver_options = subsolver_options)
+  # plot_nnmf(TR2_out, Avec, m, n, k, "tr-trdh-$suffix")
+
+  @info " using TRDH to solve with" h χ
+  reset!(f)
+  TRDH_out = TRDH(f, h, χ, options, selected = selected)
+  # plot_nnmf(TRDH_out, Avec, m, n, k, "trdh-$suffix")
 end
 
 function demo_nnmf()
