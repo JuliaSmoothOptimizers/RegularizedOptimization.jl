@@ -27,7 +27,7 @@ for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "l
 end
 
 for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
-  for solver_sym ∈ (:LMTR,)
+  for solver_sym ∈ (:LMTR, :LM)
     solver_name = string(solver_sym)
     solver = eval(solver_sym)
     @testset "bpdn-with-bounds-ls-$(solver_name)-$(h_name)" begin
