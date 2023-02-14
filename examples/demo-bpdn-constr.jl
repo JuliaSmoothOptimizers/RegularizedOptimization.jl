@@ -22,7 +22,7 @@ function demo_solver(f, nls, sol, h, χ, suffix = "l0-linf")
   R2_out = R2(f, h, options, x0 = f.meta.x0)
   @info "R2 relative error" norm(R2_out.solution - sol) / norm(sol)
   plot_bpdn(R2_out, sol, "constr-r2-$(suffix)")
-  
+
   @info " using LMTR to solve with" h χ
   reset!(nls)
   LMTR_out = LMTR(nls, h, χ, options, x0 = f.meta.x0)
