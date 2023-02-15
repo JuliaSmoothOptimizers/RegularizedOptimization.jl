@@ -72,7 +72,7 @@ function TR(
   β = options.β
 
   local l_bound, u_bound
-  if has_bounds(f)
+  if has_bounds(f) || subsolver == TRDH
     l_bound = f.meta.lvar
     u_bound = f.meta.uvar
   end
@@ -101,9 +101,8 @@ function TR(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ =
-    has_bounds(f) ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
-    shifted(h, xk, Δk, χ)
+  ψ = (has_bounds(f) || subsolver == TRDH) ?
+    shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) : shifted(h, xk, Δk, χ)
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -170,7 +169,7 @@ function TR(
 
     subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ, min(1e-2, sqrt(ξ1)) * ξ1)
     ∆_effective = min(β * χ(s), Δk)
-    has_bounds(f) ?
+    (has_bounds(f) || subsolver == TRDH) ?
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
     set_radius!(ψ, ∆_effective)
     s, iter, _ = with_logger(subsolver_logger) do
@@ -203,12 +202,12 @@ function TR(
 
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
-      !has_bounds(f) && set_radius!(ψ, Δk)
+      !(has_bounds(f) || subsolver == TRDH) && set_radius!(ψ, Δk)
     end
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-      has_bounds(f) && set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk))
+      (has_bounds(f) || subsolver == TRDH) && set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk))
 
       #update functions
       fk = fkn
@@ -227,7 +226,7 @@ function TR(
 
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
-      has_bounds(f) ? set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) :
+      (has_bounds(f) || subsolver == TRDH) ? set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) :
       set_radius!(ψ, Δk)
     end
     tired = k ≥ maxIter || elapsed_time > maxTime
