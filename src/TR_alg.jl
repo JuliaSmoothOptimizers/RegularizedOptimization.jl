@@ -172,10 +172,10 @@ function TR(
     (has_bounds(f) || subsolver == TRDH) ?
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
     set_radius!(ψ, ∆_effective)
-    s, iter, _ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s)
+    s, iter, outdict = with_logger(subsolver_logger) do
+      subsolver(φ, ∇φ!, ψ, subsolver_options, s; Bk = Bk)
     end
-    Complex_hist[k] = iter
+    Complex_hist[k] = sum(outdict[:Chist])
 
     sNorm = χ(s)
     xkn .= xk .+ s
