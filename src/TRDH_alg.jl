@@ -81,6 +81,7 @@ function TRDH(
   x0::AbstractVector{R};
   χ::X = NormLinf(one(R)),
   selected::AbstractVector{<:Integer} = 1:length(x0),
+  Bk = I,
   kwargs...,
 ) where {R <: Real, F, G, H, X}
   start_time = time()
@@ -99,6 +100,7 @@ function TRDH(
   spectral = options.spectral
   psb = options.psb
   hess_init_val = one(R) / options.ν
+  reduce_TR = options.reduce_TR
 
   local l_bound, u_bound
   has_bnds = false
@@ -176,11 +178,10 @@ function TRDH(
   ∇f!(∇fk, xk)
   ∇fk⁻ = copy(∇fk)
   Dk = spectral ? SpectralGradient(hess_init_val, length(xk)) :
-    DiagonalQN(fill!(similar(xk), hess_init_val), psb)
+      ((Bk == I) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb) : DiagonalQN(diag(Bk), psb))
   νInv = (norm(Dk.d, Inf) + one(R) / (α * Δk))
   ν = one(R) / νInv
   mν∇fk = -ν .* ∇fk
-  mdinv∇fk = .-∇fk ./ Dk.d
 
   optimal = false
   tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
@@ -196,7 +197,7 @@ function TRDH(
     mk1(d) = φ1(d) + ψ(d)
 
     prox!(s, ψ, mν∇fk, ν)
-    Complex_hist[k] += 1
+    reduce_TR && (Complex_hist[k] += 1)
     ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps() # ?
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
@@ -210,7 +211,7 @@ function TRDH(
       continue
     end
 
-    Δ_effective = min(β * χ(s), Δk)
+    Δ_effective = reduce_TR ? min(β * χ(s), Δk) : Δk
     # update radius
     if has_bnds
       if is_subsolver
@@ -283,7 +284,6 @@ function TRDH(
       ν = one(R) / νInv
       ∇fk⁻ .= ∇fk
       mν∇fk .= -ν .* ∇fk
-      mdinv∇fk .= .-∇fk ./ Dk.d
     end
 
     if ρk < η1 || ρk == Inf

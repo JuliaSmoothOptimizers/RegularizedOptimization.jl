@@ -17,7 +17,8 @@ mutable struct ROSolverOptions{R}
   θ::R  # step length factor in relation to Hessian norm
   β::R  # TR size as factor of first PG step
   spectral::Bool # for TRDH: use spectral gradient update if true, otherwise DiagonalQN
-  psb::Bool # for TRDH with DiagonalQN (spectral = false): use PSB update if true, otherwise Andrei update  
+  psb::Bool # for TRDH with DiagonalQN (spectral = false): use PSB update if true, otherwise Andrei update
+  reduce_TR::Bool 
 
   function ROSolverOptions{R}(;
     ϵa::R = √eps(R),
@@ -37,6 +38,7 @@ mutable struct ROSolverOptions{R}
     β::R = 1 / eps(R),
     spectral::Bool = false,
     psb::Bool = false,
+    reduce_TR::Bool = true,
   ) where {R <: Real}
     @assert ϵa ≥ 0
     @assert ϵr ≥ 0
@@ -52,7 +54,7 @@ mutable struct ROSolverOptions{R}
     @assert γ > 1
     @assert θ > 0
     @assert β ≥ 1
-    return new{R}(ϵa, ϵr, neg_tol, Δk, verbose, maxIter, maxTime, σmin, η1, η2, α, ν, γ, θ, β, spectral, psb)
+    return new{R}(ϵa, ϵr, neg_tol, Δk, verbose, maxIter, maxTime, σmin, η1, η2, α, ν, γ, θ, β, spectral, psb, reduce_TR)
   end
 end
 
