@@ -17,3 +17,6 @@ ShiftedProximalOperators.iprox!(
   g::AbstractVector,
   D::SpectralGradient,
 ) = iprox!(y, ψ, g, fill!(similar(g), D.d[1]))
+
+LinearAlgebra.diag(op::DiagonalQN) = copy(op.d)
+LinearAlgebra.diag(op::SpectralGradient{T}) where {T} = zeros(T, op.nrow) .* op.d[1]
