@@ -32,7 +32,7 @@ mutable struct ROSolverOptions{R}
     ν::R = 1.0e-3,
     γ::R = R(3),
     θ::R = R(1e-3),
-    β::R = R(10),
+    β::R = 1 / eps(R),
   ) where {R <: Real}
     @assert ϵa ≥ 0
     @assert ϵr ≥ 0
