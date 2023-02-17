@@ -73,6 +73,17 @@ function TRDH(nlp::AbstractNLPModel{R}, h, χ, options::ROSolverOptions{R}; kwar
   return stats
 end
 
+# update l_bound_k and u_bound_k
+function update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δ)
+  if is_subsolver
+    @. l_bound_k = max(xk - Δ, l_bound)
+    @. u_bound_k = min(xk + Δ, u_bound)
+  else
+    @. l_bound_k = max(-Δ, l_bound - xk)
+    @. u_bound_k = min(Δ, u_bound - xk)
+  end
+end
+
 function TRDH(
   f::F,
   ∇f!::G,
@@ -179,7 +190,8 @@ function TRDH(
   ∇fk⁻ = copy(∇fk)
   Dk = spectral ? SpectralGradient(hess_init_val, length(xk)) :
       ((Bk == I) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb) : DiagonalQN(diag(Bk), psb))
-  νInv = (norm(Dk.d, Inf) + one(R) / (α * Δk))
+  DkNorm = norm(Dk.d, Inf)
+  νInv = (DkNorm + one(R) / (α * Δk))
   ν = one(R) / νInv
   mν∇fk = -ν .* ∇fk
 
@@ -214,13 +226,7 @@ function TRDH(
     Δ_effective = reduce_TR ? min(β * χ(s), Δk) : Δk
     # update radius
     if has_bnds
-      if is_subsolver
-        @. l_bound_k = max(xk - Δ_effective, l_bound)
-        @. u_bound_k = min(xk + Δ_effective, u_bound)
-      else
-        @. l_bound_k = max(-Δ_effective, l_bound - xk)
-        @. u_bound_k = min(Δ_effective, u_bound - xk)
-      end
+      update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δ_effective)
       set_bounds!(ψ, l_bound_k, u_bound_k)
     else
       set_radius!(ψ, Δ_effective)
@@ -256,23 +262,15 @@ function TRDH(
       #! format: on
     end
 
-    if has_bnds
-      if is_subsolver
-        @. l_bound_k = max(xk - Δ_effective, l_bound)
-        @. u_bound_k = min(xk + Δ_effective, u_bound)
-      else
-        @. l_bound_k = max(-Δ_effective, l_bound - xk)
-        @. u_bound_k = min(Δ_effective, u_bound - xk)
-      end
-    end
-
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
+      has_bnds && update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δk)
       !has_bnds && set_radius!(ψ, Δk)
     end
 
     if η1 ≤ ρk < Inf
       xk .= xkn
+      has_bnds && update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δk)
       has_bnds && set_bounds!(ψ, l_bound_k, u_bound_k)
       #update functions
       fk = fkn
@@ -280,16 +278,20 @@ function TRDH(
       shift!(ψ, xk)
       ∇f!(∇fk, xk)
       push!(Dk, s, ∇fk - ∇fk⁻) # update QN operator
-      νInv = (norm(Dk.d, Inf) + one(R) / (α * Δk))
-      ν = one(R) / νInv
+      DkNorm = norm(Dk.d, Inf)
       ∇fk⁻ .= ∇fk
-      mν∇fk .= -ν .* ∇fk
     end
 
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
+      has_bnds && update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δk)
       has_bnds ? set_bounds!(ψ, l_bound_k, u_bound_k) : set_radius!(ψ, Δk)
     end
+
+    νInv = (DkNorm + one(R) / (α * Δk))
+    ν = one(R) / νInv
+    mν∇fk .= -ν .* ∇fk
+
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
