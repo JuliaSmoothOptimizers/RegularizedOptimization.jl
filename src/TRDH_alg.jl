@@ -139,11 +139,11 @@ function TRDH(
   xk = copy(x0)
   hk = h(xk[selected])
   if hk == Inf
-    verbose > 0 && @info "R2: finding initial guess where nonsmooth term is finite"
+    verbose > 0 && @info "TRDH: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, x0, one(eltype(x0)))
     hk = h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
-    verbose > 0 && @debug "R2: found point where h has value" hk
+    verbose > 0 && @debug "TRDH: found point where h has value" hk
   end
   hk == -Inf && error("nonsmooth term is not proper")
 
@@ -182,6 +182,7 @@ function TRDH(
   end
 
   local ξ1
+  local ξ
   k = 0
 
   fk = f(xk)
@@ -208,19 +209,21 @@ function TRDH(
     φ1(d) = ∇fk' * d
     mk1(d) = φ1(d) + ψ(d)
 
-    prox!(s, ψ, mν∇fk, ν)
-    reduce_TR && (Complex_hist[k] += 1)
-    ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps() # ?
-    ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    if reduce_TR
+      prox!(s, ψ, mν∇fk, ν)
+      Complex_hist[k] += 1
+      ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
+      ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
-    if ξ1 ≥ 0 && k == 1
-      ϵ += ϵr * sqrt(ξ1)  # make stopping test absolute and relative
-    end
+      if ξ1 ≥ 0 && k == 1
+        ϵ += ϵr * sqrt(ξ1)  # make stopping test absolute and relative
+      end
 
-    if sqrt(ξ1) < ϵ
-      # the current xk is approximately first-order stationary
-      optimal = true
-      continue
+      if sqrt(ξ1) < ϵ
+        # the current xk is approximately first-order stationary
+        optimal = true
+        continue
+      end
     end
 
     Δ_effective = reduce_TR ? min(β * χ(s), Δk) : Δk
@@ -252,6 +255,18 @@ function TRDH(
       error("TRDH: failed to compute a step: ξ = $ξ")
     end
 
+    if !reduce_TR
+      if ξ ≥ 0 && k == 1
+        ϵ += ϵr * sqrt(ξ)  # make stopping test absolute and relative
+      end
+
+      if sqrt(ξ) < ϵ
+        # the current xk is approximately first-order stationary
+        optimal = true
+        continue
+      end
+    end
+
     ρk = Δobj / ξ
 
     TR_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
@@ -264,7 +279,6 @@ function TRDH(
 
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
-      has_bnds && update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δk)
       !has_bnds && set_radius!(ψ, Δk)
     end
 
@@ -305,6 +319,8 @@ function TRDH(
       @info "TRDH: terminating with √ξ1 = $(sqrt(ξ1))"
     end
   end
+
+  !reduce_TR && (ξ1 = ξ) # for output dict
 
   status = if optimal
     :first_order
