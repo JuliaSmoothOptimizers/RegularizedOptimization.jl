@@ -92,7 +92,7 @@ function TRDH(
   x0::AbstractVector{R};
   χ::X = NormLinf(one(R)),
   selected::AbstractVector{<:Integer} = 1:length(x0),
-  Bk = I,
+  Bk = (one(R) / options.ν) * I,
   kwargs...,
 ) where {R <: Real, F, G, H, X}
   start_time = time()
@@ -110,7 +110,7 @@ function TRDH(
   β = options.β
   spectral = options.spectral
   psb = options.psb
-  hess_init_val = one(R) / options.ν
+  hess_init_val = (Bk isa UniformScaling) ? Bk.λ : (one(R) / options.ν)
   reduce_TR = options.reduce_TR
 
   local l_bound, u_bound
@@ -194,7 +194,7 @@ function TRDH(
   ∇f!(∇fk, xk)
   ∇fk⁻ = copy(∇fk)
   Dk = spectral ? SpectralGradient(hess_init_val, length(xk)) :
-      ((Bk == I) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb) : DiagonalQN(diag(Bk), psb))
+    ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb) : DiagonalQN(diag(Bk), psb))
   DkNorm = norm(Dk.d, Inf)
   νInv = (DkNorm + one(R) / (α * Δk))
   ν = one(R) / νInv
