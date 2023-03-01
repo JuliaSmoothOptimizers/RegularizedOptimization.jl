@@ -10,15 +10,17 @@ f = LBFGSModel(model)
 h = NormL0(λ)
 ν = 1.0e2
 verbose = 0 #10
-maxIter_sub = 200
-options = ROSolverOptions(ν = ν, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = verbose, maxIter = 500, spectral = true)
-options2 = ROSolverOptions(spectral = false, psb = true, ϵa = 1e-6, ϵr = 1e-6, maxIter = maxIter_sub)
-options3 = ROSolverOptions(spectral = false, psb = false, ϵa = 1e-6, ϵr = 1e-6, maxIter = maxIter_sub)
-options4 = ROSolverOptions(spectral = true, ϵa = 1e-6, ϵr = 1e-6, maxIter = maxIter_sub)
-options5 = ROSolverOptions(ν = ν, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = verbose, maxIter = 500, spectral = false, psb = true)
-options6 = ROSolverOptions(ν = ν, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = verbose, maxIter = 500, spectral = false, psb = false)
-options7 = ROSolverOptions(spectral = false, psb = true, reduce_TR = false, ϵa = 1e-6, ϵr = 1e-6, maxIter = maxIter_sub)
-options8 = ROSolverOptions(ν = ν, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = verbose, maxIter = 500, spectral = false, psb = false, reduce_TR = false)
+maxIter = 1000
+maxIter_sub = 200 # max iter for subsolver
+ϵ = 1.0e-6
+options = ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true)
+options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_sub)
+options3 = ROSolverOptions(spectral = false, psb = false, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_sub)
+options4 = ROSolverOptions(spectral = true, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_sub)
+options5 = ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = false, psb = true)
+options6 = ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = false, psb = false)
+options7 = ROSolverOptions(spectral = false, psb = true, reduce_TR = false, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_sub)
+options8 = ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = false, psb = false, reduce_TR = false)
 
 solvers = [:R2, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR]
 subsolvers = [:None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH]

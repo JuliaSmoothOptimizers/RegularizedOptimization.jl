@@ -11,13 +11,16 @@ h = NormL1(λ)
 
 ν = 1.0e0
 verbose = 0 #10
-options = ROSolverOptions(ν = ν, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = verbose, maxIter = 500, spectral = true)
-options2 = ROSolverOptions(spectral = false, psb = true, ϵa = 1e-6, ϵr = 1e-6, maxIter=40)
-options3 = ROSolverOptions(spectral = false, psb = false, ϵa = 1e-6, ϵr = 1e-6, maxIter=40)
-options4 = ROSolverOptions(spectral = true, ϵa = 1e-6, ϵr = 1e-6, maxIter=40)
-options5 = ROSolverOptions(ν = ν, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = verbose, maxIter = 500, spectral = false, psb = true)
-options6 = ROSolverOptions(ν = ν, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = verbose, maxIter = 500, spectral = false, psb = false)
-options7 = ROSolverOptions(spectral = false, psb = true, reduce_TR = false, ϵa = 1e-6, ϵr = 1e-6, maxIter=40)
+ϵ = 1.0e-6
+maxIter = 500
+maxIter_inner = 40
+options = ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true)
+options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵ, ϵr = ϵ, maxIter=maxIter_inner)
+options3 = ROSolverOptions(spectral = false, psb = false, ϵa = ϵ, ϵr = ϵ, maxIter=maxIter_inner)
+options4 = ROSolverOptions(spectral = true, ϵa = ϵ, ϵr = ϵ, maxIter=maxIter_inner)
+options5 = ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = false, psb = true)
+options6 = ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = false, psb = false)
+options7 = ROSolverOptions(spectral = false, psb = true, reduce_TR = false, ϵa = ϵ, ϵr = ϵ, maxIter=maxIter_inner)
 
 solvers = [:R2, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR]
 subsolvers = [:None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH]
