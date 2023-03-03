@@ -12,7 +12,7 @@ h = NormL0(λ)
 verbose = 0 #10
 maxIter = 1000
 maxIter_sub = 200 # max iter for subsolver
-ϵ = 1.0e-6
+ϵ = 1.0e-4
 options = ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true)
 options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_sub)
 options3 = ROSolverOptions(spectral = false, psb = false, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_sub)

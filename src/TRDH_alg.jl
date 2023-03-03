@@ -2,8 +2,9 @@ export TRDH
 
 """
     TRDH(nlp, h, χ, options; kwargs...)
+    TRDH(f, ∇f!, h, options, x0)
 
-A trust-region method for the problem
+A trust-region method with diagonal Hessian approximation for the problem
 
     min f(x) + h(x)
 
@@ -14,10 +15,9 @@ About each iterate xₖ, a step sₖ is computed as an approximate solution of
 
     min  φ(s; xₖ) + ψ(s; xₖ)  subject to  ‖s‖ ≤ Δₖ
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Bₖ s  is a quadratic approximation of f about xₖ,
-ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm and Δₖ > 0 is the trust-region radius.
-The subproblem is solved inexactly by way of a first-order method such as the proximal-gradient
-method or the quadratic regularization method.
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Dₖ s  is a quadratic approximation of f about xₖ,
+ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm, Dₖ is a diagonal Hessian approximation
+and Δₖ > 0 is the trust-region radius.
 
 ### Arguments
 
@@ -26,16 +26,19 @@ method or the quadratic regularization method.
 * `χ`: a norm used to define the trust region in the form of a regularizer
 * `options::ROSolverOptions`: a structure containing algorithmic parameters
 
-The objective, gradient and Hessian of `nlp` will be accessed.
-The Hessian is accessed as an abstract operator and need not be the exact Hessian.
+The objective and gradient of `nlp` will be accessed.
+
+In the second form, instead of `nlp`, the user may pass in
+
+* `f` a function such that `f(x)` returns the value of f at x
+* `∇f!` a function to evaluate the gradient in place, i.e., such that `∇f!(g, x)` store ∇f(x) in `g`
+* `x0::AbstractVector`: an initial guess.
 
 ### Keyword arguments
 
 * `x0::AbstractVector`: an initial guess (default: `nlp.meta.x0`)
-* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver (default: the null logger)
-* `subsolver`: the procedure used to compute a step (`PG` or `R2`)
-* `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options)
-* `selected::AbstractVector{<:Integer}`: (default `1:f.meta.nvar`).
+* `selected::AbstractVector{<:Integer}`: (default `1:f.meta.nvar`)
+* `Bk`: initial diagonal Hessian approximation (default: `(one(R) / options.ν) * I`).
 
 ### Return values
 
