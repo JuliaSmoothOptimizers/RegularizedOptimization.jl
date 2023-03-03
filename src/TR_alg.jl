@@ -172,6 +172,7 @@ function TR(
     (has_bounds(f) || subsolver == TRDH) ?
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
     set_radius!(ψ, ∆_effective)
+    subsolver_options.Δk = ∆_effective / 10
     s, iter, outdict = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s; Bk = Bk)
     end
