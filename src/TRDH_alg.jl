@@ -118,14 +118,14 @@ function TRDH(
 
   local l_bound, u_bound
   has_bnds = false
-  for (key, val) in kwargs
-    if key == :l_bound
-      l_bound = val
-      has_bnds = has_bnds || any(l_bound .!= R(-Inf))
-    elseif key == :u_bound
-      u_bound = val
-      has_bnds = has_bnds || any(u_bound .!= R(Inf))
-    end
+  kw_keys = keys(kwargs)
+  if :l_bound in kw_keys
+    l_bound = kwargs[:l_bound]
+    has_bnds = has_bnds || any(l_bound .!= R(-Inf))
+  end
+  if :u_bound in kw_keys
+    u_bound = kwargs[:u_bound]
+    has_bnds = has_bnds || any(u_bound .!= R(Inf))
   end
 
   if verbose == 0
