@@ -47,7 +47,13 @@ In the second form, instead of `nlp`, the user may pass in
 * `Hobj_hist`: an array with the history of values of the nonsmooth objective
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
-function TRDH(nlp::AbstractNLPModel{R}, h, χ, options::ROSolverOptions{R}; kwargs...) where {R <: Real}
+function TRDH(
+  nlp::AbstractNLPModel{R},
+  h,
+  χ,
+  options::ROSolverOptions{R};
+  kwargs...,
+) where {R <: Real}
   kwargs_dict = Dict(kwargs...)
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
   xk, k, outdict = TRDH(
@@ -330,7 +336,9 @@ function TRDH(
         #! format: on
         @info "TRDH: terminating with √ξ1 = $(sqrt(ξ1))"
       else
-        @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k fk hk sqrt(ξ) "" Δk χ(xk) χ(s) νInv
+        @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k fk hk sqrt(ξ) "" Δk χ(
+          xk,
+        ) χ(s) νInv
         @info "TRDH: terminating with √ξ = $(sqrt(ξ))"
       end
     end
