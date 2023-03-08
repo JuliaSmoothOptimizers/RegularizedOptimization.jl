@@ -2,7 +2,12 @@ using PrettyTables
 using Random
 using LinearAlgebra
 using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, ShiftedProximalOperators, SolverBenchmark
+using NLPModels,
+  NLPModelsModifiers,
+  RegularizedProblems,
+  RegularizedOptimization,
+  ShiftedProximalOperators,
+  SolverBenchmark
 using Printf
 
 # utils for extracting stats / display table
@@ -11,12 +16,19 @@ modelname(nlp::LBFGSModel) = "LBFGS"
 modelname(nlp::SpectralGradientModel) = "SpectralGradient"
 modelname(nlp::DiagonalQNModel) = "DiagonalQN"
 subsolvername(subsolver::Symbol) = subsolver == :None ? "" : string("-", subsolver)
-function options_str(options::ROSolverOptions, solver::Symbol, subsolver_options::ROSolverOptions, subsolver::Symbol)
+function options_str(
+  options::ROSolverOptions,
+  solver::Symbol,
+  subsolver_options::ROSolverOptions,
+  subsolver::Symbol,
+)
   if solver == :TRDH
     out_str = !options.spectral ? (options.psb ? "-DiagQN-PSB" : "-DiagQN-Andrei") : "-Spectral"
     out_str = (options.reduce_TR) ? out_str : string(out_str, "-noredTR")
   elseif solver == :TR && subsolver == :TRDH
-    out_str = !subsolver_options.spectral ? (subsolver_options.psb ? "-DiagQN-PSB" : "-DiagQN-Andrei") : "-Spectral"
+    out_str =
+      !subsolver_options.spectral ? (subsolver_options.psb ? "-DiagQN-PSB" : "-DiagQN-Andrei") :
+      "-Spectral"
     out_str = (subsolver_options.reduce_TR) ? out_str : string(out_str, "-noredTR")
   else
     out_str = ""
@@ -46,38 +58,42 @@ function benchmark_table(
   subsolver_options,
   pb_name::String,
 )
-
-  row_names = ["$(solver)$(subsolvername(subsolver))$(options_str(opt, solver, subsolver_opt, subsolver))" 
-                for (solver, opt, subsolver, subsolver_opt) in zip(solvers, solver_options, subsolvers, subsolver_options)]
+  row_names = [
+    "$(solver)$(subsolvername(subsolver))$(options_str(opt, solver, subsolver_opt, subsolver))"
+    for (solver, opt, subsolver, subsolver_opt) in
+    zip(solvers, solver_options, subsolvers, subsolver_options)
+  ]
 
   n∇f_evals = []
   nprox_evals = []
   solver_stats = []
 
-  for (solver, subsolver, opt, sub_opt) in zip(solvers, subsolvers, solver_options, subsolver_options)
+  for (solver, subsolver, opt, sub_opt) in
+      zip(solvers, subsolvers, solver_options, subsolver_options)
     @info " using $solver with subsolver = $subsolver"
     args = solver == :R2 ? () : (NormLinf(1.0),)
     if subsolver == :None
       solver_out = eval(solver)(f, h, args..., opt, x0 = f.meta.x0, selected = selected)
     else
-      solver_out = eval(solver)(f, h, args..., opt, x0 = f.meta.x0, subsolver = eval(subsolver),
-                                subsolver_options = sub_opt, selected = selected)
+      solver_out = eval(solver)(
+        f,
+        h,
+        args...,
+        opt,
+        x0 = f.meta.x0,
+        subsolver = eval(subsolver),
+        subsolver_options = sub_opt,
+        selected = selected,
+      )
     end
     push!(n∇f_evals, grad_evals(f))
     push!(nprox_evals, nb_prox_evals(solver_out, solver))
     push!(solver_stats, solver_out)
     reset!(f)
-
   end
 
   if length(sol) == 0
-    header = [
-      "f(x)",
-      "h(x)/λ",
-      "ξ",
-      "∇f evals",
-      "prox calls",
-    ]
+    header = ["f(x)", "h(x)/λ", "ξ", "∇f evals", "prox calls"]
   else
     header = [
       "f(x) (true = $(round(obj(model, sol); sigdigits = 4)))",
@@ -91,7 +107,7 @@ function benchmark_table(
 
   n_solvers = length(row_names)
   data = Matrix{Any}(undef, n_solvers, length(header))
-  for i=1:n_solvers
+  for i = 1:n_solvers
     solver_out = solver_stats[i]
     x = solver_out.solution
     fx = solver_out.solver_specific[:Fhist][end]
@@ -108,31 +124,28 @@ function benchmark_table(
   end
 
   if length(sol) == 0
-    print_formats = ft_printf(["%7.3e", "%7.1e", "%7.1e", "%i","%i"], 1:length(header))
+    print_formats = ft_printf(["%7.3e", "%7.1e", "%7.1e", "%i", "%i"], 1:length(header))
   else
-    print_formats = ft_printf(["%7.3e", "%7.1e", "%7.1e", "%7.3e", "%i","%i"], 1:length(header))
+    print_formats = ft_printf(["%7.3e", "%7.1e", "%7.1e", "%7.3e", "%i", "%i"], 1:length(header))
   end
 
-  return pretty_table(data; 
-      header = header,
-      row_names= row_names,
-      title = "$pb_name $(modelname(f)) $(typeof(h).name.name)",
-      # backend = Val(:latex),
-      formatters = (print_formats,
-        # (v, i, j) -> (SolverBenchmark.safe_latex_AbstractFloat(v)),
-        ),
-    )
+  return pretty_table(
+    data;
+    header = header,
+    row_names = row_names,
+    title = "$pb_name $(modelname(f)) $(typeof(h).name.name)",
+    # backend = Val(:latex),
+    formatters = (
+      print_formats,
+      # (v, i, j) -> (SolverBenchmark.safe_latex_AbstractFloat(v)),
+    ),
+  )
 end
-
-
 
 # λ = norm(grad(model, rand(model.meta.nvar)), Inf) / 100000
 # h = NormL1(λ)
 # benchmark_table(f, selected, [], h, λ, solvers, subsolvers, solver_options, subsolver_options,
 #                 "NNMF with m = $m, n = $n, k = $k, ν = 1.0e-3,")
-
-
-
 
 # header = ["TR LSR1 L0Box", "R2 LSR1 L0Box", "LM L0Box", "LMTR L0Box"]
 # TR_out = TR(f, h, χ, options, x0 = f.meta.x0)

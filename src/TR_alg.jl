@@ -101,8 +101,10 @@ function TR(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = (has_bounds(f) || subsolver == TRDH) ?
-    shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) : shifted(h, xk, Δk, χ)
+  ψ =
+    (has_bounds(f) || subsolver == TRDH) ?
+    shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
+    shifted(h, xk, Δk, χ)
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -208,7 +210,8 @@ function TR(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-      (has_bounds(f) || subsolver == TRDH) && set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk))
+      (has_bounds(f) || subsolver == TRDH) &&
+        set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk))
 
       #update functions
       fk = fkn
@@ -227,8 +230,8 @@ function TR(
 
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
-      (has_bounds(f) || subsolver == TRDH) ? set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) :
-      set_radius!(ψ, Δk)
+      (has_bounds(f) || subsolver == TRDH) ?
+      set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) : set_radius!(ψ, Δk)
     end
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
