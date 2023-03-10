@@ -109,6 +109,7 @@ function TRDH(
   ϵ = options.ϵa
   ϵr = options.ϵr
   Δk = options.Δk
+  neg_tol = options.neg_tol
   verbose = options.verbose
   maxIter = options.maxIter
   maxTime = options.maxTime
@@ -226,17 +227,18 @@ function TRDH(
       prox!(s, ψ, mν∇fk, ν)
       Complex_hist[k] += 1
       ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
-      ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
       if ξ1 ≥ 0 && k == 1
         ϵ += ϵr * sqrt(ξ1)  # make stopping test absolute and relative
       end
 
-      if sqrt(ξ1) < ϵ
+      if (ξ1 < 0 && sqrt(-ξ1) ≤ neg_tol) || (ξ1 ≥ 0 && sqrt(ξ1) < ϵ)
         # the current xk is approximately first-order stationary
         optimal = true
         continue
       end
+
+      ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
     end
 
     Δ_effective = reduce_TR ? min(β * χ(s), Δk) : Δk
@@ -264,20 +266,20 @@ function TRDH(
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
 
-    if (ξ ≤ 0 || isnan(ξ))
-      error("TRDH: failed to compute a step: ξ = $ξ")
-    end
-
     if !reduce_TR
       if ξ ≥ 0 && k == 1
         ϵ += ϵr * sqrt(ξ)  # make stopping test absolute and relative
       end
 
-      if sqrt(ξ) < ϵ
+      if (ξ < 0 && sqrt(-ξ) ≤ neg_tol) || (ξ ≥ 0 && sqrt(ξ) < ϵ)
         # the current xk is approximately first-order stationary
         optimal = true
         continue
       end
+    end
+
+    if (ξ ≤ 0 || isnan(ξ))
+      error("TRDH: failed to compute a step: ξ = $ξ")
     end
 
     ρk = Δobj / ξ
@@ -363,7 +365,7 @@ function TRDH(
     :status => status,
     :fk => fk,
     :hk => hk,
-    :ξ => ξ1 ≥ 0 ? sqrt(ξ1) : ξ1,
+    :ξ => ξ1,
     :elapsed_time => elapsed_time,
   )
 

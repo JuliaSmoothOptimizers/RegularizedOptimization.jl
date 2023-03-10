@@ -173,7 +173,7 @@ function R2(
       ϵ += ϵr * sqrt(ξ)  # make stopping test absolute and relative
     end
     
-    if (ξ < 0 && sqrt(-ξ) ≤ -neg_tol) || (ξ ≥ 0 && sqrt(ξ) ≤ ϵ)
+    if (ξ < 0 && sqrt(-ξ) ≤ neg_tol) || (ξ ≥ 0 && sqrt(ξ) ≤ ϵ)
       optimal = true
       continue
     end
