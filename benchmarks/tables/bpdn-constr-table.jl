@@ -6,18 +6,20 @@ compound = 1
 model, nls_model, sol = bpdn_model(compound, bounds = true)
 
 f = LSR1Model(model)
-λ = norm(grad(model, zeros(model.meta.nvar)), Inf) / 10
+λ = 1.0e-1 # norm(grad(model, zeros(model.meta.nvar)), Inf) / 10
 h = NormL1(λ)
 
 verbose = 0 # 10
-ϵ = 1.0e-6
+ϵ = 1.0e-5
+ϵi = 1.0e-3
+ϵri = 1.0e-6
 maxIter = 500
-maxIter_inner = 20
+maxIter_inner = 100
 options =
   ROSolverOptions(ν = 1.0, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true)
-options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_inner)
-options3 = ROSolverOptions(spectral = false, psb = false, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_inner)
-options4 = ROSolverOptions(spectral = true, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_inner)
+options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
+options3 = ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
+options4 = ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
 options6 = ROSolverOptions(
   ν = 1.0,
   ϵa = ϵ,
@@ -39,8 +41,8 @@ options5 = ROSolverOptions(
 options7 = ROSolverOptions(
   spectral = false,
   psb = true,
-  ϵa = ϵ,
-  ϵr = ϵ,
+  ϵa = ϵi,
+  ϵr = ϵri,
   maxIter = maxIter_inner,
   reduce_TR = false,
 )
@@ -62,4 +64,5 @@ benchmark_table(
   solver_options,
   subsolver_options,
   "BPDN-cstr",
+  tex = true,
 )

@@ -7,13 +7,15 @@ model, nls_model, sol = bpdn_model(compound, bounds = false)
 
 # parameters
 f = LSR1Model(model)
-λ = norm(grad(model, zeros(model.meta.nvar)), Inf) / 10
-h = NormL1(λ)
+λ = 1.0e-2 #norm(grad(model, zeros(model.meta.nvar)), Inf) / 10
+h = NormL0(λ)
 
 verbose = 0 # 10
-ϵ = 1.0e-6
+ϵ = 1.0e-5
+ϵi = 1.0e-3
+ϵri = 1.0e-6
 maxIter = 500
-maxIter_inner = 40
+maxIter_inner = 100
 options =
   ROSolverOptions(ν = 1.0, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true)
 options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_inner)
@@ -76,4 +78,5 @@ benchmark_table(
   solver_options,
   subsolver_options,
   "BPDN",
+  tex = true,
 )

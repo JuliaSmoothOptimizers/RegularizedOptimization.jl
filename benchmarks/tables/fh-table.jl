@@ -2,22 +2,24 @@ include("regulopt-tables.jl")
 using ADNLPModels, DifferentialEquations
 
 Random.seed!(1234)
-data, simulate, resid, misfit = RegularizedProblems.FH_smooth_term()
+data, simulate, resid, misfit, x0 = RegularizedProblems.FH_smooth_term()
 model = ADNLPModel(misfit, ones(5))
 f = LBFGSModel(model)
 
-λ = 1.0
+λ = 1.0e1
 h = NormL0(λ)
-ν = 1.0e2
+ν = 1.0e0
 verbose = 0 #10
 maxIter = 1000
 maxIter_sub = 200 # max iter for subsolver
 ϵ = 1.0e-4
+ϵi = 1.0e-3
+ϵri = 1.0e-6
 options =
   ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true)
-options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_sub)
-options3 = ROSolverOptions(spectral = false, psb = false, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_sub)
-options4 = ROSolverOptions(spectral = true, ϵa = ϵ, ϵr = ϵ, maxIter = maxIter_sub)
+options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_sub)
+options3 = ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_sub)
+options4 = ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_sub)
 options5 = ROSolverOptions(
   ν = ν,
   ϵa = ϵ,
@@ -40,8 +42,8 @@ options7 = ROSolverOptions(
   spectral = false,
   psb = true,
   reduce_TR = false,
-  ϵa = ϵ,
-  ϵr = ϵ,
+  ϵa = ϵi,
+  ϵr = ϵri,
   maxIter = maxIter_sub,
 )
 options8 = ROSolverOptions(
@@ -76,7 +78,7 @@ subset = 2:10 # issues with R2 alone
 benchmark_table(
   f,
   1:(f.meta.nvar),
-  [],
+  x0,
   h,
   λ,
   solvers[subset],
@@ -84,4 +86,5 @@ benchmark_table(
   solver_options[subset],
   subsolver_options[subset],
   "FH with ν = $ν, λ = $λ",
+  tex = true,
 )
