@@ -6,8 +6,8 @@ compound = 1
 model, nls_model, sol = bpdn_model(compound, bounds = true)
 
 f = LSR1Model(model)
-λ = 1.0e-1 # norm(grad(model, zeros(model.meta.nvar)), Inf) / 10
-h = NormL1(λ)
+λ = norm(grad(model, zeros(model.meta.nvar)), Inf) / 10
+h = NormL0(λ)
 
 verbose = 0 # 10
 ϵ = 1.0e-5

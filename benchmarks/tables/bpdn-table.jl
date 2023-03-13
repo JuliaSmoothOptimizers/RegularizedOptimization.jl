@@ -7,7 +7,7 @@ model, nls_model, sol = bpdn_model(compound, bounds = false)
 
 # parameters
 f = LSR1Model(model)
-λ = 1.0e-2 #norm(grad(model, zeros(model.meta.nvar)), Inf) / 10
+λ = norm(grad(model, zeros(model.meta.nvar)), Inf) / 10
 h = NormL0(λ)
 
 verbose = 0 # 10
