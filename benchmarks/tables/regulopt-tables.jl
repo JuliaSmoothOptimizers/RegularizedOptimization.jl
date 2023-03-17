@@ -48,6 +48,8 @@ function nb_prox_evals(stats, solver::Symbol)
   return prox_evals
 end
 
+acc = vec -> length(findall(x -> x < 1, vec)) / length(vec) * 100 # for SVM
+
 function benchmark_table(
   f::AbstractNLPModel,
   selected,
@@ -59,8 +61,9 @@ function benchmark_table(
   solver_options,
   subsolver_options,
   pb_name::String;
-  f_test::Union{Nothing, AbstractNLPModel} = nothing, 
   tex::Bool = false,
+  nls_train::Union{Nothing, AbstractNLSModel} = nothing, # for SVM
+  nls_test::Union{Nothing, AbstractNLSModel} = nothing, # for SVM
 )
   solver_names = [
     "$(solver)$(subsolvername(subsolver))$(options_str(opt, solver, subsolver_opt, subsolver))"
@@ -116,7 +119,7 @@ function benchmark_table(
         "\$f(x)\$",
         L"$h(x)/\lambda$",
         L"$\xi$",
-        L"$\|x-x_T\|_2$",
+        pb_name[1:3] == "SVM" ? L"$(Train, Test)$" : L"$\|x-x_T\|_2$",
         L"$\# \ f$",
         L"$\# \ \nabla f$",
         L"$\# \ prox$",
@@ -160,7 +163,9 @@ function benchmark_table(
     else
       if pb_name[1:3] == "SVM"
         string(round(t,digits=2))
-        err = "($(round(obj(f, solver_out.solution), digits=1)), $(round(obj(f_test, solver_out.solution), digits = 1)))"
+        err = "($(
+          round(acc(residual(nls_train, solver_out.solution)), digits=1)), $(
+            round(acc(residual(nls_test, solver_out.solution)), digits = 1)))"
       else
         err = norm(x - sol)
       end
@@ -183,7 +188,7 @@ function benchmark_table(
     title = string(title, " \$f(x_T) = $(@sprintf("%.2e", obj(model, sol)))\$")
   end
   if tex
-    return pretty_table(
+    pretty_table(
       data;
       header = header,
       title = title,
@@ -194,13 +199,14 @@ function benchmark_table(
       ),
     )
   else
-    return pretty_table(
+    pretty_table(
       data;
       header = header,
       title = title,
       formatters = (print_formats,),
     )
   end
+  return solver_names, solver_stats
 end
 
 # λ = norm(grad(model, rand(model.meta.nvar)), Inf) / 100000
