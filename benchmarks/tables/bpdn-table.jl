@@ -19,14 +19,14 @@ maxIter = 500
 maxIter_inner = 100
 options =
   ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true)
-optionsbis =
+options_nrTR =
   ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, reduce_TR = false)
 options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
-options2bis = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false)
+options2_nrTR = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false)
 options3 = ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
-options3bis = ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false)
+options3_nrTR = ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false)
 options4 = ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
-options4bis =
+options4_nrTR =
   ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false)
 options5 = ROSolverOptions(
   ν = ν,
@@ -37,7 +37,7 @@ options5 = ROSolverOptions(
   spectral = false,
   psb = true,
 )
-options5bis = ROSolverOptions(
+options5_nrTR = ROSolverOptions(
   ν = ν,
   ϵa = ϵ,
   ϵr = ϵ,
@@ -56,7 +56,7 @@ options6 = ROSolverOptions(
   spectral = false,
   psb = false,
 )
-options6bis = ROSolverOptions(
+options6_nrTR = ROSolverOptions(
   ν = ν,
   ϵa = ϵ,
   ϵr = ϵ,
@@ -72,11 +72,11 @@ subsolvers = [:None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH
 solver_options = [
   options,
   options,
-  optionsbis,
+  options_nrTR,
   options5,
-  options5bis,
+  options5_nrTR,
   options6,
-  options6bis,
+  options6_nrTR,
   options,
   options,
   options,
@@ -96,11 +96,11 @@ subsolver_options = [
   options2,
   options2,
   options2,
-  options2bis,
+  options2_nrTR,
   options3,
-  options3bis,
+  options3_nrTR,
   options4,
-  options4bis,
+  options4_nrTR,
 ] # n'importe lequel si subsolver = :None
 
 stats = benchmark_table(
@@ -114,5 +114,5 @@ stats = benchmark_table(
   solver_options,
   subsolver_options,
   "BPDN",
-  tex = true,
+  tex = false,
 );

@@ -173,13 +173,14 @@ function benchmark_table(
     end
   end
 
+  h_format = h isa NormL0 ? "%i" : "%7.1e"
   if length(sol) == 0
-    print_formats = ft_printf(["%s", "%7.1e", "%7.1e", "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
+    print_formats = ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
   else
     if pb_name[1:3] == "SVM"
-      print_formats = ft_printf(["%s", "%7.1e", "%7.1e", "%7.1e", "%7s", "%i", "%i", "%i", "%7.1e"], 1:nh)
+      print_formats = ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%7s", "%i", "%i", "%i", "%7.1e"], 1:nh)
     else
-      print_formats = ft_printf(["%s", "%7.1e", "%7.1e", "%7.1e", "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
+      print_formats = ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
     end
   end
 
