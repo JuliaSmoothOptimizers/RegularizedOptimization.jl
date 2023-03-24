@@ -47,13 +47,16 @@ function LMTR(
   x0::AbstractVector = nls.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
-  subsolver_options = ROSolverOptions(),
+  subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(nls.meta.nvar),
 ) where {H, X}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
   ϵ = options.ϵa
+  ϵ_subsolver = subsolver_options.ϵa
+  ϵ_subsolver_init = subsolver_options.ϵa
+  ϵ_subsolver = copy(ϵ_subsolver_init)
   ϵr = options.ϵr
   Δk = options.Δk
   verbose = options.verbose
@@ -166,7 +169,9 @@ function LMTR(
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if ξ1 ≥ 0 && k == 1
-      ϵ += ϵr * sqrt(ξ1)  # make stopping test absolute and relative
+      ϵ_increment = ϵr * sqrt(ξ1)
+      ϵ += ϵ_increment  # make stopping test absolute and relative
+      ϵ_subsolver += ϵ_increment
     end
 
     if sqrt(ξ1) < ϵ
@@ -175,7 +180,7 @@ function LMTR(
       continue
     end
 
-    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ, min(1.0e-1, ξ1 / 10))
+    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1.0e-1, ξ1 / 10))
     ∆_effective = min(β * χ(s), Δk)
     has_bounds(nls) ?
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
@@ -183,6 +188,9 @@ function LMTR(
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s; JtJ = Jk'*Jk, JtF = Jk'*Fk, ξ1 = ξ1, fkhk = fk+hk)
     end
+    # restore initial subsolver_options.ϵa here so that subsolver_options.ϵa
+    # is not modified if there is an error
+    subsolver_options.ϵa = ϵ_subsolver_init
 
     Complex_hist[k] = iter
 
