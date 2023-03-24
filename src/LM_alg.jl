@@ -45,13 +45,16 @@ function LM(
   x0::AbstractVector = nls.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
-  subsolver_options = ROSolverOptions(),
+  subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(nls.meta.nvar),
 ) where {H}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
   ϵ = options.ϵa
+  ϵ_subsolver = subsolver_options.ϵa
+  ϵ_subsolver_init = subsolver_options.ϵa
+  ϵ_subsolver = copy(ϵ_subsolver_init)
   ϵr = options.ϵr
   verbose = options.verbose
   maxIter = options.maxIter
@@ -167,7 +170,9 @@ function LM(
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if ξ1 ≥ 0 && k == 1
-      ϵ += ϵr * sqrt(ξ1)  # make stopping test absolute and relative
+      ϵ_increment = ϵr * sqrt(ξ1)
+      ϵ += ϵ_increment  # make stopping test absolute and relative
+      ϵ_subsolver += ϵ_increment
     end
 
     if sqrt(ξ1) < ϵ
@@ -176,11 +181,14 @@ function LM(
       continue
     end
 
-    subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ, min(1.0e-2, ξ1 / 10))
+    subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
+    # restore initial subsolver_options.ϵa here so that subsolver_options.ϵa
+    # is not modified if there is an error
+    subsolver_options.ϵa = ϵ_subsolver_init
 
     Complex_hist[k] = iter
 

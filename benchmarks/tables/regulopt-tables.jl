@@ -1,4 +1,4 @@
-using PrettyTables
+using PrettyTables, LaTeXStrings
 using Random
 using LinearAlgebra
 using ProximalOperators
@@ -23,12 +23,12 @@ function options_str(
   subsolver::Symbol,
 )
   if solver == :TRDH
-    out_str = !options.spectral ? (options.psb ? "-DiagQN-PSB" : "-DiagQN-Andrei") : "-Spectral"
+    out_str = !options.spectral ? (options.psb ? "-PSB" : "-Andrei") : "-Spec"
     out_str = (options.reduce_TR) ? out_str : string(out_str, "-noredTR")
   elseif solver == :TR && subsolver == :TRDH
     out_str =
-      !subsolver_options.spectral ? (subsolver_options.psb ? "-DiagQN-PSB" : "-DiagQN-Andrei") :
-      "-Spectral"
+      !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") :
+      "-Spec"
     out_str = (subsolver_options.reduce_TR) ? out_str : string(out_str, "-noredTR")
   else
     out_str = ""
@@ -37,6 +37,8 @@ function options_str(
 end
 grad_evals(nlp::AbstractNLPModel) = neval_grad(nlp)
 grad_evals(nls::AbstractNLSModel) = neval_jtprod_residual(nls) + neval_jprod_residual(nls)
+obj_evals(nlp::AbstractNLPModel) = neval_obj(nlp)
+obj_evals(nls::AbstractNLSModel) = neval_residual(nls)
 function nb_prox_evals(stats, solver::Symbol)
   if solver ∈ [:TR, :R2, :TRDH]
     prox_evals = sum(stats.solver_specific[:SubsolverCounter])
@@ -45,6 +47,8 @@ function nb_prox_evals(stats, solver::Symbol)
   end
   return prox_evals
 end
+
+acc = vec -> length(findall(x -> x < 1, vec)) / length(vec) * 100 # for SVM
 
 function benchmark_table(
   f::AbstractNLPModel,
@@ -56,14 +60,18 @@ function benchmark_table(
   subsolvers,
   solver_options,
   subsolver_options,
-  pb_name::String,
+  pb_name::String;
+  tex::Bool = false,
+  nls_train::Union{Nothing, AbstractNLSModel} = nothing, # for SVM
+  nls_test::Union{Nothing, AbstractNLSModel} = nothing, # for SVM
 )
-  row_names = [
+  solver_names = [
     "$(solver)$(subsolvername(subsolver))$(options_str(opt, solver, subsolver_opt, subsolver))"
     for (solver, opt, subsolver, subsolver_opt) in
     zip(solvers, solver_options, subsolvers, subsolver_options)
   ]
 
+  nf_evals = []
   n∇f_evals = []
   nprox_evals = []
   solver_stats = []
@@ -86,60 +94,120 @@ function benchmark_table(
         selected = selected,
       )
     end
+    push!(nf_evals, obj_evals(f))
     push!(n∇f_evals, grad_evals(f))
     push!(nprox_evals, nb_prox_evals(solver_out, solver))
     push!(solver_stats, solver_out)
     reset!(f)
   end
 
-  if length(sol) == 0
-    header = ["f(x)", "h(x)/λ", "ξ", "∇f evals", "prox calls"]
+  if tex
+    if length(sol) == 0
+      header = [
+        "solver",
+        L"$f(x)$",
+        L"$h(x) / \lambda$",
+        L"$\xi$",
+        L"$\# \ f$",
+        L"$\# \ \nabla f$",
+        L"$\# \ prox$",
+        L"$t$ ($s$)",
+        ]
+    else
+      header = [
+        "solver",
+        "\$f(x)\$",
+        L"$h(x)/\lambda$",
+        L"$\xi$",
+        pb_name[1:3] == "SVM" ? L"$(Train, Test)$" : L"$\|x-x_T\|_2$",
+        L"$\# \ f$",
+        L"$\# \ \nabla f$",
+        L"$\# \ prox$",
+        L"$t$ ($s$)",
+      ]
+    end
   else
-    header = [
-      "f(x) (true = $(round(obj(model, sol); sigdigits = 4)))",
-      "h(x)/λ",
-      "ξ",
-      "||x-x*||/||x*||",
-      "∇f evals",
-      "prox calls",
-    ]
+    if length(sol) == 0
+      header = ["solver", "f(x)", "h(x)/λ", "ξ", "# f", "# ∇f", "# prox", "t (s)"]
+    else
+      header = [
+        "solver",
+        "f(x)",
+        "h(x)/λ",
+        "ξ",
+        pb_name[1:3] == "SVM" ? "(Train, Test)" : "||x-x*||",
+        "# f",
+        "# ∇f",
+        "# prox",
+        "t(s)",
+      ]
+    end
   end
 
-  n_solvers = length(row_names)
-  data = Matrix{Any}(undef, n_solvers, length(header))
+  nh = length(header)
+  n_solvers = length(solver_names)
+  data = Matrix{Any}(undef, n_solvers, nh)
   for i = 1:n_solvers
+    sname = solver_names[i]
     solver_out = solver_stats[i]
     x = solver_out.solution
     fx = solver_out.solver_specific[:Fhist][end]
     hx = solver_out.solver_specific[:Hhist][end]
     ξ = solver_out.dual_feas
+    nf = nf_evals[i]
     n∇f = n∇f_evals[i]
     nprox = nprox_evals[i]
+    t = solver_out.elapsed_time
     if length(sol) == 0
-      data[i, :] .= [fx, hx / λ, ξ, n∇f, nprox]
+      data[i, :] .= [sname, fx, hx / λ, ξ, nf, n∇f, nprox, t]
     else
-      err = norm(x - sol) / norm(sol)
-      data[i, :] .= [fx, hx / λ, ξ, err, n∇f, nprox]
+      if pb_name[1:3] == "SVM"
+        string(round(t,digits=2))
+        err = "($(
+          round(acc(residual(nls_train, solver_out.solution)), digits=1)), $(
+            round(acc(residual(nls_test, solver_out.solution)), digits = 1)))"
+      else
+        err = norm(x - sol)
+      end
+      data[i, :] .= [sname, fx, hx / λ, ξ, err, nf, n∇f, nprox, t]
     end
   end
 
+  h_format = h isa NormL0 ? "%i" : "%7.1e"
   if length(sol) == 0
-    print_formats = ft_printf(["%7.3e", "%7.1e", "%7.1e", "%i", "%i"], 1:length(header))
+    print_formats = ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
   else
-    print_formats = ft_printf(["%7.3e", "%7.1e", "%7.1e", "%7.3e", "%i", "%i"], 1:length(header))
+    if pb_name[1:3] == "SVM"
+      print_formats = ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%7s", "%i", "%i", "%i", "%7.1e"], 1:nh)
+    else
+      print_formats = ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
+    end
   end
 
-  return pretty_table(
-    data;
-    header = header,
-    row_names = row_names,
-    title = "$pb_name $(modelname(f)) $(typeof(h).name.name)",
-    # backend = Val(:latex),
-    formatters = (
-      print_formats,
-      # (v, i, j) -> (SolverBenchmark.safe_latex_AbstractFloat(v)),
-    ),
-  )
+  title = "$pb_name $(modelname(f)) $(typeof(h).name.name)"
+  if (length(sol) != 0) && pb_name[1:3] != "SVM"
+    title = string(title, " \$f(x_T) = $(@sprintf("%.2e", obj(model, sol)))\$")
+  end
+  if tex
+    pretty_table(
+      data;
+      header = header,
+      title = title,
+      backend = Val(:latex),
+      formatters = (
+        print_formats,
+        (v, i, j) -> (j == 1 ? v : SolverBenchmark.safe_latex_AbstractFloat(v)),
+      ),
+    )
+  else
+    pretty_table(
+      data;
+      header = header,
+      title = title,
+      formatters = (print_formats,),
+    )
+  end
+  return solver_names, solver_stats
 end
 
 # λ = norm(grad(model, rand(model.meta.nvar)), Inf) / 100000
