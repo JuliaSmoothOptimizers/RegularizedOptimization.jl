@@ -26,9 +26,7 @@ function options_str(
     out_str = !options.spectral ? (options.psb ? "-PSB" : "-Andrei") : "-Spec"
     out_str = (options.reduce_TR) ? out_str : string(out_str, "-noredTR")
   elseif solver == :TR && subsolver == :TRDH
-    out_str =
-      !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") :
-      "-Spec"
+    out_str = !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") : "-Spec"
     out_str = (subsolver_options.reduce_TR) ? out_str : string(out_str, "-noredTR")
   else
     out_str = ""
@@ -112,7 +110,7 @@ function benchmark_table(
         L"$\# \ \nabla f$",
         L"$\# \ prox$",
         L"$t$ ($s$)",
-        ]
+      ]
     else
       header = [
         "solver",
@@ -162,7 +160,7 @@ function benchmark_table(
       data[i, :] .= [sname, fx, hx / λ, ξ, nf, n∇f, nprox, t]
     else
       if pb_name[1:3] == "SVM"
-        string(round(t,digits=2))
+        string(round(t, digits = 2))
         err = "($(
           round(acc(residual(nls_train, solver_out.solution)), digits=1)), $(
             round(acc(residual(nls_test, solver_out.solution)), digits = 1)))"
@@ -178,9 +176,11 @@ function benchmark_table(
     print_formats = ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
   else
     if pb_name[1:3] == "SVM"
-      print_formats = ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%7s", "%i", "%i", "%i", "%7.1e"], 1:nh)
+      print_formats =
+        ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%7s", "%i", "%i", "%i", "%7.1e"], 1:nh)
     else
-      print_formats = ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
+      print_formats =
+        ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
     end
   end
 
@@ -200,12 +200,7 @@ function benchmark_table(
       ),
     )
   else
-    pretty_table(
-      data;
-      header = header,
-      title = title,
-      formatters = (print_formats,),
-    )
+    pretty_table(data; header = header, title = title, formatters = (print_formats,))
   end
   return solver_names, solver_stats
 end

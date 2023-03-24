@@ -19,12 +19,34 @@ maxIter_inner = 200 # max iter for subsolver
 ϵri = 1.0e-6
 options =
   ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true)
-options_nrTR =
-  ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, reduce_TR = false)
+options_nrTR = ROSolverOptions(
+  ν = ν,
+  ϵa = ϵ,
+  ϵr = ϵ,
+  verbose = verbose,
+  maxIter = maxIter,
+  spectral = true,
+  reduce_TR = false,
+)
 options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
-options2_nrTR = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false)
-options3 = ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
-options3_nrTR = ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false)
+options2_nrTR = ROSolverOptions(
+  spectral = false,
+  psb = true,
+  ϵa = ϵi,
+  ϵr = ϵri,
+  maxIter = maxIter_inner,
+  reduce_TR = false,
+)
+options3 =
+  ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
+options3_nrTR = ROSolverOptions(
+  spectral = false,
+  psb = false,
+  ϵa = ϵi,
+  ϵr = ϵri,
+  maxIter = maxIter_inner,
+  reduce_TR = false,
+)
 options4 = ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
 options4_nrTR =
   ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false)
@@ -68,7 +90,8 @@ options6_nrTR = ROSolverOptions(
 )
 
 solvers = [:R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
-subsolvers = [:None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
+subsolvers =
+  [:None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
 solver_options = [
   options,
   options,
@@ -121,8 +144,8 @@ names, stats = benchmark_table(
 if display_sol
   data = zeros(length(subset) + 1, 5)
   data[1, :] .= x0
-  for i=1:length(subset)
-    data[i+1, :] .= stats[i].solution
+  for i = 1:length(subset)
+    data[i + 1, :] .= stats[i].solution
   end
   pretty_table(
     data;
