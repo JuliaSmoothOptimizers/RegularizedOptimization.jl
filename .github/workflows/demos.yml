@@ -84,6 +84,11 @@ jobs:
           pkg_path = dirname(Base.find_package("RegularizedOptimization"))
           include(joinpath(pkg_path, "..", "examples", "demo-nnmf-constr.jl"))
         shell: julia --project="examples" --color=yes {0}
+      - name: Run SVM demo
+        run: |
+          pkg_path = dirname(Base.find_package("RegularizedOptimization"))
+          include(joinpath(pkg_path, "..", "examples", "demo-svm.jl"))
+        shell: julia --project="examples" --color=yes {0}
       - name: Upload results
         uses: actions/upload-artifact@v3
         with:
