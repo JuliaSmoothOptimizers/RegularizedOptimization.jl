@@ -4,7 +4,6 @@ using ProximalOperators, ShiftedProximalOperators, MLDatasets, RegularizedProble
 using NLPModels, NLPModelsModifiers #ReverseADNLSModels
 using RegularizedOptimization
 using DataFrames
-import SolverBenchmark
 
 include("plot-utils-svm.jl")
 
