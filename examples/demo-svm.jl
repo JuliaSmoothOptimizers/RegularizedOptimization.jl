@@ -3,7 +3,6 @@ using LinearAlgebra
 using ProximalOperators, ShiftedProximalOperators, RegularizedProblems
 using NLPModels, NLPModelsModifiers
 using RegularizedOptimization
-using DataFrames
 using MLDatasets
 
 include("plot-utils-svm.jl")
@@ -54,73 +53,9 @@ function demo_solver(nlp_tr, nls_tr, sol_tr, nlp_test, nls_test, sol_test, h, χ
     nglm = neval_jtprod_residual(nls_tr) + neval_jprod_residual(nls_tr)
     @show acc(lmtrain), acc(lmtest)
     lmdec = plot_svm(LM_out, LM_out.solution, "lm-$(suffix)")
-
-    # c = PGFPlots.Axis(
-    #     [
-    #         PGFPlots.Plots.Linear(1:length(r2dec), r2dec, mark="none", style="black, dotted", legendentry="R2"),
-    #         PGFPlots.Plots.Linear(1:length(trdec), trdec, mark="none", style="black, dashed", legendentry="TR"),
-    #         PGFPlots.Plots.Linear(LM_out.solver_specific[:ResidHist], lmdec, mark="none", style="black, thick", legendentry="LM"),
-    #         PGFPlots.Plots.Linear(LMTR_out.solver_specific[:ResidHist], lmtrdec, mark="none", style = "black, very thin", legendentry="LMTR"),
-    #     ],
-    #     xlabel="\$ k^{th}\$   \$ f \$ Eval",
-    #     ylabel="Objective Value",
-    #     ymode="log",
-    #     xmode="log",
-    # )
-    # PGFPlots.save("svm-objdec.tikz", c, include_preamble=false)
-
-    # temp = hcat([R2_out.solver_specific[:Fhist][end], R2_out.solver_specific[:Hhist][end],R2_out.objective, acc(r2train), acc(r2test), nr2, ngr2, sum(R2_out.solver_specific[:SubsolverCounter]), R2_out.elapsed_time],
-    #     [TR_out.solver_specific[:Fhist][end], TR_out.solver_specific[:Hhist][end], TR_out.objective, acc(trtrain), acc(trtest), ntr, ngtr, sum(TR_out.solver_specific[:SubsolverCounter]), TR_out.elapsed_time],
-    #     [LM_out.solver_specific[:Fhist][end], LM_out.solver_specific[:Hhist][end], LM_out.objective, acc(lmtrain), acc(lmtest), nlm, nglm, sum(LM_out.solver_specific[:SubsolverCounter]), LM_out.elapsed_time],
-    #     [LMTR_out.solver_specific[:Fhist][end], LMTR_out.solver_specific[:Hhist][end], LMTR_out.objective, acc(lmtrtrain), acc(lmtrtest), nlmtr, nglmtr, sum(LMTR_out.solver_specific[:SubsolverCounter]), LMTR_out.elapsed_time])'
-
-    # df = DataFrame(temp, [:f, :h, :fh, :x,:xt, :n, :g, :p, :s])
-    # T = []
-    # for i = 1:nrow(df)
-    #   push!(T, Tuple(df[i, [:x, :xt]]))
-    # end
-    # select!(df, Not(:xt))
-    # df[!, :x] = T
-    # df[!, :Alg] = ["R2", "TR", "LM", "LMTR"]
-    # select!(df, :Alg, Not(:Alg), :)
-    # fmt_override = Dict(:Alg => "%s",
-    #     :f => "%10.2f",
-    #     :h => "%10.2f",
-    #     :fh => "%10.2f",
-    #     :x => "%10.2f, %10.2f",
-    #     :n => "%i",
-    #     :g => "%i",
-    #     :p => "%i",
-    #     :s => "%02.2f")
-    # hdr_override = Dict(:Alg => "Alg",
-    #     :f => "\$ f \$",
-    #     :h => "\$ h \$",
-    #     :fh => "\$ f+h \$",
-    #     :x => "(Train, Test)",
-    #     :n => "\\# \$f\$",
-    #     :g => "\\# \$ \\nabla f \$",
-    #     :p => "\\# \$ \\prox{}\$",
-    #     :s => "\$t \$ (s)")
-    # open("svm.tex", "w") do io
-    #     SolverBenchmark.pretty_latex_stats(io, df,
-    #         col_formatters=fmt_override,
-    #         hdr_override=hdr_override)
-    # end
 end
 
 function demo_svm()
-    ## load phishing data from libsvm
-    # A = readdlm("data_matrix.txt")
-    # b = readdlm("label_vector.txt")
-
-    # # sort into test/trainig
-    # test_ind = randperm(length(b))[1:Int(floor(length(b)*.1))]
-    # train_ind = setdiff(1:length(b), test_ind)
-    # btest = b[test_ind]
-    # Atest = A[test_ind,:]'
-    # btrain = b[train_ind]
-    # Atrain = A[train_ind,:]'
-
     nlp_train, nls_train, sol_train = RegularizedProblems.svm_train_model()
     nlp_test, nls_test, sol_test = RegularizedProblems.svm_test_model()
     nlp_train = LSR1Model(nlp_train)

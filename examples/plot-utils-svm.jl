@@ -6,13 +6,9 @@ function plot_svm(outstruct, sol, name="tr-qr")
     x = outstruct.solution
     a = PGFPlots.Axis(
         [
-            PGFPlots.Plots.MatrixPlot(reshape(x, 28, 28); #filename="svm-$(name).tikz",
+            PGFPlots.Plots.MatrixPlot(reshape(x, 28, 28);
             colormap = PGFPlots.ColorMaps.GrayMap())#, zmin = -700, zmax = 700)#, legendentry="computed"),
-            # PGFPlots.Plots.Linear(1:length(sol), sol, mark="none", legendentry="exact"),
         ],
-        # xlabel="index",
-        # ylabel="parameter",
-        # legendStyle="at={(1.0,1.0)}, anchor=north east, draw=none, font=\\scriptsize",
     )
     PGFPlots.save("svm-$(name).pdf", a)
 
