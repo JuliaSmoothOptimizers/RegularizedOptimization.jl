@@ -1,7 +1,7 @@
 using Random
 using LinearAlgebra
 using ProximalOperators, ShiftedProximalOperators, RegularizedProblems
-using NLPModels, NLPModelsModifiers #ReverseADNLSModels
+using NLPModels, NLPModelsModifiers
 using RegularizedOptimization
 using DataFrames
 using MLDatasets
@@ -121,13 +121,12 @@ function demo_svm()
     # btrain = b[train_ind]
     # Atrain = A[train_ind,:]'
 
-    nlp_train, nls_train, sol_train = RegularizedProblems.svm_train_model()#Atrain, btrain) #
-    nlp_test, nls_test, sol_test = RegularizedProblems.svm_test_model()#Atest, btest)
+    nlp_train, nls_train, sol_train = RegularizedProblems.svm_train_model()
+    nlp_test, nls_test, sol_test = RegularizedProblems.svm_test_model()
     nlp_train = LSR1Model(nlp_train)
     λ = 1e-1
     h = RootNormLhalf(λ)
     χ = NormLinf(1.0)
-
 
     demo_solver(nlp_train, nls_train, sol_train, nlp_test, nls_test, sol_test, h, χ, "lhalf-linf")
 end
