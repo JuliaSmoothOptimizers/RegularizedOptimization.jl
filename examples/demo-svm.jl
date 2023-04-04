@@ -1,9 +1,10 @@
 using Random
 using LinearAlgebra
-using ProximalOperators, ShiftedProximalOperators, MLDatasets, RegularizedProblems
+using ProximalOperators, ShiftedProximalOperators, RegularizedProblems
 using NLPModels, NLPModelsModifiers #ReverseADNLSModels
 using RegularizedOptimization
 using DataFrames
+using MLDatasets
 
 include("plot-utils-svm.jl")
 
@@ -120,8 +121,8 @@ function demo_svm()
     # btrain = b[train_ind]
     # Atrain = A[train_ind,:]'
 
-    nlp_train, nls_train, sol_train = svm_train_model()#Atrain, btrain) #
-    nlp_test, nls_test, sol_test = svm_test_model()#Atest, btest)
+    nlp_train, nls_train, sol_train = RegularizedProblems.svm_train_model()#Atrain, btrain) #
+    nlp_test, nls_test, sol_test = RegularizedProblems.svm_test_model()#Atest, btest)
     nlp_train = LSR1Model(nlp_train)
     λ = 1e-1
     h = RootNormLhalf(λ)
