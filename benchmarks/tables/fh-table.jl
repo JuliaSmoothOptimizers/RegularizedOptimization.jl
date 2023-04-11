@@ -4,11 +4,16 @@ using ADNLPModels, DifferentialEquations
 display_sol = true
 
 Random.seed!(1234)
-data, simulate, resid, misfit, x0 = RegularizedProblems.FH_smooth_term()
-model = ADNLPModel(misfit, ones(5))
-f = LBFGSModel(model)
 
-λ = 1.0e1
+cstr = false
+ctr_val = cstr ? 0.5 : -Inf
+lvar = [-Inf, ctr_val, -Inf, -Inf, -Inf]
+uvar = fill(Inf, 5)
+data, simulate, resid, misfit, x0 = RegularizedProblems.FH_smooth_term()
+model = ADNLPModel(misfit, ones(5), lvar, uvar)
+f = LBFGSModel(model)
+λ = cstr ? 2.0e1 : 1.0e1
+
 h = NormL1(λ)
 ν = 1.0e0
 verbose = 0 #10
