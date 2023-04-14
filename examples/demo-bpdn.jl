@@ -21,6 +21,13 @@ function demo_solver(f, sol, h, χ, suffix = "l0-linf")
   TR_out = TR(f, h, χ, options, x0 = f.meta.x0)
   @info "TR relative error" norm(TR_out.solution - sol) / norm(sol)
   plot_bpdn(TR_out, sol, "tr-r2-$(suffix)")
+
+  @info " using R2_DH to solve with" h
+  reset!(f)
+  R2_DH_out = R2_DH(f, h, options, x0 = f.meta.x0)
+  @info "R2_DH relative error" norm(R2_DH_out.solution - sol) / norm(sol)
+  @info "elapsed time" R2_DH_out.elapsed_time
+  plot_bpdn(R2_DH_out, sol, "R2_DH", "constr-r2-$(suffix)")
 end
 
 function demo_bpdn(compound = 1)
