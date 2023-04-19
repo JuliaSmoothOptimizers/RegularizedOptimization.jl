@@ -334,13 +334,13 @@ function TRDH(
     elseif optimal
       #! format: off
       if reduce_TR
-        @info @sprintf "%6d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k fk hk sqrt(ξ1) sqrt(ξ1) "" Δk χ(xk) χ(s) νInv
+        @info @sprintf "%6d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k fk hk sqrt(ξ1) sqrt(ξ1) "" Δk χ(xk) χ(s) norm(Dk.d)
         #! format: on
         @info "TRDH: terminating with √ξ1 = $(sqrt(ξ1))"
       else
         @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k fk hk sqrt(ξ) "" Δk χ(
           xk,
-        ) χ(s) νInv
+        ) χ(s) norm(Dk.d)
         @info "TRDH: terminating with √ξ = $(sqrt(ξ))"
       end
     end
