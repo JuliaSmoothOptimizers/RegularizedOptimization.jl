@@ -187,7 +187,7 @@ function LMTR(
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
     set_radius!(ψ, ∆_effective)
     s, iter, _ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s)
+      subsolver(φ, ∇φ!, ψ, subsolver_options, s; Jk = Jk, Fk = Fkn, fkhk = fk+hk, ξ1 = ξ1, Δ = ∆_effective )
     end
     # restore initial subsolver_options.ϵa here so that subsolver_options.ϵa
     # is not modified if there is an error

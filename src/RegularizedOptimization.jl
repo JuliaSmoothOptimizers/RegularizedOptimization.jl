@@ -1,7 +1,7 @@
 module RegularizedOptimization
 
 # base dependencies
-using LinearAlgebra, Logging, Printf
+using LinearAlgebra, Logging, Printf, Krylov
 
 # external dependencies
 using ProximalOperators, TSVD
@@ -13,7 +13,7 @@ include("utils.jl")
 include("input_struct.jl")
 include("PG_alg.jl")
 include("Fista_alg.jl")
-include("splitting.jl")
+include("RS_alg.jl")
 include("TR_alg.jl")
 include("TRDH_alg.jl")
 include("R2_alg.jl")
