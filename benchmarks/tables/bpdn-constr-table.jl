@@ -1,7 +1,7 @@
 include("regulopt-tables.jl")
 
 # model
-Random.seed!(1234)
+Random.seed!(12)
 compound = 1
 model, nls_model, sol = bpdn_model(compound, bounds = true)
 
