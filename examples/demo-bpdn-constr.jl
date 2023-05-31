@@ -6,7 +6,7 @@ using Printf
 
 include("plot-utils-bpdn.jl")
 
-Random.seed!(1234)
+Random.seed!(12)
 
 function demo_solver(f, nls, sol, h, χ, suffix = "l0-linf")
   options = ROSolverOptions(
