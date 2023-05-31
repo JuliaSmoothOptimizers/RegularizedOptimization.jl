@@ -70,7 +70,8 @@ function LMTR(
   β = options.β
 
   local l_bound, u_bound
-  if has_bounds(nls)
+  treats_bounds = has_bounds(nls) || subsolver == TRDH
+  if treats_bounds
     l_bound = nls.meta.lvar
     u_bound = nls.meta.uvar
   end
@@ -99,8 +100,7 @@ function LMTR(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ =
-    has_bounds(nls) ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
+  ψ = treats_bounds ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
     shifted(h, xk, Δk, χ)
 
   Fobj_hist = zeros(maxIter)
@@ -183,9 +183,9 @@ function LMTR(
 
     subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1.0e-1, ξ1 / 10))
     ∆_effective = min(β * χ(s), Δk)
-    has_bounds(nls) ?
-    set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
+    treats_bounds ? set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
     set_radius!(ψ, ∆_effective)
+    subsolver_options.Δk = ∆_effective / 10
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
@@ -223,12 +223,12 @@ function LMTR(
 
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
-      !has_bounds(nls) && set_radius!(ψ, Δk)
+      !treats_bounds && set_radius!(ψ, Δk)
     end
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-      has_bounds(nls) && set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk))
+      treats_bounds && set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk))
 
       #update functions
       Fk .= Fkn
@@ -245,7 +245,7 @@ function LMTR(
 
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
-      has_bounds(nls) ? set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) :
+      treats_bounds ? set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) :
       set_radius!(ψ, Δk)
     end
 
