@@ -54,7 +54,15 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
       x0 = zeros(bpdn_nls2.meta.nvar)
       args = solver_sym == :LM ? () : (NormLinf(1.0),)
       @test has_bounds(bpdn_nls2)
-      out = solver(bpdn_nls2, h, args..., options, x0 = x0, subsolver = TRDH, subsolver_options = subsolver_options)
+      out = solver(
+        bpdn_nls2,
+        h,
+        args...,
+        options,
+        x0 = x0,
+        subsolver = TRDH,
+        subsolver_options = subsolver_options,
+      )
       @test typeof(out.solution) == typeof(bpdn_nls2.meta.x0)
       @test length(out.solution) == bpdn_nls2.meta.nvar
       @test typeof(out.solver_specific[:Fhist]) == typeof(out.solution)
