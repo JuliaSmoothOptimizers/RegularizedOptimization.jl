@@ -66,7 +66,8 @@ function LM(
   σmin = options.σmin
 
   local l_bound, u_bound
-  if has_bounds(nls) || subsolver == TRDH
+  treats_bounds = has_bounds(nls) || subsolver == TRDH
+  if treats_bounds
     l_bound = nls.meta.lvar
     u_bound = nls.meta.uvar
   end
@@ -93,7 +94,7 @@ function LM(
     verbose > 0 && @debug "LM: found point where h has value" hk
   end
   hk == -Inf && error("nonsmooth term is not proper")
-  ψ = (has_bounds(nls) || subsolver == TRDH) ? shifted(h, xk, l_bound - xk, u_bound - xk, selected) :
+  ψ = treats_bounds ? shifted(h, xk, l_bound - xk, u_bound - xk, selected) :
   shifted(h, xk)
 
   xkn = similar(xk)
@@ -222,7 +223,7 @@ function LM(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-      (has_bounds(nls) || subsolver == TRDH) && set_bounds!(ψ, l_bound - xk, u_bound - xk)
+      treats_bounds && set_bounds!(ψ, l_bound - xk, u_bound - xk)
 
       # update functions
       Fk .= Fkn
