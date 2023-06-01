@@ -100,7 +100,8 @@ function LMTR(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = treats_bounds ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
+  ψ =
+    treats_bounds ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
     shifted(h, xk, Δk, χ)
 
   Fobj_hist = zeros(maxIter)
@@ -183,7 +184,8 @@ function LMTR(
 
     subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1.0e-1, ξ1 / 10))
     ∆_effective = min(β * χ(s), Δk)
-    treats_bounds ? set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
+    treats_bounds ?
+    set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
     set_radius!(ψ, ∆_effective)
     subsolver_options.Δk = ∆_effective / 10
     s, iter, _ = with_logger(subsolver_logger) do
