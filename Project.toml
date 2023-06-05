@@ -17,7 +17,7 @@ TSVD = "9449cd9e-2762-5aa3-a617-5413e99d722e"
 
 [compat]
 LinearOperators = "2.5.2"
-NLPModels = "0.19"
+NLPModels = "0.19, 0.20"
 NLPModelsModifiers = "0.6"
 ProximalOperators = "0.15"
 RegularizedProblems = "0.1"
