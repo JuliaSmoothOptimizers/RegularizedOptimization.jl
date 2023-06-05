@@ -28,11 +28,6 @@ function demo_solver(f, h, χ, selected, Avec, m, n, k, suffix = "l0-linf")
   R2_out = R2(f, h, options, selected = selected)
   plot_nnmf(R2_out, Avec, m, n, k, "r2-$suffix")
 
-  @info " using TR with R2 as subproblem to solve with" h χ
-  reset!(f)
-  TR_out = TR(f, h, χ, options, selected = selected)
-  plot_nnmf(TR_out, Avec, m, n, k, "tr-r2-$suffix")
-
   subsolver_options = ROSolverOptions(spectral = false, psb = true, ϵa = options.ϵa)
   @info " using TR with TRDH as subproblem to solve with" h χ
   reset!(f)
