@@ -11,8 +11,8 @@ mutable struct R2Solver{R, S <: AbstractVector{R}} <: AbstractOptimizationSolver
   u_bound::S
   l_bound_m_x::S
   u_bound_m_x::S
-  Fobj_hist::Vector{Float64}
-  Hobj_hist::Vector{Float64}
+  Fobj_hist::Vector{R}
+  Hobj_hist::Vector{R}
   Complex_hist::Vector{Int}
 end
 
@@ -31,8 +31,8 @@ function R2Solver(x0::S, options::ROSolverOptions, l_bound::S, u_bound::S) where
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
-  Fobj_hist = zeros(maxIter)
-  Hobj_hist = zeros(maxIter)
+  Fobj_hist = zeros(R, maxIter)
+  Hobj_hist = zeros(R, maxIter)
   Complex_hist = zeros(Int, maxIter)
   return R2Solver(
     xk,
