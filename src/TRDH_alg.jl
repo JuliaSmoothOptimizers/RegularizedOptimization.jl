@@ -122,6 +122,7 @@ function TRDH(
   psb = options.psb
   hess_init_val = (Bk isa UniformScaling) ? Bk.λ : (one(R) / options.ν)
   reduce_TR = options.reduce_TR
+  Mmonotone = options.Mmonotone
 
   local l_bound, u_bound
   has_bnds = false
@@ -184,6 +185,7 @@ function TRDH(
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
+  FHobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
   if verbose > 0
     #! format: off
@@ -219,6 +221,7 @@ function TRDH(
     elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
+    FHobj_hist[k] = fk + hk
 
     # model for prox-gradient step to update Δk if ||s|| is too small and ξ1
     φ1(d) = ∇fk' * d
@@ -265,7 +268,14 @@ function TRDH(
     hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
 
-    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+    # if Mmonotone == 0
+    #   Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+    # else
+      Mlast = max(1, k - Mmonotone)
+      fhmax = @views maximum(FHobj_hist[Mlast:k])
+      Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
+      # Δmod = FHobj_hist[imax] - mk(s) - fkn + max(1, abs(hk)) * 10 * eps()
+    # end
     ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
 
     if !reduce_TR

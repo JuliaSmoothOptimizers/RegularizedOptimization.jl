@@ -17,8 +17,9 @@ verbose = 0 # 10
 ϵri = 1.0e-6
 maxIter = 500
 maxIter_inner = 100
+Mmonotone = 0
 options =
-  ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true)
+  ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = Mmonotone)
 options_nrTR = ROSolverOptions(
   ν = ν,
   ϵa = ϵ,
@@ -27,8 +28,9 @@ options_nrTR = ROSolverOptions(
   maxIter = maxIter,
   spectral = true,
   reduce_TR = false,
+  Mmonotone = Mmonotone,
 )
-options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
+options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = Mmonotone)
 options2_nrTR = ROSolverOptions(
   spectral = false,
   psb = true,
@@ -36,9 +38,10 @@ options2_nrTR = ROSolverOptions(
   ϵr = ϵri,
   maxIter = maxIter_inner,
   reduce_TR = false,
+  Mmonotone = Mmonotone,
 )
 options3 =
-  ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
+  ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = Mmonotone)
 options3_nrTR = ROSolverOptions(
   spectral = false,
   psb = false,
@@ -46,10 +49,11 @@ options3_nrTR = ROSolverOptions(
   ϵr = ϵri,
   maxIter = maxIter_inner,
   reduce_TR = false,
+  Mmonotone = Mmonotone,
 )
-options4 = ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
+options4 = ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = Mmonotone)
 options4_nrTR =
-  ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false)
+  ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false, Mmonotone = Mmonotone)
 options5 = ROSolverOptions(
   ν = ν,
   ϵa = ϵ,
@@ -58,6 +62,7 @@ options5 = ROSolverOptions(
   maxIter = maxIter,
   spectral = false,
   psb = true,
+  Mmonotone = Mmonotone,
 )
 options5_nrTR = ROSolverOptions(
   ν = ν,
@@ -68,6 +73,7 @@ options5_nrTR = ROSolverOptions(
   spectral = false,
   psb = true,
   reduce_TR = false,
+  Mmonotone = Mmonotone,
 )
 options6 = ROSolverOptions(
   ν = ν,
@@ -77,6 +83,7 @@ options6 = ROSolverOptions(
   maxIter = maxIter,
   spectral = false,
   psb = false,
+  Mmonotone = Mmonotone,
 )
 options6_nrTR = ROSolverOptions(
   ν = ν,
@@ -87,6 +94,7 @@ options6_nrTR = ROSolverOptions(
   spectral = false,
   psb = false,
   reduce_TR = false,
+  Mmonotone = Mmonotone,
 )
 
 solvers = [:R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
@@ -135,7 +143,7 @@ stats = benchmark_table(
   subsolvers,
   solver_options,
   subsolver_options,
-  "BPDN-cstr",
+  "BPDN-cstr, M = $Mmonotone",
   random_seed,
   tex = true,
 );
