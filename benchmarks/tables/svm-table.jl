@@ -134,7 +134,7 @@ subsolver_options = [
   options4,
   options4_nrTR,
 ] # n'importe lequel si subsolver = :None
-subset = 2:length(solvers)
+subset = 1:length(solvers)
 
 benchmark_table(
   f,
@@ -150,7 +150,7 @@ benchmark_table(
   random_seed,
   nls_train = nls_train,
   nls_test = nls_test,
-  tex = true,
+  tex = false,
 );
 
 subset = [8, 9, 10, 11, 12, 13, 14]

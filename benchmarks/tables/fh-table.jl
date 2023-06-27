@@ -153,7 +153,6 @@ names, stats = benchmark_table(
   solver_options[subset],
   subsolver_options[subset],
   "FH with ν = $ν, λ = $λ, M = $Mmonotone",
-<<<<<<< master
   random_seed,
   tex = true,
 );

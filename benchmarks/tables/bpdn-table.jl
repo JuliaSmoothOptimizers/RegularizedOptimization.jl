@@ -146,7 +146,6 @@ stats = benchmark_table(
   solver_options,
   subsolver_options,
   "BPDN",
-<<<<<<< master
   random_seed,
   tex = true,
 );
