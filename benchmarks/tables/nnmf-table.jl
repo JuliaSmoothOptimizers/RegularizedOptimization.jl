@@ -12,7 +12,7 @@ h = NormL0(λ)
 ϵri = 1.0e-6
 maxIter = 500
 maxIter_inner = 100
-Mmonotone = 0
+Mmonotone = 5
 verbose = 0 #10
 options =
   ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = Mmonotone)
@@ -142,5 +142,5 @@ benchmark_table(
   solver_options[subset],
   subsolver_options[subset],
   "NNMF with m = $m, n = $n, k = $k, ν = $ν, λ = $λ, M = $Mmonotone",
-  tex = false,
+  tex = true,
 );
