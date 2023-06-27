@@ -16,7 +16,7 @@ verbose = 0 # 10
 ϵri = 1.0e-6
 maxIter = 500
 maxIter_inner = 100
-Mmonotone = 0
+Mmonotone = 5
 options =
   ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = Mmonotone)
 options_nrTR = ROSolverOptions(
