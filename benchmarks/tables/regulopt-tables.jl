@@ -9,7 +9,7 @@ using NLPModels,
   ShiftedProximalOperators,
   SolverBenchmark
 using Printf
-using Logging
+# using Logging
 
 # utils for extracting stats / display table
 modelname(nlp::LSR1Model) = "LSR1"

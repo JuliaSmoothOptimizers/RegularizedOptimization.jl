@@ -153,6 +153,7 @@ names, stats = benchmark_table(
   solver_options[subset],
   subsolver_options[subset],
   "FH with ν = $ν, λ = $λ, M = $Mmonotone",
+<<<<<<< master
   random_seed,
   tex = true,
 );
@@ -169,7 +170,7 @@ if display_sol
     row_names = vcat(["True"], names),
     title = "Solution FH",
     formatters = ft_printf("%1.2f"),
-    # backend = Val(:latex),
+    backend = Val(:latex),
   )
 end
 
