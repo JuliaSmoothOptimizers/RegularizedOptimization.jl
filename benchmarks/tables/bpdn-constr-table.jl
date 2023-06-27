@@ -143,5 +143,5 @@ stats = benchmark_table(
   solver_options,
   subsolver_options,
   "BPDN-cstr, M = $Mmonotone",
-  tex = true,
+  tex = false,
 );

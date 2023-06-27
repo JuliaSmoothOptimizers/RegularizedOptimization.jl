@@ -145,5 +145,5 @@ stats = benchmark_table(
   solver_options,
   subsolver_options,
   "BPDN",
-  tex = true,
+  tex = false,
 );

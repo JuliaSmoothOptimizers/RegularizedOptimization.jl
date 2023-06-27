@@ -142,5 +142,5 @@ benchmark_table(
   solver_options[subset],
   subsolver_options[subset],
   "NNMF with m = $m, n = $n, k = $k, ν = $ν, λ = $λ, M = $Mmonotone",
-  tex = true,
+  tex = false,
 );
