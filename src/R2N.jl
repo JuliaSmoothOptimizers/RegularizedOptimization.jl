@@ -12,10 +12,10 @@ lower semi-continuous and proper.
 
 About each iterate xₖ, a step sₖ is computed as an approximate solution of
 
-    min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ)  subject to  ‖s‖ ≤ Δₖ
+    min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ) 
 
 where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Bₖ s  is a quadratic approximation of f about xₖ,
-ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm and σₖ > 0 is the regularization parameter.
+ψ(s; xₖ) = h(xₖ + s) and σₖ > 0 is the regularization parameter.
 The subproblem is solved inexactly by way of a first-order method such as the proximal-gradient
 method or the quadratic regularization method.
 
@@ -60,20 +60,17 @@ function R2N(
   ϵ_subsolver_init = subsolver_options.ϵa
   ϵ_subsolver = copy(ϵ_subsolver_init)
   ϵr = options.ϵr
-  Δk = options.Δk
   verbose = options.verbose
   maxIter = options.maxIter
   maxTime = options.maxTime
   η1 = options.η1
   η2 = options.η2
   γ = options.γ
-  α = options.α
   θ = options.θ
-  β = options.β
   σmin = options.σmin
 
   local l_bound, u_bound
-  if has_bounds(f) || subsolver == TRDH
+  if has_bounds(f)
     l_bound = f.meta.lvar
     u_bound = f.meta.uvar
   end
@@ -103,20 +100,18 @@ function R2N(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ =
-    (has_bounds(f) || subsolver == TRDH) ?
-    shifted(h, xk, l_bound - xk, u_bound - xk, selected) : shifted(h, xk)
+  ψ = has_bounds(f) ? shifted(h, xk, l_bound - xk, u_bound - xk, selected) : shifted(h, xk)
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
   Complex_hist = zeros(Int, maxIter)
-  if verbose > 0 
+  if verbose > 0
     #! format: off
     @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Bₖ‖" "R2N"
     #! format: on
   end
 
-    # main algorithm initialization
+  # main algorithm initialization
 
   local ξ1
   k = 0
@@ -128,8 +123,8 @@ function R2N(
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
 
-  λmax = (opnorm(Bk))
-  νInv = (1 + θ) *  (λmax + σk)
+  λmax = opnorm(Bk)
+  νInv = (1 + θ) * (λmax + σk)
 
   optimal = false
   tired = k ≥ maxIter || elapsed_time > maxTime
@@ -156,10 +151,9 @@ function R2N(
 
     mk(d) = φ(d) + ψ(d)
 
-
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
-    
+
     subsolver_options.ν = 1 / νInv
     prox!(s, ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν)
     ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
@@ -216,7 +210,7 @@ function R2N(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-      (has_bounds(f) || subsolver == TRDH) &&
+      has_bounds(f) &&
       set_bounds!(ψ, l_bound - xk, u_bound - xk)
 
       #update functions
@@ -225,8 +219,7 @@ function R2N(
 
       # update gradient & Hessian
       shift!(ψ, xk)
-      ∇fk = grad(f, xk)
-      # grad!(f, xk, ∇fk)
+      grad!(f, xk, ∇fk)
       if quasiNewtTest
         push!(f, s, ∇fk - ∇fk⁻)
       end
@@ -241,8 +234,6 @@ function R2N(
         σk = σk * γ
 
     end
-    
-    
 
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
