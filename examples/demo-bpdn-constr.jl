@@ -36,6 +36,13 @@ function demo_solver(f, nls, sol, h, χ, suffix = "l0-linf")
   TRDH_out = TRDH(f, h, χ, options, x0 = f.meta.x0)
   @info "TRDH relative error" norm(TRDH_out.solution - sol) / norm(sol)
   # plot_bpdn(TRDH_out, sol, "constr-trdh-$(suffix)")
+  
+  @info " using R2_DH to solve with" h
+  reset!(f)
+  R2_DH_out = R2_DH(f, h, options, x0 = f.meta.x0)
+  @info "R2_DH relative error" norm(R2_DH_out.solution - sol) / norm(sol)
+  @info "elapsed time" R2_DH_out.elapsed_time
+  plot_bpdn(R2_DH_out, sol, "R2_DH", "constr-r2-$(suffix)")
 
   @info " using LMTR to solve with" h χ
   reset!(nls)
