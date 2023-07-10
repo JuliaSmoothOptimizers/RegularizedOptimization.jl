@@ -153,7 +153,6 @@ function R2_DH(
   local ξ
   k = 0
   σk = max(1 / ν, σmin)
-  ν = 1 / σk
 
   fk = f(xk)
   ∇fk = similar(xk)
@@ -162,8 +161,7 @@ function R2_DH(
   Dk = spectral ? SpectralGradient(hess_init_val, length(xk)) :
     ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb) : DiagonalQN(diag(Bk), psb))
   DkNorm = norm(Dk.d, Inf)
-  Dk.d = Dk.d  .* σk
-  mν∇fk = - inv(diagm(Dk.d)) * ∇fk  
+  Dk.d = Dk.d  .* σk  
 
   optimal = false
   tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
@@ -180,8 +178,7 @@ function R2_DH(
     φ(d) = ∇fk' * d + (d' * (Dk.d .* d)) / 2
     mk(d) = φ(d) + ψ(d)
 
-    #iprox!(s, ψ, ∇fk, Dk)
-    prox!(s, ψ, mν∇fk, ν)
+    iprox!(s, ψ, ∇fk, Dk)
     Complex_hist[k] += 1
     xkn .= xk .+ s
     fkn = f(xkn)
@@ -236,8 +233,8 @@ function R2_DH(
     end
 
    # νInv = Dk.d  .+ σk 
-    ν = 1 / σk
-    mν∇fk = - inv(diagm(Dk.d)) * ∇fk  
+   # ν = Diagonal(one(R) ./ νInv)
+   # mν∇fk = -ν * ∇fk
 
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
