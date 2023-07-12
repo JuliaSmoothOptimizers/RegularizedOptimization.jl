@@ -36,7 +36,7 @@ function demo_solver(f, h, χ, selected, Avec, m, n, k, suffix = "l0-linf")
   @info "gradient call" neval_grad(f)
  # plot_nnmf(R2_out, Avec, m, n, k, "r2-$suffix")
 
-  subsolver_options = ROSolverOptions(spectral = true, psb = false, ϵa = options.ϵa)
+  subsolver_options = ROSolverOptions(spectral = false, psb = true, ϵa = options.ϵa)
   @info " using TR with TRDH as subproblem to solve with" h χ
   reset!(f)
   TR2_out = TR(
