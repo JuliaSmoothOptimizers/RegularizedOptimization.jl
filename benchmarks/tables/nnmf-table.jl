@@ -6,7 +6,7 @@ model, A, selected = nnmf_model(m, n, k)
 f = LSR1Model(model)
 λ = 1.0e-1 # norm(grad(model, rand(model.meta.nvar)), Inf) / 100
 h = NormL0(λ)
-ν = 1.0
+ν = 1.0e-3
 ϵ = 1.0e-5
 ϵi = 1.0e-3
 ϵri = 1.0e-6
@@ -85,10 +85,12 @@ options6_nrTR = ROSolverOptions(
   reduce_TR = false,
 )
 
-solvers = [:R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
+solvers = [:R2, :R2_DH, :R2_DH1, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
 subsolvers =
-  [:None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
+  [:None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
 solver_options = [
+  options,
+  options,
   options,
   options,
   options_nrTR,
@@ -106,6 +108,10 @@ solver_options = [
   options,
 ]
 subsolver_options = [
+  options2,
+  options2,
+  options2,
+  options2,
   options2,
   options2,
   options2,

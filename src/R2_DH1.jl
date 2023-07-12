@@ -1,8 +1,8 @@
-export R2_DH
+export R2_DH1
 
 """
-    R2_DH(nlp, h, options)
-    R2_DH(f, ∇f!, h, options, x0)
+    R2_DH1(nlp, h, options)
+    R2_DH1(f, ∇f!, h, options, x0)
 
 A first-order quadratic regularization method for the problem
 
@@ -13,9 +13,9 @@ lower semi-continuous, proper and prox-bounded.
 
 About each iterate xₖ, a step sₖ is computed as a solution of
 
-    min  φ(s; xₖ) + ψ(s; xₖ)
+    min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ)
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ σₖ.Dₖ s  is a quadratic approximation of f about xₖ,
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Dₖ s  is a quadratic approximation of f about xₖ,
 ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm, Dₖ is a diagonal Hessian approximation
 and σₖ > 0 is the regularization parameter.
 
@@ -46,10 +46,10 @@ In the second form, instead of `nlp`, the user may pass in
 * `Hobj_hist`: an array with the history of values of the nonsmooth objective
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
-function R2_DH(nlp::AbstractNLPModel, args...; kwargs...)
+function R2_DH1(nlp::AbstractNLPModel, args...; kwargs...)
   kwargs_dict = Dict(kwargs...)
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
-  xk, k, outdict = R2_DH(
+  xk, k, outdict = R2_DH1(
     x -> obj(nlp, x),
     (g, x) -> grad!(nlp, x, g),
     args...,
@@ -73,7 +73,7 @@ function R2_DH(nlp::AbstractNLPModel, args...; kwargs...)
   return stats
 end
 
-function R2_DH(
+function R2_DH1(
   f::F,
   ∇f!::G,
   h::H,
@@ -102,9 +102,9 @@ function R2_DH(
   hess_init_val = (Bk isa UniformScaling) ? Bk.λ : (one(R) / options.ν)
 
   local l_bound, u_bound
-  has_bnds = false
   l_bound = R(-Inf) * ones(size(x0,1))
   u_bound = R(Inf) * ones(size(x0,1))
+  has_bnds = false
 
   if verbose == 0
     ptf = Inf
@@ -120,11 +120,11 @@ function R2_DH(
   xk = copy(x0)
   hk = h(xk[selected])
   if hk == Inf
-    verbose > 0 && @info "R2_DH: finding initial guess where nonsmooth term is finite"
+    verbose > 0 && @info "R2_DH1: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, x0, one(eltype(x0)))
     hk = h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
-    verbose > 0 && @debug "R2_DH: found point where h has value" hk
+    verbose > 0 && @debug "R2_DH1: found point where h has value" hk
   end
   hk == -Inf && error("nonsmooth term is not proper")
 
@@ -137,13 +137,13 @@ function R2_DH(
   Complex_hist = zeros(Int, maxIter)
   if verbose > 0
     #! format: off
-    @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
+    @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖D‖" "‖s‖" ""
     #! format: off
   end
 
   local ξ
   k = 0
-  σk = max(1 / ν, σmin)
+  σk = σmin
 
   fk = f(xk)
   ∇fk = similar(xk)
@@ -152,7 +152,7 @@ function R2_DH(
   Dk = spectral ? SpectralGradient(hess_init_val, length(xk)) :
     ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb, andrei) : DiagonalQN(diag(Bk), psb, andrei))
   DkNorm = norm(Dk.d, Inf)
-  σkdk = Dk.d  .* σk 
+  σkdk = Dk.d  .+ σk  
 
   optimal = false
   tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
@@ -163,17 +163,17 @@ function R2_DH(
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
     σkdk = max.(σkdk, eps())
-  #  Dk.d = map(x -> x < 0 ? 1 : x, Dk.d)
 
     # model with diagonal hessian 
     φ(d) = ∇fk' * d + (d' * (σkdk .* d)) / 2
     mk(d) = φ(d) + ψ(d)
 
     if spectral
-       iprox!(s, ψ, ∇fk, fill!(similar(∇fk), σkdk[1]))
-    else
-      iprox!(s, ψ, ∇fk, σkdk)
+        iprox!(s, ψ, ∇fk, fill!(similar(∇fk), σkdk[1]))
+     else
+       iprox!(s, ψ, ∇fk, σkdk)
     end
+
     Complex_hist[k] += 1
     xkn .= xk .+ s
     fkn = f(xkn)
@@ -193,7 +193,7 @@ function R2_DH(
       continue
     end
 
-    ξ > 0 || error("R2_DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
+    ξ > 0 || error("R2_DH1: prox-gradient step should produce a decrease but ξ = $(ξ)")
     
     ρk = Δobj / ξ
 
@@ -201,7 +201,7 @@ function R2_DH(
 
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(s) σ_stat
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(Dk.d) norm(s) σ_stat
       #! format: on
     end
 
@@ -215,6 +215,7 @@ function R2_DH(
       hk = hkn
       shift!(ψ, xk)
       ∇f!(∇fk, xk)
+      
       push!(Dk, s, ∇fk - ∇fk⁻) # update QN operator
       DkNorm = norm(Dk.d, Inf) 
       ∇fk⁻ .= ∇fk
@@ -224,7 +225,7 @@ function R2_DH(
       σk = σk * γ
     end
 
-    σkdk = Dk.d  * σk
+    σkdk = Dk.d  .+ σk  
 
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
@@ -234,9 +235,9 @@ function R2_DH(
       @info @sprintf "%6d %8.1e %8.1e" k fk hk
     elseif optimal
       #! format: off
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e" k fk hk sqrt(ξ) "" σk norm(xk) norm(s)
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k fk hk sqrt(ξ) "" σk norm(xk) norm(Dk.d) norm(s)
       #! format: on
-      @info "R2_DH: terminating with √ξ = $(sqrt(ξ))"
+      @info "R2_DH1: terminating with √ξ = $(sqrt(ξ))"
     end
   end
 

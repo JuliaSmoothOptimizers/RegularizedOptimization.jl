@@ -18,6 +18,7 @@ mutable struct ROSolverOptions{R}
   β::R  # TR size as factor of first PG step
   spectral::Bool # for TRDH: use spectral gradient update if true, otherwise DiagonalQN
   psb::Bool # for TRDH with DiagonalQN (spectral = false): use PSB update if true, otherwise Andrei update
+  andrei::Bool
   reduce_TR::Bool
 
   function ROSolverOptions{R}(;
@@ -38,6 +39,7 @@ mutable struct ROSolverOptions{R}
     β::R = 1 / eps(R),
     spectral::Bool = false,
     psb::Bool = false,
+    andrei::Bool = true,
     reduce_TR::Bool = true,
   ) where {R <: Real}
     @assert ϵa ≥ 0
@@ -72,6 +74,7 @@ mutable struct ROSolverOptions{R}
       β,
       spectral,
       psb,
+      andrei,
       reduce_TR,
     )
   end
