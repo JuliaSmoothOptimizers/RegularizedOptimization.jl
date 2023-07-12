@@ -13,9 +13,9 @@ lower semi-continuous, proper and prox-bounded.
 
 About each iterate xₖ, a step sₖ is computed as a solution of
 
-    min  φ(s; xₖ) + ψ(s; xₖ)
+    min  φ(s; xₖ) + ½ σₖ ‖s‖² + ½ sᵀ Dₖ s + ψ(s; xₖ)
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ σₖ.Dₖ s  is a quadratic approximation of f about xₖ,
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Dₖ s  is a quadratic approximation of f about xₖ,
 ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm, Dₖ is a diagonal Hessian approximation
 and σₖ > 0 is the regularization parameter.
 
@@ -87,6 +87,7 @@ function R2_DH(
   elapsed_time = 0.0
   ϵ = options.ϵa
   ϵr = options.ϵr
+  Δk = options.Δk
   neg_tol = options.neg_tol
   verbose = options.verbose
   maxIter = options.maxIter
@@ -96,15 +97,23 @@ function R2_DH(
   η2 = options.η2
   ν = options.ν
   γ = options.γ
+  α = options.α
+  β = options.β
   spectral = options.spectral
   psb = options.psb
-  andrei = options.andrei
   hess_init_val = (Bk isa UniformScaling) ? Bk.λ : (one(R) / options.ν)
 
   local l_bound, u_bound
   has_bnds = false
-  l_bound = R(-Inf) * ones(size(x0,1))
-  u_bound = R(Inf) * ones(size(x0,1))
+  for (key, val) in kwargs
+    if key == :l_bound
+      l_bound = val
+      has_bnds = has_bnds || any(l_bound .!= R(-Inf))
+    elseif key == :u_bound
+      u_bound = val
+      has_bnds = has_bnds || any(u_bound .!= R(Inf))
+    end
+  end
 
   if verbose == 0
     ptf = Inf
@@ -130,7 +139,7 @@ function R2_DH(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = shifted(h, xk, l_bound - xk, u_bound - xk, selected)# : shifted(h, xk)
+  ψ = has_bnds ? shifted(h, xk, l_bound - xk, u_bound - xk, selected) : shifted(h, xk)
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -150,9 +159,9 @@ function R2_DH(
   ∇f!(∇fk, xk)
   ∇fk⁻ = copy(∇fk)
   Dk = spectral ? SpectralGradient(hess_init_val, length(xk)) :
-    ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb, andrei) : DiagonalQN(diag(Bk), psb, andrei))
+    ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb) : DiagonalQN(diag(Bk), psb))
   DkNorm = norm(Dk.d, Inf)
-  σkdk = Dk.d  .* σk 
+  Dk.d = Dk.d  .* σk  
 
   optimal = false
   tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
@@ -162,18 +171,14 @@ function R2_DH(
     elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    σkdk = max.(σkdk, eps())
+    Dk.d = max.(Dk.d, eps())
   #  Dk.d = map(x -> x < 0 ? 1 : x, Dk.d)
 
     # model with diagonal hessian 
-    φ(d) = ∇fk' * d + (d' * (σkdk .* d)) / 2
+    φ(d) = ∇fk' * d + (d' * (Dk.d .* d)) / 2
     mk(d) = φ(d) + ψ(d)
 
-    if spectral
-       iprox!(s, ψ, ∇fk, fill!(similar(∇fk), σkdk[1]))
-    else
-      iprox!(s, ψ, ∇fk, σkdk)
-    end
+    iprox!(s, ψ, ∇fk, Dk)
     Complex_hist[k] += 1
     xkn .= xk .+ s
     fkn = f(xkn)
@@ -211,10 +216,12 @@ function R2_DH(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
+      has_bnds && set_bounds!(ψ, l_bound - xk, u_bound - xk)
       fk = fkn
       hk = hkn
       shift!(ψ, xk)
       ∇f!(∇fk, xk)
+      Dk.d = Dk.d  .* σk  
       push!(Dk, s, ∇fk - ∇fk⁻) # update QN operator
       DkNorm = norm(Dk.d, Inf) 
       ∇fk⁻ .= ∇fk
@@ -222,9 +229,12 @@ function R2_DH(
 
     if ρk < η1 || ρk == Inf
       σk = σk * γ
+      Dk.d = Dk.d  .* σk  
     end
 
-    σkdk = Dk.d  * σk
+   # νInv = Dk.d  .+ σk 
+   # ν = Diagonal(one(R) ./ νInv)
+   # mν∇fk = -ν * ∇fk
 
     tired = k ≥ maxIter || elapsed_time > maxTime
   end

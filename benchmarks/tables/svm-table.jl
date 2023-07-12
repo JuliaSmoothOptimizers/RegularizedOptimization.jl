@@ -88,15 +88,11 @@ options6_nrTR = ROSolverOptions(
   reduce_TR = false,
 )
 
-solvers = [:R2, :R2_DH, :R2_DH, :R2_DH1, :R2_DH1, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
+solvers = [:R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
 subsolvers =
-  [:None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
+  [:None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
 solver_options = [
   options,
-  options,
-  options5,
-  options,
-  options5,
   options,
   options_nrTR,
   options5,
@@ -113,10 +109,6 @@ solver_options = [
   options,
 ]
 subsolver_options = [
-  options2,
-  options2,
-  options2,
-  options2,
   options2,
   options2,
   options2,

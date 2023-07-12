@@ -88,52 +88,17 @@ options6_nrTR = ROSolverOptions(
   reduce_TR = false,
 )
 
-options7 = ROSolverOptions(
-  ν = ν,
-  ϵa = ϵ,
-  ϵr = ϵ,
-  verbose = verbose,
-  maxIter = maxIter,
-  spectral = false,
-  psb = false,
-  andrei = false
-)
-
-options7_nrTR = ROSolverOptions(
-  ν = ν,
-  ϵa = ϵ,
-  ϵr = ϵ,
-  verbose = verbose,
-  maxIter = maxIter,
-  spectral = false,
-  psb = false,
-  andrei = false,
-  reduce_TR = false,
-)
-
-solvers = [:R2, :R2_DH, :R2_DH, :R2_DH, :R2_DH, :R2_DH1, :R2_DH1, :R2_DH1, :R2_DH1, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
+solvers = [:R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
 subsolvers =
-  [:None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
+  [:None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
 solver_options = [
   options,
-  options,
-  options5,
-  options6,
-  options7,
-  options,
-  options5,
-  options6,
-  options7,
   options,
   options_nrTR,
   options5,
   options5_nrTR,
   options6,
   options6_nrTR,
-  options7,
-  options7_nrTR,
-  options,
-  options,
   options,
   options,
   options,
@@ -153,25 +118,12 @@ subsolver_options = [
   options2,
   options2,
   options2,
-  options2,
-  options2,
-  options2,
-  options2,
-  options2,
-  options2,
-  options2,
-  options2,
-  options2,
-  options2,
   options2_nrTR,
   options3,
   options3_nrTR,
   options4,
   options4_nrTR,
-  options7,
-  options7_nrTR,
 ] # n'importe lequel si subsolver = :None
-
 stats = benchmark_table(
   f,
   1:(f.meta.nvar),
