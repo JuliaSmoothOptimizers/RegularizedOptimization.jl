@@ -22,11 +22,11 @@ function options_str(
   subsolver_options::ROSolverOptions,
   subsolver::Symbol,
 )
-  if solver == :TRDH
-    out_str = !options.spectral ? (options.psb ? "-PSB" : "-Andrei") : "-Spec"
+  if solver ∈ [:R2_DH, :R2_DH1, :TRDH]
+    out_str = !options.spectral ? (options.psb ? "-PSB" : (options.andrei ? "-Andrei" : "-Nosrati")) : "-Spec"
     out_str = (options.reduce_TR) ? out_str : string(out_str, "-noredTR")
   elseif solver == :TR && subsolver == :TRDH
-    out_str = !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") : "-Spec"
+    out_str = !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : (subsolver_options.andrei ? "-Andrei" : "-Nosrati")) : "-Spec"
     out_str = (subsolver_options.reduce_TR) ? out_str : string(out_str, "-noredTR")
   else
     out_str = ""
@@ -38,7 +38,7 @@ grad_evals(nls::AbstractNLSModel) = neval_jtprod_residual(nls) + neval_jprod_res
 obj_evals(nlp::AbstractNLPModel) = neval_obj(nlp)
 obj_evals(nls::AbstractNLSModel) = neval_residual(nls)
 function nb_prox_evals(stats, solver::Symbol)
-  if solver ∈ [:TR, :R2, :TRDH]
+  if solver ∈ [:TR, :R2, :TRDH, :R2_DH, :R2_DH1]
     prox_evals = sum(stats.solver_specific[:SubsolverCounter])
   else
     error("not implemented")
@@ -78,7 +78,9 @@ function benchmark_table(
       zip(solvers, subsolvers, solver_options, subsolver_options)
     @info " using $solver with subsolver = $subsolver"
     args = solver == :R2 ? () : (NormLinf(1.0),)
-    if subsolver == :None
+    if solver ∈ [:R2_DH, :R2_DH1]
+      solver_out = eval(solver)(f, h, opt, x0 = f.meta.x0, selected = selected)  
+    elseif subsolver == :None
       solver_out = eval(solver)(f, h, args..., opt, x0 = f.meta.x0, selected = selected)
     else
       solver_out = eval(solver)(
@@ -200,7 +202,8 @@ function benchmark_table(
       ),
     )
   else
-    pretty_table(data; header = header, title = title, formatters = (print_formats,))
+   # conf = set_pt_conf(tf = tf_markdown, alignment = :c, max_num_of_rows = 100);
+    pretty_table(data; header = header, title = title, formatters = (print_formats,), display_size = (-1, -1))
   end
   return solver_names, solver_stats
 end

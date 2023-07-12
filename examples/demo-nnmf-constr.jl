@@ -14,26 +14,45 @@ function demo_solver(f, h, χ, selected, Avec, m, n, k, suffix = "l0-linf")
     β = 1e16,
     ϵa = 1e-6,
     ϵr = 1e-6,
-    verbose = 10,
+    verbose = 1,
     maxIter = 500,
-    spectral = true,
+    spectral = false,
+    psb = false,
+    andrei = false,
   )
   @info " using TR to solve with" h χ
   reset!(f)
   TR_out = TR(f, h, χ, options, selected = selected)
-  plot_nnmf(TR_out, Avec, m, n, k, "tr-r2-$suffix")
+  @info "TR objective" TR_out.objective
+  @info "elapsed time" TR_out.elapsed_time
+  @info "gradient call" neval_grad(f)
+#  plot_nnmf(TR_out, Avec, m, n, k, "tr-r2-$suffix")
 
   @info " using R2 to solve with" h
   reset!(f)
   R2_out = R2(f, h, options, selected = selected)
-  plot_nnmf(R2_out, Avec, m, n, k, "r2-$suffix")
+  @info "R2 objective" R2_out.objective
+  @info "elapsed time" R2_out.elapsed_time
+  @info "gradient call" neval_grad(f)
+ # plot_nnmf(R2_out, Avec, m, n, k, "r2-$suffix")
 
-  @info " using TR with R2 as subproblem to solve with" h χ
+  @info " using R2_DH to solve with" h
   reset!(f)
-  TR_out = TR(f, h, χ, options, selected = selected)
-  plot_nnmf(TR_out, Avec, m, n, k, "tr-r2-$suffix")
+  R2_DH_out = R2_DH(f, h, options, selected = selected, x0 = f.meta.x0)
+  @info "R2_DH objective" R2_DH_out.objective
+  @info "elapsed time" R2_DH_out.elapsed_time
+  @info "gradient call" neval_grad(f)
+ # plot_bpdn(R2_DH_out, sol, "R2_DH", "constr-r2-$(suffix)")
 
-  subsolver_options = ROSolverOptions(spectral = false, psb = true, ϵa = options.ϵa)
+  @info " using R2_DH1 to solve with" h
+  reset!(f)
+  R2_DH1_out = R2_DH1(f, h, options, x0 = f.meta.x0, selected = selected)
+  @info "R2_DH1 objective" R2_DH1_out.objective
+  @info "elapsed time" R2_DH1_out.elapsed_time
+  @info "gradient call" neval_grad(f)
+ # plot_bpdn(R2_DH_out, sol, "R2_DH", "constr-r2-$(suffix)")
+
+  subsolver_options = ROSolverOptions(spectral = true, psb = false, ϵa = options.ϵa)
   @info " using TR with TRDH as subproblem to solve with" h χ
   reset!(f)
   TR2_out = TR(
@@ -45,22 +64,28 @@ function demo_solver(f, h, χ, selected, Avec, m, n, k, suffix = "l0-linf")
     subsolver = TRDH,
     subsolver_options = subsolver_options,
   )
-  plot_nnmf(TR2_out, Avec, m, n, k, "tr-trdh-$suffix")
+#  plot_nnmf(TR2_out, Avec, m, n, k, "tr-trdh-$suffix")
+  @info "TR-TRDH objective" TR2_out.objective
+  @info "elapsed time" TR2_out.elapsed_time
+  @info "gradient call" neval_grad(f)
 
   @info " using TRDH to solve with" h χ
   reset!(f)
   TRDH_out = TRDH(f, h, χ, options, selected = selected)
-  plot_nnmf(TRDH_out, Avec, m, n, k, "trdh-$suffix")
+ # plot_nnmf(TRDH_out, Avec, m, n, k, "trdh-$suffix")
+  @info "TRDH objective" TRDH_out.objective
+  @info "elapsed time" TRDH_out.elapsed_time
+  @info "gradient call" neval_grad(f)
 end
 
 function demo_nnmf()
   m, n, k = 100, 50, 5
   model, A, selected = nnmf_model(m, n, k)
   f = LSR1Model(model)
-  λ = norm(grad(model, rand(model.meta.nvar)), Inf) / 200
+  λ = 1.0e-1#norm(grad(model, rand(model.meta.nvar)), Inf) / 200
   demo_solver(f, NormL0(λ), NormLinf(1.0), selected, A, m, n, k, "l0-linf")
-  λ = norm(grad(model, rand(model.meta.nvar)), Inf) / 100000
-  demo_solver(f, NormL1(λ), NormLinf(1.0), selected, A, m, n, k, "l1-linf")
+#  λ = norm(grad(model, rand(model.meta.nvar)), Inf) / 100000
+#  demo_solver(f, NormL1(λ), NormLinf(1.0), selected, A, m, n, k, "l1-linf")
 end
 
 demo_nnmf()
