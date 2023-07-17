@@ -16,7 +16,12 @@ mutable struct R2Solver{R, S <: AbstractVector{R}} <: AbstractOptimizationSolver
   Complex_hist::Vector{Int}
 end
 
-function R2Solver(x0::S, options::ROSolverOptions, l_bound::S, u_bound::S) where {R <: Real, S <: AbstractVector{R}}
+function R2Solver(
+  x0::S,
+  options::ROSolverOptions,
+  l_bound::S,
+  u_bound::S,
+) where {R <: Real, S <: AbstractVector{R}}
   maxIter = options.maxIter
   xk = similar(x0)
   ∇fk = similar(x0)
@@ -134,7 +139,7 @@ function R2(
 ) where {F <: Function, G <: Function, H, R <: Real}
   start_time = time()
   elapsed_time = 0.0
-  solver = R2Solver(x0, options, similar(x0, 0), similar(x0, 0)) 
+  solver = R2Solver(x0, options, similar(x0, 0), similar(x0, 0))
   k, status, fk, hk, ξ = R2!(solver, f, ∇f!, h, options, x0; selected = selected)
   elapsed_time = time() - start_time
   outdict = Dict(
