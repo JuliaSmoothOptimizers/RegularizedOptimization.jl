@@ -48,7 +48,7 @@ function PG(
 ) where {F <: Function, G <: Function, H}
   start_time = time()
   elapsed_time = 0.0
-  ϵ = options.ϵ
+  ϵ = options.ϵa
   maxIter = options.maxIter
   maxTime = options.maxTime
   ν = options.ν
@@ -90,7 +90,6 @@ function PG(
   end
 
   while !(optimal || tired)
-    k = k + 1
     elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
