@@ -9,6 +9,7 @@ using NLPModels,
   ShiftedProximalOperators,
   SolverBenchmark
 using Printf
+# using Logging
 
 # utils for extracting stats / display table
 modelname(nlp::LSR1Model) = "LSR1"
@@ -89,6 +90,7 @@ function benchmark_table(
         x0 = f.meta.x0,
         subsolver = eval(subsolver),
         subsolver_options = sub_opt,
+        # subsolver_logger= Logging.ConsoleLogger(),
         selected = selected,
       )
     end
