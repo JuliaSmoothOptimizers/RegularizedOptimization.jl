@@ -87,6 +87,7 @@ function R2N(
 
   # initialize parameters
   σk = max(1 / options.ν, σmin)
+  #σk = σmin
   xk = copy(x0)
   hk = h(xk[selected])
   if hk == Inf
@@ -171,8 +172,9 @@ function R2N(
       continue
     end
 
+    #subsolver_options.ϵa = 1.0e-1
     #subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
-    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1e-2, sqrt(ξ1)) * ξ1)
+    subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1e-2, sqrt(ξ1)) * ξ1)
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
