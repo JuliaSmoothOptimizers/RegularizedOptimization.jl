@@ -111,19 +111,46 @@ options7_nrTR = ROSolverOptions(
   reduce_TR = false,
 )
 
-solvers = [:R2, :R2_DH, :R2_DH, :R2_DH, :R2_DH, :R2_DH1, :R2_DH1, :R2_DH1, :R2_DH1, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
+options8 = ROSolverOptions(
+  ν = ν,
+  ϵa = ϵ,
+  ϵr = ϵ,
+  verbose = verbose,
+  maxIter = maxIter,
+  spectral = false,
+  psb = false,
+  andrei = false,
+  wolk = true
+)
+
+options8_nrTR = ROSolverOptions(
+  ν = ν,
+  ϵa = ϵ,
+  ϵr = ϵ,
+  verbose = verbose,
+  maxIter = maxIter,
+  spectral = false,
+  psb = false,
+  andrei = false,
+  wolk = true,
+  reduce_TR = false,
+)
+
+solvers = [:R2, :R2_DH, :R2_DH, :R2_DH, :R2_DH, :R2_DH, :R2_DH1, :R2_DH1, :R2_DH1, :R2_DH1, :R2_DH1, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
 subsolvers =
-  [:None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
+  [:None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :R2_DH, :R2_DH1, :R2_DH, :R2_DH1, :R2_DH, :R2_DH1]
 solver_options = [
   options,
   options,
   options5,
   options6,
   options7,
+  options8,
   options,
   options5,
   options6,
   options7,
+  options8,
   options,
   options_nrTR,
   options5,
@@ -132,6 +159,16 @@ solver_options = [
   options6_nrTR,
   options7,
   options7_nrTR,
+  options8,
+  options8_nrTR,
+  options,
+  options,
+  options,
+  options,
+  options,
+  options,
+  options,
+  options,
   options,
   options,
   options,
@@ -163,6 +200,10 @@ subsolver_options = [
   options2,
   options2,
   options2,
+  options2,
+  options2,
+  options2,
+  options2,
   options2_nrTR,
   options3,
   options3_nrTR,
@@ -170,6 +211,14 @@ subsolver_options = [
   options4_nrTR,
   options7,
   options7_nrTR,
+  options8,
+  options8_nrTR,
+  options8,
+  options8,
+  options6,
+  options6,
+  options,
+  options,
 ] # n'importe lequel si subsolver = :None
 
 stats = benchmark_table(

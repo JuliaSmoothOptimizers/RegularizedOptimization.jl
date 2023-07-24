@@ -99,12 +99,20 @@ function R2_DH1(
   spectral = options.spectral
   psb = options.psb
   andrei = options.andrei
+  wolk = options.wolk
   hess_init_val = (Bk isa UniformScaling) ? Bk.λ : (one(R) / options.ν)
 
   local l_bound, u_bound
-  l_bound = R(-Inf) * ones(size(x0,1))
-  u_bound = R(Inf) * ones(size(x0,1))
   has_bnds = false
+  for (key, val) in kwargs
+    if key == :l_bound
+      l_bound = val
+      has_bnds = has_bnds || any(l_bound .!= R(-Inf))
+    elseif key == :u_bound
+      u_bound = val
+      has_bnds = has_bnds || any(u_bound .!= R(Inf))
+    end
+  end
 
   if verbose == 0
     ptf = Inf
@@ -130,7 +138,7 @@ function R2_DH1(
 
   xkn = similar(xk)
   s = zero(xk)
-  ψ = shifted(h, xk, l_bound - xk, u_bound - xk, selected)# : shifted(h, xk)
+  ψ = has_bnds ? shifted(h, xk, l_bound - xk, u_bound - xk, selected) : shifted(h, xk)
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -150,9 +158,11 @@ function R2_DH1(
   ∇f!(∇fk, xk)
   ∇fk⁻ = copy(∇fk)
   Dk = spectral ? SpectralGradient(hess_init_val, length(xk)) :
-    ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb, andrei) : DiagonalQN(diag(Bk), psb, andrei))
+    ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb, andrei, wolk) : DiagonalQN(diag(Bk), psb, andrei, wolk))
   DkNorm = norm(Dk.d, Inf)
   σkdk = Dk.d  .+ σk  
+  ν = 1 / σkdk[1]
+  mν∇fk = -ν * ∇fk  
 
   optimal = false
   tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
@@ -169,10 +179,10 @@ function R2_DH1(
     mk(d) = φ(d) + ψ(d)
 
     if spectral
-        iprox!(s, ψ, ∇fk, fill!(similar(∇fk), σkdk[1]))
+        prox!(s, ψ, mν∇fk, ν)
      else
        iprox!(s, ψ, ∇fk, σkdk)
-    end
+     end
 
     Complex_hist[k] += 1
     xkn .= xk .+ s
@@ -211,6 +221,7 @@ function R2_DH1(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
+      has_bnds && set_bounds!(ψ, l_bound - xk, u_bound - xk)
       fk = fkn
       hk = hkn
       shift!(ψ, xk)
@@ -227,7 +238,11 @@ function R2_DH1(
 
     σkdk = Dk.d  .+ σk  
 
-    tired = k ≥ maxIter || elapsed_time > maxTime
+    ν = 1 / σkdk[1]
+    tired = maxIter > 0 && k ≥ maxIter
+    if !tired
+      @. mν∇fk = -ν * ∇fk
+    end
   end
 
   if verbose > 0

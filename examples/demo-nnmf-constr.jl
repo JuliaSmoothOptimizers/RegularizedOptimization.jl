@@ -36,6 +36,22 @@ function demo_solver(f, h, χ, selected, Avec, m, n, k, suffix = "l0-linf")
   @info "gradient call" neval_grad(f)
  # plot_nnmf(R2_out, Avec, m, n, k, "r2-$suffix")
 
+  @info " using R2_DH to solve with" h
+  reset!(f)
+  R2_DH_out = R2_DH(f, h, options, selected = selected)
+  @info "R2_DH objective" R2_DH_out.objective
+  @info "elapsed time" R2_DH_out.elapsed_time
+  @info "gradient call" neval_grad(f)
+ # plot_nnmf(R2_out, Avec, m, n, k, "r2-$suffix")
+
+  @info " using R2_DH1 to solve with" h
+  reset!(f)
+  R2_DH1_out = R2_DH1(f, h, options, selected = selected)
+  @info "R2 objective" R2_DH1_out.objective
+  @info "elapsed time" R2_DH1_out.elapsed_time
+  @info "gradient call" neval_grad(f)
+ # plot_nnmf(R2_out, Avec, m, n, k, "r2-$suffix")
+
   subsolver_options = ROSolverOptions(spectral = false, psb = true, ϵa = options.ϵa)
   @info " using TR with TRDH as subproblem to solve with" h χ
   reset!(f)
