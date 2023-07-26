@@ -50,6 +50,7 @@ function R2N(
   x0::AbstractVector = f.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
+  sub_tol = true,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
 ) where {H}
@@ -172,9 +173,12 @@ function R2N(
       continue
     end
 
-    #subsolver_options.ϵa = 1.0e-1
-    #subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
-    subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1e-2, sqrt(ξ1)) * ξ1)
+    if sub_tol
+      subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
+    else
+      subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1e-2, sqrt(ξ1)) * ξ1)
+    end
+    
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
@@ -212,8 +216,7 @@ function R2N(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-      has_bounds(f) &&
-      set_bounds!(ψ, l_bound - xk, u_bound - xk)
+      has_bounds(f) && set_bounds!(ψ, l_bound - xk, u_bound - xk)
 
       #update functions
       fk = fkn
@@ -228,13 +231,11 @@ function R2N(
       Bk = hess_op(f, xk)
       λmax = opnorm(Bk)
       νInv = (1 + θ) * (λmax + σk)  # ‖Bk + σₖ I‖ = ‖Bk‖ + σₖ    
-  
       ∇fk⁻ = ∇fk
     end
 
     if ρk < η1 || ρk == Inf
         σk = σk * γ
-
     end
 
     tired = k ≥ maxIter || elapsed_time > maxTime

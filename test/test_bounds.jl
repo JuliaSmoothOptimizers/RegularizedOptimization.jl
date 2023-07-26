@@ -3,14 +3,14 @@ TR_TRDH(args...; kwargs...) = TR(args...; subsolver = TRDH, kwargs...)
 
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
   for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
-    for solver_sym ∈ (:TR, :R2, :TRDH, :TR_TRDH)
-      solver_sym ∈ (:TR, :TR_TRDH) && mod_name == "exact" && continue
+    for solver_sym ∈ (:TR, :R2, :TRDH, :TR_TRDH, :R2N)
+      solver_sym ∈ (:TR, :TR_TRDH, :R2N) && mod_name == "exact" && continue
       solver_name = string(solver_sym)
       solver = eval(solver_sym)
       @testset "bpdn-with-bounds-$(mod_name)-$(solver_name)-$(h_name)" begin
         x0 = zeros(bpdn2.meta.nvar)
         p = randperm(bpdn2.meta.nvar)[1:nz]
-        args = solver_sym == :R2 ? () : (NormLinf(1.0),)
+        args = solver_sym ∈ (:R2, :R2N) ? () : (NormLinf(1.0),)
         @test has_bounds(mod(bpdn2))
         out = solver(mod(bpdn2), h, args..., options; x0 = x0)
         @test typeof(out.solution) == typeof(bpdn2.meta.x0)
