@@ -88,9 +88,9 @@ options6_nrTR = ROSolverOptions(
   reduce_TR = false,
 )
 
-solvers = [:R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
+solvers = [:R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :R2N]
 subsolvers =
-  [:None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
+  [:None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :R2]
 solver_options = [
   options,
   options,
@@ -99,6 +99,7 @@ solver_options = [
   options5_nrTR,
   options6,
   options6_nrTR,
+  options,
   options,
   options,
   options,
@@ -123,6 +124,7 @@ subsolver_options = [
   options3_nrTR,
   options4,
   options4_nrTR,
+  options2,
 ] # n'importe lequel si subsolver = :None
 stats = benchmark_table(
   f,

@@ -17,6 +17,7 @@ include("splitting.jl")
 include("TR_alg.jl")
 include("TRDH_alg.jl")
 include("R2_alg.jl")
+include("R2N.jl")
 include("LM_alg.jl")
 include("LMTR_alg.jl")
 

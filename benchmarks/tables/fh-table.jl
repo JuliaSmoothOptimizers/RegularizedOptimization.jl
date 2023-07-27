@@ -33,6 +33,7 @@ options_nrTR = ROSolverOptions(
   spectral = true,
   reduce_TR = false,
 )
+options_R2N = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, σmin = 1e+3)
 options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
 options2_nrTR = ROSolverOptions(
   spectral = false,
@@ -94,9 +95,9 @@ options6_nrTR = ROSolverOptions(
   reduce_TR = false,
 )
 
-solvers = [:R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
+solvers = [:R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :R2N]
 subsolvers =
-  [:None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
+  [:None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :R2]
 solver_options = [
   options,
   options,
@@ -113,6 +114,7 @@ solver_options = [
   options,
   options,
   options,
+  options_R2N,
 ]
 subsolver_options = [
   options2,
@@ -129,6 +131,7 @@ subsolver_options = [
   options3_nrTR,
   options4,
   options4_nrTR,
+  options2,
 ] # n'importe lequel si subsolver = :None
 subset = 2:length(solvers) # issues with R2 alone
 
