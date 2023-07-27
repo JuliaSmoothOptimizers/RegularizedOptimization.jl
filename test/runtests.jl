@@ -13,7 +13,7 @@ const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
   for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * compound), "B0"))
-    for solver_sym ∈ (:R2, :TR)
+    for solver_sym ∈ (:R2, :TR, :R2DH)
       solver_sym == :TR && mod_name == "exact" && continue
       solver_sym == :TR && h_name == "B0" && continue  # FIXME
       solver_name = string(solver_sym)
@@ -22,7 +22,7 @@ for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "l
         x0 = zeros(bpdn.meta.nvar)
         p = randperm(bpdn.meta.nvar)[1:nz]
         x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
-        args = solver_sym == :R2 ? () : (NormLinf(1.0),)
+        args = solver_sym ∈ (:R2, :R2DH) ? () : (NormLinf(1.0),)
         out = solver(mod(bpdn), h, args..., options, x0 = x0)
         @test typeof(out.solution) == typeof(bpdn.meta.x0)
         @test length(out.solution) == bpdn.meta.nvar
