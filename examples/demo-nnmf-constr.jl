@@ -55,7 +55,7 @@ end
 
 function demo_nnmf()
   m, n, k = 100, 50, 5
-  model, A, selected = nnmf_model(m, n, k)
+  model, nls_model, A, selected = nnmf_model(m, n, k)
   f = LSR1Model(model)
   λ = norm(grad(model, rand(model.meta.nvar)), Inf) / 200
   demo_solver(f, NormL0(λ), NormLinf(1.0), selected, A, m, n, k, "l0-linf")
