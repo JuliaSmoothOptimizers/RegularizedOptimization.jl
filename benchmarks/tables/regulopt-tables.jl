@@ -38,7 +38,7 @@ grad_evals(nls::AbstractNLSModel) = neval_jtprod_residual(nls) + neval_jprod_res
 obj_evals(nlp::AbstractNLPModel) = neval_obj(nlp)
 obj_evals(nls::AbstractNLSModel) = neval_residual(nls)
 function nb_prox_evals(stats, solver::Symbol)
-  if solver ∈ [:TR, :R2, :TRDH]
+  if solver ∈ [:TR, :R2, :TRDH, :R2N]
     prox_evals = sum(stats.solver_specific[:SubsolverCounter])
   else
     error("not implemented")
@@ -77,7 +77,7 @@ function benchmark_table(
   for (solver, subsolver, opt, sub_opt) in
       zip(solvers, subsolvers, solver_options, subsolver_options)
     @info " using $solver with subsolver = $subsolver"
-    args = solver == :R2 ? () : (NormLinf(1.0),)
+    args = solver ∈ [:R2, :R2N] ? () : (NormLinf(1.0),)
     if subsolver == :None
       solver_out = eval(solver)(f, h, args..., opt, x0 = f.meta.x0, selected = selected)
     else

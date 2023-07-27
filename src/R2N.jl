@@ -33,7 +33,6 @@ The Hessian is accessed as an abstract operator and need not be the exact Hessia
 * `x0::AbstractVector`: an initial guess (default: `nlp.meta.x0`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver (default: the null logger)
 * `subsolver`: the procedure used to compute a step (`PG` or `R2`)
-* `sub_tol`: the procedure of setting the subsolver_options.ϵa as in TR_alg or LM_alg. (default : `true` as in LM_alg)
 * `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options)
 * `selected::AbstractVector{<:Integer}`: (default `1:f.meta.nvar`).
 
@@ -51,7 +50,6 @@ function R2N(
   x0::AbstractVector = f.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
-  sub_tol = true,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
 ) where {H}
@@ -174,11 +172,7 @@ function R2N(
       continue
     end
 
-    if sub_tol
-      subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
-    else
-      subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1e-2, sqrt(ξ1)) * ξ1)
-    end
+    subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
     
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
