@@ -3,7 +3,7 @@ include("regulopt-tables.jl")
 Random.seed!(1234)
 m, n, k = 100, 50, 5
 model, A, selected = nnmf_model(m, n, k)
-f = LSR1Model(model)
+f = LBFGSModel(model)
 λ = 1.0e-1 # norm(grad(model, rand(model.meta.nvar)), Inf) / 100
 h = NormL0(λ)
 ν = 1.0e-3
@@ -132,14 +132,14 @@ options8_nrTR = ROSolverOptions(
   reduce_TR = false,
 )
 
-solvers = [:R2, :R2_DH, :R2_DH1, :R2_DH1, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
+solvers = [:R2, :R2DH, :R2DH, :R2DH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
 subsolvers =
-  [:None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :R2_DH, :R2_DH1, :R2_DH, :R2_DH, :R2_DH, :R2_DH1]
+  [:None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :R2DH, :R2DH, :R2DH]
 solver_options = [
   options,
   options,
-  options,
-  options6,
+  options7,
+  options8,
   options,
   options_nrTR,
   options5,
@@ -150,10 +150,6 @@ solver_options = [
   options7_nrTR,
   options8,
   options8_nrTR,
-  options,
-  options,
-  options,
-  options,
   options,
   options,
   options,
@@ -195,11 +191,8 @@ subsolver_options = [
   options7_nrTR,
   options8,
   options8_nrTR,
-  options6,
-  options6,
   options8,
-  options8,
-  options,
+  options7,
   options,
 ] # n'importe lequel si subsolver = :None
 subset = 1:length(solvers)

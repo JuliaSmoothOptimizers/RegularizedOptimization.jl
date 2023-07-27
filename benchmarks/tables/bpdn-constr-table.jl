@@ -136,16 +136,11 @@ options8_nrTR = ROSolverOptions(
   reduce_TR = false,
 )
 
-solvers = [:R2, :R2_DH, :R2_DH, :R2_DH, :R2_DH, :R2_DH, :R2_DH1, :R2_DH1, :R2_DH1, :R2_DH1, :R2_DH1, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
+solvers = [:R2, :R2DH, :R2DH, :R2DH, :R2DH, :R2DH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
 subsolvers =
-  [:None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :R2_DH, :R2_DH1, :R2_DH, :R2_DH1, :R2_DH, :R2_DH1]
+  [:None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :R2DH, :R2DH, :R2DH]
 solver_options = [
   options,
-  options,
-  options5,
-  options6,
-  options7,
-  options8,
   options,
   options5,
   options6,
@@ -161,10 +156,6 @@ solver_options = [
   options7_nrTR,
   options8,
   options8_nrTR,
-  options,
-  options,
-  options,
-  options,
   options,
   options,
   options,
@@ -199,11 +190,6 @@ subsolver_options = [
   options2,
   options2,
   options2,
-  options2,
-  options2,
-  options2,
-  options2,
-  options2,
   options2_nrTR,
   options3,
   options3_nrTR,
@@ -214,10 +200,7 @@ subsolver_options = [
   options8,
   options8_nrTR,
   options8,
-  options8,
-  options6,
-  options6,
-  options,
+  options7,
   options,
 ] # n'importe lequel si subsolver = :None
 

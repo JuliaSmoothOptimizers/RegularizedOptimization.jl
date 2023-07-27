@@ -6,7 +6,7 @@ using Printf
 
 include("plot-utils-bpdn.jl")
 
-Random.seed!(1234)
+Random.seed!(12)
 
 function demo_solver(f, nls, sol, h, χ, suffix = "l0-linf")
   options = ROSolverOptions(
@@ -16,65 +16,44 @@ function demo_solver(f, nls, sol, h, χ, suffix = "l0-linf")
     ϵr = 1e-6,
     verbose = 10,
     spectral = false,
-    psb = false,
-    andrei = false
+    psb = true,
   )
 
   @info " using TR to solve with" h χ
   reset!(f)
   TR_out = TR(f, h, χ, options, x0 = f.meta.x0)
   @info "TR relative error" norm(TR_out.solution - sol) / norm(sol)
-  @info "elapsed time" TR_out.elapsed_time
-  @info "gradient call" neval_grad(f)
-#  plot_bpdn(TR_out, sol, "constr-tr-r2-$(suffix)")
+  plot_bpdn(TR_out, sol, "constr-tr-r2-$(suffix)")
 
   @info " using R2 to solve with" h
   reset!(f)
   R2_out = R2(f, h, options, x0 = f.meta.x0)
   @info "R2 relative error" norm(R2_out.solution - sol) / norm(sol)
-  @info "elapsed time" R2_out.elapsed_time
-  @info "gradient call" neval_grad(f)
-#  plot_bpdn(R2_out, sol, "constr-r2-$(suffix)")
+  plot_bpdn(R2_out, sol, "constr-r2-$(suffix)")
+
+  @info " using R2DH to solve with" h
+  reset!(f)
+  R2DH_out = R2DH(f, h, options, x0 = f.meta.x0)
+  @info "R2DH relative error" norm(R2DH_out.solution - sol) / norm(sol)
+  plot_bpdn(R2DH_out, sol, "constr-r2-dh-$(suffix)")
 
   @info " using TRDH to solve with" h χ
   reset!(f)
   TRDH_out = TRDH(f, h, χ, options, x0 = f.meta.x0)
   @info "TRDH relative error" norm(TRDH_out.solution - sol) / norm(sol)
-  @info "elapsed time" TRDH_out.elapsed_time
-  @info "gradient call" neval_grad(f)
-  # plot_bpdn(TRDH_out, sol, "constr-trdh-$(suffix)")
-
-  @info " using R2_DH to solve with" h
-  reset!(f)
-  R2_DH_out = R2_DH(f, h, options, x0 = f.meta.x0)
-  @info "R2_DH relative error" norm(R2_DH_out.solution - sol) / norm(sol)
-  @info "elapsed time" R2_DH_out.elapsed_time
-  @info "gradient call" neval_grad(f)
- # plot_bpdn(R2_DH_out, sol, "R2_DH", "constr-r2-$(suffix)")
-
-  @info " using R2_DH1 to solve with" h
-  reset!(f)
-  R2_DH1_out = R2_DH1(f, h, options, x0 = f.meta.x0)
-  @info "R2_DH1 relative error" norm(R2_DH1_out.solution - sol) / norm(sol)
-  @info "elapsed time" R2_DH1_out.elapsed_time
-  @info "gradient call" neval_grad(f)
- # plot_bpdn(R2_DH_out, sol, "R2_DH", "constr-r2-$(suffix)")
+  plot_bpdn(TRDH_out, sol, "constr-trdh-$(suffix)")
 
   @info " using LMTR to solve with" h χ
   reset!(nls)
   LMTR_out = LMTR(nls, h, χ, options, x0 = f.meta.x0)
   @info "LMTR relative error" norm(LMTR_out.solution - sol) / norm(sol)
-  @info "elapsed time" LMTR_out.elapsed_time
-  @info "LMTR gradient call" neval_jtprod_residual(nls) + neval_jprod_residual(nls)
-#  plot_bpdn(LMTR_out, sol, "constr-lmtr-r2-$(suffix)")
+  plot_bpdn(LMTR_out, sol, "constr-lmtr-r2-$(suffix)")
 
   @info " using LM to solve with" h
   reset!(nls)
   LM_out = LM(nls, h, options, x0 = f.meta.x0)
   @info "LM relative error" norm(LM_out.solution - sol) / norm(sol)
-  @info "elapsed time" LM_out.elapsed_time
-  @info "LM gradient call" neval_jtprod_residual(nls) + neval_jprod_residual(nls)
-#  plot_bpdn(LM_out, sol, "constr-lm-r2-$(suffix)")
+  plot_bpdn(LM_out, sol, "constr-lm-r2-$(suffix)")
 end
 
 function demo_bpdn_constr(compound = 1)

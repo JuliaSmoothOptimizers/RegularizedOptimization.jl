@@ -1,8 +1,8 @@
-export R2_DH
+export R2DH
 
 """
-    R2_DH(nlp, h, options)
-    R2_DH(f, ∇f!, h, options, x0)
+    R2DH(nlp, h, options)
+    R2DH(f, ∇f!, h, options, x0)
 
 A first-order quadratic regularization method for the problem
 
@@ -15,7 +15,7 @@ About each iterate xₖ, a step sₖ is computed as a solution of
 
     min  φ(s; xₖ) + ψ(s; xₖ)
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ σₖ.Dₖ s  is a quadratic approximation of f about xₖ,
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if sum = true) and φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if sum = true) is a quadratic approximation of f about xₖ,
 ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm, Dₖ is a diagonal Hessian approximation
 and σₖ > 0 is the regularization parameter.
 
@@ -31,6 +31,7 @@ and σₖ > 0 is the regularization parameter.
 * `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
 * `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`).
 * `Bk`: initial diagonal Hessian approximation (default: `(one(R) / options.ν) * I`).
+* `sum`: boolean in order to choose between the two versions of R2DH (default : true).
 
 The objective and gradient of `nlp` will be accessed.
 
@@ -46,16 +47,17 @@ In the second form, instead of `nlp`, the user may pass in
 * `Hobj_hist`: an array with the history of values of the nonsmooth objective
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
-function R2_DH(nlp::AbstractNLPModel, args...; kwargs...)
+function R2DH(nlp::AbstractNLPModel, args...; sum::Bool = true, kwargs...)
   kwargs_dict = Dict(kwargs...)
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
-  xk, k, outdict = R2_DH(
+  xk, k, outdict = R2DH(
     x -> obj(nlp, x),
     (g, x) -> grad!(nlp, x, g),
     args...,
     x0;
     l_bound = nlp.meta.lvar,
     u_bound = nlp.meta.uvar,
+    sum = sum,
     kwargs_dict...,
   )
   ξ = outdict[:ξ]
@@ -73,13 +75,14 @@ function R2_DH(nlp::AbstractNLPModel, args...; kwargs...)
   return stats
 end
 
-function R2_DH(
+function R2DH(
   f::F,
   ∇f!::G,
   h::H,
   options::ROSolverOptions{R},
   x0::AbstractVector{R};
   selected::AbstractVector{<:Integer} = 1:length(x0),
+  sum::Bool = true,
   Bk = (one(R) / options.ν) * I,
   kwargs...,
 ) where {F <: Function, G <: Function, H, R <: Real}
@@ -128,11 +131,11 @@ function R2_DH(
   xk = copy(x0)
   hk = h(xk[selected])
   if hk == Inf
-    verbose > 0 && @info "R2_DH: finding initial guess where nonsmooth term is finite"
+    verbose > 0 && @info "R2DH: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, x0, one(eltype(x0)))
     hk = h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
-    verbose > 0 && @debug "R2_DH: found point where h has value" hk
+    verbose > 0 && @debug "R2DH: found point where h has value" hk
   end
   hk == -Inf && error("nonsmooth term is not proper")
 
@@ -151,7 +154,7 @@ function R2_DH(
 
   local ξ
   k = 0
-  σk = max(1 / ν, σmin)
+  σk = sum ? σmin : max(1 / ν, σmin)
 
   fk = f(xk)
   ∇fk = similar(xk)
@@ -160,7 +163,7 @@ function R2_DH(
   Dk = spectral ? SpectralGradient(hess_init_val, length(xk)) :
     ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb, andrei, wolk) : DiagonalQN(diag(Bk), psb, andrei, wolk))
   DkNorm = norm(Dk.d, Inf)
-  σkdk = Dk.d  .* σk 
+  σkdk = sum ? Dk.d .+ σk : Dk.d  .* σk 
   ν = 1 / σkdk[1]
   mν∇fk = -ν * ∇fk  
 
@@ -173,7 +176,6 @@ function R2_DH(
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
     σkdk = max.(σkdk, eps())
-  #  Dk.d = map(x -> x < 0 ? 1 : x, Dk.d)
 
     # model with diagonal hessian 
     φ(d) = ∇fk' * d + (d' * (σkdk .* d)) / 2
@@ -184,6 +186,7 @@ function R2_DH(
     else
       iprox!(s, ψ, ∇fk, σkdk)
     end
+
     Complex_hist[k] += 1
     xkn .= xk .+ s
     fkn = f(xkn)
@@ -203,7 +206,7 @@ function R2_DH(
       continue
     end
 
-    ξ > 0 || error("R2_DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
+    ξ > 0 || error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
     
     ρk = Δobj / ξ
 
@@ -235,9 +238,9 @@ function R2_DH(
       σk = σk * γ
     end
 
-    σkdk = Dk.d  * σk
-
+    σkdk = sum ? Dk.d .+ σk : Dk.d  .* σk 
     ν = 1 / σkdk[1]
+    
     tired = maxIter > 0 && k ≥ maxIter
     if !tired
       @. mν∇fk = -ν * ∇fk
@@ -251,7 +254,7 @@ function R2_DH(
       #! format: off
       @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e" k fk hk sqrt(ξ) "" σk norm(xk) norm(s)
       #! format: on
-      @info "R2_DH: terminating with √ξ = $(sqrt(ξ))"
+      @info "R2DH: terminating with √ξ = $(sqrt(ξ))"
     end
   end
 
