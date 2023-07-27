@@ -15,7 +15,7 @@ About each iterate xₖ, a step sₖ is computed as a solution of
 
     min  φ(s; xₖ) + ψ(s; xₖ)
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if summation = true) and φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if summation = true) is a quadratic approximation of f about xₖ,
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if `summation = true`) and φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if `summation = false`) is a quadratic approximation of f about xₖ,
 ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm, Dₖ is a diagonal Hessian approximation
 and σₖ > 0 is the regularization parameter.
 
@@ -31,7 +31,7 @@ and σₖ > 0 is the regularization parameter.
 * `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
 * `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`).
 * `Bk`: initial diagonal Hessian approximation (default: `(one(R) / options.ν) * I`).
-* `summation`: boolean in order to choose between the two versions of R2DH (default : `true``).
+* `summation`: boolean used to choose between the two versions of R2DH (see above, default : `true`).
 
 The objective and gradient of `nlp` will be accessed.
 
