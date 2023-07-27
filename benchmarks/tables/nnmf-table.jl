@@ -2,7 +2,7 @@ include("regulopt-tables.jl")
 
 Random.seed!(1234)
 m, n, k = 100, 50, 5
-model, A, selected = nnmf_model(m, n, k)
+model, nls_model, A, selected = nnmf_model(m, n, k)
 f = LSR1Model(model)
 λ = 1.0e-1 # norm(grad(model, rand(model.meta.nvar)), Inf) / 100
 h = NormL0(λ)
