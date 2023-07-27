@@ -15,7 +15,7 @@ About each iterate xₖ, a step sₖ is computed as a solution of
 
     min  φ(s; xₖ) + ψ(s; xₖ)
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if sum = true) and φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if sum = true) is a quadratic approximation of f about xₖ,
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if summation = true) and φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if summation = true) is a quadratic approximation of f about xₖ,
 ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm, Dₖ is a diagonal Hessian approximation
 and σₖ > 0 is the regularization parameter.
 
@@ -31,7 +31,7 @@ and σₖ > 0 is the regularization parameter.
 * `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
 * `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`).
 * `Bk`: initial diagonal Hessian approximation (default: `(one(R) / options.ν) * I`).
-* `sum`: boolean in order to choose between the two versions of R2DH (default : true).
+* `summation`: boolean in order to choose between the two versions of R2DH (default : `true``).
 
 The objective and gradient of `nlp` will be accessed.
 
@@ -47,7 +47,7 @@ In the second form, instead of `nlp`, the user may pass in
 * `Hobj_hist`: an array with the history of values of the nonsmooth objective
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
-function R2DH(nlp::AbstractNLPModel, args...; sum::Bool = true, kwargs...)
+function R2DH(nlp::AbstractNLPModel, args...; summation::Bool = true, kwargs...)
   kwargs_dict = Dict(kwargs...)
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
   xk, k, outdict = R2DH(
@@ -57,7 +57,7 @@ function R2DH(nlp::AbstractNLPModel, args...; sum::Bool = true, kwargs...)
     x0;
     l_bound = nlp.meta.lvar,
     u_bound = nlp.meta.uvar,
-    sum = sum,
+    summation = summation,
     kwargs_dict...,
   )
   ξ = outdict[:ξ]
@@ -82,7 +82,7 @@ function R2DH(
   options::ROSolverOptions{R},
   x0::AbstractVector{R};
   selected::AbstractVector{<:Integer} = 1:length(x0),
-  sum::Bool = true,
+  summation::Bool = true,
   Bk = (one(R) / options.ν) * I,
   kwargs...,
 ) where {F <: Function, G <: Function, H, R <: Real}
@@ -154,7 +154,7 @@ function R2DH(
 
   local ξ
   k = 0
-  σk = sum ? σmin : max(1 / ν, σmin)
+  σk = summation ? σmin : max(1 / ν, σmin)
 
   fk = f(xk)
   ∇fk = similar(xk)
@@ -163,7 +163,7 @@ function R2DH(
   Dk = spectral ? SpectralGradient(hess_init_val, length(xk)) :
     ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb, andrei, wolk) : DiagonalQN(diag(Bk), psb, andrei, wolk))
   DkNorm = norm(Dk.d, Inf)
-  σkdk = sum ? Dk.d .+ σk : Dk.d  .* σk 
+  σkdk = summation ? Dk.d .+ σk : Dk.d  .* σk 
   ν = 1 / σkdk[1]
   mν∇fk = -ν * ∇fk  
 
@@ -175,7 +175,7 @@ function R2DH(
     elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    σkdk = max.(σkdk, eps())
+    σkdk .= max.(σkdk, eps(R))
 
     # model with diagonal hessian 
     φ(d) = ∇fk' * d + (d' * (σkdk .* d)) / 2
@@ -238,7 +238,7 @@ function R2DH(
       σk = σk * γ
     end
 
-    σkdk = sum ? Dk.d .+ σk : Dk.d  .* σk 
+    σkdk .= summation ? Dk.d .+ σk : Dk.d  .* σk 
     ν = 1 / σkdk[1]
     
     tired = maxIter > 0 && k ≥ maxIter
