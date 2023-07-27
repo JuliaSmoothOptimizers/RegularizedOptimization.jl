@@ -33,6 +33,7 @@ The Hessian is accessed as an abstract operator and need not be the exact Hessia
 * `x0::AbstractVector`: an initial guess (default: `nlp.meta.x0`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver (default: the null logger)
 * `subsolver`: the procedure used to compute a step (`PG` or `R2`)
+* `sub_tol`: the procedure of setting the subsolver_options.ϵa as in TR_alg or LM_alg. (default : `true` as in LM_alg)
 * `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options)
 * `selected::AbstractVector{<:Integer}`: (default `1:f.meta.nvar`).
 
