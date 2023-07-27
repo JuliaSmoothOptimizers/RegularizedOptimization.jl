@@ -1,3 +1,4 @@
+using LinearAlgebra
 using DifferentialEquations, ProximalOperators
 using ADNLPModels, NLPModels, NLPModelsModifiers, RegularizedOptimization, RegularizedProblems
 
