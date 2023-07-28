@@ -166,9 +166,9 @@ function LM(
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
-    subsolver_options.ν = 1 / νInv
-    ∇fk .*= -subsolver_options.ν  # reuse gradient storage
-    prox!(s, ψ, ∇fk, subsolver_options.ν)
+    ν = 1 / νInv
+    ∇fk .*= -ν  # reuse gradient storage
+    prox!(s, ψ, ∇fk, ν)
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
@@ -185,6 +185,7 @@ function LM(
     end
 
     subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
+    subsolver_options.ν = ν
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)

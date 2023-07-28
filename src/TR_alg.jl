@@ -160,8 +160,8 @@ function TR(
 
     # Take first proximal gradient step s1 and see if current xk is nearly stationary.
     # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
-    subsolver_options.ν = 1 / (νInv + 1 / (Δk * α))
-    prox!(s, ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν)
+    ν = 1 / (νInv + 1 / (Δk * α))
+    prox!(s, ψ, -ν * ∇fk, ν)
     ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
@@ -183,6 +183,7 @@ function TR(
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
     set_radius!(ψ, ∆_effective)
     subsolver_options.Δk = ∆_effective / 10
+    subsolver_options.ν = ν
     s, iter, outdict = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s; Bk = Bk)
     end
