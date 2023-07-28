@@ -63,8 +63,9 @@ function LM(
   θ = options.θ
   σmin = options.σmin
 
-  ν_subsolv = subsolver_options.ν
-  ϵa_subsolv = subsolver_options.ϵa
+  # store initial values of the subsolver_options fields that will be modified
+  ν_subsolver = subsolver_options.ν
+  ϵa_subsolver = subsolver_options.ϵa
 
   local l_bound, u_bound
   treats_bounds = has_bounds(nls) || subsolver == TRDH
@@ -189,8 +190,8 @@ function LM(
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
     # restore initial subsolver_options here so that it is not modified if there is an error
-    subsolver_options.ν = ν_subsolv 
-    subsolver_options.ϵa = ϵa_subsolv
+    subsolver_options.ν = ν_subsolver
+    subsolver_options.ϵa = ϵa_subsolver
 
     Complex_hist[k] = iter
 
