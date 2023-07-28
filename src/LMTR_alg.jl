@@ -55,8 +55,6 @@ function LMTR(
   # initialize passed options
   ϵ = options.ϵa
   ϵ_subsolver = subsolver_options.ϵa
-  ϵ_subsolver_init = subsolver_options.ϵa
-  ϵ_subsolver = copy(ϵ_subsolver_init)
   ϵr = options.ϵr
   Δk = options.Δk
   verbose = options.verbose
@@ -68,6 +66,11 @@ function LMTR(
   α = options.α
   θ = options.θ
   β = options.β
+
+  # store initial values of the subsolver_options fields that will be modified
+  ν_subsolver = subsolver_options.ν
+  ϵa_subsolver = subsolver_options.ϵa
+  Δk_subsolver = subsolver_options.Δk
 
   local l_bound, u_bound
   treats_bounds = has_bounds(nls) || subsolver == TRDH
@@ -191,9 +194,11 @@ function LMTR(
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
-    # restore initial subsolver_options.ϵa here so that subsolver_options.ϵa
-    # is not modified if there is an error
-    subsolver_options.ϵa = ϵ_subsolver_init
+    # restore initial values of subsolver_options here so that it is not modified
+    # if there is an error
+    subsolver_options.ν = ν_subsolver
+    subsolver_options.ϵa = ϵa_subsolver
+    subsolver_options.Δk = Δk_subsolver
 
     Complex_hist[k] = iter
 

@@ -53,8 +53,6 @@ function LM(
   # initialize passed options
   ϵ = options.ϵa
   ϵ_subsolver = subsolver_options.ϵa
-  ϵ_subsolver_init = subsolver_options.ϵa
-  ϵ_subsolver = copy(ϵ_subsolver_init)
   ϵr = options.ϵr
   verbose = options.verbose
   maxIter = options.maxIter
@@ -64,6 +62,9 @@ function LM(
   γ = options.γ
   θ = options.θ
   σmin = options.σmin
+
+  ν_subsolv = subsolver_options.ν
+  ϵa_subsolv = subsolver_options.ϵa
 
   local l_bound, u_bound
   treats_bounds = has_bounds(nls) || subsolver == TRDH
@@ -187,9 +188,9 @@ function LM(
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
-    # restore initial subsolver_options.ϵa here so that subsolver_options.ϵa
-    # is not modified if there is an error
-    subsolver_options.ϵa = ϵ_subsolver_init
+    # restore initial subsolver_options here so that it is not modified if there is an error
+    subsolver_options.ν = ν_subsolv 
+    subsolver_options.ϵa = ϵa_subsolv
 
     Complex_hist[k] = iter
 
