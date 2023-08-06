@@ -363,17 +363,6 @@ function R2!(
   else
     :exception
   end
-  outdict = Dict(
-    :Fhist => Fobj_hist[1:k],
-    :Hhist => Hobj_hist[1:k],
-    :Chist => Complex_hist[1:k],
-    :NonSmooth => h,
-    :status => status,
-    :fk => fk,
-    :hk => hk,
-    :ξ => ξ/ν,
-    :elapsed_time => elapsed_time,
-  )
 
   return k, status, fk, hk, ξ
 end
