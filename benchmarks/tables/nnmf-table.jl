@@ -1,6 +1,7 @@
 include("regulopt-tables.jl")
 
-Random.seed!(1234)
+random_seed = 1234
+Random.seed!(random_seed)
 m, n, k = 100, 50, 5
 model, nls_model, A, selected = nnmf_model(m, n, k)
 f = LSR1Model(model)
@@ -134,5 +135,6 @@ benchmark_table(
   solver_options[subset],
   subsolver_options[subset],
   "NNMF with m = $m, n = $n, k = $k, ν = $ν, λ = $λ",
+  random_seed,
   tex = false,
 );

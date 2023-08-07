@@ -1,7 +1,8 @@
 include("regulopt-tables.jl")
 
 # model
-Random.seed!(1234)
+random_seed = 1234
+Random.seed!(random_seed)
 compound = 1
 model, nls_model, sol = bpdn_model(compound, bounds = false)
 
@@ -137,5 +138,6 @@ stats = benchmark_table(
   solver_options,
   subsolver_options,
   "BPDN",
+  random_seed,
   tex = false,
 );

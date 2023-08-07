@@ -3,7 +3,8 @@ using ADNLPModels, DifferentialEquations
 
 display_sol = true
 
-Random.seed!(1234)
+random_seed = 1234
+Random.seed!(random_seed)
 
 cstr = false
 ctr_val = cstr ? 0.5 : -Inf
@@ -143,6 +144,7 @@ names, stats = benchmark_table(
   solver_options[subset],
   subsolver_options[subset],
   "FH with ν = $ν, λ = $λ",
+  random_seed,
   tex = false,
 );
 

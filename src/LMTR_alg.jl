@@ -55,8 +55,6 @@ function LMTR(
   # initialize passed options
   ϵ = options.ϵa
   ϵ_subsolver = subsolver_options.ϵa
-  ϵ_subsolver_init = subsolver_options.ϵa
-  ϵ_subsolver = copy(ϵ_subsolver_init)
   ϵr = options.ϵr
   Δk = options.Δk
   verbose = options.verbose
@@ -68,6 +66,11 @@ function LMTR(
   α = options.α
   θ = options.θ
   β = options.β
+
+  # store initial values of the subsolver_options fields that will be modified
+  ν_subsolver = subsolver_options.ν
+  ϵa_subsolver = subsolver_options.ϵa
+  Δk_subsolver = subsolver_options.Δk
 
   local l_bound, u_bound
   treats_bounds = has_bounds(nls) || subsolver == TRDH
@@ -165,8 +168,8 @@ function LMTR(
 
     # Take first proximal gradient step s1 and see if current xk is nearly stationary.
     # s1 minimizes φ1(d) + ‖d‖² / 2 / ν + ψ(d) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0))
-    subsolver_options.ν = 1 / (νInv + 1 / (Δk * α))
-    prox!(s, ψ, mν∇fk, subsolver_options.ν)
+    ν = 1 / (νInv + 1 / (Δk * α))
+    prox!(s, ψ, mν∇fk, ν)
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
@@ -188,12 +191,15 @@ function LMTR(
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
     set_radius!(ψ, ∆_effective)
     subsolver_options.Δk = ∆_effective / 10
+    subsolver_options.ν = ν
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
-    # restore initial subsolver_options.ϵa here so that subsolver_options.ϵa
-    # is not modified if there is an error
-    subsolver_options.ϵa = ϵ_subsolver_init
+    # restore initial values of subsolver_options here so that it is not modified
+    # if there is an error
+    subsolver_options.ν = ν_subsolver
+    subsolver_options.ϵa = ϵa_subsolver
+    subsolver_options.Δk = Δk_subsolver
 
     Complex_hist[k] = iter
 

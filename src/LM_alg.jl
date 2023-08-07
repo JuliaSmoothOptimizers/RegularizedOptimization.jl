@@ -53,8 +53,6 @@ function LM(
   # initialize passed options
   ϵ = options.ϵa
   ϵ_subsolver = subsolver_options.ϵa
-  ϵ_subsolver_init = subsolver_options.ϵa
-  ϵ_subsolver = copy(ϵ_subsolver_init)
   ϵr = options.ϵr
   verbose = options.verbose
   maxIter = options.maxIter
@@ -64,6 +62,10 @@ function LM(
   γ = options.γ
   θ = options.θ
   σmin = options.σmin
+
+  # store initial values of the subsolver_options fields that will be modified
+  ν_subsolver = subsolver_options.ν
+  ϵa_subsolver = subsolver_options.ϵa
 
   local l_bound, u_bound
   treats_bounds = has_bounds(nls) || subsolver == TRDH
@@ -164,9 +166,9 @@ function LM(
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
-    subsolver_options.ν = 1 / νInv
-    ∇fk .*= -subsolver_options.ν  # reuse gradient storage
-    prox!(s, ψ, ∇fk, subsolver_options.ν)
+    ν = 1 / νInv
+    ∇fk .*= -ν  # reuse gradient storage
+    prox!(s, ψ, ∇fk, ν)
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
@@ -183,13 +185,14 @@ function LM(
     end
 
     subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
+    subsolver_options.ν = ν
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_options, s)
     end
-    # restore initial subsolver_options.ϵa here so that subsolver_options.ϵa
-    # is not modified if there is an error
-    subsolver_options.ϵa = ϵ_subsolver_init
+    # restore initial subsolver_options here so that it is not modified if there is an error
+    subsolver_options.ν = ν_subsolver
+    subsolver_options.ϵa = ϵa_subsolver
 
     Complex_hist[k] = iter
 
