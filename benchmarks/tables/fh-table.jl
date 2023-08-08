@@ -3,7 +3,7 @@ using ADNLPModels, DifferentialEquations
 
 display_sol = true
 
-random_seed = 1234
+random_seed = 12345
 Random.seed!(random_seed)
 
 cstr = false
