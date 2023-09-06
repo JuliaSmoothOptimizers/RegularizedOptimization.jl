@@ -208,6 +208,7 @@ function TRDH(
   DkNorm = norm(Dk.d, Inf)
   νInv = (DkNorm + one(R) / (α * Δk))
   ν = one(R) / νInv
+  ν_noredTR = one(R) / (DkNorm + one(R) / α)
   mν∇fk = -ν .* ∇fk
 
   optimal = false
@@ -229,10 +230,10 @@ function TRDH(
       ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
 
       if ξ1 ≥ 0 && k == 1
-        ϵ += ϵr * sqrt(ξ1)  # make stopping test absolute and relative
+        ϵ += ϵr * sqrt(ξ1 / ν)  # make stopping test absolute and relative
       end
 
-      if (ξ1 < 0 && sqrt(-ξ1) ≤ neg_tol) || (ξ1 ≥ 0 && sqrt(ξ1) < ϵ)
+      if (ξ1 < 0 && sqrt(-ξ1 / ν) ≤ neg_tol) || (ξ1 ≥ 0 && sqrt(ξ1 / ν) < ϵ)
         # the current xk is approximately first-order stationary
         optimal = true
         continue
@@ -263,15 +264,18 @@ function TRDH(
     hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
 
-    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+    Δobj = fk + hk - (fkn + hkn) #+ max(1, abs(fk + hk)) * 10 * eps()
     ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
 
+    DkNorm = norm(Dk.d, Inf)
     if !reduce_TR
+      ν_noredTR = one(R) / (DkNorm + one(R) / α)
+
       if ξ ≥ 0 && k == 1
-        ϵ += ϵr * sqrt(ξ)  # make stopping test absolute and relative
+        ϵ += ϵr * sqrt(ξ / ν_noredTR)  # make stopping test absolute and relative
       end
 
-      if (ξ < 0 && sqrt(-ξ) ≤ neg_tol) || (ξ ≥ 0 && sqrt(ξ) < ϵ)
+      if (ξ < 0 && sqrt(-ξ / ν_noredTR) ≤ neg_tol) || (ξ ≥ 0 && sqrt(ξ / ν_noredTR) < ϵ)
         # the current xk is approximately first-order stationary
         optimal = true
         continue
@@ -311,7 +315,6 @@ function TRDH(
       shift!(ψ, xk)
       ∇f!(∇fk, xk)
       push!(Dk, s, ∇fk - ∇fk⁻) # update QN operator
-      DkNorm = norm(Dk.d, Inf)
       ∇fk⁻ .= ∇fk
     end
 
