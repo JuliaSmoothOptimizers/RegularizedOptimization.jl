@@ -170,7 +170,7 @@ function R2(
   start_time = time()
   elapsed_time = 0.0
   solver = R2Solver(x0, options, l_bound, u_bound)
-  k, status, fk, hk, ξ = R2!(solver, f, ∇f!, h, options, x0; selected = selected)
+  k, status, fk, hk, sqrt_νInvξ = R2!(solver, f, ∇f!, h, options, x0; selected = selected)
   elapsed_time = time() - start_time
   outdict = Dict(
     :Fhist => solver.Fobj_hist[1:k],
@@ -180,7 +180,7 @@ function R2(
     :status => status,
     :fk => fk,
     :hk => hk,
-    :ξ => ξ,
+    :ξ => sqrt_νInvξ,
     :elapsed_time => elapsed_time,
   )
   return solver.xk, k, outdict
@@ -258,7 +258,7 @@ function R2!(
 
   if verbose > 0
     #! format: off
-    @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
+    @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ/√ν" "ρ" "σ" "‖x‖" "‖s‖" ""
     #! format: off
   end
 
@@ -304,7 +304,7 @@ function R2!(
     hkn = @views h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
 
-    Δobj = (fk + hk) - (fkn + hkn) #+ max(1, abs(fk + hk)) * 10 * eps()
+    Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ρk = Δobj / ξ
 
     if (verbose > 0) && (k % ptf == 0)
@@ -364,5 +364,5 @@ function R2!(
     :exception
   end
 
-  return k, status, fk, hk, ξ
+  return k, status, fk, hk, ξ ≥ 0 ? sqrt(ξ / ν) : ξ
 end

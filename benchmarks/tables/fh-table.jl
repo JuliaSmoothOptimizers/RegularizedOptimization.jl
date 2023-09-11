@@ -13,11 +13,10 @@ uvar = fill(Inf, 5)
 data, simulate, resid, misfit, x0 = RegularizedProblems.FH_smooth_term()
 model = ADNLPModel(misfit, ones(5), lvar, uvar)
 f = LBFGSModel(model)
-λ = cstr ? 2.0e1 : 1.0e1
+λ = cstr ? 4.0e1 : 1.0e1
 
-h = NormL1(λ)
+h = cstr ? NormL1(λ) : NormL0(λ)
 ν = 1.0e0
-α = 1 / eps()
 verbose = 0 #10
 maxIter = 500
 maxIter_inner = 200 # max iter for subsolver
@@ -25,10 +24,9 @@ maxIter_inner = 200 # max iter for subsolver
 ϵi = 1.0e-3
 ϵri = 1.0e-6
 options =
-  ROSolverOptions(ν = ν, α = α, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true)
+  ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true)
 options_nrTR = ROSolverOptions(
   ν = ν,
-  α = α,
   ϵa = ϵ,
   ϵr = ϵ,
   verbose = verbose,
@@ -36,9 +34,8 @@ options_nrTR = ROSolverOptions(
   spectral = true,
   reduce_TR = false,
 )
-options2 = ROSolverOptions(α = α, spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
+options2 = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
 options2_nrTR = ROSolverOptions(
-  α = α,
   spectral = false,
   psb = true,
   ϵa = ϵi,
@@ -47,9 +44,8 @@ options2_nrTR = ROSolverOptions(
   reduce_TR = false,
 )
 options3 =
-  ROSolverOptions(α = α, spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
+  ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
 options3_nrTR = ROSolverOptions(
-  α = α,
   spectral = false,
   psb = false,
   ϵa = ϵi,
@@ -57,11 +53,10 @@ options3_nrTR = ROSolverOptions(
   maxIter = maxIter_inner,
   reduce_TR = false,
 )
-options4 = ROSolverOptions(α = α, spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
+options4 = ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner)
 options4_nrTR =
-  ROSolverOptions(α = α, spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false)
+  ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, reduce_TR = false)
 options5 = ROSolverOptions(
-  α = α,
   ν = ν,
   ϵa = ϵ,
   ϵr = ϵ,
@@ -71,7 +66,6 @@ options5 = ROSolverOptions(
   psb = true,
 )
 options5_nrTR = ROSolverOptions(
-  α = α,
   ν = ν,
   ϵa = ϵ,
   ϵr = ϵ,
@@ -82,7 +76,6 @@ options5_nrTR = ROSolverOptions(
   reduce_TR = false,
 )
 options6 = ROSolverOptions(
-  α = α,
   ν = ν,
   ϵa = ϵ,
   ϵr = ϵ,
@@ -92,7 +85,6 @@ options6 = ROSolverOptions(
   psb = false,
 )
 options6_nrTR = ROSolverOptions(
-  α = α,
   ν = ν,
   ϵa = ϵ,
   ϵr = ϵ,

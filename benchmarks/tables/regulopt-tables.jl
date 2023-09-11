@@ -107,7 +107,7 @@ function benchmark_table(
         "solver",
         L"$f(x)$",
         L"$h(x) / \lambda$",
-        L"$\xi$",
+        L"$\sqrt{\xi / \nu}$",
         L"$\# \ f$",
         L"$\# \ \nabla f$",
         L"$\# \ prox$",
@@ -118,7 +118,7 @@ function benchmark_table(
         "solver",
         "\$f(x)\$",
         L"$h(x)/\lambda$",
-        L"$\xi$",
+        L"$\sqrt{\xi / \nu}$",
         pb_name[1:3] == "SVM" ? L"$(Train, Test)$" : L"$\|x-x_T\|_2$",
         L"$\# \ f$",
         L"$\# \ \nabla f$",
@@ -128,13 +128,13 @@ function benchmark_table(
     end
   else
     if length(sol) == 0
-      header = ["solver", "f(x)", "h(x)/λ", "ξ", "# f", "# ∇f", "# prox", "t (s)"]
+      header = ["solver", "f(x)", "h(x)/λ", "√ξ/√ν", "# f", "# ∇f", "# prox", "t (s)"]
     else
       header = [
         "solver",
         "f(x)",
         "h(x)/λ",
-        "ξ",
+        "√ξ/√ν",
         pb_name[1:3] == "SVM" ? "(Train, Test)" : "||x-x*||",
         "# f",
         "# ∇f",

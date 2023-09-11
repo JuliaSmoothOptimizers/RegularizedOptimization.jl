@@ -117,7 +117,7 @@ function TR(
   Complex_hist = zeros(Int, maxIter)
   if verbose > 0
     #! format: off
-    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
+    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1/√ν" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
     #! format: on
   end
 
@@ -133,6 +133,7 @@ function TR(
 
   λmax = opnorm(Bk)
   νInv = (1 + θ) * λmax
+  ν = 1 / (νInv + 1 / (Δk * α))
 
   optimal = false
   tired = k ≥ maxIter || elapsed_time > maxTime
@@ -177,7 +178,7 @@ function TR(
       continue
     end
 
-    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1e-2, sqrt(ξ1)) * ξ1 / ν)
+    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1e-2, sqrt(ξ1 / ν)))
     ∆_effective = min(β * χ(s), Δk)
     (has_bounds(f) || subsolver == TRDH) ?
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
@@ -201,7 +202,7 @@ function TR(
     hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
 
-    Δobj = fk + hk - (fkn + hkn) #+ max(1, abs(fk + hk)) * 10 * eps()
+    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
 
     if (ξ ≤ 0 || isnan(ξ))
@@ -214,7 +215,7 @@ function TR(
 
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk ∆_effective χ(xk) sNorm νInv TR_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1 / ν) sqrt(ξ) ρk ∆_effective χ(xk) sNorm νInv TR_stat
       #! format: on
     end
 
@@ -256,9 +257,9 @@ function TR(
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" Δk χ(xk) χ(s) νInv
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1 / ν) sqrt(ξ1) "" Δk χ(xk) χ(s) νInv
       #! format: on
-      @info "TR: terminating with √ξ1 = $(sqrt(ξ1))"
+      @info "TR: terminating with √ξ1/√ν = $(sqrt(ξ1 / ν))"
     end
   end
 
@@ -276,7 +277,7 @@ function TR(
   set_status!(stats, status)
   set_solution!(stats, xk)
   set_objective!(stats, fk + hk)
-  set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt(ξ1) : ξ1)
+  set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt(ξ1 / ν) : ξ1)
   set_iter!(stats, k)
   set_time!(stats, elapsed_time)
   set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])
