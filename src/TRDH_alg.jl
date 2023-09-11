@@ -208,7 +208,6 @@ function TRDH(
   DkNorm = norm(Dk.d, Inf)
   νInv = (DkNorm + one(R) / (α * Δk))
   ν = one(R) / νInv
-  ν_noredTR = one(R) / (DkNorm + one(R) / α)
   mν∇fk = -ν .* ∇fk
 
   optimal = false
