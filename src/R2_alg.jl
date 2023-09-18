@@ -117,7 +117,7 @@ function R2(nlp::AbstractNLPModel, args...; kwargs...)
   set_status!(stats, outdict[:status])
   set_solution!(stats, xk)
   set_objective!(stats, outdict[:fk] + outdict[:hk])
-  set_residuals!(stats, zero(eltype(xk)), ξ ≥ 0 ? sqrt(ξ) : ξ)
+  set_residuals!(stats, zero(eltype(xk)), ξ)
   set_iter!(stats, k)
   set_time!(stats, outdict[:elapsed_time])
   set_solver_specific!(stats, :Fhist, outdict[:Fhist])
@@ -170,7 +170,7 @@ function R2(
   start_time = time()
   elapsed_time = 0.0
   solver = R2Solver(x0, options, l_bound, u_bound)
-  k, status, fk, hk, sqrt_νInvξ = R2!(solver, f, ∇f!, h, options, x0; selected = selected)
+  k, status, fk, hk, ξ = R2!(solver, f, ∇f!, h, options, x0; selected = selected)
   elapsed_time = time() - start_time
   outdict = Dict(
     :Fhist => solver.Fobj_hist[1:k],
@@ -180,7 +180,7 @@ function R2(
     :status => status,
     :fk => fk,
     :hk => hk,
-    :ξ => sqrt_νInvξ,
+    :ξ => ξ,
     :elapsed_time => elapsed_time,
   )
   return solver.xk, k, outdict

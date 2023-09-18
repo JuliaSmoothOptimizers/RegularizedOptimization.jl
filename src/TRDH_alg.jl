@@ -72,7 +72,7 @@ function TRDH(
   set_status!(stats, outdict[:status])
   set_solution!(stats, xk)
   set_objective!(stats, outdict[:fk] + outdict[:hk])
-  set_residuals!(stats, zero(eltype(xk)), ξ ≥ 0 ? sqrt(ξ) : ξ)
+  set_residuals!(stats, zero(eltype(xk)), ξ)
   set_iter!(stats, k)
   set_time!(stats, outdict[:elapsed_time])
   set_solver_specific!(stats, :Fhist, outdict[:Fhist])
