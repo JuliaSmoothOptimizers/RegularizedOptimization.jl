@@ -13,7 +13,7 @@ function plot_bpdn(outstruct, sol, name = "tr-qr")
     ylabel = "signal",
     legendStyle = "at={(1.0,1.0)}, anchor=north east, draw=none, font=\\scriptsize",
   )
-  save("bpdn-$(name).tikz", a)
+  save("bpdn-$(name).pdf", a)
 
   b = Axis(
     Plots.Linear(1:length(Comp_pg), Comp_pg, mark = "none"),
@@ -21,7 +21,7 @@ function plot_bpdn(outstruct, sol, name = "tr-qr")
     ylabel = "inner iterations",
     ymode = "log",
   )
-  # save("bpdn-inner-outer-$(name).pdf", b)
+  save("bpdn-inner-outer-$(name).pdf", b)
 
   c = Axis(
     Plots.Linear(1:length(objdec), objdec, mark = "none"),
@@ -29,12 +29,12 @@ function plot_bpdn(outstruct, sol, name = "tr-qr")
     ylabel = "Objective Value",
     ymode = "log",
   )
-  # save("bpdn-objdec-$(name).pdf", c)
+  save("bpdn-objdec-$(name).pdf", c)
 
   d = Axis(
     Plots.Linear(1:length(x), abs.(x - sol), mark = "none"),
     xlabel = "index",
     ylabel = "error \$|x - x^*|\$",
   )
-  save("bpdn-error-$(name).tikz", d)
+  save("bpdn-error-$(name).pdf", d)
 end
