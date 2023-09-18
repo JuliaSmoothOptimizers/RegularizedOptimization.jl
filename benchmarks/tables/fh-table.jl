@@ -6,7 +6,7 @@ display_sol = true
 random_seed = 12345
 Random.seed!(random_seed)
 
-cstr = true
+cstr = false
 ctr_val = cstr ? 0.5 : -Inf
 lvar = [-Inf, ctr_val, -Inf, -Inf, -Inf]
 uvar = fill(Inf, 5)

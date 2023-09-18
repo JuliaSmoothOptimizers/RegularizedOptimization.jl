@@ -161,7 +161,6 @@ function TR(
 
     # Take first proximal gradient step s1 and see if current xk is nearly stationary.
     # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
-    ν = 1 / (νInv + 1 / (Δk * α))
     prox!(s, ψ, -ν * ∇fk, ν)
     ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
@@ -249,6 +248,7 @@ function TR(
       (has_bounds(f) || subsolver == TRDH) ?
       set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) : set_radius!(ψ, Δk)
     end
+    ν = 1 / (νInv + 1 / (Δk * α))
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
