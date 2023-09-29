@@ -258,7 +258,7 @@ function R2!(
 
   if verbose > 0
     #! format: off
-    @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
+    @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√(ξ/ν)" "ρ" "σ" "‖x‖" "‖s‖" ""
     #! format: off
   end
 
@@ -290,10 +290,10 @@ function R2!(
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
     if ξ ≥ 0 && k == 1
-      ϵ += ϵr * sqrt(ξ)  # make stopping test absolute and relative
+      ϵ += ϵr * sqrt(ξ/ν)  # make stopping test absolute and relative
     end
-    
-    if (ξ < 0 && sqrt(-ξ) ≤ neg_tol) || (ξ ≥ 0 && sqrt(ξ) ≤ ϵ)
+
+    if (ξ < 0 && sqrt(-ξ/ν) ≤ neg_tol) || (ξ ≥ 0 && sqrt(ξ/ν) ≤ ϵ)
       optimal = true
       continue
     end
@@ -310,7 +310,7 @@ function R2!(
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
       σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ) ρk σk norm(xk) norm(s) σ_stat
+      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt(ξ/ν) ρk σk norm(xk) norm(s) σ_stat
       #! format: on
     end
 

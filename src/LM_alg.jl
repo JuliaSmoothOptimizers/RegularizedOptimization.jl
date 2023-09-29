@@ -100,7 +100,7 @@ function LM(
 
   xkn = similar(xk)
 
-  local ξ1
+  local ξ1, ξ
   k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
@@ -110,7 +110,7 @@ function LM(
 
   if verbose > 0
     #! format: off
-    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
+    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)"  "√(ξ1/ν)" "√(ξ/ν)" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
     #! format: on
   end
 
@@ -125,6 +125,7 @@ function LM(
 
   σmax = opnorm(Jk)
   νInv = (1 + θ) * (σmax^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+  ν = 1 / νInv
 
   s = zero(xk)
 
@@ -178,18 +179,18 @@ function LM(
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if ξ1 ≥ 0 && k == 1
-      ϵ_increment = ϵr * sqrt(ξ1)
+      ϵ_increment = ϵr * sqrt(ξ1/ν)
       ϵ += ϵ_increment  # make stopping test absolute and relative
       ϵ_subsolver += ϵ_increment
     end
 
-    if sqrt(ξ1) < ϵ
+    if sqrt(ξ1/ν) < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
       continue
     end
 
-    subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
+    subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / ν / 10))
     subsolver_options.ν = ν
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
@@ -220,7 +221,7 @@ function LM(
 
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1/ν) sqrt(ξ/ν) ρk σk norm(xk) norm(s) νInv σ_stat
       #! format: off
     end
 
@@ -260,9 +261,9 @@ function LM(
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" σk norm(xk) norm(s) νInv
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1/ν) sqrt(ξ/ν) "" σk norm(xk) norm(s) νInv
       #! format: on
-      @info "LM: terminating with √ξ1 = $(sqrt(ξ1))"
+      @info "LM: terminating with √ξ1/√ν = $(sqrt(ξ1/ν))"
     end
   end
   status = if optimal
