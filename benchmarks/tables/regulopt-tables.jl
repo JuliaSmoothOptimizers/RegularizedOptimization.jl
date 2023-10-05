@@ -128,7 +128,7 @@ function benchmark_table(
     end
   else
     if length(sol) == 0
-      header = ["solver", "f(x)", "h(x)/λ", "√ξ/√ν", "# f", "# ∇f", "# prox", "t (s)"]
+      header = ["solver", "f(x)", "h(x)/λ", "√(ξ/ν)", "# f", "# ∇f", "# prox", "t (s)"]
     else
       header = [
         "solver",
