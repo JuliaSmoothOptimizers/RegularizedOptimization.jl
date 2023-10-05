@@ -1,9 +1,9 @@
 using Random
 using LinearAlgebra
+using MLDatasets
 using ProximalOperators, ShiftedProximalOperators, RegularizedProblems
 using NLPModels, NLPModelsModifiers
 using RegularizedOptimization
-using MLDatasets
 
 include("plot-utils-svm.jl")
 
