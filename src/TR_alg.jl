@@ -48,13 +48,13 @@ function TR(
   f::AbstractNLPModel,
   h::H,
   χ::X,
-  options::ROSolverOptions;
-  x0::AbstractVector = f.meta.x0,
+  options::ROSolverOptions{R};
+  x0::AbstractVector{R} = f.meta.x0,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
-) where {H, X}
+) where {H, X, R}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
@@ -117,7 +117,7 @@ function TR(
   Complex_hist = zeros(Int, maxIter)
   if verbose > 0
     #! format: off
-    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
+    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√(ξ1/ν)" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
     #! format: on
   end
 
@@ -133,6 +133,8 @@ function TR(
 
   λmax = opnorm(Bk)
   νInv = (1 + θ) * λmax
+  ν = 1 / (νInv + 1 / (Δk * α))
+  sqrt_ξ1_νInv = one(R)
 
   optimal = false
   tired = k ≥ maxIter || elapsed_time > maxTime
@@ -160,24 +162,24 @@ function TR(
 
     # Take first proximal gradient step s1 and see if current xk is nearly stationary.
     # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
-    ν = 1 / (νInv + 1 / (Δk * α))
     prox!(s, ψ, -ν * ∇fk, ν)
     ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    sqrt_ξ1_νInv = sqrt(ξ1 / ν)
 
     if ξ1 ≥ 0 && k == 1
-      ϵ_increment = ϵr * sqrt(ξ1)
+      ϵ_increment = ϵr * sqrt_ξ1_νInv
       ϵ += ϵ_increment  # make stopping test absolute and relative
       ϵ_subsolver += ϵ_increment
     end
 
-    if sqrt(ξ1) < ϵ
+    if sqrt_ξ1_νInv < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
       continue
     end
 
-    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1e-2, sqrt(ξ1)) * ξ1)
+    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1e-2, sqrt_ξ1_νInv))
     ∆_effective = min(β * χ(s), Δk)
     (has_bounds(f) || subsolver == TRDH) ?
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
@@ -214,7 +216,7 @@ function TR(
 
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk ∆_effective χ(xk) sNorm νInv TR_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt_ξ1_νInv sqrt(ξ) ρk ∆_effective χ(xk) sNorm νInv TR_stat
       #! format: on
     end
 
@@ -248,6 +250,7 @@ function TR(
       (has_bounds(f) || subsolver == TRDH) ?
       set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) : set_radius!(ψ, Δk)
     end
+    ν = 1 / (νInv + 1 / (Δk * α))
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
@@ -256,9 +259,9 @@ function TR(
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" Δk χ(xk) χ(s) νInv
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt_ξ1_νInv sqrt(ξ1) "" Δk χ(xk) χ(s) νInv
       #! format: on
-      @info "TR: terminating with √ξ1 = $(sqrt(ξ1))"
+      @info "TR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
     end
   end
 
@@ -276,7 +279,7 @@ function TR(
   set_status!(stats, status)
   set_solution!(stats, xk)
   set_objective!(stats, fk + hk)
-  set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt(ξ1) : ξ1)
+  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
   set_iter!(stats, k)
   set_time!(stats, elapsed_time)
   set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])
