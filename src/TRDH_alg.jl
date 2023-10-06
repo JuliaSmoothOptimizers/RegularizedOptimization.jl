@@ -342,7 +342,9 @@ function TRDH(
         #! format: on
         @info "TRDH: terminating with √(ξ1/ν) = $(sqrt_ξ_νInv)"
       else
-        @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k fk hk sqrt_ξ_νInv "" Δk χ(xk) χ(s) norm(Dk.d)
+        @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k fk hk sqrt_ξ_νInv "" Δk χ(
+          xk,
+        ) χ(s) norm(Dk.d)
         @info "TRDH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
       end
     end
