@@ -132,8 +132,7 @@ function TR(
   Bk = hess_op(f, xk)
 
   λmax = opnorm(Bk)
-  νInv = (1 + θ) * λmax
-  ν = 1 / (νInv + 1 / (Δk * α))
+  ν = 1 / (λmax + 1 / (Δk * α))
   sqrt_ξ1_νInv = one(R)
 
   optimal = false
@@ -216,7 +215,7 @@ function TR(
 
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt_ξ1_νInv sqrt(ξ) ρk ∆_effective χ(xk) sNorm νInv TR_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt_ξ1_νInv sqrt(ξ) ρk ∆_effective χ(xk) sNorm λmax TR_stat
       #! format: on
     end
 
@@ -241,7 +240,6 @@ function TR(
       end
       Bk = hess_op(f, xk)
       λmax = opnorm(Bk)
-      νInv = (1 + θ) * λmax
       ∇fk⁻ .= ∇fk
     end
 
@@ -250,7 +248,7 @@ function TR(
       (has_bounds(f) || subsolver == TRDH) ?
       set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) : set_radius!(ψ, Δk)
     end
-    ν = 1 / (νInv + 1 / (Δk * α))
+    ν = 1 / (λmax + 1 / (Δk * α))
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
@@ -259,7 +257,7 @@ function TR(
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt_ξ1_νInv sqrt(ξ1) "" Δk χ(xk) χ(s) νInv
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt_ξ1_νInv sqrt(ξ1) "" Δk χ(xk) χ(s) λmax
       #! format: on
       @info "TR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
     end
