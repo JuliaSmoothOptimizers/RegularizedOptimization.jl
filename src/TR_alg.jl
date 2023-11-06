@@ -249,7 +249,8 @@ function TR(
       (has_bounds(f) || subsolver == TRDH) ?
       set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) : set_radius!(ψ, Δk)
     end
-    ν = 1 / (λmax + 1 / (Δk * α))
+    αΔ = α * Δk
+    ν = αΔ / (1 + λmax * (1 +  αΔ))
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
