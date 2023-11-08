@@ -252,7 +252,7 @@ function TRDH(
       set_radius!(ψ, Δ_effective)
     end
 
-    # model with diagonal hessian 
+    # model with diagonal hessian
     φ(d) = ∇fk' * d + (d' * (Dk.d .* d)) / 2
     mk(d) = φ(d) + ψ(d)
 

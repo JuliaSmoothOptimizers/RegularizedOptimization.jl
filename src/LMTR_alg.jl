@@ -115,11 +115,11 @@ function LMTR(
 
   if verbose > 0
     #! format: off
-    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "1/ν" "TR"
+    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√(ξ1/ν)" "√(ξ/ν)" "ρ" "Δ" "‖x‖" "‖s‖" "1/ν" "TR"
     #! format: on
   end
 
-  local ξ1
+  local ξ1, ξ
   k = 0
 
   Fk = residual(nls, xk)
@@ -132,6 +132,7 @@ function LMTR(
 
   σmax = opnorm(Jk)
   νInv = (1 + θ) * σmax^2  # ‖J'J‖ = ‖J‖²
+  ν = 1 / νInv
 
   mν∇fk = -∇fk / νInv
 
@@ -179,18 +180,18 @@ function LMTR(
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if ξ1 ≥ 0 && k == 1
-      ϵ_increment = ϵr * sqrt(ξ1)
+      ϵ_increment = ϵr * sqrt(ξ1/ν)
       ϵ += ϵ_increment  # make stopping test absolute and relative
       ϵ_subsolver += ϵ_increment
     end
 
-    if sqrt(ξ1) < ϵ
+    if sqrt(ξ1/ν) < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
       continue
     end
 
-    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1.0e-1, ξ1 / 10))
+    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1.0e-1, ξ1 / ν / 10))
     ∆_effective = min(β * χ(s), Δk)
     treats_bounds ?
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
@@ -230,7 +231,7 @@ function LMTR(
 
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk ∆_effective χ(xk) sNorm νInv TR_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1/ν) sqrt(ξ/ν) ρk ∆_effective χ(xk) sNorm νInv TR_stat
       #! format: on
     end
 
@@ -270,9 +271,9 @@ function LMTR(
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" Δk χ(xk) χ(s) νInv
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1/ν) sqrt(ξ/ν) "" Δk χ(xk) χ(s) νInv
       #! format: on
-      @info "LMTR: terminating with √ξ1 = $(sqrt(ξ1))"
+      @info "LMTR: terminating with √(ξ1/ν) = $(sqrt(ξ1/ν))"
     end
   end
 
@@ -290,7 +291,7 @@ function LMTR(
   set_status!(stats, status)
   set_solution!(stats, xk)
   set_objective!(stats, fk + hk)
-  set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt(ξ1) : ξ1)
+  set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt(ξ1/ν) : ξ1)
   set_iter!(stats, k)
   set_time!(stats, elapsed_time)
   set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])

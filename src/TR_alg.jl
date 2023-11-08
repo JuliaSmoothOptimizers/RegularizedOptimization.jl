@@ -121,7 +121,7 @@ function TR(
     #! format: on
   end
 
-  local ξ1
+  local ξ1, ξ
   k = 0
 
   fk = obj(f, xk)
@@ -133,8 +133,6 @@ function TR(
 
   λmax = opnorm(Bk)
   νInv = (1 + θ) * λmax
-  ν = 1 / (νInv + 1 / (Δk * α))
-  sqrt_ξ1_νInv = one(R)
 
   optimal = false
   tired = k ≥ maxIter || elapsed_time > maxTime
@@ -179,7 +177,7 @@ function TR(
       continue
     end
 
-    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1e-2, sqrt_ξ1_νInv))
+    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1e-2, sqrt_ξ1_νInv) * ξ1)
     ∆_effective = min(β * χ(s), Δk)
     (has_bounds(f) || subsolver == TRDH) ?
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
