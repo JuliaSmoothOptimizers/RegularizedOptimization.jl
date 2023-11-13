@@ -250,7 +250,7 @@ function TR(
       set_bounds!(ψ, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk)) : set_radius!(ψ, Δk)
     end
     α⁻¹Δ⁻¹ = 1 / (α * Δk)
-    ν = αΔ / (1 + λmax * (1 +  αΔ))
+    ν = 1 / (α⁻¹Δ⁻¹ + λmax * (α⁻¹Δ⁻¹ + 1))
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
