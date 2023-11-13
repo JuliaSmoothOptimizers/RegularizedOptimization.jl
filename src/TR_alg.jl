@@ -132,7 +132,7 @@ function TR(
   Bk = hess_op(f, xk)
 
   λmax = opnorm(Bk)
-  αΔ = α * Δk
+  α⁻¹Δ⁻¹ = 1 / (α * Δk)
   ν = αΔ / (1 + λmax * (1 +  αΔ))
   sqrt_ξ1_νInv = one(R)
 
