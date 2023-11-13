@@ -133,7 +133,7 @@ function TR(
 
   λmax = opnorm(Bk)
   α⁻¹Δ⁻¹ = 1 / (α * Δk)
-  ν = αΔ / (1 + λmax * (1 +  αΔ))
+  ν = 1 / (α⁻¹Δ⁻¹ + λmax * (α⁻¹Δ⁻¹ + 1))
   sqrt_ξ1_νInv = one(R)
 
   optimal = false
