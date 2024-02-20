@@ -32,7 +32,7 @@ task:
         sh -c "$(fetch ${URL} -o -)"
     fi
   build_script:
-    - julia --color=yes --project=. -e 'using Pkg; pkg1 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl.git", rev = "main"); pkg2 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl.git", rev = "master"); Pkg.add([pkg1, pkg2])'
+    - julia --color=yes --project=. -e 'using Pkg; pkg = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl.git", rev = "master"); Pkg.add([pkg])'
     - cirrusjl build
   test_script:
     - cirrusjl test
