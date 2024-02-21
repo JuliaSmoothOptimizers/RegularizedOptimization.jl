@@ -41,9 +41,8 @@ jobs:
       - name: Installing non-registered dependencies
         run: |
           using Pkg
-          pkg1 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl.git", rev = "main")
-          pkg2 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl.git", rev = "master")
-          pkg_list = [pkg1, pkg2]
+          pkg = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl.git", rev = "master")
+          pkg_list = [pkg]
           Pkg.add(pkg_list)
         shell: julia --project="@." --color=yes {0}
       - uses: julia-actions/julia-buildpkg@v1
