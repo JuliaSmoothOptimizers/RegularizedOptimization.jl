@@ -35,9 +35,6 @@ where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; 
 ### Return values
 
 * `xk`: the final iterate
-* `Fobj_hist`: an array with the history of values of the smooth objective
-* `Hobj_hist`: an array with the history of values of the nonsmooth objective
-* `Complex_hist`: an array with the history of number of inner iterations.
 """
 function LMTR(
   nls::AbstractNLSModel,
@@ -107,12 +104,6 @@ function LMTR(
     treats_bounds ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
     shifted(h, xk, Δk, χ)
 
-  Fobj_hist = zeros(maxIter)
-  Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, maxIter)
-  Grad_hist = zeros(Int, maxIter)
-  Resid_hist = zeros(Int, maxIter)
-
   if verbose > 0
     #! format: off
     @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "1/ν" "TR"
@@ -141,10 +132,6 @@ function LMTR(
   while !(optimal || tired)
     k = k + 1
     elapsed_time = time() - start_time
-    Fobj_hist[k] = fk
-    Hobj_hist[k] = hk
-    Grad_hist[k] = nls.counters.neval_jtprod_residual + nls.counters.neval_jprod_residual
-    Resid_hist[k] = nls.counters.neval_residual
 
     # model for first prox-gradient iteration
     φ1(d) = begin
@@ -205,8 +192,6 @@ function LMTR(
     subsolver_options.ν = ν_subsolver
     subsolver_options.ϵa = ϵa_subsolver
     subsolver_options.Δk = Δk_subsolver
-
-    Complex_hist[k] = iter
 
     sNorm = χ(s)
     xkn .= xk .+ s
@@ -293,11 +278,5 @@ function LMTR(
   set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt(ξ1) : ξ1)
   set_iter!(stats, k)
   set_time!(stats, elapsed_time)
-  set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])
-  set_solver_specific!(stats, :Hhist, Hobj_hist[1:k])
-  set_solver_specific!(stats, :NonSmooth, h)
-  set_solver_specific!(stats, :SubsolverCounter, Complex_hist[1:k])
-  set_solver_specific!(stats, :NLSGradHist, Grad_hist[1:k])
-  set_solver_specific!(stats, :ResidHist, Resid_hist[1:k])
   return stats
 end

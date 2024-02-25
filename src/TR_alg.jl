@@ -39,10 +39,7 @@ The Hessian is accessed as an abstract operator and need not be the exact Hessia
 
 ### Return values
 
-* `xk`: the final iterate
-* `Fobj_hist`: an array with the history of values of the smooth objective
-* `Hobj_hist`: an array with the history of values of the nonsmooth objective
-* `Complex_hist`: an array with the history of number of inner iterations.
+* `xk`: the final iterate.
 """
 function TR(
   f::AbstractNLPModel,
@@ -112,9 +109,6 @@ function TR(
     shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
     shifted(h, xk, Δk, χ)
 
-  Fobj_hist = zeros(maxIter)
-  Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, maxIter)
   if verbose > 0
     #! format: off
     @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√(ξ1/ν)" "√ξ" "ρ" "Δ" "‖x‖" "‖s‖" "‖Bₖ‖" "TR"
@@ -142,8 +136,6 @@ function TR(
   while !(optimal || tired)
     k = k + 1
     elapsed_time = time() - start_time
-    Fobj_hist[k] = fk
-    Hobj_hist[k] = hk
 
     # model for first prox-gradient step and ξ1
     φ1(d) = ∇fk' * d
@@ -194,8 +186,6 @@ function TR(
     subsolver_options.ν = ν_subsolver
     subsolver_options.ϵa = ϵa_subsolver
     subsolver_options.Δk = Δk_subsolver
-
-    Complex_hist[k] = sum(outdict[:Chist])
 
     sNorm = χ(s)
     xkn .= xk .+ s
@@ -282,9 +272,5 @@ function TR(
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
   set_iter!(stats, k)
   set_time!(stats, elapsed_time)
-  set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])
-  set_solver_specific!(stats, :Hhist, Hobj_hist[1:k])
-  set_solver_specific!(stats, :NonSmooth, h)
-  set_solver_specific!(stats, :SubsolverCounter, Complex_hist[1:k])
   return stats
 end

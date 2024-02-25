@@ -11,9 +11,6 @@ mutable struct R2Solver{R, S <: AbstractVector{R}} <: AbstractOptimizationSolver
   u_bound::S
   l_bound_m_x::S
   u_bound_m_x::S
-  Fobj_hist::Vector{R}
-  Hobj_hist::Vector{R}
-  Complex_hist::Vector{Int}
 end
 
 function R2Solver(
@@ -36,24 +33,7 @@ function R2Solver(
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
-  Fobj_hist = zeros(R, maxIter)
-  Hobj_hist = zeros(R, maxIter)
-  Complex_hist = zeros(Int, maxIter)
-  return R2Solver(
-    xk,
-    ∇fk,
-    mν∇fk,
-    xkn,
-    s,
-    has_bnds,
-    l_bound,
-    u_bound,
-    l_bound_m_x,
-    u_bound_m_x,
-    Fobj_hist,
-    Hobj_hist,
-    Complex_hist,
-  )
+  return R2Solver(xk, ∇fk, mν∇fk, xkn, s, has_bnds, l_bound, u_bound, l_bound_m_x, u_bound_m_x)
 end
 
 """
@@ -96,9 +76,6 @@ In the second form, instead of `nlp`, the user may pass in
 ### Return values
 
 * `xk`: the final iterate
-* `Fobj_hist`: an array with the history of values of the smooth objective
-* `Hobj_hist`: an array with the history of values of the nonsmooth objective
-* `Complex_hist`: an array with the history of number of inner iterations.
 """
 function R2(nlp::AbstractNLPModel, args...; kwargs...)
   kwargs_dict = Dict(kwargs...)
@@ -120,10 +97,6 @@ function R2(nlp::AbstractNLPModel, args...; kwargs...)
   set_residuals!(stats, zero(eltype(xk)), ξ)
   set_iter!(stats, k)
   set_time!(stats, outdict[:elapsed_time])
-  set_solver_specific!(stats, :Fhist, outdict[:Fhist])
-  set_solver_specific!(stats, :Hhist, outdict[:Hhist])
-  set_solver_specific!(stats, :NonSmooth, outdict[:NonSmooth])
-  set_solver_specific!(stats, :SubsolverCounter, outdict[:Chist])
   return stats
 end
 
@@ -142,17 +115,7 @@ function R2(
   solver = R2Solver(x0, options, similar(x0, 0), similar(x0, 0))
   k, status, fk, hk, ξ = R2!(solver, f, ∇f!, h, options, x0; selected = selected)
   elapsed_time = time() - start_time
-  outdict = Dict(
-    :Fhist => solver.Fobj_hist[1:k],
-    :Hhist => solver.Hobj_hist[1:k],
-    :Chist => solver.Complex_hist[1:k],
-    :NonSmooth => h,
-    :status => status,
-    :fk => fk,
-    :hk => hk,
-    :ξ => ξ,
-    :elapsed_time => elapsed_time,
-  )
+  outdict = Dict(:status => status, :fk => fk, :hk => hk, :ξ => ξ, :elapsed_time => elapsed_time)
   return solver.xk, k, outdict
 end
 
@@ -172,17 +135,7 @@ function R2(
   solver = R2Solver(x0, options, l_bound, u_bound)
   k, status, fk, hk, ξ = R2!(solver, f, ∇f!, h, options, x0; selected = selected)
   elapsed_time = time() - start_time
-  outdict = Dict(
-    :Fhist => solver.Fobj_hist[1:k],
-    :Hhist => solver.Hobj_hist[1:k],
-    :Chist => solver.Complex_hist[1:k],
-    :NonSmooth => h,
-    :status => status,
-    :fk => fk,
-    :hk => hk,
-    :ξ => ξ,
-    :elapsed_time => elapsed_time,
-  )
+  outdict = Dict(:status => status, :fk => fk, :hk => hk, :ξ => ξ, :elapsed_time => elapsed_time)
   return solver.xk, k, outdict
 end
 
@@ -223,9 +176,6 @@ function R2!(
     l_bound_m_x = solver.l_bound_m_x
     u_bound_m_x = solver.u_bound_m_x
   end
-  Fobj_hist = solver.Fobj_hist
-  Hobj_hist = solver.Hobj_hist
-  Complex_hist = solver.Complex_hist
 
   if verbose == 0
     ptf = Inf
@@ -278,15 +228,12 @@ function R2!(
   while !(optimal || tired)
     k = k + 1
     elapsed_time = time() - start_time
-    Fobj_hist[k] = fk
-    Hobj_hist[k] = hk
 
     # define model
     φk(d) = dot(∇fk, d)
     mk(d)::R = φk(d) + ψ(d)::R
 
     prox!(s, ψ, mν∇fk, ν)
-    Complex_hist[k] += 1
     mks = mk(s)
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
@@ -294,7 +241,7 @@ function R2!(
     if ξ ≥ 0 && k == 1
       ϵ += ϵr * sqrt_ξ_νInv # make stopping test absolute and relative
     end
-    
+
     if (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ ϵ)
       optimal = true
       continue
