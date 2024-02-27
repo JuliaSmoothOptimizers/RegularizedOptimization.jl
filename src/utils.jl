@@ -8,7 +8,7 @@ ShiftedProximalOperators.iprox!(
   y::AbstractVector,
   ψ::ShiftedProximableFunction,
   g::AbstractVector,
-  D::DiagonalQN,
+  D::AbstractDiagonalQuasiNewtonOperator,
 ) = iprox!(y, ψ, g, D.d)
 
 ShiftedProximalOperators.iprox!(
@@ -18,5 +18,5 @@ ShiftedProximalOperators.iprox!(
   D::SpectralGradient,
 ) = iprox!(y, ψ, g, fill!(similar(g), D.d[1]))
 
-LinearAlgebra.diag(op::DiagonalQN) = copy(op.d)
+LinearAlgebra.diag(op::AbstractDiagonalQuasiNewtonOperator) = copy(op.d)
 LinearAlgebra.diag(op::SpectralGradient{T}) where {T} = zeros(T, op.nrow) .* op.d[1]

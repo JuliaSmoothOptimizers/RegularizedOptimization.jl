@@ -28,9 +28,9 @@ where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; 
 
 * `x0::AbstractVector`: an initial guess (default: `nls.meta.x0`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
-* `subsolver`: the procedure used to compute a step (`PG` or `R2`)
+* `subsolver`: the procedure used to compute a step (`PG`, `R2` or `TRDH`)
 * `subsolver_options::ROSolverOptions`: default options to pass to the subsolver.
-* `selected::AbstractVector{<:Integer}`: (default `1:f.meta.nvar`).
+* `selected::AbstractVector{<:Integer}`: (default `1:nls.meta.nvar`).
 
 ### Return values
 
@@ -197,8 +197,9 @@ function LMTR(
     set_radius!(ψ, ∆_effective)
     subsolver_options.Δk = ∆_effective / 10
     subsolver_options.ν = ν
+    subsolver_args = subsolver == TRDH ? (SpectralGradient(1 / ν, nls.meta.nvar),) : ()
     s, iter, _ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s)
+      subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
     end
     # restore initial values of subsolver_options here so that it is not modified
     # if there is an error

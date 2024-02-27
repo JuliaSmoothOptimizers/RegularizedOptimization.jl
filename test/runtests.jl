@@ -5,8 +5,7 @@ using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimizatio
 
 const global compound = 1
 const global nz = 10 * compound
-const global options =
-  ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10, spectral = true)
+const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10)
 const global bpdn, bpdn_nls, sol = bpdn_model(compound)
 const global bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
@@ -36,6 +35,23 @@ for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "l
         @test h(out.solution) == out.solver_specific[:Hhist][end]
         @test out.status == :first_order
       end
+    end
+  end
+end
+
+for (mod, mod_name) ∈ ((SpectralGradientModel, "spg"),)
+  # ((DiagonalPSBModel, "psb"),(DiagonalAndreiModel, "andrei"))   work but do not always terminate
+  for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))  #, (IndBallL0(10 * compound), "B0"))
+    @testset "bpdn-$(mod_name)-TRDH-$(h_name)" begin
+      x0 = zeros(bpdn.meta.nvar)
+      p = randperm(bpdn.meta.nvar)[1:nz]
+      # x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
+      χ = NormLinf(1.0)
+      out = TRDH(mod(bpdn), h, χ, options, x0 = x0)
+      @test typeof(out.solution) == typeof(bpdn.meta.x0)
+      @test length(out.solution) == bpdn.meta.nvar
+      @test typeof(out.dual_feas) == eltype(out.solution)
+      @test out.status == :first_order
     end
   end
 end

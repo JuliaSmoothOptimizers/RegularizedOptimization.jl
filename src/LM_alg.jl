@@ -27,9 +27,9 @@ and σ > 0 is a regularization parameter.
 
 * `x0::AbstractVector`: an initial guess (default: `nls.meta.x0`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
-* `subsolver`: the procedure used to compute a step (`PG` or `R2`)
+* `subsolver`: the procedure used to compute a step (`PG`, `R2` or `TRDH`)
 * `subsolver_options::ROSolverOptions`: default options to pass to the subsolver.
-* `selected::AbstractVector{<:Integer}`: (default `1:f.meta.nvar`).
+* `selected::AbstractVector{<:Integer}`: (default `1:nls.meta.nvar`).
 
 ### Return values
 
@@ -191,9 +191,10 @@ function LM(
 
     subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
     subsolver_options.ν = ν
+    subsolver_args = subsolver == TRDH ? (SpectralGradient(1 / ν, nls.meta.nvar),) : ()
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s)
+      subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
     end
     # restore initial subsolver_options here so that it is not modified if there is an error
     subsolver_options.ν = ν_subsolver
