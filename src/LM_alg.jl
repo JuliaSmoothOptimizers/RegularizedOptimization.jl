@@ -34,9 +34,6 @@ and σ > 0 is a regularization parameter.
 ### Return values
 
 * `xk`: the final iterate
-* `Fobj_hist`: an array with the history of values of the smooth objective
-* `Hobj_hist`: an array with the history of values of the nonsmooth objective
-* `Complex_hist`: an array with the history of number of inner iterations.
 """
 function LM(
   nls::AbstractNLSModel,
@@ -102,11 +99,6 @@ function LM(
 
   local ξ1
   k = 0
-  Fobj_hist = zeros(maxIter)
-  Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, maxIter)
-  Grad_hist = zeros(Int, maxIter)
-  Resid_hist = zeros(Int, maxIter)
 
   if verbose > 0
     #! format: off
@@ -134,10 +126,6 @@ function LM(
   while !(optimal || tired)
     k = k + 1
     elapsed_time = time() - start_time
-    Fobj_hist[k] = fk
-    Hobj_hist[k] = hk
-    Grad_hist[k] = nls.counters.neval_jtprod_residual + nls.counters.neval_jprod_residual
-    Resid_hist[k] = nls.counters.neval_residual
 
     # model for first prox-gradient iteration
     φ1(d) = begin
@@ -199,8 +187,6 @@ function LM(
     subsolver_options.ν = ν_subsolver
     subsolver_options.ϵa = ϵa_subsolver
 
-    Complex_hist[k] = iter
-
     xkn .= xk .+ s
     residual!(nls, xkn, Fkn)
     fkn = dot(Fkn, Fkn) / 2
@@ -245,7 +231,7 @@ function LM(
       σmax = opnorm(Jk)
       νInv = (1 + θ) * (σmax^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
 
-      Complex_hist[k] += 1
+      # Complex_hist[k] += 1
     end
 
     if ρk < η1 || ρk == Inf
@@ -282,11 +268,5 @@ function LM(
   set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt(ξ1) : ξ1)
   set_iter!(stats, k)
   set_time!(stats, elapsed_time)
-  set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])
-  set_solver_specific!(stats, :Hhist, Hobj_hist[1:k])
-  set_solver_specific!(stats, :NonSmooth, h)
-  set_solver_specific!(stats, :SubsolverCounter, Complex_hist[1:k])
-  set_solver_specific!(stats, :NLSGradHist, Grad_hist[1:k])
-  set_solver_specific!(stats, :ResidHist, Resid_hist[1:k])
   return stats
 end
