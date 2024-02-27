@@ -33,7 +33,7 @@ The Hessian is accessed as an abstract operator and need not be the exact Hessia
 
 * `x0::AbstractVector`: an initial guess (default: `nlp.meta.x0`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver (default: the null logger)
-* `subsolver`: the procedure used to compute a step (`PG` or `R2`)
+* `subsolver`: the procedure used to compute a step (`PG`, `R2` or `TRDH`)
 * `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options)
 * `selected::AbstractVector{<:Integer}`: (default `1:f.meta.nvar`).
 
@@ -186,8 +186,9 @@ function TR(
     set_radius!(ψ, ∆_effective)
     subsolver_options.Δk = ∆_effective / 10
     subsolver_options.ν = ν
+    subsolver_args = subsolver == TRDH ? (SpectralGradient(1 / ν, f.meta.nvar),) : ()
     s, iter, outdict = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_options, s; Bk = Bk)
+      subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
     end
     # restore initial values of subsolver_options here so that it is not modified
     # if there is an error
