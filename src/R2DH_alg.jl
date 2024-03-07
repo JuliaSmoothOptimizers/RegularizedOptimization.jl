@@ -21,7 +21,7 @@ and σₖ > 0 is the regularization parameter.
 
 ### Arguments
 
-* `nlp::AbstractNLPModel`: a smooth optimization problem
+* `nlp::AbstractDiagonalQNModel`: a smooth optimization problem
 * `h`: a regularizer such as those defined in ProximalOperators
 * `options::ROSolverOptions`: a structure containing algorithmic parameters
 * `x0::AbstractVector`: an initial guess (in the second calling form)
@@ -47,7 +47,7 @@ In the second form, instead of `nlp`, the user may pass in
 * `Hobj_hist`: an array with the history of values of the nonsmooth objective
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
-function R2DH(nlp::AbstractNLPModel, args...; summation::Bool = true, kwargs...)
+function R2DH(nlp::AbstractDiagonalQNModel{R, S}, args...; summation::Bool = true, kwargs...)
   kwargs_dict = Dict(kwargs...)
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
   xk, k, outdict = R2DH(
@@ -79,13 +79,14 @@ function R2DH(
   f::F,
   ∇f!::G,
   h::H,
+  D::DQN,
   options::ROSolverOptions{R},
   x0::AbstractVector{R};
   selected::AbstractVector{<:Integer} = 1:length(x0),
   summation::Bool = true,
   Bk = (one(R) / options.ν) * I,
   kwargs...,
-) where {F <: Function, G <: Function, H, R <: Real}
+) where {F <: Function, G <: Function, H, R <: Real, DQN <: AbstractDiagonalQuasiNewtonOperator}
   start_time = time()
   elapsed_time = 0.0
   ϵ = options.ϵa
@@ -99,11 +100,6 @@ function R2DH(
   η2 = options.η2
   ν = options.ν
   γ = options.γ
-  spectral = options.spectral
-  psb = options.psb
-  andrei = options.andrei
-  wolk = options.wolk
-  hess_init_val = (Bk isa UniformScaling) ? Bk.λ : (one(R) / options.ν)
 
   local l_bound, u_bound
   has_bnds = false
@@ -160,12 +156,11 @@ function R2DH(
   ∇fk = similar(xk)
   ∇f!(∇fk, xk)
   ∇fk⁻ = copy(∇fk)
-  Dk = spectral ? SpectralGradient(hess_init_val, length(xk)) :
-    ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb, andrei, wolk) : DiagonalQN(diag(Bk), psb, andrei, wolk))
-  DkNorm = norm(Dk.d, Inf)
-  σkdk = summation ? Dk.d .+ σk : Dk.d  .* σk 
+  DNorm = norm(D.d, Inf)
+  σkdk = summation ? D.d .+ σk : D.d  .* σk 
   ν = 1 / σkdk[1]
-  mν∇fk = -ν * ∇fk  
+  mν∇fk = -ν * ∇fk
+  sqrt_ξ_νInv = one(R)  
 
   optimal = false
   tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
@@ -177,15 +172,17 @@ function R2DH(
     Hobj_hist[k] = hk
     σkdk .= max.(σkdk, eps(R))
 
-    # model with diagonal hessian 
+    # model with diagonal hessian
     φ(d) = ∇fk' * d + (d' * (σkdk .* d)) / 2
     mk(d) = φ(d) + ψ(d)
 
-    if spectral
-      prox!(s, ψ, mν∇fk, ν)
-    else
-      iprox!(s, ψ, ∇fk, σkdk)
-    end
+    # if spectral
+    #   prox!(s, ψ, mν∇fk, ν)
+    # else
+    #   iprox!(s, ψ, ∇fk, σkdk)
+    # end
+
+    iprox!(s, ψ, ∇fk, σkdk)
 
     Complex_hist[k] += 1
     xkn .= xk .+ s
@@ -229,8 +226,8 @@ function R2DH(
       hk = hkn
       shift!(ψ, xk)
       ∇f!(∇fk, xk)
-      push!(Dk, s, ∇fk - ∇fk⁻) # update QN operator
-      DkNorm = norm(Dk.d, Inf) 
+      push!(D, s, ∇fk - ∇fk⁻) # update QN operator
+      DNorm = norm(D.d, Inf) 
       ∇fk⁻ .= ∇fk
     end
 
@@ -238,7 +235,7 @@ function R2DH(
       σk = σk * γ
     end
 
-    σkdk .= summation ? Dk.d .+ σk : Dk.d  .* σk 
+    σkdk .= summation ? D.d .+ σk : D.d  .* σk 
     ν = 1 / σkdk[1]
     
     tired = maxIter > 0 && k ≥ maxIter
