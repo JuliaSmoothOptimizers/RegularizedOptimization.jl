@@ -120,6 +120,8 @@ function TRDH(
   β = options.β
   spectral = options.spectral
   psb = options.psb
+  andrei = options.andrei
+  wolk = options.wolk
   hess_init_val = (Bk isa UniformScaling) ? Bk.λ : (one(R) / options.ν)
   reduce_TR = options.reduce_TR
 
@@ -204,7 +206,7 @@ function TRDH(
   ∇f!(∇fk, xk)
   ∇fk⁻ = copy(∇fk)
   Dk = spectral ? SpectralGradient(hess_init_val, length(xk)) :
-    ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb) : DiagonalQN(diag(Bk), psb))
+    ((Bk isa UniformScaling) ? DiagonalQN(fill!(similar(xk), hess_init_val), psb, andrei, wolk) : DiagonalQN(diag(Bk), psb, andrei, wolk))
   DkNorm = norm(Dk.d, Inf)
   νInv = (DkNorm + one(R) / (α * Δk))
   ν = one(R) / νInv

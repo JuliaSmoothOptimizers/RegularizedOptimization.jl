@@ -22,11 +22,14 @@ function options_str(
   subsolver_options::ROSolverOptions,
   subsolver::Symbol,
 )
-  if solver == :TRDH
-    out_str = !options.spectral ? (options.psb ? "-PSB" : "-Andrei") : "-Spec"
+  if solver ∈ [:R2DH, :TRDH]
+    out_str = !options.spectral ? (options.psb ? "-PSB" : (options.andrei ? "-Andrei" : (options.wolk ? "-Wolk" : "-DBFGS"))) : "-Spec"
     out_str = (options.reduce_TR) ? out_str : string(out_str, "-noredTR")
-  elseif solver == :TR && subsolver == :TRDH
-    out_str = !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") : "-Spec"
+  elseif solver == :TR && subsolver ∈ [:R2DH, :TRDH]
+    out_str = !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : (subsolver_options.andrei ? "-Andrei" : (subsolver_options.wolk ? "-Wolk" : "-DBFGS"))) : "-Spec"
+    out_str = (subsolver_options.reduce_TR) ? out_str : string(out_str, "-noredTR")
+  elseif solver == :R2N && subsolver ∈ [:R2DH, :TRDH]
+    out_str = !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : (subsolver_options.andrei ? "-Andrei" : (subsolver_options.wolk ? "-Wolk" : "-DBFGS"))) : "-Spec"
     out_str = (subsolver_options.reduce_TR) ? out_str : string(out_str, "-noredTR")
   else
     out_str = ""
@@ -38,7 +41,7 @@ grad_evals(nls::AbstractNLSModel) = neval_jtprod_residual(nls) + neval_jprod_res
 obj_evals(nlp::AbstractNLPModel) = neval_obj(nlp)
 obj_evals(nls::AbstractNLSModel) = neval_residual(nls)
 function nb_prox_evals(stats, solver::Symbol)
-  if solver ∈ [:TR, :R2, :TRDH]
+  if solver ∈ [:TR, :R2, :TRDH, :R2DH, :R2N]
     prox_evals = sum(stats.solver_specific[:SubsolverCounter])
   else
     error("not implemented")
@@ -202,7 +205,7 @@ function benchmark_table(
       ),
     )
   else
-    pretty_table(data; header = header, title = title, formatters = (print_formats,))
+    pretty_table(data; header = header, title = title, formatters = (print_formats,), display_size = (-1,-1))
   end
   return solver_names, solver_stats
 end

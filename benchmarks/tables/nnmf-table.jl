@@ -4,10 +4,10 @@ random_seed = 1234
 Random.seed!(random_seed)
 m, n, k = 100, 50, 5
 model, nls_model, A, selected = nnmf_model(m, n, k)
-f = LSR1Model(model)
+f = LBFGSModel(model)
 λ = 1.0e-1 # norm(grad(model, rand(model.meta.nvar)), Inf) / 100
 h = NormL0(λ)
-ν = 1.0
+ν = 1.0e-3
 ϵ = 1.0e-5
 ϵi = 1.0e-3
 ϵri = 1.0e-6
@@ -85,18 +85,78 @@ options6_nrTR = ROSolverOptions(
   psb = false,
   reduce_TR = false,
 )
+options7 = ROSolverOptions(
+  ν = ν,
+  ϵa = ϵ,
+  ϵr = ϵ,
+  verbose = verbose,
+  maxIter = maxIter,
+  spectral = false,
+  psb = false,
+  andrei = false
+)
 
-solvers = [:R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
+options7_nrTR = ROSolverOptions(
+  ν = ν,
+  ϵa = ϵ,
+  ϵr = ϵ,
+  verbose = verbose,
+  maxIter = maxIter,
+  spectral = false,
+  psb = false,
+  andrei = false,
+  reduce_TR = false,
+)
+
+options8 = ROSolverOptions(
+  ν = ν,
+  ϵa = ϵ,
+  ϵr = ϵ,
+  verbose = verbose,
+  maxIter = maxIter,
+  spectral = false,
+  psb = false,
+  andrei = false,
+  wolk = true
+)
+
+options8_nrTR = ROSolverOptions(
+  ν = ν,
+  ϵa = ϵ,
+  ϵr = ϵ,
+  verbose = verbose,
+  maxIter = maxIter,
+  spectral = false,
+  psb = false,
+  andrei = false,
+  wolk = true,
+  reduce_TR = false,
+)
+
+solvers = [:R2, :R2DH, :R2DH, :R2DH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR, :TR]
 subsolvers =
-  [:None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH]
+  [:None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :None, :R2, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :TRDH, :R2DH, :R2DH, :R2DH]
 solver_options = [
   options,
+  options,
+  options7,
+  options8,
   options,
   options_nrTR,
   options5,
   options5_nrTR,
   options6,
   options6_nrTR,
+  options7,
+  options7_nrTR,
+  options8,
+  options8_nrTR,
+  options,
+  options,
+  options,
+  options,
+  options,
+  options,
   options,
   options,
   options,
@@ -116,11 +176,25 @@ subsolver_options = [
   options2,
   options2,
   options2,
+  options2,
+  options2,
+  options2,
+  options2,
+  options2,
+  options2,
+  options2,
   options2_nrTR,
   options3,
   options3_nrTR,
   options4,
   options4_nrTR,
+  options7,
+  options7_nrTR,
+  options8,
+  options8_nrTR,
+  options8,
+  options7,
+  options,
 ] # n'importe lequel si subsolver = :None
 subset = 1:length(solvers)
 
