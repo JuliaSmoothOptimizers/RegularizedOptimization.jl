@@ -1,4 +1,43 @@
-export ROSolverOptions
+export ROSolverOptions, RIPMOptions
+
+mutable struct RIPMOptions{R}
+  maxIter_inner::Int
+  maxIter_outer::Int
+  μ0::R
+  μmin::R
+  ϵ0::R
+  δ0::R
+  δmin::R
+  threshXinvZ::R
+  resetQN::Bool
+  ϵri::R
+  ϵri1::R
+  useξz::Bool
+  stop_proj_gd::Bool # true to use projected gd stop crit
+  scaleTR::Bool
+  crossover::Bool
+
+  RIPMOptions{R}(;
+    maxIter_inner::Int = 100,
+    maxIter_outer::Int = 12,
+    μ0::R = one(R),
+    μmin::R = sqrt(eps(R)) * 10,
+    ϵ0::R = one(R) / 10,
+    δ0::R = one(R) / 2,
+    δmin::R = sqrt(eps(R)) * 10,
+    threshXinvZ::R = R(1.0e4),
+    resetQN::Bool = true,
+    ϵri::R = R(1.0e-2),
+    ϵri1::R = R(1.0e-2),
+    useξz::Bool = true,
+    stop_proj_gd::Bool = false,
+    scaleTR::Bool = false,
+    crossover::Bool = true,
+  ) where {R <: Real} = new{R}(maxIter_inner, maxIter_outer, μ0, μmin, ϵ0, δ0, δmin, threshXinvZ, resetQN, ϵri, ϵri1, useξz, stop_proj_gd, scaleTR, crossover)
+end
+
+RIPMOptions(args...; kwargs...) = RIPMOptions{Float64}(args...; kwargs...)
+
 
 mutable struct ROSolverOptions{R}
   ϵa::R  # termination criteria
@@ -19,6 +58,7 @@ mutable struct ROSolverOptions{R}
   spectral::Bool # for TRDH: use spectral gradient update if true, otherwise DiagonalQN
   psb::Bool # for TRDH with DiagonalQN (spectral = false): use PSB update if true, otherwise Andrei update
   reduce_TR::Bool
+  opt_RIPM::RIPMOptions{R}
 
   function ROSolverOptions{R}(;
     ϵa::R = √eps(R),
@@ -39,6 +79,7 @@ mutable struct ROSolverOptions{R}
     spectral::Bool = false,
     psb::Bool = false,
     reduce_TR::Bool = true,
+    opt_RIPM = RIPMOptions{R}(),
   ) where {R <: Real}
     @assert ϵa ≥ 0
     @assert ϵr ≥ 0
@@ -73,6 +114,7 @@ mutable struct ROSolverOptions{R}
       spectral,
       psb,
       reduce_TR,
+      opt_RIPM,
     )
   end
 end
