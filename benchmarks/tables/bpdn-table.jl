@@ -141,3 +141,18 @@ stats = benchmark_table(
   random_seed,
   tex = false,
 );
+
+subset = [1,2,3,4,5,6, 7]
+
+p = benchmark_plot(
+  f,
+  1:(f.meta.nvar),
+  h,
+  solvers[subset],
+  subsolvers[subset],
+  solver_options[subset],
+  subsolver_options[subset],
+  random_seed;
+  xmode = "linear",
+  ymode = "log", 
+)

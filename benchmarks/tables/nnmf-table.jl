@@ -1,4 +1,5 @@
 include("regulopt-tables.jl")
+include("regulopt-plots.jl")
 
 random_seed = 1234
 Random.seed!(random_seed)
@@ -122,19 +123,42 @@ subsolver_options = [
   options4,
   options4_nrTR,
 ] # n'importe lequel si subsolver = :None
-subset = 1:length(solvers)
 
-benchmark_table(
+# benchmark_table(
+#   f,
+#   selected,
+#   [],
+#   h,
+#   λ,
+#   solvers[subset],
+#   subsolvers[subset],
+#   solver_options[subset],
+#   subsolver_options[subset],
+#   "NNMF with m = $m, n = $n, k = $k, ν = $ν, λ = $λ",
+#   random_seed,
+#   tex = false,
+# );
+
+# subset = 1:length(solvers)
+subset = [8, 9, 10, 11, 12, 13, 14]
+
+p = benchmark_plot(
   f,
   selected,
-  [],
   h,
-  λ,
   solvers[subset],
   subsolvers[subset],
   solver_options[subset],
   subsolver_options[subset],
-  "NNMF with m = $m, n = $n, k = $k, ν = $ν, λ = $λ",
-  random_seed,
-  tex = false,
-);
+  random_seed;
+  measured = :grad,
+  xmode = "linear",
+  ymode = "log", 
+)
+
+# path = raw"C:\Users\Geoffroy Leconte\.julia\dev\RegularizedOptimization\benchmarks"
+# pgfsave(
+#   joinpath(path, "test.tikz"),
+#   p;
+#   include_preamble = true,
+# )

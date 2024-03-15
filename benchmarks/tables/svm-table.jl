@@ -1,4 +1,5 @@
 include("regulopt-tables.jl")
+include("regulopt-plots.jl")
 using MLDatasets
 
 random_seed = 1234
@@ -127,19 +128,35 @@ subsolver_options = [
 ] # n'importe lequel si subsolver = :None
 subset = 1:length(solvers)
 
-benchmark_table(
+# benchmark_table(
+#   f,
+#   1:(f.meta.nvar),
+#   (sol_train, sol_test),
+#   h,
+#   λ,
+#   solvers[subset],
+#   subsolvers[subset],
+#   solver_options[subset],
+#   subsolver_options[subset],
+#   "SVM with ν = $ν, λ = $λ",
+#   random_seed,
+#   nls_train = nls_train,
+#   nls_test = nls_test,
+#   tex = false,
+# );
+
+subset = [8, 9, 10, 11, 12, 13, 14]
+
+p = benchmark_plot(
   f,
   1:(f.meta.nvar),
-  (sol_train, sol_test),
   h,
-  λ,
   solvers[subset],
   subsolvers[subset],
   solver_options[subset],
   subsolver_options[subset],
-  "SVM with ν = $ν, λ = $λ",
-  random_seed,
-  nls_train = nls_train,
-  nls_test = nls_test,
-  tex = false,
-);
+  random_seed;
+  measured = :grad,
+  xmode = "linear",
+  ymode = "log", 
+)

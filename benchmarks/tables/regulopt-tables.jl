@@ -74,6 +74,7 @@ function benchmark_table(
   n∇f_evals = []
   nprox_evals = []
   solver_stats = []
+  reset!(f)
 
   for (solver, subsolver, opt, sub_opt) in
       zip(solvers, subsolvers, solver_options, subsolver_options)
