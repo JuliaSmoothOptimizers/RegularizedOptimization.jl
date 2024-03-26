@@ -9,14 +9,7 @@ include("plot-utils-nnmf.jl")
 Random.seed!(1234)
 
 function demo_solver(f, h, χ, selected, Avec, m, n, k, suffix = "l0-linf")
-  options = ROSolverOptions(
-    ν = 1.0e-3,
-    β = 1e16,
-    ϵa = 1e-6,
-    ϵr = 1e-6,
-    verbose = 10,
-    maxIter = 500,
-  )
+  options = ROSolverOptions(ν = 1.0e-3, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10, maxIter = 500)
   @info " using TR to solve with" h χ
   TR_out = TR(LSR1Model(f), h, χ, options, selected = selected)
   plot_nnmf(TR_out, Avec, m, n, k, "tr-r2-$suffix")

@@ -9,13 +9,7 @@ include("plot-utils-bpdn.jl")
 Random.seed!(12)
 
 function demo_solver(f, nls, sol, h, χ, suffix = "l0-linf")
-  options = ROSolverOptions(
-    ν = 1.0,
-    β = 1e16,
-    ϵa = 1e-6,
-    ϵr = 1e-6,
-    verbose = 10,
-  )
+  options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10)
 
   @info " using TR to solve with" h χ
   TR_out = TR(LSR1Model(f), h, χ, options, x0 = f.meta.x0)
