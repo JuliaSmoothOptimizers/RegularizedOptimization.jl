@@ -13,30 +13,6 @@ using NLPModels,
   SolverBenchmark
 using Printf
 
-# utils for extracting stats / display table
-modelname(nlp::LSR1Model) = "LSR1"
-modelname(nlp::LBFGSModel) = "LBFGS"
-modelname(nlp::SpectralGradientModel) = "SpectralGradient"
-modelname(nlp::DiagonalQNModel) = "DiagonalQN"
-subsolvername(subsolver::Symbol) = subsolver == :None ? "" : string("-", subsolver)
-function options_str(
-  options::ROSolverOptions,
-  solver::Symbol,
-  subsolver_options::ROSolverOptions,
-  subsolver::Symbol,
-)
-  if solver == :TRDH
-    out_str = !options.spectral ? (options.psb ? "-PSB" : "-Andrei") : "-Spec"
-    out_str = (options.reduce_TR) ? out_str : string(out_str, "-noredTR")
-  elseif solver == :TR && subsolver == :TRDH
-    out_str = !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") : "-Spec"
-    out_str = (subsolver_options.reduce_TR) ? out_str : string(out_str, "-noredTR")
-  else
-    out_str = ""
-  end
-  return out_str
-end
-
 function benchmark_prof(
   pb::Symbol, #:nnmf, :bpdn
   solvers,
