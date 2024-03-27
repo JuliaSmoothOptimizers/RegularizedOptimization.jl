@@ -95,6 +95,7 @@ function benchmark_table(
         selected = selected,
       )
     end
+    println(length(findall(isequal(0), solver_out.solution[selected])))
     push!(nf_evals, obj_evals(f))
     push!(n∇f_evals, grad_evals(f))
     push!(nprox_evals, nb_prox_evals(solver_out, solver))

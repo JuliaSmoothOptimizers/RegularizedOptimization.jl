@@ -9,44 +9,51 @@ function plot_nnmf(outstruct, Avec, m, n, k, name = "tr-qr")
   H = reshape(x[(m * k + 1):end], k, n)
   WH = W * H
 
-  a = GroupPlot(2, 2, groupStyle = "horizontal sep = 2.5cm")
+  a = PGFPlots.GroupPlot(2, 2, groupStyle = "horizontal sep = 2.5cm")
   push!(
     a,
-    Axis(
+    PGFPlots.Axis(
       Plots.Image(A, (1, m), (1, n), colormap = ColorMaps.Named("Jet")),
       xlabel = "A matrix (reference)",
     ),
   )
   push!(
     a,
-    Axis(Plots.Image(WH, (1, m), (1, n), colormap = ColorMaps.Named("Jet")), xlabel = "WH matrix"),
+    PGFPlots.Axis(Plots.Image(WH, (1, m), (1, n), colormap = ColorMaps.Named("Jet")), xlabel = "WH matrix"),
   )
   push!(
     a,
-    Axis(Plots.Image(H, (1, k), (1, n), colormap = ColorMaps.Named("Jet")), xlabel = "H matrix"),
+    PGFPlots.Axis(Plots.Image(H, (1, k), (1, n), colormap = ColorMaps.Named("Jet")), xlabel = "H matrix"),
   )
   push!(
     a,
-    Axis(
+    PGFPlots.Axis(
       Plots.Image(abs.(A - WH), (1, m), (1, n), colormap = ColorMaps.Named("Jet")),
       xlabel = "|A-WH| matrix",
     ),
   )
-  save("nnmf-$(name).pdf", a)
+  a = Plots.MatrixPlot(A, (1, m), (1, n), colormap = ColorMaps.Named("Jet"))
+  save("nnmf-A-$(name).tikz", a)
+  b = Plots.MatrixPlot(WH, (1, m), (1, n), colormap = ColorMaps.Named("Jet"))
+  save("nnmf-WH-$(name).tikz", b)
+  c = Plots.Image(H, (1, k), (1, n), colormap = ColorMaps.Named("Jet"))
+  save("nnmf-H-$(name).tikz", c)
+  d = Plots.MatrixPlot(abs.(A - WH), (1, m), (1, n), colormap = ColorMaps.Named("Jet"))
+  save("nnmf-A-WH-$(name).tikz", d)
 
-  b = Axis(
-    Plots.Linear(1:length(Comp_pg), Comp_pg, mark = "none"),
-    xlabel = "outer iterations",
-    ylabel = "inner iterations",
-    ymode = "log",
-  )
-  save("nnmf-inner-outer-$(name).pdf", b)
+  # b = Axis(
+  #   Plots.Linear(1:length(Comp_pg), Comp_pg, mark = "none"),
+  #   xlabel = "outer iterations",
+  #   ylabel = "inner iterations",
+  #   ymode = "log",
+  # )
+  # save("nnmf-inner-outer-$(name).pdf", b)
 
-  c = Axis(
-    Plots.Linear(1:length(objdec), objdec, mark = "none"),
-    xlabel = "\$ k^{th}\$  \$ \\nabla f \$ Call",
-    ylabel = "Objective Value",
-    ymode = "log",
-  )
-  save("nnmf-objdec-$(name).pdf", c)
+  # c = Axis(
+  #   Plots.Linear(1:length(objdec), objdec, mark = "none"),
+  #   xlabel = "\$ k^{th}\$  \$ \\nabla f \$ Call",
+  #   ylabel = "Objective Value",
+  #   ymode = "log",
+  # )
+  # save("nnmf-objdec-$(name).pdf", c)
 end

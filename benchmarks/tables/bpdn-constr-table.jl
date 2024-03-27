@@ -13,7 +13,7 @@ h = NormL0(λ)
 verbose = 0 # 10
 ν = 1.0
 ϵ = 1.0e-5
-ϵi = 1.0e-5
+ϵi = 1.0e-3
 ϵri = 1.0e-6
 maxIter = 500
 maxIter_inner = 100
@@ -125,20 +125,20 @@ subsolver_options = [
   options4,
   options4_nrTR,
 ] # n'importe lequel si subsolver = :None
-# stats = benchmark_table(
-#   f,
-#   1:(f.meta.nvar),
-#   sol,
-#   h,
-#   λ,
-#   solvers,
-#   subsolvers,
-#   solver_options,
-#   subsolver_options,
-#   "BPDN-cstr",
-#   random_seed,
-#   tex = false,
-# );
+stats = benchmark_table(
+  f,
+  1:(f.meta.nvar),
+  sol,
+  h,
+  λ,
+  solvers,
+  subsolvers,
+  solver_options,
+  subsolver_options,
+  "BPDN-cstr",
+  random_seed,
+  tex = true,
+);
 
 subset = [1, 2, 3, 4, 5, 6, 7]
 

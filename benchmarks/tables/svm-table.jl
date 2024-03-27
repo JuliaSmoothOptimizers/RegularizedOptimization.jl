@@ -128,22 +128,22 @@ subsolver_options = [
 ] # n'importe lequel si subsolver = :None
 subset = 1:length(solvers)
 
-# benchmark_table(
-#   f,
-#   1:(f.meta.nvar),
-#   (sol_train, sol_test),
-#   h,
-#   λ,
-#   solvers[subset],
-#   subsolvers[subset],
-#   solver_options[subset],
-#   subsolver_options[subset],
-#   "SVM with ν = $ν, λ = $λ",
-#   random_seed,
-#   nls_train = nls_train,
-#   nls_test = nls_test,
-#   tex = false,
-# );
+benchmark_table(
+  f,
+  1:(f.meta.nvar),
+  (sol_train, sol_test),
+  h,
+  λ,
+  solvers[subset],
+  subsolvers[subset],
+  solver_options[subset],
+  subsolver_options[subset],
+  "SVM with ν = $ν, λ = $λ",
+  random_seed,
+  nls_train = nls_train,
+  nls_test = nls_test,
+  tex = true,
+);
 
 subset = [8, 9, 10, 11, 12, 13, 14]
 

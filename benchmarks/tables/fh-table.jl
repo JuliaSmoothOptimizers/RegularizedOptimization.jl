@@ -7,7 +7,7 @@ display_sol = true
 random_seed = 12345
 Random.seed!(random_seed)
 
-cstr = false
+cstr = true
 ctr_val = cstr ? 0.5 : -Inf
 lvar = [-Inf, ctr_val, -Inf, -Inf, -Inf]
 uvar = fill(Inf, 5)
@@ -134,36 +134,36 @@ subsolver_options = [
 ] # n'importe lequel si subsolver = :None
 subset = 2:length(solvers) # issues with R2 alone
 
-# names, stats = benchmark_table(
-#   f,
-#   1:(f.meta.nvar),
-#   x0,
-#   h,
-#   λ,
-#   solvers[subset],
-#   subsolvers[subset],
-#   solver_options[subset],
-#   subsolver_options[subset],
-#   "FH with ν = $ν, λ = $λ",
-#   random_seed,
-#   tex = false,
-# );
+names, stats = benchmark_table(
+  f,
+  1:(f.meta.nvar),
+  x0,
+  h,
+  λ,
+  solvers[subset],
+  subsolvers[subset],
+  solver_options[subset],
+  subsolver_options[subset],
+  "FH with ν = $ν, λ = $λ",
+  random_seed,
+  tex = true,
+);
 
-# if display_sol
-#   data = zeros(length(subset) + 1, 5)
-#   data[1, :] .= x0
-#   for i = 1:length(subset)
-#     data[i + 1, :] .= stats[i].solution
-#   end
-#   pretty_table(
-#     data;
-#     header = [L"$x_1$", L"$x_2$", L"$x_3$", L"$x_4$", L"$x_5$"],
-#     row_names = vcat(["True"], names),
-#     title = "Solution FH",
-#     formatters = ft_printf("%1.2f"),
-#     # backend = Val(:latex),
-#   )
-# end
+if display_sol
+  data = zeros(length(subset) + 1, 5)
+  data[1, :] .= x0
+  for i = 1:length(subset)
+    data[i + 1, :] .= stats[i].solution
+  end
+  pretty_table(
+    data;
+    header = [L"$x_1$", L"$x_2$", L"$x_3$", L"$x_4$", L"$x_5$"],
+    row_names = vcat(["True"], names),
+    title = "Solution FH",
+    formatters = ft_printf("%1.2f"),
+    # backend = Val(:latex),
+  )
+end
 
 subset = [8, 9, 10, 11, 12, 13, 14]
 

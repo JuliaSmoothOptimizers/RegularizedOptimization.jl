@@ -14,7 +14,7 @@ h = NormL0(λ)
 verbose = 0 # 10
 ν = 1.0
 ϵ = 1.0e-5
-ϵi = 1.0e-5
+ϵi = 1.0e-3
 ϵri = 1.0e-6
 maxIter = 500
 maxIter_inner = 100
@@ -139,7 +139,7 @@ stats = benchmark_table(
   subsolver_options,
   "BPDN",
   random_seed,
-  tex = false,
+  tex = true,
 );
 
 subset = [1,2,3,4,5,6, 7]

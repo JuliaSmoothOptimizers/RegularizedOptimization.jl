@@ -6,7 +6,7 @@ Random.seed!(random_seed)
 m, n, k = 100, 50, 5
 model, nls_model, A, selected = nnmf_model(m, n, k)
 f = LSR1Model(model)
-λ = 1.0e-1 # norm(grad(model, rand(model.meta.nvar)), Inf) / 100
+λ = 1.0e-3 # norm(grad(model, rand(model.meta.nvar)), Inf) / 100
 h = NormL0(λ)
 ν = 1.0
 ϵ = 1.0e-5
@@ -124,37 +124,38 @@ subsolver_options = [
   options4_nrTR,
 ] # n'importe lequel si subsolver = :None
 
-# benchmark_table(
-#   f,
-#   selected,
-#   [],
-#   h,
-#   λ,
-#   solvers[subset],
-#   subsolvers[subset],
-#   solver_options[subset],
-#   subsolver_options[subset],
-#   "NNMF with m = $m, n = $n, k = $k, ν = $ν, λ = $λ",
-#   random_seed,
-#   tex = false,
-# );
+subset = 1:length(solvers)
 
-# subset = 1:length(solvers)
-subset = [8, 9, 10, 11, 12, 13, 14]
-
-p = benchmark_plot(
+benchmark_table(
   f,
   selected,
+  [],
   h,
+  λ,
   solvers[subset],
   subsolvers[subset],
   solver_options[subset],
   subsolver_options[subset],
-  random_seed;
-  measured = :grad,
-  xmode = "linear",
-  ymode = "log", 
-)
+  "NNMF with m = $m, n = $n, k = $k, ν = $ν, λ = $λ",
+  random_seed,
+  tex = true,
+);
+
+subset = [8, 9, 10, 11, 12, 13, 14]
+
+# p = benchmark_plot(
+#   f,
+#   selected,
+#   h,
+#   solvers[subset],
+#   subsolvers[subset],
+#   solver_options[subset],
+#   subsolver_options[subset],
+#   random_seed;
+#   measured = :grad,
+#   xmode = "linear",
+#   ymode = "log", 
+# )
 
 # path = raw"C:\Users\Geoffroy Leconte\.julia\dev\RegularizedOptimization\benchmarks"
 # pgfsave(
