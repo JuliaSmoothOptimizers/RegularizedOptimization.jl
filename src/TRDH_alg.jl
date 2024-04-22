@@ -270,7 +270,8 @@ function TRDH(
 
     fhmax = Mmonotone > 0 ? maximum(FHobj_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
-    ξ = fhmax - fk - mk(s) + max(1, abs(hk)) * 10 * eps()
+    Δmod = fhmax - (fk + mk(s)) + max(1, abs(hk)) * 10 * eps()
+    ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
 
     if !reduce_TR
 
@@ -290,7 +291,7 @@ function TRDH(
       error("TRDH: failed to compute a step: ξ = $ξ")
     end
 
-    ρk = Δobj / ξ
+    ρk = Δobj / Δmod
 
     TR_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
 
