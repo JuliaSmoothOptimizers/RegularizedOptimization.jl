@@ -270,7 +270,7 @@ function TRDH(
 
     fhmax = Mmonotone > 0 ? maximum(FHobj_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
-    ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
+    ξ = fhmax - fk - mk(s) + max(1, abs(hk)) * 10 * eps()
 
     if !reduce_TR
 
