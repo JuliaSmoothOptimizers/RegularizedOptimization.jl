@@ -14,7 +14,7 @@ h = NormL0(λ)
 ϵri = 1.0e-6
 maxIter = 500
 maxIter_inner = 100
-Mmonotone = 5
+Mmonotone = 10
 verbose = 0 #10
 options =
   ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = Mmonotone)
@@ -151,23 +151,35 @@ benchmark_table(
 
 subset = [8, 9, 10, 11, 12, 13, 14]
 
-# p = benchmark_plot(
-#   f,
-#   selected,
-#   h,
-#   solvers[subset],
-#   subsolvers[subset],
-#   solver_options[subset],
-#   subsolver_options[subset],
-#   random_seed;
-#   measured = :grad,
-#   xmode = "linear",
-#   ymode = "log", 
-# )
+opt =
+  ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = 0)
+optPSB =
+  ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = false, psb = true, Mmonotone = 0)
+opt2 =
+  ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = 2)
+sopt = ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = 0)
+# subset = [1,2,3,4,5,6,7]
+solvers2 = [:TRDH, :TRDH, :TR, :TR]
+subsolvers2 = [:None, :None, :R2, :TRDH]
+solver_options2 = [opt, opt2, opt, opt]
+subsolver_options2 = [sopt, sopt, sopt, sopt]
 
-# path = raw"C:\Users\Geoffroy Leconte\.julia\dev\RegularizedOptimization\benchmarks"
+p = benchmark_plot(
+  f,
+  1:(f.meta.nvar),
+  h,
+  solvers2,
+  subsolvers2,
+  solver_options2,
+  subsolver_options2,
+  random_seed;
+  xmode = "linear",
+  ymode = "log", 
+)
+
+# path = raw"C:\Users\Geoffroy Leconte\Documents\doctorat\biblio\papiers\indef-pg\figs\objplots"
 # pgfsave(
-#   joinpath(path, "test.tikz"),
+#   joinpath(path, "nnmf.tikz"),
 #   p;
 #   include_preamble = true,
 # )

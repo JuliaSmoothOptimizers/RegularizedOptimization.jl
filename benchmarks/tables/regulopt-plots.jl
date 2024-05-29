@@ -26,13 +26,16 @@ function options_str(
   subsolver::Symbol,
 )
   if solver == :TRDH
-    out_str = !options.spectral ? (options.psb ? "-PSB" : "-Andrei") : "-Spec"
-    out_str = (options.reduce_TR) ? out_str : string(out_str, "-noredTR")
+    out_str = (options.reduce_TR) ? string(solver) : string("i", solver)
+    (options.Mmonotone != 0) && (out_str *= string("-", options.Mmonotone)) 
+    out_str *= !options.spectral ? (options.psb ? "-PSB" : "-Andrei") : "-Spec"
   elseif solver == :TR && subsolver == :TRDH
-    out_str = !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") : "-Spec"
-    out_str = (subsolver_options.reduce_TR) ? out_str : string(out_str, "-noredTR")
+    out_str = (subsolver_options.reduce_TR) ? string(solver, "-", subsolver) : string(solver, "-i", subsolver)
+    (subsolver_options.Mmonotone != 0) && (out_str *= string("-", subsolver_options.Mmonotone))
+    out_str *= !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") : "-Spec"
   else
-    out_str = ""
+    out_str = string(solver)
+    (subsolver == :None) || (out_str *= string("-", subsolver))
   end
   return out_str
 end
@@ -46,12 +49,12 @@ function benchmark_plot(
   solver_options,
   subsolver_options,
   random_seed::Int;
-  measured::Symbol = :obj, # set to :grad to eval grad
+  measured::Symbol = :grad, # set to :grad to eval grad
   xmode::String = "log",
   ymode::String = "log",
 )
   solver_names = [
-    "$(solver)$(subsolvername(subsolver))$(options_str(opt, solver, subsolver_opt, subsolver))"
+    "$(options_str(opt, solver, subsolver_opt, subsolver))"
     for (solver, opt, subsolver, subsolver_opt) in
     zip(solvers, solver_options, subsolvers, subsolver_options)
   ]
@@ -93,13 +96,13 @@ function benchmark_plot(
     )
   end
 
-  colors = distinguishable_colors(n_solvers)
+  colors = distinguishable_colors(n_solvers, [RGB(1,1,1)], dropseed=true)
   l_plots = [@pgf Plot({color = colors[i]}, coords[i]) for i in 1:n_solvers]
   
   @pgf Axis(
     {
       xlabel = "iterations",
-      ylabel = L"$(f + h)(x_k)$",
+      ylabel = L"$(f + h)(x_k) - (f + h)^*$",
       ymode = ymode,
       xmode = xmode,
       no_markers,

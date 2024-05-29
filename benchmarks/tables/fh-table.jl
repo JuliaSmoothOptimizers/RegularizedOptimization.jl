@@ -24,7 +24,7 @@ maxIter_inner = 200 # max iter for subsolver
 ϵ = 1.0e-4
 ϵi = 1.0e-3
 ϵri = 1.0e-6
-Mmonotone = 5
+Mmonotone = 2
 options =
   ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = Mmonotone)
 options_nrTR = ROSolverOptions(
@@ -122,7 +122,7 @@ solver_options = [
   options,
   options,
   options,
-  options,
+  # options,
 ]
 subsolver_options = [
   options2,
@@ -141,6 +141,7 @@ subsolver_options = [
   options4_nrTR,
 ] # n'importe lequel si subsolver = :None
 subset = 2:length(solvers) # issues with R2 alone
+# subset = [2, 3, 4, 5, 6, 7, 8, 9]
 
 names, stats = benchmark_table(
   f,
@@ -169,22 +170,57 @@ if display_sol
     row_names = vcat(["True"], names),
     title = "Solution FH",
     formatters = ft_printf("%1.2f"),
-    backend = Val(:latex),
+    # backend = Val(:latex),
   )
 end
 
 subset = [8, 9, 10, 11, 12, 13, 14]
 
+if !cstr
+  opt = ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = 0)
+  optPSB =
+    ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = false, psb = true, Mmonotone = 0)
+  opt5 =
+    ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = 5)
+  sopt = ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = 0)
+  soptPSB = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = 0)
+  soptAndrei = ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = 0)
+  solvers2 = [:TR, :TR, :TR]
+  subsolvers2 = [:R2, :TRDH, :TRDH]
+  solver_options2 = [opt, opt, opt]
+  subsolver_options2 = [sopt, soptPSB, soptAndrei]
+
+else
+  opt = ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = 0)
+  optPSB10 =
+    ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = false, psb = true, Mmonotone = 10)
+  opt5 =
+    ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = 5)
+  sopt = ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = 0)
+  soptPSB = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = 0)
+  soptAndrei = ROSolverOptions(spectral = false, psb = false, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = 0)
+  solvers2 = [:TRDH, :TR, :TR, :TR]
+  subsolvers2 = [:None, :R2, :TRDH, :TRDH]
+  solver_options2 = [optPSB10, opt, opt, opt]
+  subsolver_options2 = [sopt, sopt, soptPSB, soptAndrei]
+end
+
 p = benchmark_plot(
   f,
   1:(f.meta.nvar),
   h,
-  solvers[subset],
-  subsolvers[subset],
-  solver_options[subset],
-  subsolver_options[subset],
+  solvers2,
+  subsolvers2,
+  solver_options2,
+  subsolver_options2,
   random_seed;
-  measured = :grad,
   xmode = "linear",
   ymode = "log", 
 )
+
+# path = raw"C:\Users\Geoffroy Leconte\Documents\doctorat\biblio\papiers\indef-pg\figs\objplots"
+# pgfsave(
+#   joinpath(path, !cstr ? "fh.tikz" : "fh-cstr.tikz"),
+#   p;
+#   include_preamble = true,
+# )

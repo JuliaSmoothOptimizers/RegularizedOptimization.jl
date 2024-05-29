@@ -40,7 +40,7 @@ mutable struct ROSolverOptions{R}
     spectral::Bool = false,
     psb::Bool = false,
     reduce_TR::Bool = true,
-    Mmonotone::Int = 0,
+    Mmonotone::Int = 5,
   ) where {R <: Real}
     @assert ϵa ≥ 0
     @assert ϵr ≥ 0

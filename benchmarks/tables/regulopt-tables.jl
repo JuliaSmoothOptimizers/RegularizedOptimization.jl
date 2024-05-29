@@ -24,13 +24,14 @@ function options_str(
   subsolver::Symbol,
 )
   if solver == :TRDH
-    out_str = !options.spectral ? (options.psb ? "-PSB" : "-Andrei") : "-Spec"
-    out_str = (options.reduce_TR) ? out_str : string(out_str, "-noredTR")
+    out_str = (options.reduce_TR) ? string(solver) : string("i", solver)
+    out_str *= !options.spectral ? (options.psb ? "-PSB" : "-Andrei") : "-Spec"
   elseif solver == :TR && subsolver == :TRDH
-    out_str = !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") : "-Spec"
-    out_str = (subsolver_options.reduce_TR) ? out_str : string(out_str, "-noredTR")
+    out_str = (subsolver_options.reduce_TR) ? string(solver, "-", subsolver) : string(solver, "-i", subsolver)
+    out_str *= !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") : "-Spec"
   else
-    out_str = ""
+    out_str = string(solver)
+    (subsolver == :None) || (out_str *= string("-", subsolver))
   end
   return out_str
 end
@@ -66,7 +67,7 @@ function benchmark_table(
   nls_test::Union{Nothing, AbstractNLSModel} = nothing, # for SVM
 )
   solver_names = [
-    "$(solver)$(subsolvername(subsolver))$(options_str(opt, solver, subsolver_opt, subsolver))"
+    "$(options_str(opt, solver, subsolver_opt, subsolver))"
     for (solver, opt, subsolver, subsolver_opt) in
     zip(solvers, solver_options, subsolvers, subsolver_options)
   ]

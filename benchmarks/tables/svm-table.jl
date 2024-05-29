@@ -18,7 +18,7 @@ verbose = 0 #10
 ϵri = 1.0e-6
 maxIter = 1000
 maxIter_inner = 100
-Mmonotone = 5
+Mmonotone = 10
 options =
   ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = Mmonotone)
 options_nrTR = ROSolverOptions(
@@ -150,21 +150,40 @@ benchmark_table(
   random_seed,
   nls_train = nls_train,
   nls_test = nls_test,
-  tex = false,
+  tex = true,
 );
 
 subset = [8, 9, 10, 11, 12, 13, 14]
+
+opt =
+  ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = 0)
+optPSB =
+  ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = false, psb = true, Mmonotone = 0)
+opt5 =
+  ROSolverOptions(ν = ν, ϵa = ϵ, ϵr = ϵ, verbose = verbose, maxIter = maxIter, spectral = true, Mmonotone = 5)
+sopt = ROSolverOptions(spectral = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = 0)
+soptPSB = ROSolverOptions(spectral = false, psb = true, ϵa = ϵi, ϵr = ϵri, maxIter = maxIter_inner, Mmonotone = 0)
+solvers2 = [:R2, :TRDH, :TRDH, :TR, :TR]
+subsolvers2 = [:None, :None, :None, :R2, :TRDH]
+solver_options2 = [opt, opt, opt5, opt, opt]
+subsolver_options2 = [sopt, sopt, sopt, sopt, soptPSB]
 
 p = benchmark_plot(
   f,
   1:(f.meta.nvar),
   h,
-  solvers[subset],
-  subsolvers[subset],
-  solver_options[subset],
-  subsolver_options[subset],
+  solvers2,
+  subsolvers2,
+  solver_options2,
+  subsolver_options2,
   random_seed;
-  measured = :grad,
   xmode = "linear",
   ymode = "log", 
 )
+
+# path = raw"C:\Users\Geoffroy Leconte\Documents\doctorat\biblio\papiers\indef-pg\figs\objplots"
+# pgfsave(
+#   joinpath(path, "svm.tikz"),
+#   p;
+#   include_preamble = true,
+# )
