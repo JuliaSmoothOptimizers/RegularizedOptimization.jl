@@ -57,6 +57,7 @@ function R2Solver(
 end
 
 """
+    R2(reg_nlp, options)
     R2(nlp, h, options)
     R2(f, ∇f!, h, options, x0)
 
@@ -75,20 +76,20 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs is the Taylor linear approximation
 ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm and σₖ > 0 is the regularization parameter.
 
 ### Arguments
-
-* `nlp::AbstractNLPModel`: a smooth optimization problem
-* `h`: a regularizer such as those defined in ProximalOperators
+* `reg_nlp::AbstractRegularizedNLPModel`: a smooth, regularized optimization problem: min f(x) + h(x)
 * `options::ROSolverOptions`: a structure containing algorithmic parameters
-* `x0::AbstractVector`: an initial guess (in the second calling form)
+* `nlp::AbstractNLPModel`: a smooth optimization problem (in the second calling form)
+* `h`: a regularizer such as those defined in ProximalOperators (in the second calling form)
+* `x0::AbstractVector`: an initial guess (in the third calling form)
 
 ### Keyword Arguments
 
-* `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
-* `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`).
+* `x0::AbstractVector`: an initial guess (in the first and second calling form resp.: default = `reg_nlp.model.meta.x0` and `nlp.meta.x0`)
+* `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`) (in the first calling form, this should be stored in reg_nlp)
 
-The objective and gradient of `nlp` will be accessed.
+The objective and gradient of the smooth part will be accessed.
 
-In the second form, instead of `nlp`, the user may pass in
+In the third form, instead of `nlp`, the user may pass in
 
 * `f` a function such that `f(x)` returns the value of f at x
 * `∇f!` a function to evaluate the gradient in place, i.e., such that `∇f!(g, x)` store ∇f(x) in `g`.
