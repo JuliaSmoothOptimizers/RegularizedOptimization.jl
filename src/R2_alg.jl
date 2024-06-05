@@ -101,10 +101,10 @@ In the second form, instead of `nlp`, the user may pass in
 * `Complex_hist`: an array with the history of number of inner iterations.
 """
 
-function R2(nlp::AbstractNLPModel, args...; kwargs)
+function R2(nlp::AbstractNLPModel, h, args...; kwargs...)
   kwargs_dict = Dict(kwargs...)
-  selected = pop!(kwargs_dict, :selected, 1:nlp.meta.nvar)
-  reg_nlp = RegularizedNLPModel(nlp, args.h, selected)
+  selected = pop!(kwargs_dict, :selected, 1:nlp.meta.nvar) 
+  reg_nlp = RegularizedNLPModel(nlp, h, selected)
   return R2(reg_nlp, args...; kwargs...)
 end
 
@@ -117,13 +117,13 @@ function R2(reg_nlp::AbstractRegularizedNLPModel, args...; kwargs...)
     reg_nlp.h,
     args...,
     x0,
-    nlp.meta.lvar,
-    nlp.meta.uvar;
+    reg_nlp.model.meta.lvar,
+    reg_nlp.model.meta.uvar;
     selected = reg_nlp.selected,
     kwargs_dict...,
   )
   ξ = outdict[:ξ]
-  stats = GenericExecutionStats(nlp)
+  stats = GenericExecutionStats(reg_nlp.model)
   set_status!(stats, outdict[:status])
   set_solution!(stats, xk)
   set_objective!(stats, outdict[:fk] + outdict[:hk])
