@@ -1,8 +1,8 @@
-export R2,R2Solver,solve!
+export R2, R2Solver, solve!
 
 import SolverCore.solve!
 
-mutable struct R2Solver{R <: Real,G <: Union{ShiftedProximableFunction, Nothing}, S <: AbstractVector{R}} <: AbstractOptimizationSolver
+mutable struct R2Solver{R <: Real, G <: Union{ShiftedProximableFunction, Nothing}, S <: AbstractVector{R}} <: AbstractOptimizationSolver
   xk::S
   ∇fk::S
   mν∇fk::S
@@ -149,10 +149,10 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 - `σmin::T = eps(T)`: minimum value of the regularization parameter;
 - `η1::T = √√eps(T)`: very successful iteration threshold;
 - `η2::T = T(0.9)`: successful iteration threshold;
-- `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ    ;
+- `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 
-The algorithm stops when ``√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) `` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ)
+The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ).
 
 # Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
