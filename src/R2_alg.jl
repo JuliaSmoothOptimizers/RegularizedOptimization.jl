@@ -78,6 +78,8 @@ function R2Solver(
   if has_bnds
     l_bound_m_x = similar(xk)
     u_bound_m_x = similar(xk)
+    @. l_bound_m_x = l_bound - x0
+    @. u_bound_m_x = u_bound - x0
   else
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
@@ -337,12 +339,7 @@ function SolverCore.solve!(
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "R2: found point where h has value" hk
   end
-   improper = (hk == -Inf)
-
-  if has_bnds
-    @. l_bound_m_x = l_bound - xk
-    @. u_bound_m_x = u_bound - xk
-  end
+  improper = (hk == -Inf)
 
   if verbose > 0
     @info log_header(
