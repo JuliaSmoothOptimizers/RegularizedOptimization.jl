@@ -1,5 +1,7 @@
 export R2,R2Solver,solve!
 
+import SolverCore.solve!
+
 mutable struct R2Solver{R <: Real,G <: Union{ShiftedProximableFunction, Nothing}, S <: AbstractVector{R}} <: AbstractOptimizationSolver
   xk::S
   ∇fk::S
@@ -61,11 +63,9 @@ end
 
 function R2Solver(
   reg_nlp::AbstractRegularizedNLPModel{T,V};
-  max_iter::Int = 10000,
-  kwargs...
-) where {T,V}
-  kwargs_dict = Dict(kwargs...)
-  x0 = pop!(kwargs_dict, :x0, reg_nlp.model.meta.x0)
+  max_iter::Int = 10000
+  ) where {T,V}
+  x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
 
@@ -127,31 +127,52 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs is the Taylor linear approximation
 
 For advanced usage, first define a solver "R2Solver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
+    solver = R2Solver(reg_nlp)
+    solve!(solver, reg_nlp)
+
+    stats = GenericExecutionStats(reg_nlp.model)
+    solver = R2Solver(reg_nlp)
+    solve!(solver, reg_nlp, stats)
+
 ### Arguments
-* `reg_nlp::AbstractRegularizedNLPModel`: a smooth, regularized optimization problem: min f(x) + h(x)
-* `options::ROSolverOptions`: a structure containing algorithmic parameters
-* `nlp::AbstractNLPModel`: a smooth optimization problem (in the second calling form)
-* `h`: a regularizer such as those defined in ProximalOperators (in the second calling form)
-* `x0::AbstractVector`: an initial guess (in the third calling form)
+* `reg_nlp::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
-### Keyword Arguments
+# Keyword arguments 
+- `x::V = nlp.meta.x0`: the initial guess;
+- `atol::T = √eps(T)`: absolute tolerance;
+- `rtol::T = √eps(T)`: relative tolerance;
+- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance
+- `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
+- `max_time::Float64 = 30.0`: maximum time limit in seconds;
+- `max_iter::Int = 10000`: maximum number of iterations;
+- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
+- `σmin::T = eps(T)`: minimum value of the regularization parameter;
+- `η1::T = √√eps(T)`: very successful iteration threshold;
+- `η2::T = T(0.9)`: successful iteration threshold;
+- `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ    ;
+- `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 
-* `x0::AbstractVector`: an initial guess (in the first and second calling form resp.: default = `reg_nlp.model.meta.x0` and `nlp.meta.x0`)
-* `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`) (in the first calling form, this should be stored in reg_nlp)
+The algorithm stops when ``√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) `` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ)
 
-The objective and gradient of the smooth part will be accessed.
+# Output
+The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
 
-In the third form, instead of `nlp`, the user may pass in
-
-* `f` a function such that `f(x)` returns the value of f at x
-* `∇f!` a function to evaluate the gradient in place, i.e., such that `∇f!(g, x)` store ∇f(x) in `g`.
-
-### Return values
-
-* `xk`: the final iterate
-* `Fobj_hist`: an array with the history of values of the smooth objective
-* `Hobj_hist`: an array with the history of values of the nonsmooth objective
-* `Complex_hist`: an array with the history of number of inner iterations.
+# Callback
+The callback is called at each iteration.
+The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+Changing any of the input arguments will affect the subsequent iterations.
+In particular, setting `stats.status = :user` will stop the algorithm.
+All relevant information should be available in `nlp` and `solver`.
+Notably, you can access, and modify, the following:
+- `solver.xk`: current iterate;
+- `solver.∇fk`: current gradient;
+- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
+  - `stats.iter`: current iteration counter;
+  - `stats.objective`: current objective function value;
+  - `stats.solver_specific[:smooth_obj]`: current smooth part of the objective function
+  - `stats.solver_specific[:nonsmooth_objoth]`: current nonsmooth part of the objective function
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
+  - `stats.elapsed_time`: elapsed time in seconds.
 """
 
 function R2(
@@ -166,8 +187,8 @@ function R2(
   return R2(
     reg_nlp,
     x = x0,
-    a_tol = options.ϵa,
-    r_tol = options.ϵr,
+    atol = options.ϵa,
+    rtol = options.ϵr,
     neg_tol = options.neg_tol,
     verbose = options.verbose,
     max_iter = options.maxIter,
@@ -195,8 +216,8 @@ function R2(
   stats = R2(
   reg_nlp,
   x=x0,
-  a_tol = options.ϵa,
-  r_tol = options.ϵr,
+  atol = options.ϵa,
+  rtol = options.ϵr,
   neg_tol = options.neg_tol,
   verbose = options.verbose,
   max_iter = options.maxIter,
@@ -237,8 +258,8 @@ function R2(
   stats = R2(
     reg_nlp,
     x=x0,
-    a_tol = options.ϵa,
-    r_tol = options.ϵr,
+    atol = options.ϵa,
+    rtol = options.ϵr,
     neg_tol = options.neg_tol,
     verbose = options.verbose,
     max_iter = options.maxIter,
@@ -265,9 +286,7 @@ end
 
 
 function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
-  kwargs_dict = Dict(kwargs...)
-  x0 = pop!(kwargs_dict, :x, reg_nlp.model.meta.x0)
-  solver = R2Solver(reg_nlp,x0=x0)
+  solver = R2Solver(reg_nlp)
   stats = GenericExecutionStats(reg_nlp.model)
   cb = (nlp, solver, stats) -> begin
     solver.Fobj_hist[stats.iter+1] = stats.solver_specific[:smooth_obj]
@@ -278,7 +297,6 @@ function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
     solver,
     reg_nlp,
     stats;
-    x = x0,
     callback = cb,
     kwargs...
   )
@@ -294,8 +312,8 @@ function SolverCore.solve!(
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
-  a_tol::T = √eps(T),
-  r_tol::T = √eps(T),
+  atol::T = √eps(T),
+  rtol::T = √eps(T),
   neg_tol::T = eps(T)^(1 / 4),
   verbose::Int = 0,
   max_iter::Int = 10000,
@@ -314,7 +332,11 @@ function SolverCore.solve!(
   selected = reg_nlp.selected
   h = reg_nlp.h
   nlp = reg_nlp.model
-
+  
+  # Make sure ψ is well shifted (on nlp.meta.x0 in R2Solver Constructor but might be different)
+  if solver.xk != x
+    shift!(solver.ψ,x)
+  end
   xk = solver.xk .= x
   ∇fk = solver.∇fk
   mν∇fk = solver.mν∇fk
@@ -385,9 +407,9 @@ function SolverCore.solve!(
   ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
   ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
   sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
-  a_tol += r_tol * sqrt_ξ_νInv # make stopping test absolute and relative
+  atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
 
-  solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ a_tol)
+  solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
 
   set_solver_specific!(stats,:xi,sqrt_ξ_νInv)
   set_status!(
@@ -453,7 +475,7 @@ function SolverCore.solve!(
 
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
-    solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ a_tol)
+    solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
   
     verbose > 0 && 
       stats.iter % verbose == 0 &&
