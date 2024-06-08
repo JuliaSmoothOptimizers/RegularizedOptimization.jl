@@ -109,9 +109,7 @@ end
 
 
 """
-    R2(reg_nlp, options)
-    R2(nlp, h, options)
-    R2(f, ∇f!, h, options, x0)
+    R2(reg_nlp)
 
 A first-order quadratic regularization method for the problem
 
@@ -126,6 +124,8 @@ About each iterate xₖ, a step sₖ is computed as a solution of
 
 where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs is the Taylor linear approximation of f about xₖ,
 ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm and σₖ > 0 is the regularization parameter.
+
+For advanced usage, first define a solver "R2Solver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
 ### Arguments
 * `reg_nlp::AbstractRegularizedNLPModel`: a smooth, regularized optimization problem: min f(x) + h(x)
