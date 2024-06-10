@@ -109,7 +109,7 @@ end
 
 
 """
-    R2(reg_nlp)
+    R2(reg_nlp; kwargs…)
 
 A first-order quadratic regularization method for the problem
 
