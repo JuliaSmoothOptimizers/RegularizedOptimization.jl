@@ -424,10 +424,6 @@ function SolverCore.solve!(
       max_iter = max_iter
     ),
   )
-
-  verbose > 0 && 
-      stats.iter % verbose == 0 &&
-        @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")], colsep = 1)
   
   callback(nlp, solver, stats)
 
@@ -443,6 +439,10 @@ function SolverCore.solve!(
 
     Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ρk = Δobj / ξ
+
+    verbose > 0 && 
+    stats.iter % verbose == 0 &&
+      @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")], colsep = 1)
 
     if η1 ≤ ρk < Inf
       xk .= xkn
@@ -494,11 +494,6 @@ function SolverCore.solve!(
         max_iter = max_iter
       ),
     )
-
-    verbose > 0 && 
-      stats.iter % verbose == 0 &&
-        @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")], colsep = 1)
-    
 
     callback(nlp, solver, stats)
 
