@@ -425,6 +425,10 @@ function SolverCore.solve!(
     ),
   )
 
+  verbose > 0 && 
+      stats.iter % verbose == 0 &&
+        @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")], colsep = 1)
+  
   callback(nlp, solver, stats)
 
   done = stats.status != :unknown
@@ -475,10 +479,6 @@ function SolverCore.solve!(
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
     solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
-  
-    verbose > 0 && 
-      stats.iter % verbose == 0 &&
-        @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")], colsep = 1)
 
     set_solver_specific!(stats,:xi,sqrt_ξ_νInv)
     set_status!(
@@ -494,6 +494,11 @@ function SolverCore.solve!(
         max_iter = max_iter
       ),
     )
+
+    verbose > 0 && 
+      stats.iter % verbose == 0 &&
+        @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")], colsep = 1)
+    
 
     callback(nlp, solver, stats)
 
