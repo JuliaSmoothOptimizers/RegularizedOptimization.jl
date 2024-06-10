@@ -495,6 +495,11 @@ function SolverCore.solve!(
       ),
     )
 
+    verbose > 0 && 
+      stats.iter % verbose == 0 &&
+        @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")], colsep = 1)
+    
+
     callback(nlp, solver, stats)
 
     done = stats.status != :unknown
