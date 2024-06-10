@@ -169,7 +169,7 @@ Notably, you can access, and modify, the following:
 - `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
   - `stats.iter`: current iteration counter;
   - `stats.objective`: current objective function value;
-  - `stats.solver_specific[:smooth_obj]`: current smooth part of the objective function
+  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function
   - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function
   - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
   - `stats.elapsed_time`: elapsed time in seconds.
