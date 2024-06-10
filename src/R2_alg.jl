@@ -174,7 +174,6 @@ Notably, you can access, and modify, the following:
   - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
   - `stats.elapsed_time`: elapsed time in seconds.
 """
-
 function R2(
   nlp::AbstractNLPModel{R, V}, 
   h, 
@@ -334,7 +333,7 @@ function SolverCore.solve!(
   nlp = reg_nlp.model
   
   # Make sure ψ is well shifted (on nlp.meta.x0 in R2Solver Constructor but might be different)
-  if solver.xk != x
+  if !all(solver.xk .== x)
     shift!(solver.ψ,x)
   end
   xk = solver.xk .= x
