@@ -50,13 +50,9 @@ jobs:
             epstopdf-pkg
       # - name: Setup tmate session
       #   uses: mxschmitt/action-tmate@v3
-      - name: Installing non-registered dependencies
+      - name: Develop package
         run: |
           using Pkg
-          pkg1 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl.git", rev = "main")
-          pkg2 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl.git", rev = "master")
-          pkg_list = [pkg1, pkg2]
-          Pkg.add(pkg_list)
           Pkg.develop(path = ".")
           Pkg.instantiate()
         shell: julia --project="examples" --color=yes {0}
