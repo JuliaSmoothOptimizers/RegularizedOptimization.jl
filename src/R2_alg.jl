@@ -40,9 +40,9 @@ function R2Solver(
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
-  Fobj_hist = zeros(R, maxIter)
-  Hobj_hist = zeros(R, maxIter)
-  Complex_hist = zeros(Int, maxIter)
+  Fobj_hist = zeros(R, maxIter+2)
+  Hobj_hist = zeros(R, maxIter+2)
+  Complex_hist = zeros(Int, maxIter+2)
   return R2Solver(
     xk,
     ∇fk,
@@ -84,9 +84,9 @@ function R2Solver(
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
-  Fobj_hist = zeros(T, max_iter)
-  Hobj_hist = zeros(T, max_iter)
-  Complex_hist = zeros(Int, max_iter)
+  Fobj_hist = zeros(T, max_iter+2)
+  Hobj_hist = zeros(T, max_iter+2)
+  Complex_hist = zeros(Int, max_iter+2)
   
   ψ = has_bnds ? shifted(reg_nlp.h, x0, l_bound_m_x, u_bound_m_x, reg_nlp.selected) : shifted(reg_nlp.h, x0)
   return R2Solver(
@@ -285,7 +285,9 @@ end
 
 
 function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
-  solver = R2Solver(reg_nlp)
+  kwargs_dict = Dict(kwargs...)
+  max_iter = pop!(kwargs_dict, :max_iter, 10000) 
+  solver = R2Solver(reg_nlp,max_iter = max_iter)
   stats = GenericExecutionStats(reg_nlp.model)
   cb = (nlp, solver, stats) -> begin
     solver.Fobj_hist[stats.iter+1] = stats.solver_specific[:smooth_obj]
@@ -297,6 +299,7 @@ function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
     reg_nlp,
     stats;
     callback = cb,
+    max_iter = max_iter,
     kwargs...
   )
   set_solver_specific!(stats, :Fhist, solver.Fobj_hist[1:stats.iter+1])
