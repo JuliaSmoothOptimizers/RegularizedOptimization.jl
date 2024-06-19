@@ -335,7 +335,7 @@ function SolverCore.solve!(
   h = reg_nlp.h
   nlp = reg_nlp.model
   
-  # Make sure ψ is well shifted (on nlp.meta.x0 in R2Solver Constructor but might be different)
+  # Make sure ψ has the correct shift (on nlp.meta.x0 in R2Solver Constructor but might be different)
   if !all(solver.xk .== x)
     shift!(solver.ψ,x)
   end
