@@ -441,7 +441,7 @@ function SolverCore.solve!(
     improper = (hkn == -Inf)
 
     Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ρk = Δobj / ξ
+    global ρk = Δobj / ξ
 
     verbose > 0 && 
     stats.iter % verbose == 0 &&
@@ -505,7 +505,8 @@ function SolverCore.solve!(
 
   verbose > 0 &&
     stats.status == :first_order &&
-        @info "R2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
+      @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")], colsep = 1)
+      @info "R2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
 
   set_solution!(stats,xk)
   return stats
