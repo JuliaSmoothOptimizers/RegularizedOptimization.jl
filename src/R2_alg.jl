@@ -134,7 +134,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
     solver = R2Solver(reg_nlp)
     solve!(solver, reg_nlp, stats)
 
-### Arguments
+# Arguments
 * `reg_nlp::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
 # Keyword arguments 
