@@ -88,7 +88,7 @@ function R2Solver(
   Hobj_hist = zeros(T, max_iter+2)
   Complex_hist = zeros(Int, max_iter+2)
   
-  ψ = has_bnds ? shifted(reg_nlp.h, x0, l_bound_m_x, u_bound_m_x, reg_nlp.selected) : shifted(reg_nlp.h, x0)
+  ψ = has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) : shifted(reg_nlp.h, xk)
   return R2Solver(
     xk,
     ∇fk,
@@ -335,11 +335,11 @@ function SolverCore.solve!(
   h = reg_nlp.h
   nlp = reg_nlp.model
   
-  # Make sure ψ has the correct shift (on nlp.meta.x0 in R2Solver Constructor but might be different)
-  if !all(solver.xk .== x)
-    shift!(solver.ψ,x)
-  end
   xk = solver.xk .= x
+
+  # Make sure ψ has the correct shift 
+  shift!(solver.ψ,xk)
+
   ∇fk = solver.∇fk
   mν∇fk = solver.mν∇fk
   ψ = solver.ψ
