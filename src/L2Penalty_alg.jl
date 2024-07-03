@@ -85,6 +85,7 @@ function SolverCore.solve!(
 	x::V = nlp.meta.x0,
 	atol::T = √eps(T),
 	rtol::T = √eps(T),
+	neg_tol = eps(T)^(1/4),
 	ktol::T = eps(T)^(1/4),
 	max_iter::Int = 10000,
 	sub_max_iter::Int = 10000,
@@ -166,26 +167,25 @@ function SolverCore.solve!(
 			x = x,
 			atol = ktol,
 			rtol = T(0),
-			neg_tol = T(0),
+			neg_tol = neg_tol,
 			verbose = sub_verbose,
 			max_iter = sub_max_iter,
 			max_time = max_time - stats.elapsed_time,
 			max_eval = min(rem_eval,sub_max_eval),
 			σmin = β4,
-			#ν = 1/max(β4,β3*τ),
+			ν = 1/max(β4,β3*τ),
 			kwargs...,
 		)
 
 		x .= solver.sub_stats.solution
 		fx = solver.sub_stats.solver_specific[:smooth_obj]
-		hx = solver.sub_stats.solver_specific[:nonsmooth_obj]
+		hx = solver.sub_stats.solver_specific[:nonsmooth_obj]/τ
 		sqrt_ξ_νInv  =  solver.sub_stats.solver_specific[:xi]
 
 		shift!(ψ, x)
 		prox!(s, ψ, s0, 1.0)
 
 		θ = hx - ψ(s)
-		θ ≥ 0 || error("L2Penalty: prox-gradient step should produce a decrease but θ = $(θ)")
 		sqrt_θ = sqrt(θ)
 
 		if sqrt_θ > ktol
@@ -196,8 +196,9 @@ function SolverCore.solve!(
 			ktol = max(β2^(ceil(log(β2,sqrt_ξ_νInv/tol_init)))*ktol,atol) #the β^... allows to directly jump to a sufficiently small ϵₖ
 		end
 
-		solved = sqrt_θ ≤ atol && sqrt_ξ_νInv ≤ atol
-		
+		solved = (sqrt_θ ≤ atol && solver.sub_stats.status == :first_order) || (θ < 0 && sqrt_θ ≤ neg_tol && solver.sub_stats.status == :first_order)
+		(θ < 0 && sqrt_θ > neg_tol) && error("L2Penalty: prox-gradient step should produce a decrease but θ = $(θ)")
+
 		verbose > 0 &&
 			stats.iter % verbose == 0 &&
 				@info log_row(Any[stats.iter, solver.sub_stats.iter, fx, hx ,sqrt_θ, sqrt_ξ_νInv, ktol, τ, norm(x)], colsep = 1)
