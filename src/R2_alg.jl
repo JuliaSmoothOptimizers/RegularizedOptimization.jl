@@ -407,11 +407,12 @@ function SolverCore.solve!(
   mks = mk(s)
 
   ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
-  ξ > 0 || error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
+
   sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
   atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
 
   solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
+  (ξ < 0 && sqrt_ξ_νInv > neg_tol) && error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
   set_solver_specific!(stats,:xi,sqrt_ξ_νInv)
   set_status!(
@@ -482,6 +483,7 @@ function SolverCore.solve!(
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
     solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
+    (ξ < 0 && sqrt_ξ_νInv > neg_tol) && error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
     set_solver_specific!(stats,:xi,sqrt_ξ_νInv)
     set_status!(
@@ -503,17 +505,17 @@ function SolverCore.solve!(
     done = stats.status != :unknown
   end
 
-  verbose > 0 &&
-    stats.status == :first_order &&
-      @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")], colsep = 1)
-      @info "R2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
+  if verbose > 0 && stats.status == :first_order
+    @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")], colsep = 1)
+    @info "R2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
+  end
 
   set_solution!(stats,xk)
   return stats
 end
 
 function get_status(
-  reg_nlp;
+  reg_nlp::M;
   elapsed_time = 0.0,
   iter = 0,
   optimal = false,
@@ -521,7 +523,7 @@ function get_status(
   max_eval = Inf,
   max_time = Inf,
   max_iter = Inf,
-)
+) where{ M <: AbstractRegularizedNLPModel }
   if optimal
     :first_order
   elseif improper
@@ -530,7 +532,7 @@ function get_status(
     :max_iter
   elseif elapsed_time > max_time
     :max_time
-  elseif neval_obj(reg_nlp.model) > max_eval && max_eval != -1
+  elseif neval_obj(reg_nlp.model) > max_eval && max_eval > -1
     :max_eval
   else
     :unknown
