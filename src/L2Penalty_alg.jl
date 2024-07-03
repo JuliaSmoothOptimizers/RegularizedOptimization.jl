@@ -59,7 +59,73 @@ end
 
 
 """
-    #TODO
+    L2Penalty(nlp; kwargs…)
+
+An exact ℓ₂-penalty method for the problem
+
+    min f(x) 	s.t c(x) = 0
+
+where f: ℝⁿ → ℝ and c: ℝⁿ → ℝᵐ respectively have a Lipschitz-continuous gradient and Jacobian.
+
+At each iteration k, an iterate is computed as 
+
+    xₖ ∈ argmin f(x) + τₖ||c(x)||₂
+
+where τₖ is some penalty parameter.
+This nonsmooth problem is solved using `R2` (see `R2` for more information) with the first order model ψ(s;x) = τₖ||c(x) + J(x)s||₂
+
+For advanced usage, first define a solver "L2PenaltySolver" to preallocate the memory used in the algorithm, and then call `solve!`:
+
+    solver = L2PenaltySolver(nlp)
+    solve!(solver, nlp)
+
+    stats = GenericExecutionStats(nlp)
+    solver = L2PenaltySolver(nlp)
+    solve!(solver, nlp, stats)
+
+# Arguments
+* `nlp::AbstractNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
+
+# Keyword arguments 
+- `x::V = nlp.meta.x0`: the initial guess;
+- `atol::T = √eps(T)`: absolute tolerance;
+- `rtol::T = √eps(T)`: relative tolerance;
+- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance
+- `ktol::T = eps(T)^(1 / 4)`: the initial tolerance sent to the subsolver
+- `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
+- `sub_max_eval::Int = -1`: maximum number of evaluation for the subsolver (negative number means unlimited);
+- `max_time::Float64 = 30.0`: maximum time limit in seconds;
+- `max_iter::Int = 10000`: maximum number of iterations;
+- `sub_max_iter::Int = 10000`: maximum number of iterations for the subsolver;
+- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
+- `sub_verbose::Int = 0`: if > 0, display subsolver iteration details every `verbose` iteration;
+- `τ::T = T(100)`: initial penalty parameter;
+- `β1::T = τ`: penalty update parameter: τₖ <- τₖ + β1;	
+- `β2::T = T(0.1)`: tolerance decreasing factor, at each iteration, ktol <- β2*ktol;
+- `β3::T = 1/τ`: initial regularization parameter σ₀ = β3/τₖ at each iteration;
+- `β4::T = eps(T)`: minimal regularization parameter σ for `R2`;
+other 'kwargs' are passed to `R2` (see `R2` for more information).
+
+The algorithm stops either when `√θₖ < atol + rtol*√θ₀ ` or `θₖ < 0` and `√(-θₖ) < neg_tol` where θₖ := ||c(xₖ)||₂ - ||c(xₖ) + J(xₖ)sₖ||₂, and √θₖ is a stationarity measure.
+
+# Output
+The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
+
+# Callback
+The callback is called at each iteration.
+The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+Changing any of the input arguments will affect the subsequent iterations.
+In particular, setting `stats.status = :user` will stop the algorithm.
+All relevant information should be available in `nlp` and `solver`.
+Notably, you can access, and modify, the following:
+- `solver.x`: current iterate;
+- `solver.sub_solver`: a `R2Solver` structure holding relevant information on the subsolver state, see `R2` for more information;
+- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
+  - `stats.iter`: current iteration counter;
+  - `stats.objective`: current objective function value;
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
+  - `stats.elapsed_time`: elapsed time in seconds.
+You can also use the `sub_callback` keyword argument which has exactly the same structure and in sent to `R2`.
 """
 function L2Penalty(
   nlp::AbstractNLPModel{T, V};
