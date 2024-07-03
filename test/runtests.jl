@@ -1,7 +1,7 @@
 using LinearAlgebra: length
 using LinearAlgebra, Random, Test
 using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
+using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, RegularizedOptimization, OptimizationProblems, ADNLPModels, OptimizationProblems.ADNLPProblems
 
 const global compound = 1
 const global nz = 10 * compound
@@ -9,6 +9,24 @@ const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e
 const global bpdn, bpdn_nls, sol = bpdn_model(compound)
 const global bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
+
+meta = OptimizationProblems.meta
+problem_list = meta[(meta.has_equalities_only .== 1) .& (meta.has_bounds.==0) .& (meta.has_fixed_variables.==0) .& (meta.variable_nvar .== 0), :]
+
+for problem ∈ eachrow(problem_list)
+  for (nlp,subsolver_name) ∈ ((eval(Meta.parse(problem.name))(),"R2"),)
+    @testset "Optimization Problems - $(problem.name) - L2Penalty - $(subsolver_name)" begin
+        out = L2Penalty(
+          nlp,
+          verbose = 1,
+        ) 
+        @test typeof(out.solution) == typeof(nlp.meta.x0)
+        @test length(out.solution) == nlp.meta.nvar
+        @test typeof(out.dual_feas) == eltype(out.solution)
+        @test out.status == :first_order
+    end      
+  end
+end
 
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
   for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * compound), "B0"))
