@@ -123,7 +123,7 @@ About each iterate xₖ, a step sₖ is computed as a solution of
     min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ)
 
 where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs is the Taylor linear approximation of f about xₖ,
-ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm and σₖ > 0 is the regularization parameter.
+ψ(s; xₖ) is either h(xₖ + s) or an approximation of h(xₖ + s), ‖⋅‖ is a user-defined norm and σₖ > 0 is the regularization parameter.
 
 For advanced usage, first define a solver "R2Solver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
@@ -152,7 +152,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 - `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 
-The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is stationarity measure.
+The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
 # Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
