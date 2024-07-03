@@ -69,10 +69,10 @@ where f: ℝⁿ → ℝ and c: ℝⁿ → ℝᵐ respectively have a Lipschitz-c
 
 At each iteration k, an iterate is computed as 
 
-    xₖ ∈ argmin f(x) + τₖ||c(x)||₂
+    xₖ ∈ argmin f(x) + τₖ‖c(x)‖₂
 
 where τₖ is some penalty parameter.
-This nonsmooth problem is solved using `R2` (see `R2` for more information) with the first order model ψ(s;x) = τₖ||c(x) + J(x)s||₂
+This nonsmooth problem is solved using `R2` (see `R2` for more information) with the first order model ψ(s;x) = τₖ‖c(x) + J(x)s‖₂
 
 For advanced usage, first define a solver "L2PenaltySolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
@@ -106,7 +106,7 @@ For advanced usage, first define a solver "L2PenaltySolver" to preallocate the m
 - `β4::T = eps(T)`: minimal regularization parameter σ for `R2`;
 other 'kwargs' are passed to `R2` (see `R2` for more information).
 
-The algorithm stops either when `√θₖ < atol + rtol*√θ₀ ` or `θₖ < 0` and `√(-θₖ) < neg_tol` where θₖ := ||c(xₖ)||₂ - ||c(xₖ) + J(xₖ)sₖ||₂, and √θₖ is a stationarity measure.
+The algorithm stops either when `√θₖ < atol + rtol*√θ₀ ` or `θₖ < 0` and `√(-θₖ) < neg_tol` where θₖ := ‖c(xₖ)‖₂ - ‖c(xₖ) + J(xₖ)sₖ‖₂, and √θₖ is a stationarity measure.
 
 # Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
