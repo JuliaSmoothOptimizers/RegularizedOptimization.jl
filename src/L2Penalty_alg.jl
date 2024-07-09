@@ -130,7 +130,7 @@ You can also use the `sub_callback` keyword argument which has exactly the same 
 function L2Penalty(
   nlp::AbstractNLPModel{T, V};
   kwargs...) where{ T <: Real, V }
-	if !equality_constrained(nlp)
+	if !equality_constrained(nlp) 
 		error("L2Penalty: This algorithm only works for equality contrained problems.")
 	end
 	solver = L2PenaltySolver(nlp)
