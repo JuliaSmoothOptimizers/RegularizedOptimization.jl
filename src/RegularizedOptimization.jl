@@ -7,7 +7,8 @@ using LinearAlgebra, Logging, Printf
 using ProximalOperators, TSVD
 
 # dependencies from us
-using LinearOperators, NLPModels, NLPModelsModifiers, RegularizedProblems, ShiftedProximalOperators, SolverCore
+using LinearOperators,
+  NLPModels, NLPModelsModifiers, RegularizedProblems, ShiftedProximalOperators, SolverCore
 
 include("utils.jl")
 include("input_struct.jl")
