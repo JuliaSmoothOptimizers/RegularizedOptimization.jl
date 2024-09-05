@@ -1,7 +1,7 @@
 using LinearAlgebra: length
 using LinearAlgebra, Random, Test
 using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
+using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, SolverCore
 
 const global compound = 1
 const global nz = 10 * compound
@@ -135,3 +135,4 @@ for (h, h_name) ∈ ((NormL1(λ), "l1"),)
 end
 
 include("test_bounds.jl")
+include("test_allocs.jl")

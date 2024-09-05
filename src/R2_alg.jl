@@ -290,7 +290,7 @@ function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
   kwargs_dict = Dict(kwargs...)
   max_iter = pop!(kwargs_dict, :max_iter, 10000)
   solver = R2Solver(reg_nlp, max_iter = max_iter)
-  stats = GenericExecutionStats(reg_nlp.model)
+  stats = GenericExecutionStats(reg_nlp.model, solver_specific = Dict{Symbol, Union{Float64, Vector{Float64}, Vector{Int64}}}())
   cb =
     (nlp, solver, stats) -> begin
       solver.Fobj_hist[stats.iter + 1] = stats.solver_specific[:smooth_obj]
@@ -380,6 +380,7 @@ function SolverCore.solve!(
   end
 
   local ξ::T
+  local ρk::T
   σk = max(1 / ν, σmin)
   ν = 1 / σk
   sqrt_ξ_νInv = one(T)
@@ -438,7 +439,7 @@ function SolverCore.solve!(
     improper = (hkn == -Inf)
 
     Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    global ρk = Δobj / ξ
+    ρk = Δobj / ξ
 
     verbose > 0 &&
       stats.iter % verbose == 0 &&
