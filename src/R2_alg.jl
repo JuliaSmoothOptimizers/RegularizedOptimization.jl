@@ -290,7 +290,7 @@ function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
   kwargs_dict = Dict(kwargs...)
   max_iter = pop!(kwargs_dict, :max_iter, 10000)
   solver = R2Solver(reg_nlp, max_iter = max_iter)
-  stats = GenericExecutionStats(reg_nlp.model, solver_specific = Dict{Symbol, Union{Float64, Vector{Float64}, Vector{Int64}}}())
+  stats = GenericExecutionStats(reg_nlp.model)
   cb =
     (nlp, solver, stats) -> begin
       solver.Fobj_hist[stats.iter + 1] = stats.solver_specific[:smooth_obj]
