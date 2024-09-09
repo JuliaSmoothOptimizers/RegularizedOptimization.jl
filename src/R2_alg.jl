@@ -201,7 +201,6 @@ function R2(
     ν = options.ν,
     γ = options.γ,
   )
-  return stats
 end
 
 function R2(
