@@ -26,24 +26,23 @@ allocate:
 ```
 """
 macro wrappedallocs(expr)
-    argnames = [gensym() for a in expr.args]
-    quote
-        function g($(argnames...))
-            @allocated $(Expr(expr.head, argnames...))
-        end
-        $(Expr(:call, :g, [esc(a) for a in expr.args]...))
+  argnames = [gensym() for a in expr.args]
+  quote
+    function g($(argnames...))
+      @allocated $(Expr(expr.head, argnames...))
     end
+    $(Expr(:call, :g, [esc(a) for a in expr.args]...))
+  end
 end
-
 
 # Test non allocating solve!
 @testset "allocs" begin
-    for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
-      for solver ∈ (:R2Solver, )
-        reg_nlp = RegularizedNLPModel(bpdn, h)
-        solver = eval(solver)(reg_nlp)
-        stats = GenericExecutionStats(bpdn, solver_specific = Dict{Symbol, Float64}())
-        @test @wrappedallocs(solve!(solver, reg_nlp, stats)) == 0
-      end
+  for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
+    for solver ∈ (:R2Solver,)
+      reg_nlp = RegularizedNLPModel(bpdn, h)
+      solver = eval(solver)(reg_nlp)
+      stats = GenericExecutionStats(bpdn, solver_specific = Dict{Symbol, Float64}())
+      @test @wrappedallocs(solve!(solver, reg_nlp, stats)) == 0
     end
+  end
 end
