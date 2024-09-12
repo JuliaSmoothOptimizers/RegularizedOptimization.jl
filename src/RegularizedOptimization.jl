@@ -21,6 +21,8 @@ include("TRDH_alg.jl")
 include("R2_alg.jl")
 include("LM_alg.jl")
 include("LMTR_alg.jl")
+include("R2DH.jl")
+include("R2N.jl")
 
 include("AL_alg.jl")
 
