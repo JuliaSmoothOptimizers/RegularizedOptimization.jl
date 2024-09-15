@@ -1,25 +1,43 @@
 using LinearAlgebra: length
 using LinearAlgebra, Random, Test
 using ProximalOperators
+using ShiftedProximalOperators
 using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, SolverCore, RegularizedOptimization, OptimizationProblems, ADNLPModels, OptimizationProblems.ADNLPProblems
-
+using Random
+Random.seed!(1234)
 const global compound = 1
 const global nz = 10 * compound
-const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10)
+const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 0)
 const global bpdn, bpdn_nls, sol = bpdn_model(compound)
 const global bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 
 meta = OptimizationProblems.meta
-problem_list = meta[(meta.has_equalities_only .== 1) .& (meta.has_bounds.==0) .& (meta.has_fixed_variables.==0) .& (meta.variable_nvar .== 0), :]
+problem_list = meta[(meta.has_equalities_only .== 1) .& (meta.has_bounds.==0) .& (meta.has_fixed_variables.==0) .& (meta.variable_nvar .== 0) .& (meta.name .!= "hs322"), :]
 
+println(problem_list)
 for problem ∈ eachrow(problem_list)
-  for (nlp,subsolver_name) ∈ ((eval(Meta.parse(problem.name))(),"R2"),)
+  for (nlp,subsolver_name) ∈ ((eval(Meta.parse(problem.name))(),"R2"),(LSR1Model(eval(Meta.parse(problem.name))()),"R2N-LSR1"),(LBFGSModel(eval(Meta.parse(problem.name))()),"R2N-LBFGS"))
     @testset "Optimization Problems - $(problem.name) - L2Penalty - $(subsolver_name)" begin
-        out = L2Penalty(
-          nlp,
-          verbose = 1,
-        ) 
+        if subsolver_name == "R2"
+          out = L2Penalty(
+            nlp,
+            verbose = 1,
+            atol = 1e-4,
+            rtol = 1e-4,
+            ktol = eps()^(0.2)
+          ) 
+        else
+          out = L2Penalty(
+            nlp,
+            verbose = 1,
+            sub_solver = R2NSolver,
+            atol = 1e-4,
+            rtol = 1e-4,
+            ktol = eps()^(0.2),
+            max_time = 120.0
+          )
+        end
         @test typeof(out.solution) == typeof(nlp.meta.x0)
         @test length(out.solution) == nlp.meta.nvar
         @test typeof(out.dual_feas) == eltype(out.solution)

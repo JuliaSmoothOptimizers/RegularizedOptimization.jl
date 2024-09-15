@@ -45,6 +45,11 @@ function L2PenaltySolver(
 	)
 	sub_nlp = RegularizedNLPModel(nlp, sub_ψ)
 	sub_stats = GenericExecutionStats(nlp)
+	if sub_solver == R2NSolver
+		Solver = sub_solver(sub_nlp,sub_solver = L2_R2N_subsolver)
+	else
+		Solver = sub_solver(sub_nlp)
+	end
 
   return L2PenaltySolver(
 		x,
@@ -52,7 +57,7 @@ function L2PenaltySolver(
 		s0,
 		ψ,
 		sub_ψ,
-		sub_solver(sub_nlp),
+		Solver,
 		sub_stats
 	)
 end
@@ -129,11 +134,12 @@ You can also use the `sub_callback` keyword argument which has exactly the same 
 """
 function L2Penalty(
   nlp::AbstractNLPModel{T, V};
+	sub_solver = R2Solver,
   kwargs...) where{ T <: Real, V }
 	if !equality_constrained(nlp) 
 		error("L2Penalty: This algorithm only works for equality contrained problems.")
 	end
-	solver = L2PenaltySolver(nlp)
+	solver = L2PenaltySolver(nlp,sub_solver = sub_solver)
 	stats = GenericExecutionStats(nlp)
 	solve!(
 		solver,
@@ -319,4 +325,86 @@ function get_status(
   else
     :unknown
   end
+end
+
+mutable struct L2_R2N_subsolver{T <: Real, V <: AbstractVector{T}} <: AbstractOptimizationSolver
+  u1::V
+	u2::V
+end
+
+function L2_R2N_subsolver(
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
+	) where{T, V}
+	x0 = reg_nlp.model.meta.x0
+	n = reg_nlp.model.meta.nvar
+	m = length(reg_nlp.h.b)
+	#x = zero(x0)
+	u1 = similar(x0, n+m)
+	u2 = zeros(eltype(x0), n+m)
+
+
+  return L2_R2N_subsolver(
+		u1,
+		u2,
+	)
+end
+
+function solve!(
+	solver::L2_R2N_subsolver{T, V},
+	reg_nlp::AbstractRegularizedNLPModel{T, V},
+	stats::GenericExecutionStats{T, V, V, Any},
+	∇fk::V,
+	Q::L,
+	σk::T;
+	x = reg_nlp.model.meta.x0,
+	atol = eps(T)^(0.5),
+	max_time = T(30),
+	max_iter = 10000
+	) where{T <: Real, V <: AbstractVector{T} , L <: AbstractLinearOperator}
+
+	start_time = time()
+	set_time!(stats, 0.0)
+	set_iter!(stats, 0)
+	
+	n = reg_nlp.model.meta.nvar
+	m = length(reg_nlp.h.b)
+	Δ = reg_nlp.h.h.lambda
+
+	u1 = solver.u1
+	u2 = solver.u2
+
+	# Create problem
+	@. u1[1:n] = ∇fk
+	@. u1[n+1:n+m] = -reg_nlp.h.b
+
+	αₖ = 0.0
+
+	H1 = [-Q reg_nlp.h.A']
+	H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
+	H = [H1;H2]
+	x1,_ = minres_qlp(H,u1,atol = eps())
+
+	if norm(x1[n+1:n+m]) <= Δ
+		set_solution!(stats,x1[1:n])
+		return
+	else
+		u2[n+1:n+m] .= x1[n+1:n+m]
+		x2,_ = minres_qlp(H,u2,atol = eps())
+		αₖ += norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
+	end
+	k = 0
+
+	while abs(norm(x1[n+1:n+m]) - Δ) > eps(T)^(0.75) && stats.iter < max_iter && stats.elapsed_time < max_time
+		H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
+		H = [H1;H2]
+
+		x1,_ = minres_qlp(H,u1, atol = eps())
+		u2[n+1:n+m] .= x1[n+1:n+m]
+		x2,_ = minres_qlp(H,u2, atol = eps())
+		αₖ += norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
+		set_iter!(stats,stats.iter + 1)
+		set_time!(stats,time()-start_time)
+	end
+	set_solution!(stats,x1[1:n])
+
 end

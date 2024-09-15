@@ -1,213 +1,280 @@
-export R2N
+export R2N, R2NSolver, solve!
 
-"""
-R2N(nlp, h, χ, options; kwargs...)
+import SolverCore.solve!
 
-A regularized quasi-Newton method for the problem
+mutable struct R2NSolver{
+  T <: Real,
+  G <: ShiftedProximableFunction,
+  V <: AbstractVector{T},
+  S <: AbstractOptimizationSolver,
+} <: AbstractOptimizationSolver
+  xk::V
+  ∇fk::V
+  ∇fk⁻::V
+  mν∇fk::V
+  ψ::G
+  sub_ψ::G
+  xkn::V
+  s::V
+  s1::V
+  has_bnds::Bool
+  l_bound::V
+  u_bound::V
+  sub_solver::S
+	sub_stats::GenericExecutionStats{T, V, V, Any}
+end
 
-    min f(x) + h(x)
+function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; sub_solver = R2Solver) where {T, V}
+  x0 = reg_nlp.model.meta.x0
+  l_bound = reg_nlp.model.meta.lvar
+  u_bound = reg_nlp.model.meta.uvar
 
-where f: ℝⁿ → ℝ has a Lipschitz-continuous Jacobian, and h: ℝⁿ → ℝ is
-lower semi-continuous and proper.
+  xk = similar(x0)
+  ∇fk = similar(x0)
+  ∇fk⁻ = similar(x0)
+  mν∇fk = similar(x0)
+  xkn = similar(x0)
+  s = zero(x0)
+  s1 = similar(x0)
+  has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
 
-About each iterate xₖ, a step sₖ is computed as an approximate solution of
+  ψ = has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) : shifted(reg_nlp.h, xk)
+  sub_ψ = has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) : shifted(reg_nlp.h, xk)
 
-    min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ) 
+	sub_nlp = RegularizedNLPModel(reg_nlp.model, sub_ψ)
+	sub_stats = GenericExecutionStats(reg_nlp.model)
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Bₖ s  is a quadratic approximation of f about xₖ,
-ψ(s; xₖ) = h(xₖ + s) and σₖ > 0 is the regularization parameter.
-The subproblem is solved inexactly by way of a first-order method such as the proximal-gradient
-method or the quadratic regularization method.
+  return R2NSolver(
+    xk,
+    ∇fk,
+    ∇fk⁻,
+    mν∇fk,
+    ψ,
+    sub_ψ,
+    xkn,
+    s,
+    s1,
+    has_bnds,
+    l_bound,
+    u_bound,
+    sub_solver(sub_nlp),
+    sub_stats
+  )
+end
 
-### Arguments
+function SolverCore.solve!(
+  solver::R2NSolver{T},
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
+  callback = (args...) -> nothing,
+  x::V = reg_nlp.model.meta.x0,
+  atol::T = √eps(T),
+  sub_atol::T = atol,
+  rtol::T = √eps(T),
+  neg_tol::T = eps(T)^(1 / 4),
+  verbose::Int = 0,
+  max_iter::Int = 10000,
+  max_time::Float64 = 30.0,
+  max_eval::Int = -1,
+  σmin::T = eps(T),
+  η1::T = √√eps(T),
+  η2::T = T(0.9),
+  ν = eps(T)^(1/5),
+  ν_subsolver = ν,
+  γ::T = T(3),
+  β = 1/eps(T),
+  θ = eps(T)^(1/5),
+  kwargs...
+) where {T, V}
 
-* `nlp::AbstractNLPModel`: a smooth optimization problem
-* `h`: a regularizer such as those defined in ProximalOperators
-* `options::ROSolverOptions`: a structure containing algorithmic parameters
+  reset!(stats)
 
-The objective, gradient and Hessian of `nlp` will be accessed.
-The Hessian is accessed as an abstract operator and need not be the exact Hessian.
+  # Retrieve workspace
+  selected = reg_nlp.selected
+  h = reg_nlp.h
+  nlp = reg_nlp.model
 
-### Keyword arguments
+  xk = solver.xk .= x
 
-* `x0::AbstractVector`: an initial guess (default: `nlp.meta.x0`)
-* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver (default: the null logger)
-* `subsolver`: the procedure used to compute a step (`PG` or `R2`)
-* `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options)
-* `selected::AbstractVector{<:Integer}`: (default `1:f.meta.nvar`).
+  # Make sure ψ has the correct shift 
+  shift!(solver.ψ, xk)
 
-### Return values
-
-* `xk`: the final iterate
-* `Fobj_hist`: an array with the history of values of the smooth objective
-* `Hobj_hist`: an array with the history of values of the nonsmooth objective
-* `Complex_hist`: an array with the history of number of inner iterations.
-"""
-function R2N(
-  f::AbstractNLPModel,
-  h::H,
-  options::ROSolverOptions{R};
-  x0::AbstractVector = f.meta.x0,
-  subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
-  subsolver = R2,
-  subsolver_options = ROSolverOptions(ϵa = options.ϵa),
-  selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
-) where {H, R}
-  start_time = time()
-  elapsed_time = 0.0
-  # initialize passed options
-  ϵ = options.ϵa
-  ϵ_subsolver_init = subsolver_options.ϵa
-  ϵ_subsolver = copy(ϵ_subsolver_init)
-  ϵr = options.ϵr
-  Δk = options.Δk
-  verbose = options.verbose
-  maxIter = options.maxIter
-  maxTime = options.maxTime
-  η1 = options.η1
-  η2 = options.η2
-  γ = options.γ
-  θ = options.θ
-  σmin = options.σmin
-  α = options.α
-  β = options.β
-
-  # store initial values of the subsolver_options fields that will be modified
-  ν_subsolver = subsolver_options.ν
-  ϵa_subsolver = subsolver_options.ϵa
-
-  local l_bound, u_bound
-  if has_bounds(f)
-    l_bound = f.meta.lvar
-    u_bound = f.meta.uvar
+  ∇fk = solver.∇fk
+  ∇fk⁻ = solver.∇fk⁻
+  mν∇fk = solver.mν∇fk
+  ψ = solver.ψ
+  xkn = solver.xkn
+  s = solver.s
+  s1 = solver.s1
+  has_bnds = solver.has_bnds
+  if has_bnds
+    l_bound = solver.l_bound
+    u_bound = solver.u_bound
   end
-
-  if verbose == 0
-    ptf = Inf
-  elseif verbose == 1
-    ptf = round(maxIter / 10)
-  elseif verbose == 2
-    ptf = round(maxIter / 100)
-  else
-    ptf = 1
-  end
+  sub_atol_init = copy(sub_atol)
+  sub_solver = solver.sub_solver
+  sub_stats = solver.sub_stats
+  sub_ψ = solver.sub_ψ
 
   # initialize parameters
-  #σk = max(1 / options.ν, σmin) #SVM
-  σk = σmin
-  xk = copy(x0)
-  hk = h(xk[selected])
+  improper = false
+  hk = @views h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "R2N: finding initial guess where nonsmooth term is finite"
-    prox!(xk, h, x0, one(eltype(x0)))
-    hk = h(xk[selected])
+    prox!(xk, h, xk, one(eltype(x0)))
+    hk = @views h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "R2N: found point where h has value" hk
   end
-  hk == -Inf && error("nonsmooth term is not proper")
+  improper = (hk == -Inf)
 
-  xkn = similar(xk)
-  s = zero(xk)
-  ψ = has_bounds(f) ? shifted(h, xk, l_bound - xk, u_bound - xk, selected) : shifted(h, xk)
-
-  Fobj_hist = zeros(maxIter)
-  Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, maxIter)
   if verbose > 0
-    #! format: off
-    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√(ξ1/ν)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Bₖ‖" "R2N"
-    #! format: on
+    @info log_header(
+      [:outer, :inner, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :normB, :arrow],
+      [Int, Int, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Char],
+      hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
+        :outer => "outer",
+        :inner => "inner",
+        :fx => "f(x)",
+        :hx => "h(x)",
+        :xi => "√(ξ1/ν)",
+        :ρ => "ρ",
+        :σ => "σ",
+        :normx => "‖x‖",
+        :norms => "‖s‖",
+        :normB => "‖B‖",
+        :arrow => "R2N",
+      ),
+      colsep = 1,
+    )
   end
 
-  # main algorithm initialization
+  local ξ1::T
+  local ρk::T
+  σk = σmin
 
-  local ξ1
-  k = 0
+  fk = obj(nlp, xk)
+  grad!(nlp, xk, ∇fk)
+  ∇fk⁻ .= ∇fk
 
-  fk = obj(f, xk)
-  ∇fk = grad(f, xk)
-  ∇fk⁻ = copy(∇fk)
+  quasiNewtTest = isa(nlp, QuasiNewtonModel)
+  Bk = hess_op(nlp, xk)
+  local λmax::T
+  try
+    λmax = opnorm(Bk)
+  catch LAPACKException
+    λmax = opnorm(Matrix(Bk))
+  end
 
-  quasiNewtTest = isa(f, QuasiNewtonModel)
-  Bk = hess_op(f, xk)
-
-  λmax = opnorm(Bk)
   νInv = (1 + θ) *( σk + λmax)
-  sqrt_ξ1_νInv = one(R)
+  sqrt_ξ1_νInv = one(T)
+  ν_subsolver = 1/νInv
 
-  optimal = false
-  tired = k ≥ maxIter || elapsed_time > maxTime
+  @. mν∇fk = -ν_subsolver * ∇fk
 
-  while !(optimal || tired)
-    k = k + 1
-    elapsed_time = time() - start_time
-    Fobj_hist[k] = fk
-    Hobj_hist[k] = hk
+  set_iter!(stats, 0)
+  start_time = time()
+  set_time!(stats, 0.0)
+  set_objective!(stats, fk + hk)
+  set_solver_specific!(stats, :smooth_obj, fk)
+  set_solver_specific!(stats, :nonsmooth_obj, hk)
 
-    # model for first prox-gradient step and ξ1
-    φ1(d) = ∇fk' * d
-    mk1(d) = φ1(d) + ψ(d)
+  # model for first prox-gradient step and ξ1
+  φ1(d) = ∇fk' * d
+  mk1(d) = φ1(d) + ψ(d)
 
-    # model for subsequent prox-gradient steps and ξ
-    φ(d) = (d' * (Bk * d)) / 2 + ∇fk' * d + σk * dot(d, d) / 2
+  # model for subsequent prox-gradient steps and ξ
+  φ(d) = (d' * (Bk * d)) / 2 + ∇fk' * d + σk * dot(d, d) / 2
 
-    ∇φ!(g, d) = begin
-      mul!(g, Bk, d)
-      g .+= ∇fk
-      g .+= σk * d
-      g
-    end
+  ∇φ!(g, d) = begin
+    mul!(g, Bk, d)
+    g .+= ∇fk
+    g .+= σk * d
+    g
+  end
 
-    mk(d) = φ(d) + ψ(d)
+  mk(d) = φ(d) + ψ(d)
 
-    # take first proximal gradient step s1 and see if current xk is nearly stationary
-    # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
+  prox!(s, ψ, mν∇fk, ν_subsolver)
+  mks = mk1(s)
 
-    subsolver_options.ν = 1 / νInv
-    prox!(s, ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν)
-    ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
-    ξ1 > 0 || error("R2N: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-    sqrt_ξ1_νInv = sqrt(ξ1 * νInv)
-    # println("sqrt_ξ1_νInv: ", sqrt_ξ1_νInv)
-    # println("ξ1: ", ξ1)
-    # println("νInv: ", νInv)
+  ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
 
-    if ξ1 ≥ 0 && k == 1
-      ϵ_increment = ϵr * sqrt_ξ1_νInv
-      ϵ += ϵ_increment  # make stopping test absolute and relative
-      ϵ_subsolver += ϵ_increment
-    end
+  sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν_subsolver) : sqrt(-ξ1 / ν_subsolver)
+  solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
+  (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
+    error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+  atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
+  sub_atol += rtol * sqrt_ξ1_νInv
 
-    if sqrt_ξ1_νInv < ϵ
-      # the current xk is approximately first-order stationary
-      optimal = true
-      continue
-    end
-    s1 = copy(s)
+  set_solver_specific!(stats, :xi, sqrt_ξ1_νInv)
+  set_status!(
+    stats,
+    get_status(
+      reg_nlp,
+      elapsed_time = stats.elapsed_time,
+      iter = stats.iter,
+      optimal = solved,
+      improper = improper,
+      max_eval = max_eval,
+      max_time = max_time,
+      max_iter = max_iter,
+    ),
+  )
 
-  #  subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
-    subsolver_options.ϵa = k == 1 ? 1.0e-3 : max(ϵ_subsolver, min(1e-3, sqrt_ξ1_νInv)) # 1.0e-5 default
-    @debug "setting inner stopping tolerance to" subsolver_options.optTol
-    subsolver_args = subsolver == R2DH ? (SpectralGradient(1., f.meta.nvar),) : ()
-    s, iter, _ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
-    end
+  callback(nlp, solver, stats)
+
+  done = stats.status != :unknown
+
+  while !done 
+
+    s1 .= s
+
+    sub_atol = stats.iter == 0 ? 1.0e-3 : max(sub_atol, min(1e-3, sqrt_ξ1_νInv)) # 1.0e-5 default
+    #@debug "setting inner stopping tolerance to" subsolver_options.optTol
+    #subsolver_args = subsolver == R2DH ? (SpectralGradient(1., f.meta.nvar),) : ()
+    nlp_model = FirstOrderModel(φ,∇φ!,s)
+    model = RegularizedNLPModel(nlp_model, ψ)
+    #model.selected .= reg_nlp.selected
+    if sub_solver == R2Solver
+      solve!(
+        sub_solver, 
+        model, 
+        sub_stats, 
+        x = s, 
+        atol = sub_atol,
+        ν = ν_subsolver,
+        kwargs...)  
+    else
+      solve!(
+        sub_solver, 
+        model, 
+        sub_stats, 
+        ∇fk,
+        Bk + σk*opEye(nlp.meta.nvar,nlp.meta.nvar),
+        σk,
+        atol = sub_atol,
+        max_time = max_time - stats.elapsed_time,
+        kwargs...)  
+    end  
+    s .= sub_stats.solution
 
     if norm(s) > β * norm(s1)
       s .= s1
     end
-    # restore initial subsolver_options.ϵa here so that subsolver_options.ϵa
-    # is not modified if there is an error
+    if mk(s) > mk(s1)
+      s .= s1
+    end
 
-    subsolver_options.ν = ν_subsolver
-    subsolver_options.ϵa = ϵ_subsolver_init
-    Complex_hist[k] = iter
+
+    sub_atol = sub_atol_init
 
     xkn .= xk .+ s
-    fkn = obj(f, xkn)
+    fkn = obj(nlp, xkn)
     hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
-    mks = mk(s) #- σk * dot(s, s) / 2
+
+    mks = mk(s)
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
@@ -217,13 +284,24 @@ function R2N(
 
     ρk = Δobj / ξ
 
-    R2N_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
-
-    if (verbose > 0) && (k % ptf == 0)
-      #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt_ξ1_νInv sqrt(ξ1) ρk σk norm(xk) norm(s) λmax R2N_stat
-      #! format: off
-    end
+    verbose > 0 &&
+      stats.iter % verbose == 0 &&
+      @info log_row(
+        Any[
+          stats.iter,
+          sub_stats.iter,
+          fk,
+          hk,
+          sqrt_ξ1_νInv,
+          ρk,
+          σk,
+          norm(xk),
+          norm(s),
+          λmax,
+          (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "="),
+        ],
+        colsep = 1,
+      )
 
     if η2 ≤ ρk < Inf
         σk = max(σk/γ, σmin)
@@ -231,62 +309,95 @@ function R2N(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-      has_bounds(f) && set_bounds!(ψ, l_bound - xk, u_bound - xk)
+      has_bounds(nlp) && set_bounds!(ψ, l_bound - xk, u_bound - xk)
 
       #update functions
       fk = fkn
       hk = hkn
 
-      # update gradient & Hessian
       shift!(ψ, xk)
-      ∇fk = grad(f, xk)
+      ∇fk = grad!(nlp, xk, ∇fk)
+      @. mν∇fk = -ν_subsolver * ∇fk
       if quasiNewtTest
-        push!(f, s, ∇fk - ∇fk⁻)
+        push!(nlp, s, ∇fk - ∇fk⁻)
       end
-      Bk = hess_op(f, xk)
-      λmax = opnorm(Bk)
+      Bk = hess_op(nlp, xk)
+      try 
+        λmax = opnorm(Bk)
+      catch LAPACKException
+        λmax = opnorm(Matrix(Bk))
+      end
       ∇fk⁻ .= ∇fk
     end
 
     if ρk < η1 || ρk == Inf
-        σk = σk * γ
+      σk = σk * γ
     end
     νInv = (1 + θ) *( σk + λmax)
 
-    tired = k ≥ maxIter || elapsed_time > maxTime
-  end
+    set_objective!(stats, fk + hk)
+    set_solver_specific!(stats, :smooth_obj, fk)
+    set_solver_specific!(stats, :nonsmooth_obj, hk)
+    set_iter!(stats, stats.iter + 1)
+    set_time!(stats, time() - start_time)
 
-  if verbose > 0
-    if k == 1
-      @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
-    elseif optimal
-      #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt_ξ1_νInv sqrt(ξ1) "" σk norm(xk) norm(s) λmax
-      #! format: on
-      @info "R2N: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
+    prox!(s, ψ, mν∇fk, ν_subsolver)
+    mks = mk1(s)
+
+    ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
+    sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν_subsolver) : sqrt(-ξ1 / ν_subsolver)
+    solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
+    if ξ1 < 0 && sqrt_ξ1_νInv > neg_tol
+      println(Matrix(ψ.A))
+      println(ψ.b)
+      println(ψ.h.lambda)
+      println(mν∇fk)
+      println(ν_subsolver)
+      println(s)
+
     end
+    (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
+      error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    
+    set_status!(
+      stats,
+      get_status(
+        reg_nlp,
+        elapsed_time = stats.elapsed_time,
+        iter = stats.iter,
+        optimal = solved,
+        improper = improper,
+        max_eval = max_eval,
+        max_time = max_time,
+        max_iter = max_iter,
+      ),
+    )
+
+    callback(nlp, solver, stats)
+
+    done = stats.status != :unknown
   end
 
-  status = if optimal
-    :first_order
-  elseif elapsed_time > maxTime
-    :max_time
-  elseif tired
-    :max_iter
-  else
-    :exception
+  if verbose > 0 && stats.status == :first_order
+    @info log_row(
+      Any[
+        stats.iter,
+        sub_stats.iter,
+        fk,
+        hk,
+        sqrt_ξ1_νInv,
+        ρk,
+        σk,
+        norm(xk),
+        norm(s),
+        λmax,
+        (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
+      ],
+      colsep = 1,
+    )
+    @info "R2N: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
   end
 
-  stats = GenericExecutionStats(f)
-  set_status!(stats, status)
-  set_solution!(stats, xk)
-  set_objective!(stats, fk + hk)
-  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
-  set_iter!(stats, k)
-  set_time!(stats, elapsed_time)
-  set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])
-  set_solver_specific!(stats, :Hhist, Hobj_hist[1:k])
-  set_solver_specific!(stats, :NonSmooth, h)
-  set_solver_specific!(stats, :SubsolverCounter, Complex_hist[1:k])
+  set_solution!(stats,xk)
   return stats
 end

@@ -8,7 +8,7 @@ using ProximalOperators, TSVD
 
 # dependencies from us
 using LinearOperators,
-  NLPModels, NLPModelsModifiers, RegularizedProblems, ShiftedProximalOperators, SolverCore, SparseMatricesCOO
+  NLPModels, NLPModelsModifiers, RegularizedProblems, ShiftedProximalOperators, SolverCore, SparseMatricesCOO, Krylov
 
 include("utils.jl")
 include("input_struct.jl")
