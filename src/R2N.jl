@@ -278,10 +278,6 @@ function SolverCore.solve!(
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
-    if (ξ ≤ 0 || isnan(ξ))
-      error("R2N: failed to compute a step: ξ = $ξ")
-    end
-
     ρk = Δobj / ξ
 
     verbose > 0 &&

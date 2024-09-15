@@ -13,16 +13,14 @@ const global bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 
 meta = OptimizationProblems.meta
-problem_list = meta[(meta.has_equalities_only .== 1) .& (meta.has_bounds.==0) .& (meta.has_fixed_variables.==0) .& (meta.variable_nvar .== 0) .& (meta.name .!= "hs322"), :]
+problem_list = meta[(meta.has_equalities_only .== 1) .& (meta.has_bounds.==0) .& (meta.has_fixed_variables.==0) .& (meta.variable_nvar .== 0), :]
 
-println(problem_list)
 for problem ∈ eachrow(problem_list)
   for (nlp,subsolver_name) ∈ ((eval(Meta.parse(problem.name))(),"R2"),(LSR1Model(eval(Meta.parse(problem.name))()),"R2N-LSR1"),(LBFGSModel(eval(Meta.parse(problem.name))()),"R2N-LBFGS"))
     @testset "Optimization Problems - $(problem.name) - L2Penalty - $(subsolver_name)" begin
         if subsolver_name == "R2"
           out = L2Penalty(
             nlp,
-            verbose = 1,
             atol = 1e-4,
             rtol = 1e-4,
             ktol = eps()^(0.2)
@@ -30,7 +28,6 @@ for problem ∈ eachrow(problem_list)
         else
           out = L2Penalty(
             nlp,
-            verbose = 1,
             sub_solver = R2NSolver,
             atol = 1e-4,
             rtol = 1e-4,
