@@ -382,14 +382,14 @@ function solve!(
 	H1 = [-Q reg_nlp.h.A']
 	H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
 	H = [H1;H2]
-	x1,_ = minres_qlp(H,u1,atol = eps())
+	x1,_ = minres_qlp(H,u1)
 
 	if norm(x1[n+1:n+m]) <= Δ
 		set_solution!(stats,x1[1:n])
 		return
 	else
 		u2[n+1:n+m] .= x1[n+1:n+m]
-		x2,_ = minres_qlp(H,u2,atol = eps())
+		x2,_ = minres_qlp(H,u2)
 		αₖ += norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
 	end
 	k = 0
@@ -398,9 +398,9 @@ function solve!(
 		H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
 		H = [H1;H2]
 
-		x1,_ = minres_qlp(H,u1, atol = eps())
+		x1,_ = minres_qlp(H,u1)
 		u2[n+1:n+m] .= x1[n+1:n+m]
-		x2,_ = minres_qlp(H,u2, atol = eps())
+		x2,_ = minres_qlp(H,u2)
 		αₖ += norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
 		set_iter!(stats,stats.iter + 1)
 		set_time!(stats,time()-start_time)
