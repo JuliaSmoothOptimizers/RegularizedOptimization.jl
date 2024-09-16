@@ -246,10 +246,7 @@ function LM(
       shift!(ψ, xk)
       Jk = jac_op_residual(nls, xk)
       jtprod_residual!(nls, xk, Fk, ∇fk)
-
       σmax = opnorm(Jk)
-      
-
       Complex_hist[k] += 1
     end
 
@@ -257,7 +254,6 @@ function LM(
       σk = σk * γ
     end
     νInv = (1 + θ) * (σmax^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
-
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 

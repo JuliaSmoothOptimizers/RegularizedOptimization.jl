@@ -15,7 +15,7 @@ About each iterate xₖ, a step sₖ is computed as a solution of
 
     min  φ(s; xₖ) + ψ(s; xₖ)
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if `summation = true`) and φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s (if `summation = false`) is a quadratic approximation of f about xₖ,
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s is a quadratic approximation of f about xₖ,
 ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm, Dₖ is a diagonal Hessian approximation
 and σₖ > 0 is the regularization parameter.
 
@@ -31,7 +31,6 @@ and σₖ > 0 is the regularization parameter.
 * `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
 * `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`).
 * `Bk`: initial diagonal Hessian approximation (default: `(one(R) / options.ν) * I`).
-* `summation`: boolean used to choose between the two versions of R2DH (see above, default : `true`).
 
 The objective and gradient of `nlp` will be accessed.
 
@@ -64,16 +63,17 @@ function R2DH(
       x0;
       kwargs...,
     )
-    ξ = outdict[:ξ]
+    sqrt_ξ_νInv = outdict[:sqrt_ξ_νInv]
     stats = GenericExecutionStats(nlp)
     set_status!(stats, outdict[:status])
     set_solution!(stats, xk)
     set_objective!(stats, outdict[:fk] + outdict[:hk])
-    set_residuals!(stats, zero(eltype(xk)), ξ)
+    set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
     set_iter!(stats, k)
     set_time!(stats, outdict[:elapsed_time])
     set_solver_specific!(stats, :Fhist, outdict[:Fhist])
     set_solver_specific!(stats, :Hhist, outdict[:Hhist])
+    set_solver_specific!(stats, :Time_hist, outdict[:Time_hist])
     set_solver_specific!(stats, :NonSmooth, outdict[:NonSmooth])
     set_solver_specific!(stats, :SubsolverCounter, outdict[:Chist])
     return stats
@@ -88,7 +88,6 @@ function R2DH(
   x0::AbstractVector{R};
   Mmonotone::Int = 5,
   selected::AbstractVector{<:Integer} = 1:length(x0),
-  summation::Bool = true,
   kwargs...,
 ) where {F <: Function, G <: Function, H, R <: Real, DQN <: AbstractDiagonalQuasiNewtonOperator}
   start_time = time()
@@ -104,6 +103,7 @@ function R2DH(
   η2 = options.η2
   ν = options.ν
   γ = options.γ
+  θ = options.θ
 
   local l_bound, u_bound
   has_bnds = false
@@ -145,28 +145,28 @@ function R2DH(
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
+  time_hist = zeros(maxIter)
   FHobj_hist = fill!(Vector{R}(undef, Mmonotone), R(-Inf))
   Complex_hist = zeros(Int, maxIter)
   if verbose > 0
     #! format: off
-    @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" ""
+    @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√(ξ/ν)" "ρ" "σ" "‖x‖" "‖s‖" ""
     #! format: off
   end
 
   local ξ
   k = 0
-  σk = summation ?  σmin : max(1 / ν, σmin)
+  σk = σmin
 
   fk = f(xk)
   ∇fk = similar(xk)
   ∇f!(∇fk, xk)
   ∇fk⁻ = copy(∇fk) 
   spectral_test = isa(D, SpectralGradient)
-  D.d .= summation ? D.d .+ σk : D.d  .* σk
+  Dkσk = D.d .+ σk
   DNorm = norm(D.d, Inf)
 
-
-  ν = 1 / DNorm
+  ν = 1 / ((DNorm + σk) * (1 + θ))
   mν∇fk = -ν * ∇fk
   sqrt_ξ_νInv = one(R)  
 
@@ -178,22 +178,27 @@ function R2DH(
     elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
+    time_hist[k] = elapsed_time
     Mmonotone > 0 && (FHobj_hist[mod(k-1, Mmonotone) + 1] = fk + hk)
 
-    D.d .= max.(D.d, eps(R))
-
-
     # model with diagonal hessian
-    φ(d) = ∇fk' * d + (d' * (D.d .* d)) / 2
+    φ(d) = ∇fk' * d + (d' * (Dkσk .* d)) / 2
     mk(d) = φ(d) + ψ(d)
 
     if spectral_test
       prox!(s, ψ, mν∇fk, ν)
     else
-      iprox!(s, ψ, ∇fk, D)
+      iprox!(s, ψ, ∇fk, Dkσk)
     end
 
-  #  iprox!(s, ψ, ∇fk, D)
+    if mk(s) > 1/eps(R)
+      σk = σk * γ
+      Dkσk .= D.d .+ σk
+      DNorm = norm(D.d, Inf)
+      ν = 1 / ((DNorm + σk) * (1 + θ))
+      @. mν∇fk = -ν * ∇fk
+      continue
+    end
 
     Complex_hist[k] += 1
     xkn .= xk .+ s
@@ -225,7 +230,7 @@ function R2DH(
 
     σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
-    if (verbose > 0) && (k % ptf == 0)
+    if (verbose > 0) && ((k % ptf == 0) || (k == 1))
       #! format: off
       @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt_ξ_νInv ρk σk norm(xk) norm(s) σ_stat
       #! format: on
@@ -251,9 +256,9 @@ function R2DH(
       σk = σk * γ
     end
 
-    D.d .= summation ? D.d .+ σk : D.d  .* σk 
+    Dkσk .= D.d .+ σk
     DNorm = norm(D.d, Inf)
-    ν = 1 / DNorm
+    ν = 1 / ((DNorm + σk) * (1 + θ))
     
     tired = maxIter > 0 && k ≥ maxIter
     if !tired
@@ -284,12 +289,13 @@ function R2DH(
   outdict = Dict(
     :Fhist => Fobj_hist[1:k],
     :Hhist => Hobj_hist[1:k],
+    :Time_hist => time_hist[1:k],
     :Chist => Complex_hist[1:k],
     :NonSmooth => h,
     :status => status,
     :fk => fk,
     :hk => hk,
-    :ξ => ξ,
+    :sqrt_ξ_νInv => sqrt_ξ_νInv,
     :elapsed_time => elapsed_time,
   )
 
