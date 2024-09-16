@@ -222,8 +222,9 @@ function SolverCore.solve!(
 	local θ::T 
 	prox!(s, ψ, s0, 1.0)
 	θ = hx - ψ(s)
-	θ ≥ 0 || error("L2Penalty: prox-gradient step should produce a decrease but θ = $(θ)")
-	sqrt_θ = sqrt(θ)
+
+	sqrt_θ = θ ≥ 0 ? sqrt(θ) : sqrt(-θ)
+	θ < 0 && sqrt_θ ≥ neg_tol && error("L2Penalty: prox-gradient step should produce a decrease but θ = $(θ)")
 	
   atol += rtol * sqrt_θ # make stopping test absolute and relative
 	ktol = max(ktol,atol) # Keep ϵ₀ ≥ ϵ
@@ -260,7 +261,8 @@ function SolverCore.solve!(
 		prox!(s, ψ, s0, 1.0)
 
 		θ = hx - ψ(s)
-		sqrt_θ = sqrt(θ)
+		sqrt_θ = θ ≥ 0 ? sqrt(θ) : sqrt(-θ)
+		θ < 0 && sqrt_θ ≥ neg_tol && error("L2Penalty: prox-gradient step should produce a decrease but θ = $(θ)")
 
 		if sqrt_θ > ktol
 			τ = τ + β1
