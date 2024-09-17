@@ -143,11 +143,11 @@ function R2DH(
   s = zero(xk)
   ψ = has_bnds ? shifted(h, xk, l_bound - xk, u_bound - xk, selected) : shifted(h, xk)
 
-  Fobj_hist = zeros(maxIter)
-  Hobj_hist = zeros(maxIter)
-  time_hist = zeros(maxIter)
+  Fobj_hist = zeros(maxIter+1)
+  Hobj_hist = zeros(maxIter+1)
+  time_hist = zeros(maxIter+1)
   FHobj_hist = fill!(Vector{R}(undef, Mmonotone), R(-Inf))
-  Complex_hist = zeros(Int, maxIter)
+  Complex_hist = zeros(Int, maxIter+1)
   if verbose > 0
     #! format: off
     @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√(ξ/ν)" "ρ" "σ" "‖x‖" "‖s‖" ""
@@ -181,6 +181,8 @@ function R2DH(
     time_hist[k] = elapsed_time
     Mmonotone > 0 && (FHobj_hist[mod(k-1, Mmonotone) + 1] = fk + hk)
 
+    #Dkσk .= max.(Dkσk, eps(R)) 
+
     # model with diagonal hessian
     φ(d) = ∇fk' * d + (d' * (Dkσk .* d)) / 2
     mk(d) = φ(d) + ψ(d)
@@ -190,8 +192,9 @@ function R2DH(
     else
       iprox!(s, ψ, ∇fk, Dkσk)
     end
+    mks = mk(s)
 
-    if mk(s) > 1/eps(R)
+    if mks < -1e5
       σk = σk * γ
       Dkσk .= D.d .+ σk
       DNorm = norm(D.d, Inf)
@@ -208,8 +211,8 @@ function R2DH(
     
     fhmax = Mmonotone > 0 ? maximum(FHobj_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
-    Δmod = fhmax - (fk + mk(s)) + max(1, abs(hk)) * 10 * eps()
-    ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
+    Δmod = fhmax - (fk + mks) + max(1, abs(hk)) * 10 * eps()
+    ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
 
     if ξ ≥ 0 && k == 1
@@ -257,7 +260,6 @@ function R2DH(
     end
 
     Dkσk .= D.d .+ σk
-    DNorm = norm(D.d, Inf)
     ν = 1 / ((DNorm + σk) * (1 + θ))
     
     tired = maxIter > 0 && k ≥ maxIter
