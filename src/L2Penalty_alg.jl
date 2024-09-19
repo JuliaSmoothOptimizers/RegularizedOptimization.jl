@@ -305,7 +305,7 @@ function SolverCore.solve!(
 		done = stats.status != :unknown
 	end
 
-	set_solution!(stats, xk)
+	set_solution!(stats, x)
 	return stats
 
 end
