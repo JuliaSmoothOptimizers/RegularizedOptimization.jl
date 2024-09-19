@@ -305,6 +305,9 @@ function SolverCore.solve!(
 		done = stats.status != :unknown
 	end
 
+	set_solution!(stats, xk)
+	return stats
+
 end
 
 function get_status(
@@ -389,11 +392,10 @@ function solve!(
 	if norm(x1[n+1:n+m]) <= Δ
 		set_solution!(stats,x1[1:n])
 		return
-	else
-		u2[n+1:n+m] .= x1[n+1:n+m]
-		x2,_ = minres_qlp(H,u2)
-		αₖ += norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
 	end
+	u2[n+1:n+m] .= x1[n+1:n+m]
+	x2,_ = minres_qlp(H,u2)
+	αₖ += norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
 	k = 0
 
 	while abs(norm(x1[n+1:n+m]) - Δ) > eps(T)^(0.75) && stats.iter < max_iter && stats.elapsed_time < max_time
