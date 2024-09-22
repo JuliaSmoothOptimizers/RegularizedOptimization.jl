@@ -102,6 +102,7 @@ For advanced usage, first define a solver "L2PenaltySolver" to preallocate the m
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
 - `max_iter::Int = 10000`: maximum number of iterations;
 - `sub_max_iter::Int = 10000`: maximum number of iterations for the subsolver;
+- `max_decreas_iter::Int = 10`: maximum number of iteration where ‖c(xₖ)‖₂ does not decrease before calling the problem locally infeasible;
 - `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
 - `sub_verbose::Int = 0`: if > 0, display subsolver iteration details every `verbose` iteration;
 - `τ::T = T(100)`: initial penalty parameter;
@@ -166,6 +167,7 @@ function SolverCore.solve!(
 	max_time::T = T(30.0),
 	max_eval::Int = -1,
 	sub_max_eval::Int = -1,
+	max_decreas_iter = 10,
 	verbose = 0,
 	sub_verbose = 0,
 	τ::T = T(100),
@@ -200,7 +202,7 @@ function SolverCore.solve!(
         :iter => "outer",
 				:sub_iter => "inner",
         :fx => "f(x)",
-        :hx => "h(x)",
+        :hx => "‖c(x)‖₂",
 				:theta => "√θ",
         :xi => "√(ξ/ν)",
 				:epsk => "ϵₖ",
@@ -232,6 +234,8 @@ function SolverCore.solve!(
 
 	done = false
 
+	n_iter_since_decrease = 0
+
 	while !done
 		model = RegularizedNLPModel(nlp, sub_ψ)
 		solve!(
@@ -254,6 +258,7 @@ function SolverCore.solve!(
 
 		x .= solver.sub_stats.solution
 		fx = solver.sub_stats.solver_specific[:smooth_obj]
+		hx_prev = copy(hx)
 		hx = solver.sub_stats.solver_specific[:nonsmooth_obj]/τ
 		sqrt_ξ_νInv  =  solver.sub_stats.solver_specific[:xi]
 
@@ -269,7 +274,13 @@ function SolverCore.solve!(
 			sub_ψ.h = NormL2(τ)
 			solver.sub_solver.ψ.h = NormL2(τ)
 		else 
+			n_iter_since_decrease = 0
 			ktol = max(β2^(ceil(log(β2,sqrt_ξ_νInv/tol_init)))*ktol,atol) #the β^... allows to directly jump to a sufficiently small ϵₖ
+		end
+		if sqrt_θ > ktol && hx_prev ≥ hx
+			n_iter_since_decrease += 1
+		else 
+			n_iter_since_decrease = 0
 		end
 
 		solved = (sqrt_θ ≤ atol && solver.sub_stats.status == :first_order) || (θ < 0 && sqrt_θ ≤ neg_tol && solver.sub_stats.status == :first_order)
@@ -292,11 +303,13 @@ function SolverCore.solve!(
       get_status(
         nlp,
         elapsed_time = stats.elapsed_time,
+				n_iter_since_decrease = n_iter_since_decrease,
         iter = stats.iter,
         optimal = solved,
         max_eval = max_eval,
         max_time = max_time,
-        max_iter = max_iter
+        max_iter = max_iter,
+				max_decreas_iter = max_decreas_iter
       ),
     )
 
@@ -315,9 +328,11 @@ function get_status(
   elapsed_time = 0.0,
   iter = 0,
   optimal = false,
+	n_iter_since_decrease = 0,
   max_eval = Inf,
   max_time = Inf,
   max_iter = Inf,
+	max_decreas_iter = Inf
 ) where{ M <: AbstractNLPModel }
   if optimal
     :first_order
@@ -327,7 +342,9 @@ function get_status(
     :max_time
   elseif neval_obj(nlp) > max_eval && max_eval > -1
     :max_eval
-  else
+	elseif n_iter_since_decrease ≥ max_decreas_iter
+		:infeasible
+	else
     :unknown
   end
 end
