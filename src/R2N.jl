@@ -343,15 +343,7 @@ function SolverCore.solve!(
     ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν_subsolver) : sqrt(-ξ1 / ν_subsolver)
     solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
-    if ξ1 < 0 && sqrt_ξ1_νInv > neg_tol
-      println(Matrix(ψ.A))
-      println(ψ.b)
-      println(ψ.h.lambda)
-      println(mν∇fk)
-      println(ν_subsolver)
-      println(s)
-
-    end
+		
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
       error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
     
