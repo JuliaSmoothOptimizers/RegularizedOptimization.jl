@@ -51,6 +51,7 @@ function R2N(
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
+  Mmonotone::Int = 0, 
   selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
 ) where {H, R}
   start_time = time()
@@ -71,6 +72,7 @@ function R2N(
   σmin = options.σmin
   α = options.α
   β = options.β
+  σk = options.σk
 
   # store initial values of the subsolver_options fields that will be modified
   ν_subsolver = subsolver_options.ν
@@ -94,7 +96,6 @@ function R2N(
 
   # initialize parameters
   #σk = max(1 / options.ν, σmin) #SVM
-  σk = σmin
   xk = copy(x0)
   hk = h(xk[selected])
   if hk == Inf
@@ -112,6 +113,7 @@ function R2N(
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
+  FHobj_hist = fill!(Vector{R}(undef, Mmonotone), R(-Inf))
   Complex_hist = zeros(Int, maxIter)
   if verbose > 0
     #! format: off
@@ -143,6 +145,7 @@ function R2N(
     elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
+    Mmonotone > 0 && (FHobj_hist[mod(k-1, Mmonotone) + 1] = fk + hk)
 
     # model for first prox-gradient step and ξ1
     φ1(d) = ∇fk' * d
@@ -168,9 +171,6 @@ function R2N(
     ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("R2N: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
     sqrt_ξ1_νInv = sqrt(ξ1 * νInv)
-    # println("sqrt_ξ1_νInv: ", sqrt_ξ1_νInv)
-    # println("ξ1: ", ξ1)
-    # println("νInv: ", νInv)
 
     if ξ1 ≥ 0 && k == 1
       ϵ_increment = ϵr * sqrt_ξ1_νInv
@@ -186,9 +186,9 @@ function R2N(
     s1 = copy(s)
 
   #  subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
-    subsolver_options.ϵa = k == 1 ? 1.0e-3 : max(ϵ_subsolver, min(1e-3, sqrt_ξ1_νInv)) # 1.0e-5 default
+    subsolver_options.ϵa = k == 1 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3) # 1.0e-5 default
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
-    subsolver_args = subsolver == R2DH ? (SpectralGradient(1., f.meta.nvar),) : ()
+    subsolver_args = subsolver == R2DH ? (SpectralGradient(νInv, f.meta.nvar),) : ()
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
     end
@@ -208,18 +208,21 @@ function R2N(
     hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
     mks = mk(s) #- σk * dot(s, s) / 2
-    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+
+    fhmax = Mmonotone > 0 ? maximum(FHobj_hist) : fk + hk
+    Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
+    Δmod = fhmax - (fk + mks) + max(1, abs(hk)) * 10 * eps()
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
     if (ξ ≤ 0 || isnan(ξ))
       error("R2N: failed to compute a step: ξ = $ξ")
     end
 
-    ρk = Δobj / ξ
+    ρk = Δobj / Δmod
 
     R2N_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
 
-    if (verbose > 0) && (k % ptf == 0)
+    if (verbose > 0) && ((k % ptf == 0) || (k == 1))
       #! format: off
       @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt_ξ1_νInv sqrt(ξ1) ρk σk norm(xk) norm(s) λmax R2N_stat
       #! format: off
@@ -251,8 +254,7 @@ function R2N(
     if ρk < η1 || ρk == Inf
         σk = σk * γ
     end
-    νInv = (1 + θ) *( σk + λmax)
-
+    νInv = (1 + θ) * (σk + λmax)
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
