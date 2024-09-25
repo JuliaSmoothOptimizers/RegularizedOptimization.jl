@@ -61,6 +61,8 @@ function R2DH(
       hess_op(nlp, x0),
       options,
       x0;
+      l_bound = nlp.meta.lvar,
+      u_bound = nlp.meta.uvar,
       kwargs...,
     )
     sqrt_ξ_νInv = outdict[:sqrt_ξ_νInv]
@@ -99,6 +101,7 @@ function R2DH(
   maxIter = options.maxIter
   maxTime = options.maxTime
   σmin = options.σmin
+  σk = options.σk
   η1 = options.η1
   η2 = options.η2
   ν = options.ν
@@ -148,6 +151,7 @@ function R2DH(
   time_hist = zeros(maxIter+1)
   FHobj_hist = fill!(Vector{R}(undef, Mmonotone), R(-Inf))
   Complex_hist = zeros(Int, maxIter+1)
+  k_prox = 0
   if verbose > 0
     #! format: off
     @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√(ξ/ν)" "ρ" "σ" "‖x‖" "‖s‖" ""
@@ -156,13 +160,13 @@ function R2DH(
 
   local ξ
   k = 0
-  σk = σmin
 
   fk = f(xk)
   ∇fk = similar(xk)
   ∇f!(∇fk, xk)
   ∇fk⁻ = copy(∇fk) 
   spectral_test = isa(D, SpectralGradient)
+ # D.d .= D.d .+ σk
   Dkσk = D.d .+ σk
   DNorm = norm(D.d, Inf)
 
@@ -174,15 +178,7 @@ function R2DH(
   tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
 
   while !(optimal || tired)
-    k = k + 1
-    elapsed_time = time() - start_time
-    Fobj_hist[k] = fk
-    Hobj_hist[k] = hk
-    time_hist[k] = elapsed_time
-    Mmonotone > 0 && (FHobj_hist[mod(k-1, Mmonotone) + 1] = fk + hk)
-
-    #Dkσk .= max.(Dkσk, eps(R)) 
-
+    k_prox += 1
     # model with diagonal hessian
     φ(d) = ∇fk' * d + (d' * (Dkσk .* d)) / 2
     mk(d) = φ(d) + ψ(d)
@@ -203,7 +199,15 @@ function R2DH(
       continue
     end
 
-    Complex_hist[k] += 1
+    k = k + 1
+    elapsed_time = time() - start_time
+    Fobj_hist[k] = fk
+    Hobj_hist[k] = hk
+    time_hist[k] = elapsed_time
+    Mmonotone > 0 && (FHobj_hist[mod(k-1, Mmonotone) + 1] = fk + hk)
+
+    Complex_hist[k] += k_prox
+    k_prox = 0
     xkn .= xk .+ s
     fkn = f(xkn)
     hkn = h(xkn[selected])
@@ -260,6 +264,7 @@ function R2DH(
     end
 
     Dkσk .= D.d .+ σk
+    DNorm = norm(D.d, Inf)
     ν = 1 / ((DNorm + σk) * (1 + θ))
     
     tired = maxIter > 0 && k ≥ maxIter
