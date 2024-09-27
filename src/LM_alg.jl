@@ -47,6 +47,7 @@ function LM(
   subsolver = R2,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(nls.meta.nvar),
+  nonlinear::Bool = true,
 ) where {H}
   start_time = time()
   elapsed_time = 0.0
@@ -62,6 +63,7 @@ function LM(
   γ = options.γ
   θ = options.θ
   σmin = options.σmin
+  σk = options.σk
 
   # store initial values of the subsolver_options fields that will be modified
   ν_subsolver = subsolver_options.ν
@@ -85,7 +87,6 @@ function LM(
   end
 
   # initialize parameters
-  σk = max(1 / options.ν, σmin)
   xk = copy(x0)
   hk = h(xk[selected])
   if hk == Inf
@@ -178,7 +179,7 @@ function LM(
     prox!(s, ψ, ∇fk, ν)
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-    sqrt_ξ1_νInv = sqrt(ξ1 * νInv)
+    sqrt_ξ1_νInv = ξ1 > 0 ? sqrt(ξ1 * νInv) : 10.
 
     if ξ1 ≥ 0 && k == 1
       ϵ_increment = ϵr * sqrt_ξ1_νInv
@@ -192,10 +193,10 @@ function LM(
       continue
     end
 
-    subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
+  #  subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
+    subsolver_options.ϵa = k == 1 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3) # 1.0e-5 default
     subsolver_options.ν = ν
-    #subsolver_args = subsolver == TRDH ? (SpectralGradient(1 / ν, nls.meta.nvar),) : ()
-    subsolver_args = subsolver == R2DH ? (SpectralGradient(1., nls.meta.nvar),) : ()
+    subsolver_args = subsolver == R2DH ? (SpectralGradient(νInv, nls.meta.nvar),) : ()
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
@@ -246,7 +247,12 @@ function LM(
       shift!(ψ, xk)
       Jk = jac_op_residual(nls, xk)
       jtprod_residual!(nls, xk, Fk, ∇fk)
-      σmax = opnorm(Jk)
+
+      # update opnorm if not linear least squares
+      if nonlinear == true
+        σmax = opnorm(Jk)      
+      end
+
       Complex_hist[k] += 1
     end
 
@@ -254,6 +260,7 @@ function LM(
       σk = σk * γ
     end
     νInv = (1 + θ) * (σmax^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
@@ -281,7 +288,7 @@ function LM(
   set_status!(stats, status)
   set_solution!(stats, xk)
   set_objective!(stats, fk + hk)
-  set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt(ξ1) : ξ1)
+  set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt_ξ1_νInv : ξ1)
   set_iter!(stats, k)
   set_time!(stats, elapsed_time)
   set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])
