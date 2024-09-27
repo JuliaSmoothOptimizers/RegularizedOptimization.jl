@@ -21,6 +21,7 @@ mutable struct R2Solver{
   Fobj_hist::Vector{R}
   Hobj_hist::Vector{R}
   Complex_hist::Vector{Int}
+  Time_hist::Vector{R}
 end
 
 function R2Solver(
@@ -46,6 +47,7 @@ function R2Solver(
   end
   Fobj_hist = zeros(R, maxIter + 2)
   Hobj_hist = zeros(R, maxIter + 2)
+  Time_hist = zeros(R, maxIter + 2)
   Complex_hist = zeros(Int, maxIter + 2)
   return R2Solver(
     xk,
@@ -62,6 +64,7 @@ function R2Solver(
     Fobj_hist,
     Hobj_hist,
     Complex_hist,
+    Time_hist,
   )
 end
 
@@ -87,6 +90,7 @@ function R2Solver(reg_nlp::AbstractRegularizedNLPModel{T, V}; max_iter::Int = 10
   end
   Fobj_hist = zeros(T, max_iter + 2)
   Hobj_hist = zeros(T, max_iter + 2)
+  Time_hist = zeros(T, max_iter + 2)
   Complex_hist = zeros(Int, max_iter + 2)
 
   ψ =
@@ -107,6 +111,7 @@ function R2Solver(reg_nlp::AbstractRegularizedNLPModel{T, V}; max_iter::Int = 10
     Fobj_hist,
     Hobj_hist,
     Complex_hist,
+    Time_hist,
   )
 end
 
@@ -201,6 +206,7 @@ function R2(
     ν = options.ν,
     γ = options.γ,
   )
+  return stats
 end
 
 function R2(
@@ -232,6 +238,7 @@ function R2(
   outdict = Dict(
     :Fhist => stats.solver_specific[:Fhist],
     :Hhist => stats.solver_specific[:Hhist],
+    :Time_hist => stats.solver_specific[:Time_hist],
     :Chist => stats.solver_specific[:SubsolverCounter],
     :NonSmooth => h,
     :status => stats.status,
@@ -274,6 +281,7 @@ function R2(
   outdict = Dict(
     :Fhist => stats.solver_specific[:Fhist],
     :Hhist => stats.solver_specific[:Hhist],
+    :Time_hist => stats.solver_specific[:Time_hist],
     :Chist => stats.solver_specific[:SubsolverCounter],
     :NonSmooth => h,
     :status => stats.status,
@@ -295,10 +303,12 @@ function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
       solver.Fobj_hist[stats.iter + 1] = stats.solver_specific[:smooth_obj]
       solver.Hobj_hist[stats.iter + 1] = stats.solver_specific[:nonsmooth_obj]
       solver.Complex_hist[stats.iter + 1] += 1
+      solver.Time_hist[stats.iter + 1] = stats.elapsed_time
     end
   solve!(solver, reg_nlp, stats; callback = cb, max_iter = max_iter, kwargs...)
   set_solver_specific!(stats, :Fhist, solver.Fobj_hist[1:(stats.iter + 1)])
   set_solver_specific!(stats, :Hhist, solver.Hobj_hist[1:(stats.iter + 1)])
+  set_solver_specific!(stats, :Time_hist, solver.Time_hist[1:(stats.iter + 1)])
   set_solver_specific!(stats, :SubsolverCounter, solver.Complex_hist[1:(stats.iter + 1)])
   return stats
 end
