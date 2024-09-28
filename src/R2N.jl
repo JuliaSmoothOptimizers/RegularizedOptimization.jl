@@ -76,6 +76,7 @@ function SolverCore.solve!(
   max_iter::Int = 10000,
   max_time::Float64 = 30.0,
   max_eval::Int = -1,
+  σk = eps(T)^(-1/5),
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.9),
@@ -151,7 +152,6 @@ function SolverCore.solve!(
 
   local ξ1::T
   local ρk::T
-  σk = σmin
 
   fk = obj(nlp, xk)
   grad!(nlp, xk, ∇fk)
@@ -265,7 +265,6 @@ function SolverCore.solve!(
     if mk(s) > mk(s1)
       s .= s1
     end
-
 
     sub_atol = sub_atol_init
 

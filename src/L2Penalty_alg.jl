@@ -390,7 +390,7 @@ function solve!(
 	
 	n = reg_nlp.model.meta.nvar
 	m = length(reg_nlp.h.b)
-	Δ = reg_nlp.h.h.lambda
+	Δ = reg_nlp.h.h.lambda/σk
 
 	u1 = solver.u1
 	u2 = solver.u2
@@ -405,7 +405,7 @@ function solve!(
 	H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
 	H = [H1;H2]
 	x1,_ = minres_qlp(H,u1)
-
+	#println(stats_minres)
 	if norm(x1[n+1:n+m]) <= Δ
 		set_solution!(stats,x1[1:n])
 		return
