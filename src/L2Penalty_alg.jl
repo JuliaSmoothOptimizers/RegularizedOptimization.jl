@@ -396,7 +396,7 @@ function solve!(
 	u2 = solver.u2
 
 	# Create problem
-	@. u1[1:n] = ∇fk
+	@. u1[1:n] = ∇fk/σk	
 	@. u1[n+1:n+m] = -reg_nlp.h.b
 
 	αₖ = 0.0

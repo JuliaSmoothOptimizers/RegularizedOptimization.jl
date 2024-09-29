@@ -76,12 +76,10 @@ function SolverCore.solve!(
   max_iter::Int = 10000,
   max_time::Float64 = 30.0,
   max_eval::Int = -1,
-  σk = eps(T)^(-1/5),
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.9),
   ν = eps(T)^(1/5),
-  ν_subsolver = ν,
   γ::T = T(3),
   β = 1/eps(T),
   θ = eps(T)^(1/5),
@@ -100,6 +98,7 @@ function SolverCore.solve!(
   # Make sure ψ has the correct shift 
   shift!(solver.ψ, xk)
 
+  σk = 1/ν
   ∇fk = solver.∇fk
   ∇fk⁻ = solver.∇fk⁻
   mν∇fk = solver.mν∇fk
@@ -251,7 +250,7 @@ function SolverCore.solve!(
         model, 
         sub_stats, 
         ∇fk,
-        Bk + σk*opEye(nlp.meta.nvar,nlp.meta.nvar),
+        Bk/σk + opEye(nlp.meta.nvar,nlp.meta.nvar),
         σk,
         atol = sub_atol,
         max_time = max_time - stats.elapsed_time,
