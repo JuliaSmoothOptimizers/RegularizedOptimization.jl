@@ -344,7 +344,7 @@ function SolverCore.solve!(
 		
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
       error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-    
+    set_solver_specific!(stats, :xi, sqrt_ξ1_νInv)
     set_status!(
       stats,
       get_status(
