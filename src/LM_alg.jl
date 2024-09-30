@@ -104,13 +104,15 @@ function LM(
   k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
+  R = eltype(xk)
+  sqrt_ξ1_νInv = one(R)
   Complex_hist = zeros(Int, maxIter)
   Grad_hist = zeros(Int, maxIter)
   Resid_hist = zeros(Int, maxIter)
 
   if verbose > 0
     #! format: off
-    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√ξ1" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
+    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√(ξ1/ν)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
     #! format: on
   end
 
@@ -176,14 +178,15 @@ function LM(
     prox!(s, ψ, ∇fk, ν)
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    sqrt_ξ1_νInv = sqrt(ξ1 * νInv)
 
     if ξ1 ≥ 0 && k == 1
-      ϵ_increment = ϵr * sqrt(ξ1)
+      ϵ_increment = ϵr * sqrt_ξ1_νInv
       ϵ += ϵ_increment  # make stopping test absolute and relative
       ϵ_subsolver += ϵ_increment
     end
 
-    if sqrt(ξ1) < ϵ
+    if sqrt_ξ1_νInv < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
       continue
@@ -191,7 +194,8 @@ function LM(
 
     subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
     subsolver_options.ν = ν
-    subsolver_args = subsolver == TRDH ? (SpectralGradient(1 / ν, nls.meta.nvar),) : ()
+    #subsolver_args = subsolver == TRDH ? (SpectralGradient(1 / ν, nls.meta.nvar),) : ()
+    subsolver_args = subsolver == R2DH ? (SpectralGradient(1., nls.meta.nvar),) : ()
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
@@ -221,7 +225,7 @@ function LM(
 
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt(ξ1) sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt_ξ1_νInv sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
       #! format: off
     end
 
@@ -244,6 +248,7 @@ function LM(
       jtprod_residual!(nls, xk, Fk, ∇fk)
 
       σmax = opnorm(Jk)
+      
 
       Complex_hist[k] += 1
     end
@@ -252,6 +257,7 @@ function LM(
       σk = σk * γ
     end
     νInv = (1 + θ) * (σmax^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
@@ -260,9 +266,9 @@ function LM(
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" σk norm(xk) norm(s) νInv
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt_ξ1_νInv sqrt(ξ1) "" σk norm(xk) norm(s) νInv
       #! format: on
-      @info "LM: terminating with √ξ1 = $(sqrt(ξ1))"
+      @info "LM: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
     end
   end
   status = if optimal
