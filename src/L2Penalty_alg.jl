@@ -419,18 +419,26 @@ function solve!(
 	end
 	u2[n+1:n+m] .= x1[n+1:n+m]
 	x2,_ = minres_qlp(H,u2)
+
 	α₊ = αₖ + norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
 	αₖ = α₊ ≤ 0 ? θ*α₊ : αₖ 
+	αₖ = αₖ ≤ sqrt(eps(T)) ? sqrt(eps(T)) : αₖ
 
 	while abs(norm(x1[n+1:n+m]) - Δ) > eps(T)^(0.75) && stats.iter < max_iter && stats.elapsed_time < max_time
+
 		H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
 		H = [H1;H2]
-
 		x1,_ = minres_qlp(H,u1)
+
+		αₖ == sqrt(eps(T)) && break
+
 		u2[n+1:n+m] .= x1[n+1:n+m]
 		x2,_ = minres_qlp(H,u2)
+
 		α₊ = αₖ + norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
 		αₖ = α₊ ≤ 0 ? θ*α₊ : αₖ 
+		αₖ = αₖ ≤ sqrt(eps(T)) ? sqrt(eps(T)) : αₖ
+
 		set_iter!(stats,stats.iter + 1)
 		set_time!(stats,time()-start_time)
 	end
