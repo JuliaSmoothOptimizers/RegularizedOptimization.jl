@@ -400,6 +400,7 @@ function solve!(
 	@. u1[n+1:n+m] = -reg_nlp.h.b
 
 	αₖ = 0.0
+	αmin = sqrt(eps(T))
 	θ = 0.8
 
 	H1 = [-Q reg_nlp.h.A']
@@ -407,12 +408,12 @@ function solve!(
 	H = [H1;H2]
 	x1,stats_minres = minres_qlp(H,u1)
 
-	if norm(x1[n+1:n+m]) <= Δ && stats_minres.inconsistent == false #Check interior convergence for consistent solutions
+	if norm(x1[n+1:n+m]) <= Δ && reg_nlp.h.full_row_rank
 		set_solution!(stats,x1[1:n])
 		return
 	end
 	if stats_minres.inconsistent == true
-		αₖ = sqrt(eps(T))
+		αₖ = αmin
 		H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
 		H = [H1;H2]
 		x1,_ = minres_qlp(H,u1)
@@ -422,7 +423,7 @@ function solve!(
 
 	α₊ = αₖ + norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
 	αₖ = α₊ ≤ 0 ? θ*α₊ : αₖ 
-	αₖ = αₖ ≤ sqrt(eps(T)) ? sqrt(eps(T)) : αₖ
+	αₖ = αₖ ≤ αmin ? αmin : αₖ
 
 	while abs(norm(x1[n+1:n+m]) - Δ) > eps(T)^(0.75) && stats.iter < max_iter && stats.elapsed_time < max_time
 
@@ -430,7 +431,7 @@ function solve!(
 		H = [H1;H2]
 		x1,_ = minres_qlp(H,u1)
 
-		αₖ == sqrt(eps(T)) && break
+		αₖ == αmin && break
 
 		u2[n+1:n+m] .= x1[n+1:n+m]
 		x2,_ = minres_qlp(H,u2)
