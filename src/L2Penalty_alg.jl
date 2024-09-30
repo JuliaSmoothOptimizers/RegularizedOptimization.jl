@@ -400,20 +400,27 @@ function solve!(
 	@. u1[n+1:n+m] = -reg_nlp.h.b
 
 	αₖ = 0.0
+	θ = 0.8
 
 	H1 = [-Q reg_nlp.h.A']
 	H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
 	H = [H1;H2]
-	x1,_ = minres_qlp(H,u1)
-	#println(stats_minres)
-	if norm(x1[n+1:n+m]) <= Δ
+	x1,stats_minres = minres_qlp(H,u1)
+
+	if norm(x1[n+1:n+m]) <= Δ && stats_minres.inconsistent == false #Check interior convergence for consistent solutions
 		set_solution!(stats,x1[1:n])
 		return
 	end
+	if stats_minres.inconsistent == true
+		αₖ = sqrt(eps(T))
+		H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
+		H = [H1;H2]
+		x1,_ = minres_qlp(H,u1)
+	end
 	u2[n+1:n+m] .= x1[n+1:n+m]
 	x2,_ = minres_qlp(H,u2)
-	αₖ += norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
-	k = 0
+	α₊ = αₖ + norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
+	αₖ = α₊ ≤ 0 ? θ*α₊ : αₖ 
 
 	while abs(norm(x1[n+1:n+m]) - Δ) > eps(T)^(0.75) && stats.iter < max_iter && stats.elapsed_time < max_time
 		H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
@@ -422,7 +429,8 @@ function solve!(
 		x1,_ = minres_qlp(H,u1)
 		u2[n+1:n+m] .= x1[n+1:n+m]
 		x2,_ = minres_qlp(H,u2)
-		αₖ += norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
+		α₊ = αₖ + norm(x1[n+1:n+m])^2/(x1[n+1:n+m]'x2[n+1:n+m])*(norm(x1[n+1:n+m])- Δ)/Δ
+		αₖ = α₊ ≤ 0 ? θ*α₊ : αₖ 
 		set_iter!(stats,stats.iter + 1)
 		set_time!(stats,time()-start_time)
 	end
