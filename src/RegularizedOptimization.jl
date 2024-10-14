@@ -24,4 +24,7 @@ include("R2N_alg.jl")
 include("LM_alg.jl")
 include("LMTR_alg.jl")
 
+include("AL_model.jl")
+include("AL_alg.jl")
+
 end  # module RegularizedOptimization
