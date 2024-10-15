@@ -15,7 +15,7 @@ function AL(
   nlp::AbstractNLPModel,
   h::H,
   options::ROSolverOptions;
-  subsolver = has_bounds(nlp) ? TRDH : PG,
+  subsolver = has_bounds(nlp) ? TR : R2,
   kwargs...,
 ) where {H}
   if !(unconstrained(nlp) || bound_constrained(nlp))
@@ -26,6 +26,9 @@ function AL(
   @warn "Problem does not have general explicit constraints; calling solver $(string(subsolver))"
   return subsolver(nlp, h, options; kwargs...)
 end
+
+# a uniform solver interface is missing
+# TR(nlp, h, options; kwargs...) = TR(nlp, h, NormLinf(1.0), options; kwargs...)
 
 function AL(
   ::Val{:ineq},
@@ -81,7 +84,7 @@ If adopted, the Hessian is accessed as an abstract operator and need not be the 
 
 * `x0::AbstractVector`: a primal initial guess (default: `nlp.meta.x0`)
 * `y0::AbstractVector`: a dual initial guess (default: `nlp.meta.y0`)
-* `subsolver`: the procedure used to compute a step (`PG`, `R2` or `TRDH`)
+* `subsolver`: the procedure used to compute a step (e.g. `PG`, `R2`, `TR` or `TRDH`)
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
 * `subsolver_options::ROSolverOptions`: default options to pass to the subsolver.
 
@@ -97,7 +100,7 @@ function AL(
   options::ROSolverOptions{T};
   x0::AbstractVector{T} = nlp.meta.x0,
   y0::AbstractVector{T} = nlp.meta.y0,
-  subsolver = has_bounds(nlp) ? TRDH : R2,
+  subsolver = has_bounds(nlp) ? TR : R2,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver_options::ROSolverOptions{T} = ROSolverOptions{T}(),
   init_penalty::Real = T(10),
