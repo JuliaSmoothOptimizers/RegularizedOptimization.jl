@@ -34,16 +34,16 @@ function AL(
   ::Val{:ineq},
   nlp::AbstractNLPModel,
   h::H,
-  options::ROSolverOptions{R};
-  x0::AbstractVector{R} = nlp.meta.x0,
+  options::ROSolverOptions{T};
+  x0::AbstractVector{T} = nlp.meta.x0,
   kwargs...,
-) where {H, R}
+) where {H, T}
   if nlp.meta.ncon == 0 || equality_constrained(nlp)
     error("AL(::Val{:ineq}, ...) should only be called for problems with inequalities. Use AL(...)")
   end
   snlp = nlp isa AbstractNLSModel ? SlackNLSModel(nlp) : SlackModel(nlp)
-  if length(x) != snlp.meta.nvar
-    x0s = fill!(V(undef, snlp.meta.nvar), zero(eltype(V)))
+  if length(x0) != snlp.meta.nvar
+    x0s = zeros(T, snlp.meta.nvar)
     x0s[1:(nlp.meta.nvar)] .= x0
   else
     x0s = x0
