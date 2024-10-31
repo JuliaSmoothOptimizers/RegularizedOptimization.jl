@@ -94,7 +94,6 @@ function R2N(
   end
 
   # initialize parameters
-  #σk = max(1 / options.ν, σmin) #SVM
   xk = copy(x0)
   hk = h(xk[selected])
   if hk == Inf
