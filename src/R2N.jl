@@ -132,7 +132,7 @@ function R2N(
   Bk = hess_op(f, xk)
 
   λmax = opnorm(Bk)
-  νInv = (1 + θ) *( σk + λmax)
+  νInv = (1 + θ) * (σk + λmax)
   sqrt_ξ1_νInv = one(R)
 
   optimal = false
