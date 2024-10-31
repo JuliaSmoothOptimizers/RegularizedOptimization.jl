@@ -209,7 +209,7 @@ function R2N(
 
     fhmax = Mmonotone > 0 ? maximum(FHobj_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
-    Δmod = fhmax - (fk + mks) + max(1, abs(hk)) * 10 * eps()
+    Δmod = fhmax - (fk + mks) + max(1, abs(fhmax)) * 10 * eps()
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
     if (ξ ≤ 0 || isnan(ξ))
