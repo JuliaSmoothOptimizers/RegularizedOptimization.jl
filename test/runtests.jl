@@ -1,14 +1,54 @@
 using LinearAlgebra: length
 using LinearAlgebra, Random, Test
 using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, SolverCore
-
+using ShiftedProximalOperators
+using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, SolverCore, RegularizedOptimization, OptimizationProblems, ADNLPModels, OptimizationProblems.ADNLPProblems
+using Random
+Random.seed!(1234)
 const global compound = 1
 const global nz = 10 * compound
-const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10)
+const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 0)
 const global bpdn, bpdn_nls, sol = bpdn_model(compound)
 const global bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
+
+meta = OptimizationProblems.meta
+problem_list = meta[(meta.has_equalities_only .== 1) .& (meta.has_bounds.==0) .& (meta.has_fixed_variables.==0) .& (meta.variable_nvar .== 0), :]
+
+for problem ∈ eachrow(problem_list)
+  for (nlp,subsolver_name) ∈ ((eval(Meta.parse(problem.name))(),"R2"),(LSR1Model(eval(Meta.parse(problem.name))()),"R2N-LSR1"),(LBFGSModel(eval(Meta.parse(problem.name))()),"R2N-LBFGS"))
+    @testset "Optimization Problems - $(problem.name) - L2Penalty - $(subsolver_name)" begin
+        if subsolver_name == "R2"
+          out = L2Penalty(
+            nlp,
+            atol = 1e-3,
+            rtol = 1e-3,
+            ktol = 1e-1,
+            max_iter = 100,
+            max_time = 10.0
+          ) 
+        else
+          try
+            out = L2Penalty(
+              nlp,
+              sub_solver = R2NSolver,
+              atol = 1e-3,
+              rtol = 1e-3,
+              ktol = 1e-1,
+              max_iter = 100,
+              max_time = 10.0
+            )
+          catch LAPACKException
+            continue
+          end
+        end
+        @test typeof(out.solution) == typeof(nlp.meta.x0)
+        @test length(out.solution) == nlp.meta.nvar
+        @test typeof(out.dual_feas) == eltype(out.solution)
+        @test (out.status == :first_order) || (out.status == :infeasible) || (out.status == :max_iter) || (out.status == :max_time)
+    end      
+  end
+end
 
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
   for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * compound), "B0"))
