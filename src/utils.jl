@@ -29,6 +29,7 @@ function opnorm_eig(B; max_attempts::Int = 3)
   end
   return λ, success
 end
+
 function opnorm_svd(J; max_attempts::Int = 3)
   have_svd = false
   attempt = 0
