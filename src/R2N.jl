@@ -194,9 +194,9 @@ function R2N(
     if norm(s) > β * norm(s1)
       s .= s1
     end
+
     # restore initial subsolver_options.ϵa here so that subsolver_options.ϵa
     # is not modified if there is an error
-
     subsolver_options.ν = ν_subsolver
     subsolver_options.ϵa = ϵ_subsolver_init
     Complex_hist[k] = iter
