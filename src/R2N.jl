@@ -13,7 +13,7 @@ About each iterate xₖ, a step sₖ is computed as an approximate solution of
 
     min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ) 
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Bₖ s  is a quadratic approximation of f about xₖ,
+where φ(s; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀBₖs  is a quadratic approximation of f about xₖ,
 ψ(s; xₖ) = h(xₖ + s) and σₖ > 0 is the regularization parameter.
 The subproblem is solved inexactly by way of a first-order method such as the proximal-gradient
 method or the quadratic regularization method.
