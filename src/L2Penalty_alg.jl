@@ -403,9 +403,7 @@ function solve!(
 	αmin = sqrt(eps(T))
 	θ = 0.8
 
-	H1 = [-Q reg_nlp.h.A']
-	H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
-	H = [H1;H2]
+	H = [[-Q reg_nlp.h.A'];[reg_nlp.h.A αₖ*opEye(m,m)]]
 	x1,stats_minres = minres_qlp(H,u1)
 
 	if norm(x1[n+1:n+m]) <= Δ && reg_nlp.h.full_row_rank
@@ -414,8 +412,7 @@ function solve!(
 	end
 	if stats_minres.inconsistent == true
 		αₖ = αmin
-		H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
-		H = [H1;H2]
+		H = [[-Q reg_nlp.h.A'];[reg_nlp.h.A αₖ*opEye(m,m)]]
 		x1,_ = minres_qlp(H,u1)
 	end
 	u2[n+1:n+m] .= x1[n+1:n+m]
@@ -427,8 +424,7 @@ function solve!(
 
 	while abs(norm(x1[n+1:n+m]) - Δ) > eps(T)^(0.75) && stats.iter < max_iter && stats.elapsed_time < max_time
 
-		H2 = [reg_nlp.h.A αₖ*opEye(m,m)]
-		H = [H1;H2]
+		H = [[-Q reg_nlp.h.A'];[reg_nlp.h.A αₖ*opEye(m,m)]]
 		x1,_ = minres_qlp(H,u1)
 
 		αₖ == αmin && break
