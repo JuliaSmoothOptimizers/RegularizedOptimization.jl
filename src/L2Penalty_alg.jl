@@ -4,12 +4,12 @@ import SolverCore.solve!
 
 mutable struct L2PenaltySolver{T <: Real, V <: AbstractVector{T}, S <: AbstractOptimizationSolver} <: AbstractOptimizationSolver
   x::V
-	s::V
-	s0::V
+  s::V
+  s0::V
   ψ::ShiftedCompositeNormL2
-	sub_ψ::CompositeNormL2
-	sub_solver::S
-	sub_stats::GenericExecutionStats{T, V, V, Any}
+  sub_ψ::CompositeNormL2
+  sub_solver::S
+  sub_stats::GenericExecutionStats{T, V, V, Any}
 end
 
 function L2PenaltySolver(
@@ -222,7 +222,7 @@ function SolverCore.solve!(
 	set_solver_specific!(stats,:nonsmooth_obj, hx)
 
 	local θ::T 
-	prox!(s, ψ, s0, 1.0)
+	prox!(s, ψ, s0, T(1))
 	θ = hx - ψ(s)
 
 	sqrt_θ = θ ≥ 0 ? sqrt(θ) : sqrt(-θ)
