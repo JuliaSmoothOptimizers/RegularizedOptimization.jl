@@ -4,20 +4,18 @@ export R2DH
     R2DH(nlp, h, options)
     R2DH(f, ∇f!, h, options, x0)
 
-A first-order quadratic regularization method for the problem
+A second-order quadratic regularization method for the problem
 
     min f(x) + h(x)
 
-where f: ℝⁿ → ℝ has a Lipschitz-continuous gradient, and h: ℝⁿ → ℝ is
-lower semi-continuous, proper and prox-bounded.
+where f: ℝⁿ → ℝ is C¹ and h: ℝⁿ → ℝ is lower semi-continuous and proper.
 
 About each iterate xₖ, a step sₖ is computed as a solution of
 
     min  φ(s; xₖ) + ψ(s; xₖ)
 
 where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ(Dₖ + σₖI)s is a quadratic approximation of f about xₖ,
-ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm, Dₖ is a diagonal Hessian approximation
-and σₖ > 0 is the regularization parameter.
+ψ(s; xₖ) = h(xₖ + s), Dₖ is a diagonal Hessian approximation and σₖ > 0 is the regularization parameter.
 
 ### Arguments
 
@@ -30,7 +28,8 @@ and σₖ > 0 is the regularization parameter.
 
 * `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
 * `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`).
-* `Bk`: initial diagonal Hessian approximation (default: `(one(R) / options.ν) * I`).
+* `D`: Diagonal quasi-Newton operator.
+* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotonicity variant (default: 5).
 
 The objective and gradient of `nlp` will be accessed.
 
@@ -166,7 +165,6 @@ function R2DH(
   ∇f!(∇fk, xk)
   ∇fk⁻ = copy(∇fk) 
   spectral_test = isa(D, SpectralGradient)
- # D.d .= D.d .+ σk
   Dkσk = D.d .+ σk
   DNorm = norm(D.d, Inf)
 

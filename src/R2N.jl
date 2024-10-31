@@ -34,6 +34,7 @@ The Hessian is accessed as an abstract operator and need not be the exact Hessia
 * `subsolver`: the procedure used to compute a step (`R2DH`, `R2` or `PG`)
 * `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options)
 * `selected::AbstractVector{<:Integer}`: subset of variables to which `h` is applied (default `1:nlp.meta.nvar`).
+* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotonicity variant (default: 0).
 
 ### Return values
 
@@ -183,7 +184,6 @@ function R2N(
     end
     s1 = copy(s)
 
-  #  subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
     subsolver_options.ϵa = k == 1 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3) # 1.0e-5 default
     verbose > 0 && @debug "setting inner stopping tolerance to" subsolver_options.optTol
     subsolver_args = subsolver == R2DH ? (SpectralGradient(νInv, f.meta.nvar),) : ()
@@ -205,7 +205,7 @@ function R2N(
     fkn = obj(f, xkn)
     hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
-    mks = mk(s) #- σk * dot(s, s) / 2
+    mks = mk(s)
 
     fhmax = Mmonotone > 0 ? maximum(FHobj_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
