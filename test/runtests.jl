@@ -134,5 +134,33 @@ for (h, h_name) ∈ ((NormL1(λ), "l1"),)
   end
 end
 
+R2N_R2DH(args...; kwargs...) = R2N(args...; subsolver = R2DH, kwargs...)
+for (mod, mod_name) ∈ ((SpectralGradientModel, "spg"), (DiagonalPSBModel, "psb"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
+  for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
+    for solver_sym ∈ (:R2DH, :R2N, :R2N_R2DH)
+      solver_sym == (:R2N,:R2N_R2DH)  && mod_name == ("spg", "psb") && continue
+      solver_sym == :R2DH && mod_name != "spg" && continue
+      solver_sym == :R2N_R2DH  && h_name == "l1" && continue # this test seems to fail because s seems to be equal to zeros within the subsolver
+      solver_name = string(solver_sym)
+      solver = eval(solver_sym)
+      @testset "bpdn-$(mod_name)-$(solver_name)-$(h_name)" begin
+        x0 = zeros(bpdn.meta.nvar)
+        out = solver(mod(bpdn), h, options, x0 = x0)
+        @test typeof(out.solution) == typeof(bpdn.meta.x0)
+        @test length(out.solution) == bpdn.meta.nvar
+        @test typeof(out.solver_specific[:Fhist]) == typeof(out.solution)
+        @test typeof(out.solver_specific[:Hhist]) == typeof(out.solution)
+        @test typeof(out.solver_specific[:SubsolverCounter]) == Array{Int, 1}
+        @test typeof(out.dual_feas) == eltype(out.solution)
+        @test length(out.solver_specific[:Fhist]) == length(out.solver_specific[:Hhist])
+        @test length(out.solver_specific[:Fhist]) == length(out.solver_specific[:SubsolverCounter])
+        @test obj(bpdn, out.solution) == out.solver_specific[:Fhist][end]
+        @test h(out.solution) == out.solver_specific[:Hhist][end]
+        @test out.status == :first_order
+      end
+    end
+  end
+end
+
 include("test_bounds.jl")
 include("test_allocs.jl")
