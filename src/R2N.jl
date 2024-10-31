@@ -22,7 +22,7 @@ method or the quadratic regularization method.
 
 * `nlp::AbstractNLPModel`: a smooth optimization problem
 * `h`: a regularizer such as those defined in ProximalOperators
-* `options::ROSolverOptions`: a structure containing algorithmic parameters
+* `options::ROSolverOptions`: a structure containing algorithmic parameters.
 
 The objective, gradient and Hessian of `nlp` will be accessed.
 The Hessian is accessed as an abstract operator and need not be the exact Hessian.
