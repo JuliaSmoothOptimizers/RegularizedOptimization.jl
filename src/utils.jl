@@ -12,7 +12,6 @@ function opnorm_eig(B; max_attempts::Int = 3)
   have_eig = false
   attempt = 0
   λ = zero(eltype(B))
-  success = false
   n = size(B, 1)
   nev = 1
   ncv = max(20, 2 * nev + 1)
@@ -22,19 +21,17 @@ function opnorm_eig(B; max_attempts::Int = 3)
     have_eig = nconv == 1
     if (have_eig)
       λ = abs(d[1])
-      success = true
     else
       ncv = min(2 * ncv, n)
     end
   end
-  return λ, success
+  return λ, have_eig
 end
 
 function opnorm_svd(J; max_attempts::Int = 3)
   have_svd = false
   attempt = 0
   σ = zero(eltype(J))
-  success = false
   n = min(size(J)...)
   nsv = 1
   ncv = 10
@@ -44,12 +41,11 @@ function opnorm_svd(J; max_attempts::Int = 3)
     have_svd = nconv == 1
     if (have_svd)
       σ = maximum(s.S)
-      success = true
     else
       ncv = min(2 * ncv, n)
     end
   end
-  return σ, success
+  return σ, have_svd
 end
 
 ShiftedProximalOperators.iprox!(
