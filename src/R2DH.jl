@@ -15,7 +15,7 @@ About each iterate xₖ, a step sₖ is computed as a solution of
 
     min  φ(s; xₖ) + ψ(s; xₖ)
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ (σₖ+Dₖ) s is a quadratic approximation of f about xₖ,
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ(Dₖ + σₖI)s is a quadratic approximation of f about xₖ,
 ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm, Dₖ is a diagonal Hessian approximation
 and σₖ > 0 is the regularization parameter.
 
