@@ -29,7 +29,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ(Dₖ + σₖI)s is a qua
 * `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
 * `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`).
 * `D`: Diagonal quasi-Newton operator.
-* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotonicity variant (default: 5).
+* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotone variant (default: 5).
 
 The objective and gradient of `nlp` will be accessed.
 
