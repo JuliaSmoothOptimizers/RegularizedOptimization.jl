@@ -34,7 +34,7 @@ The Hessian is accessed as an abstract operator and need not be the exact Hessia
 * `subsolver`: the procedure used to compute a step (`R2DH`, `R2` or `PG`)
 * `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options)
 * `selected::AbstractVector{<:Integer}`: subset of variables to which `h` is applied (default `1:nlp.meta.nvar`).
-* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotone variant (default: 0).
+* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotone variant (default: 1).
 
 ### Return values
 
@@ -51,7 +51,7 @@ function R2N(
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
-  Mmonotone::Int = 0, 
+  Mmonotone::Int = 1, 
   selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
 ) where {H, R}
   start_time = time()
@@ -112,7 +112,7 @@ function R2N(
 
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  FHobj_hist = fill!(Vector{R}(undef, Mmonotone), R(-Inf))
+  FHobj_hist = fill!(Vector{R}(undef, Mmonotone - 1), R(-Inf))
   Complex_hist = zeros(Int, maxIter)
   if verbose > 0
     #! format: off
@@ -144,7 +144,7 @@ function R2N(
     elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    Mmonotone > 0 && (FHobj_hist[mod(k-1, Mmonotone) + 1] = fk + hk)
+    Mmonotone > 1 && (FHobj_hist[mod(k-1, Mmonotone - 1) + 1] = fk + hk)
 
     # model for first prox-gradient step and ξ1
     φ1(d) = ∇fk' * d
@@ -207,7 +207,7 @@ function R2N(
     hkn == -Inf && error("nonsmooth term is not proper")
     mks = mk(s)
 
-    fhmax = Mmonotone > 0 ? maximum(FHobj_hist) : fk + hk
+    fhmax = Mmonotone > 1 ? maximum(FHobj_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
     Δmod = fhmax - (fk + mks) + max(1, abs(fhmax)) * 10 * eps()
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()

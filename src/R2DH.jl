@@ -29,7 +29,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ(Dₖ + σₖI)s is a qua
 * `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
 * `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`).
 * `D`: Diagonal quasi-Newton operator.
-* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotone variant (default: 5).
+* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotone variant (default: 6).
 
 The objective and gradient of `nlp` will be accessed.
 
@@ -87,7 +87,7 @@ function R2DH(
   D::DQN,
   options::ROSolverOptions{R},
   x0::AbstractVector{R};
-  Mmonotone::Int = 5,
+  Mmonotone::Int = 6,
   selected::AbstractVector{<:Integer} = 1:length(x0),
   kwargs...,
 ) where {F <: Function, G <: Function, H, R <: Real, DQN <: AbstractDiagonalQuasiNewtonOperator}
@@ -148,7 +148,7 @@ function R2DH(
   Fobj_hist = zeros(maxIter+1)
   Hobj_hist = zeros(maxIter+1)
   time_hist = zeros(maxIter+1)
-  FHobj_hist = fill!(Vector{R}(undef, Mmonotone), R(-Inf))
+  FHobj_hist = fill!(Vector{R}(undef,  - 1), R(-Inf))
   Complex_hist = zeros(Int, maxIter+1)
   k_prox = 0
   if verbose > 0
@@ -202,7 +202,7 @@ function R2DH(
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
     time_hist[k] = elapsed_time
-    Mmonotone > 0 && (FHobj_hist[mod(k-1, Mmonotone) + 1] = fk + hk)
+    Mmonotone > 1 && (FHobj_hist[mod(k-1, Mmonotone - 1) + 1] = fk + hk)
 
     Complex_hist[k] += k_prox
     k_prox = 0
@@ -211,7 +211,7 @@ function R2DH(
     hkn = h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
     
-    fhmax = Mmonotone > 0 ? maximum(FHobj_hist) : fk + hk
+    fhmax = Mmonotone > 1 ? maximum(FHobj_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
     Δmod = fhmax - (fk + mks) + max(1, abs(hk)) * 10 * eps()
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
