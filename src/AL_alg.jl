@@ -63,12 +63,14 @@ An augmented Lagrangian method for the problem
 where f: ℝⁿ → ℝ, c: ℝⁿ → ℝᵐ and their derivatives are Lipschitz continuous and h: ℝⁿ → ℝ is
 lower semi-continuous, proper and prox-bounded.
 
-At each iteration, a step s is computed as an approximate solution of
+At each iteration, an iterate x is computed as an approximate solution of
 
-    min  ½ ‖J(x) s + F(x)‖² + ½ σ ‖s‖² + ψ(s; x)
+    min  L(x;y,μ) + h(x) subject to lvar ≤ x ≤ uvar
 
-where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; x) = h(x + s),
-and σ > 0 is a regularization parameter.
+where y is an estimate of the Lagrange multiplier vector for the constraints lcon ≤ c(x) ≤ ucon, 
+μ is the penalty parameter and L(⋅;y,μ) is the augmented Lagrangian function defined by
+
+    L(x;y,μ) := f(x) - yᵀc(x) + ½ μ ‖c(x)‖².
 
 ### Arguments
 
