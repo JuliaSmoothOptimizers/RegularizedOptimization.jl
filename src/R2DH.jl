@@ -148,7 +148,7 @@ function R2DH(
   Fobj_hist = zeros(maxIter+1)
   Hobj_hist = zeros(maxIter+1)
   time_hist = zeros(maxIter+1)
-  FHobj_hist = fill!(Vector{R}(undef,  - 1), R(-Inf))
+  FHobj_hist = fill!(Vector{R}(undef, Mmonotone - 1), R(-Inf))
   Complex_hist = zeros(Int, maxIter+1)
   k_prox = 0
   if verbose > 0
@@ -188,7 +188,7 @@ function R2DH(
     end
     mks = mk(s)
 
-    if mks < -1e5
+    if mks == -Inf
       σk = σk * γ
       Dkσk .= D.d .+ σk
       DNorm = norm(D.d, Inf)
