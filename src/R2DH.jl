@@ -27,7 +27,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ(Dₖ + σₖI)s is a qua
 ### Keyword Arguments
 
 * `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
-* `selected::AbstractVector{<:Integer}`: (default `1:length(x0)`).
+* `selected::AbstractVector{<:Integer}`: subset of variables to which `h` is applied (default `1:length(x0)`).
 * `D`: Diagonal quasi-Newton operator.
 * `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotone variant (default: 6).
 
