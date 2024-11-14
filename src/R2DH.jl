@@ -8,7 +8,7 @@ A second-order quadratic regularization method for the problem
 
     min f(x) + h(x)
 
-where f: ℝⁿ → ℝ is C¹ and h: ℝⁿ → ℝ is lower semi-continuous and proper.
+where f: ℝⁿ → ℝ is C¹ and h: ℝⁿ → ℝ is lower semi-continuous, proper, and prox-bounded.
 
 About each iterate xₖ, a step sₖ is computed as a solution of
 
