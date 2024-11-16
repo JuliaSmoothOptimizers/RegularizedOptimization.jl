@@ -1,71 +1,79 @@
 export AL
 
-function AL(nlp::AbstractNLPModel, h::H, options::ROSolverOptions; kwargs...) where {H}
-  if unconstrained(nlp) || bound_constrained(nlp)
-    return AL(Val(:unc), nlp, h, options; kwargs...)
-  elseif equality_constrained(nlp)
-    return AL(Val(:equ), nlp, h, options; kwargs...)
+function AL(nlp::AbstractNLPModel, h; kwargs...)
+  kwargs_dict = Dict(kwargs...)
+  selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
+  reg_nlp = RegularizedNLPModel(nlp, h, selected)
+  return AL(reg_nlp; kwargs...)
+end
+
+function AL(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
+  if unconstrained(reg_nlp.model) || bound_constrained(reg_nlp.model)
+    return AL(Val(:unc), reg_nlp; kwargs...)
+  elseif equality_constrained(reg_nlp.model)
+    return AL(Val(:equ), reg_nlp; kwargs...)
   else # has inequalities
-    return AL(Val(:ineq), nlp, h, options; kwargs...)
+    return AL(Val(:ineq), reg_nlp; kwargs...)
   end
 end
 
 function AL(
   ::Val{:unc},
-  nlp::AbstractNLPModel,
-  h::H,
-  options::ROSolverOptions;
-  subsolver = has_bounds(nlp) ? TR : R2,
+  reg_nlp::AbstractRegularizedNLPModel;
+  subsolver = has_bounds(reg_nlp.model) ? TR : R2,
   kwargs...,
-) where {H}
-  if !(unconstrained(nlp) || bound_constrained(nlp))
+)
+  if !(unconstrained(reg_nlp.model) || bound_constrained(reg_nlp.model))
     error(
       "AL(::Val{:unc}, ...) should only be called for unconstrained or bound-constrained problems. Use AL(...)",
     )
   end
   @warn "Problem does not have general explicit constraints; calling solver $(string(subsolver))"
-  return subsolver(nlp, h, options; kwargs...)
+  return subsolver(reg_nlp; kwargs...)
 end
 
 # a uniform solver interface is missing
-# TR(nlp, h, options; kwargs...) = TR(nlp, h, NormLinf(1.0), options; kwargs...)
+# TR(nlp, h; kwargs...) = TR(nlp, h, NormLinf(1.0); kwargs...)
 
 function AL(
   ::Val{:ineq},
-  nlp::AbstractNLPModel,
-  h::H,
-  options::ROSolverOptions{T};
-  x0::AbstractVector{T} = nlp.meta.x0,
+  reg_nlp::AbstractRegularizedNLPModel;
+  x0::V = reg_nlp.model.meta.x0,
   kwargs...,
-) where {H, T}
+) where {V}
+  nlp = reg_nlp.model
   if nlp.meta.ncon == 0 || equality_constrained(nlp)
     error("AL(::Val{:ineq}, ...) should only be called for problems with inequalities. Use AL(...)")
   end
   snlp = nlp isa AbstractNLSModel ? SlackNLSModel(nlp) : SlackModel(nlp)
+  reg_snlp = RegularizedNLPModel(snlp, reg_nlp.h, reg_nlp.selected)
   if length(x0) != snlp.meta.nvar
-    x0s = zeros(T, snlp.meta.nvar)
-    x0s[1:(nlp.meta.nvar)] .= x0
+    x = fill!(V(undef, snlp.meta.nvar), zero(eltype(V)))
+    x[1:(nlp.meta.nvar)] .= x0
   else
-    x0s = x0
+    x = x0
   end
-  output = AL(Val(:equ), snlp, h, options; x0 = x0s, kwargs...)
+  output = AL(Val(:equ), reg_snlp; x0 = x, kwargs...)
   output.solution = output.solution[1:(nlp.meta.nvar)]
   return output
 end
 
 """
-    AL(nlp, h, options; kwargs...)
+    AL(reg_nlp; kwargs...)
 
-An augmented Lagrangian method for the problem
+An augmented Lagrangian method for constrained regularized optimization, namely problems in the form
 
-    min f(x) + h(x) subject to lvar ≤ x ≤ uvar, lcon ≤ c(x) ≤ ucon
+    minimize    f(x) + h(x)
+    subject to  lvar ≤ x ≤ uvar,
+                lcon ≤ c(x) ≤ ucon
 
 where f: ℝⁿ → ℝ, c: ℝⁿ → ℝᵐ and their derivatives are Lipschitz continuous and h: ℝⁿ → ℝ is
 lower semi-continuous, proper and prox-bounded.
 
-At each iteration, an iterate x is computed as an approximate solution of
+At each iteration, an iterate x is computed as an approximate solution of the subproblem
 
-    min  L(x;y,μ) + h(x) subject to lvar ≤ x ≤ uvar
+    minimize    L(x;y,μ) + h(x)
+    subject to  lvar ≤ x ≤ uvar
 
 where y is an estimate of the Lagrange multiplier vector for the constraints lcon ≤ c(x) ≤ ucon, 
 μ is the penalty parameter and L(⋅;y,μ) is the augmented Lagrangian function defined by
@@ -74,44 +82,64 @@ where y is an estimate of the Lagrange multiplier vector for the constraints lco
 
 ### Arguments
 
-* `nlp::AbstractNLPModel`: a smooth optimization problem
-* `h`: a regularizer such as those defined in ProximalOperators
-* `options::ROSolverOptions`: a structure containing algorithmic parameters
+* `reg_nlp::AbstractRegularizedNLPModel`: a regularized optimization problem, see `RegularizedProblems.jl`, 
+  consisting of `model` representing a smooth optimization problem, see `NLPModels.jl`, and a regularizer `h` such
+  as those defined in `ProximalOperators.jl`.
 
-The objective and gradient of `nlp` will be accessed.
-The Hessian of `nlp` may be accessed or not, depending on the subsolver adopted.
+The objective and gradient of `model` will be accessed.
+The Hessian of `model` may be accessed or not, depending on the subsolver adopted.
 If adopted, the Hessian is accessed as an abstract operator and need not be the exact Hessian.
 
 ### Keyword arguments
 
-* `x0::AbstractVector`: a primal initial guess (default: `nlp.meta.x0`)
-* `y0::AbstractVector`: a dual initial guess (default: `nlp.meta.y0`)
-* `subsolver`: the procedure used to compute a step (e.g. `PG`, `R2`, `TR` or `TRDH`)
-* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
-* `subsolver_options::ROSolverOptions`: default options to pass to the subsolver.
+* `x0::AbstractVector`: a primal initial guess (default: `reg_nlp.model.meta.x0`)
+* `y0::AbstractVector`: a dual initial guess (default: `reg_nlp.model.meta.y0`)
+- `atol::T = √eps(T)`: absolute optimality tolerance;
+- `ctol::T = atol`: absolute feasibility tolerance;
+- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
+- `max_iter::Int = 10000`: maximum number of iterations;
+- `max_time::Float64 = 30.0`: maximum time limit in seconds;
+- `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
+* `subsolver::AbstractOptimizationSolver = has_bounds(nlp) ? TR : R2`: the procedure used to compute a step (e.g. `PG`, `R2`, `TR` or `TRDH`);
+* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver;
+- `init_penalty::T = T(10)`: initial penalty parameter;
+- `factor_penalty_up::T = T(2)`: multiplicative factor to increase the penalty parameter;
+- `factor_primal_linear_improvement::T = T(3/4)`: fraction to declare sufficient improvement of feasibility;
+- `init_subtol::T = T(0.1)`: initial subproblem tolerance;
+- `factor_decrease_subtol::T = T(1/4)`: multiplicative factor to decrease the subproblem tolerance;
+- `dual_safeguard = (nlp::AugLagModel) -> nothing`: in-place function to modify, as needed, the dual estimate.
 
 ### Return values
 
-* `stats::GenericExecutionStats`: solution and other info.
+* `stats::GenericExecutionStats`: solution and other info, see `SolverCore.jl`.
 
 """
 function AL(
   ::Val{:equ},
-  nlp::AbstractNLPModel,
-  h::H,
-  options::ROSolverOptions{T};
-  x0::V = nlp.meta.x0,
-  y0::V = nlp.meta.y0,
-  subsolver = has_bounds(nlp) ? TR : R2,
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
+  x0::V = reg_nlp.model.meta.x0,
+  y0::V = reg_nlp.model.meta.y0,
+  atol::T = √eps(T),
+  verbose::Int = 0,
+  max_iter::Int = 10000,
+  max_time::Float64 = 30.0,
+  max_eval::Int = -1,
+  subsolver = has_bounds(reg_nlp.model) ? TR : R2,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
-  init_penalty::Real = T(10),
-  factor_penalty_up::Real = T(2),
-  ctol::Real = options.ϵa,
-  init_subtol::Real = T(0.1),
-  factor_primal_linear_improvement::Real = T(3 // 4),
-  factor_decrease_subtol::Real = T(1 // 4),
+  init_penalty::T = T(10),
+  factor_penalty_up::T = T(2),
+  ctol::T = atol,
+  init_subtol::T = T(0.1),
+  factor_primal_linear_improvement::T = T(3 // 4),
+  factor_decrease_subtol::T = T(1 // 4),
   dual_safeguard = project_y!,
-) where {H, T <: Real, V}
+) where {T, V}
+
+  # Retrieve workspace
+  nlp = reg_nlp.model
+  h = reg_nlp.h
+  selected = reg_nlp.selected
+
   if !(nlp.meta.minimize)
     error("AL only works for minimization problems")
   end
@@ -131,10 +159,6 @@ function AL(
   @assert factor_penalty_up > 1
   @assert 0 < factor_primal_linear_improvement < 1
   @assert 0 < factor_decrease_subtol < 1
-  verbose = options.verbose
-  max_time = options.maxTime
-  max_iter = options.maxIter
-  max_eval = -1
 
   # initialization
   @assert length(x0) == nlp.meta.nvar
@@ -172,9 +196,9 @@ function AL(
     dual_safeguard(alf)
 
     # AL subproblem
-    subtol = max(subtol, options.ϵa)
+    subtol = max(subtol, atol)
     subout = with_logger(subsolver_logger) do
-      subsolver(alf, h, x = x, atol = subtol, rtol = zero(T))
+      subsolver(alf, h, x = x, atol = subtol, rtol = zero(T), selected = selected)
     end
     x .= subout.solution
     subiters += subout.iter
@@ -199,10 +223,7 @@ function AL(
     set_primal_residual!(stats, cviol)
 
     # termination checks
-    dual_ok =
-      subout.status_reliable &&
-      subout.status == :first_order &&
-      subtol <= options.ϵa
+    dual_ok = subout.status_reliable && subout.status == :first_order && subtol <= atol
     primal_ok = cviol <= ctol
     optimal = dual_ok && primal_ok
 
