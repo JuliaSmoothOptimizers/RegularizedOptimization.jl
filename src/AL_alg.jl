@@ -111,7 +111,7 @@ function AL(
   init_subtol::Real = T(0.1),
   factor_primal_linear_improvement::Real = T(3 // 4),
   factor_decrease_subtol::Real = T(1 // 4),
-) where {H, T <: Real}
+  dual_safeguard = project_y!,
   if !(nlp.meta.minimize)
     error("AL only works for minimization problems")
   end
@@ -131,10 +131,6 @@ function AL(
   @assert factor_penalty_up > 1
   @assert 0 < factor_primal_linear_improvement < 1
   @assert 0 < factor_decrease_subtol < 1
-  ymin = -1e20
-  ymax = 1e20
-  @assert ymin <= 0
-  @assert ymax >= 0
   verbose = options.verbose
   max_time = options.maxTime
   max_iter = options.maxIter
@@ -174,7 +170,7 @@ function AL(
     iter += 1
 
     # dual safeguard
-    project_y!(alf, ymin, ymax)
+    dual_safeguard(alf)
 
     # AL subproblem
     suboptions.ϵa = max(subtol, options.ϵa)
@@ -252,20 +248,13 @@ function AL(
 end
 
 """
-    project_y!(nlp, ymin, ymax)
+    project_y!(nlp)
 
-Given an `AugLagModel`, project `nlp.y` into [ymin, ymax]and updates `nlp.μc_y` accordingly.
+Given an `AugLagModel`, project `nlp.y` into [ymin, ymax] and updates `nlp.μc_y` accordingly.
 """
-function project_y!(
-  nlp::AugLagModel,
-  ymin::AbstractVector{T},
-  ymax::AbstractVector{T},
-) where {T <: Real}
-  nlp.y .= max.(ymin, min.(nlp.y, ymax))
-  nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
-end
+project_y!(nlp::AugLagModel) = project_y!(nlp::AugLagModel, -1e20, 1e20)
 
-function project_y!(nlp::AugLagModel, ymin::T, ymax::T) where {T <: Real}
+function project_y!(nlp::AugLagModel, ymin::V, ymax::V) where {V}
   nlp.y .= max.(ymin, min.(nlp.y, ymax))
   nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
 end
