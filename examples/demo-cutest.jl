@@ -9,8 +9,8 @@ nlp = CUTEstModel(problem_name)
 
 h = NormL1(1.0)
 
-options = ROSolverOptions(ϵa = 1e-6, ϵr = 1e-6, verbose = 2)
-
+options = ROSolverOptions(ϵa = 1e-6, verbose = 1)
 stats = AL(nlp, h, options)
+print(stats)
 
 finalize(nlp)

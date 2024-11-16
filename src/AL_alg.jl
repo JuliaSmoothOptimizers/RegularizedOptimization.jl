@@ -100,18 +100,18 @@ function AL(
   nlp::AbstractNLPModel,
   h::H,
   options::ROSolverOptions{T};
-  x0::AbstractVector{T} = nlp.meta.x0,
-  y0::AbstractVector{T} = nlp.meta.y0,
+  x0::V = nlp.meta.x0,
+  y0::V = nlp.meta.y0,
   subsolver = has_bounds(nlp) ? TR : R2,
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
-  subsolver_options::ROSolverOptions{T} = ROSolverOptions{T}(),
   init_penalty::Real = T(10),
   factor_penalty_up::Real = T(2),
-  ctol::Real = options.ϵa > 0 ? options.ϵa : options.ϵr,
+  ctol::Real = options.ϵa,
   init_subtol::Real = T(0.1),
   factor_primal_linear_improvement::Real = T(3 // 4),
   factor_decrease_subtol::Real = T(1 // 4),
   dual_safeguard = project_y!,
+) where {H, T <: Real, V}
   if !(nlp.meta.minimize)
     error("AL only works for minimization problems")
   end
@@ -134,6 +134,7 @@ function AL(
   verbose = options.verbose
   max_time = options.maxTime
   max_iter = options.maxIter
+  max_eval = -1
 
   # initialization
   @assert length(x0) == nlp.meta.nvar
@@ -149,13 +150,11 @@ function AL(
   mu = init_penalty
   alf = AugLagModel(nlp, y, mu, x, fx, cx)
 
-  V = norm(alf.cx, Inf)
-  V_old = Inf
+  cviol = norm(alf.cx, Inf)
+  cviol_old = Inf
   iter = 0
   subiters = 0
   done = false
-
-  suboptions = subsolver_options
   subtol = init_subtol
 
   if verbose > 0
@@ -163,7 +162,7 @@ function AL(
       [:iter, :subiter, :fx, :prim_res, :μ, :normy, :dual_tol, :inner_status],
       [Int, Int, Float64, Float64, Float64, Float64, Float64, Symbol],
     )
-    @info log_row(Any[iter, subiters, fx, V, alf.μ, norm(y), subtol])
+    @info log_row(Any[iter, subiters, fx, cviol, alf.μ, norm(y), subtol])
   end
 
   while !done
@@ -173,10 +172,9 @@ function AL(
     dual_safeguard(alf)
 
     # AL subproblem
-    suboptions.ϵa = max(subtol, options.ϵa)
-    suboptions.ϵr = max(subtol, options.ϵr)
+    subtol = max(subtol, options.ϵa)
     subout = with_logger(subsolver_logger) do
-      subsolver(alf, h, suboptions, x0 = x)
+      subsolver(alf, h, x = x, atol = subtol, rtol = zero(T))
     end
     x .= subout.solution
     subiters += subout.iter
@@ -190,21 +188,22 @@ function AL(
     set_constraint_multipliers!(stats, alf.y)
 
     # stationarity measure
+    # FIXME it seems that R2 returns no dual_feas in `dual_feas`
+    # but in `solver_specific.xi`
     if subout.dual_residual_reliable
       set_dual_residual!(stats, subout.dual_feas)
     end
 
     # primal violation
-    V = norm(alf.cx, Inf)
-    set_primal_residual!(stats, V)
+    cviol = norm(alf.cx, Inf)
+    set_primal_residual!(stats, cviol)
 
     # termination checks
     dual_ok =
       subout.status_reliable &&
       subout.status == :first_order &&
-      suboptions.ϵa <= options.ϵa &&
-      suboptions.ϵr <= options.ϵr
-    primal_ok = V <= ctol
+      subtol <= options.ϵa
+    primal_ok = cviol <= ctol
     optimal = dual_ok && primal_ok
 
     set_iter!(stats, iter)
@@ -221,6 +220,7 @@ function AL(
         unbounded = false,
         stalled = false,
         exception = false,
+        max_eval = max_eval,
         max_time = max_time,
         max_iter = max_iter,
       ),
@@ -229,16 +229,16 @@ function AL(
     done = stats.status != :unknown
 
     if verbose > 0 && (mod(stats.iter, verbose) == 0 || done)
-      @info log_row(Any[iter, subiters, fx, V, alf.μ, norm(alf.y), subtol, subout.status])
+      @info log_row(Any[iter, subiters, fx, cviol, alf.μ, norm(alf.y), subtol, subout.status])
     end
 
     if !done
-      if V > max(ctol, factor_primal_linear_improvement * V_old)
+      if cviol > max(ctol, factor_primal_linear_improvement * cviol_old)
         #@info "decreasing mu"
         mu *= factor_penalty_up
       end
       update_μ!(alf, mu)
-      V_old = V
+      cviol_old = cviol
       subtol *= factor_decrease_subtol
     end
   end
