@@ -250,3 +250,22 @@ function AL(
   set_constraint_multipliers!(stats, alf.y)
   return stats
 end
+
+"""
+    project_y!(nlp, ymin, ymax)
+
+Given an `AugLagModel`, project `nlp.y` into [ymin, ymax]and updates `nlp.μc_y` accordingly.
+"""
+function project_y!(
+  nlp::AugLagModel,
+  ymin::AbstractVector{T},
+  ymax::AbstractVector{T},
+) where {T <: Real}
+  nlp.y .= max.(ymin, min.(nlp.y, ymax))
+  nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
+end
+
+function project_y!(nlp::AugLagModel, ymin::T, ymax::T) where {T <: Real}
+  nlp.y .= max.(ymin, min.(nlp.y, ymax))
+  nlp.μc_y .= nlp.μ .* nlp.cx .- nlp.y
+end
