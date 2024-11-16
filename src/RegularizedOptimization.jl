@@ -9,6 +9,7 @@ using ProximalOperators, TSVD
 # dependencies from us
 using LinearOperators,
   NLPModels, NLPModelsModifiers, RegularizedProblems, ShiftedProximalOperators, SolverCore
+using Percival: AugLagModel, update_y!, update_μ!
 
 include("utils.jl")
 include("input_struct.jl")
@@ -21,7 +22,6 @@ include("R2_alg.jl")
 include("LM_alg.jl")
 include("LMTR_alg.jl")
 
-include("AL_model.jl")
 include("AL_alg.jl")
 
 end  # module RegularizedOptimization
