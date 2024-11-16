@@ -29,7 +29,6 @@ include("R2N.jl")
 
 include("AL_alg.jl")
 
-include("AL_model.jl")
 include("AL_alg.jl")
 
 end  # module RegularizedOptimization
