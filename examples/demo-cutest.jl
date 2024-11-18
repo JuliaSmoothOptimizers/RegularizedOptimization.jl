@@ -29,4 +29,11 @@ solver = ALSolver(regnlp)
 stats = solve!(solver, regnlp, stats, atol = 1e-6, verbose = 1)
 print(stats)
 
+callback =
+  (regnlp, solver, stats) -> begin
+    @info "iter $(stats.iter), obj $(stats.objective), status $(stats.status)"
+  end
+stats = AL(nlp, h, atol = 1e-6, verbose = 1, callback = callback)
+print(stats)
+
 finalize(nlp)
