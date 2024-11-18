@@ -34,9 +34,6 @@ function AL(
   return subsolver(reg_nlp; kwargs...)
 end
 
-# a uniform solver interface is missing
-# TR(nlp, h; kwargs...) = TR(nlp, h, NormLinf(1.0); kwargs...)
-
 function AL(
   ::Val{:ineq},
   reg_nlp::AbstractRegularizedNLPModel;
