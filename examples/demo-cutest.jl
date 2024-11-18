@@ -36,4 +36,11 @@ callback =
 stats = AL(nlp, h, atol = 1e-6, verbose = 1, callback = callback)
 print(stats)
 
+callback =
+  (regnlp, solver, stats) -> begin
+    @info "iter $(stats.iter), f $(stats.solver_specific[:smooth_obj]), h $(stats.solver_specific[:nonsmooth_obj])"
+  end
+stats = AL(nlp, h, atol = 1e-6, verbose = 1, callback = callback)
+print(stats)
+
 finalize(nlp)
