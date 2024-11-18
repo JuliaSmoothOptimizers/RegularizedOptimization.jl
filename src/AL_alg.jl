@@ -134,7 +134,9 @@ Notably, you can access, and modify, the following:
   - `stats.iter`: current iteration counter;
   - `stats.objective`: current objective function value;
   - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention;
-  - `stats.elapsed_time`: elapsed time in seconds.
+  - `stats.elapsed_time`: elapsed time in seconds;
+  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
+  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function.
 """
 mutable struct ALSolver{T, V, M, ST} <: AbstractOptimizationSolver
   x::V
@@ -244,9 +246,12 @@ function SolverCore.solve!(
   set_constraint_multipliers!(stats, solver.y)
   subout = solver.sub_stats
 
-  objx, _ = objcons!(nlp, solver.x, solver.cx)
-  objx += @views h(solver.x[selected])
+  fx, _ = objcons!(nlp, solver.x, solver.cx)
+  hx = @views h(solver.x[selected])
+  objx = fx + hx
   set_objective!(stats, objx)
+  set_solver_specific!(stats, :smooth_obj, fx)
+  set_solver_specific!(stats, :nonsmooth_obj, hx)
 
   mu = init_penalty
   solver.sub_model.y .= solver.y
@@ -297,9 +302,12 @@ function SolverCore.solve!(
     subiters += subout.iter
 
     # objective
-    objx = obj(nlp, solver.x)
-    objx += @views h(solver.x[selected])
+    fx = obj(nlp, solver.x)
+    hx = @views h(solver.x[selected])
+    objx = fx + hx
     set_objective!(stats, objx)
+    set_solver_specific!(stats, :smooth_obj, fx)
+    set_solver_specific!(stats, :nonsmooth_obj, hx)
 
     # dual estimate
     update_y!(solver.sub_model)
