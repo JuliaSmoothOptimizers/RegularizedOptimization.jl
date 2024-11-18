@@ -120,6 +120,21 @@ If adopted, the Hessian is accessed as an abstract operator and need not be the 
 # Output
 
 - `stats::GenericExecutionStats`: solution and other info, see `SolverCore.jl`.
+
+# Callback
+The callback is called at each iteration.
+The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+Changing any of the input arguments will affect the subsequent iterations.
+In particular, setting `stats.status = :user` will stop the algorithm.
+All relevant information should be available in `reg_nlp` and `solver`.
+Notably, you can access, and modify, the following:
+- `solver.x`: current iterate;
+- `solver.y`: current dual estimate;
+- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
+  - `stats.iter`: current iteration counter;
+  - `stats.objective`: current objective function value;
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention;
+  - `stats.elapsed_time`: elapsed time in seconds.
 """
 mutable struct ALSolver{T, V, M, ST} <: AbstractOptimizationSolver
   x::V
@@ -173,6 +188,7 @@ function SolverCore.solve!(
   solver::ALSolver{T, V},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
+  callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
   y::V = reg_nlp.model.meta.y0,
   atol::T = √eps(T),
@@ -252,6 +268,8 @@ function SolverCore.solve!(
     @info log_row(Any[iter, subiters, objx, cviol, mu, norm(solver.y), subtol])
   end
 
+  callback(reg_nlp, solver, stats)
+
   while !done
     iter += 1
 
@@ -323,6 +341,8 @@ function SolverCore.solve!(
         max_iter = max_iter,
       ),
     )
+
+    callback(reg_nlp, solver, stats)
 
     done = stats.status != :unknown
 
