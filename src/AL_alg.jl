@@ -1,4 +1,6 @@
-export AL
+export AL, ALSolver, solve!
+
+import SolverCore.solve!
 
 function AL(nlp::AbstractNLPModel, h; kwargs...)
   kwargs_dict = Dict(kwargs...)
@@ -32,13 +34,10 @@ function AL(
   return subsolver(reg_nlp; kwargs...)
 end
 
-# a uniform solver interface is missing
-# TR(nlp, h; kwargs...) = TR(nlp, h, NormLinf(1.0); kwargs...)
-
 function AL(
   ::Val{:ineq},
   reg_nlp::AbstractRegularizedNLPModel;
-  x0::V = reg_nlp.model.meta.x0,
+  x::V = reg_nlp.model.meta.x0,
   kwargs...,
 ) where {V}
   nlp = reg_nlp.model
@@ -47,13 +46,13 @@ function AL(
   end
   snlp = nlp isa AbstractNLSModel ? SlackNLSModel(nlp) : SlackModel(nlp)
   reg_snlp = RegularizedNLPModel(snlp, reg_nlp.h, reg_nlp.selected)
-  if length(x0) != snlp.meta.nvar
-    x = fill!(V(undef, snlp.meta.nvar), zero(eltype(V)))
-    x[1:(nlp.meta.nvar)] .= x0
+  if length(x) != snlp.meta.nvar
+    xs = fill!(V(undef, snlp.meta.nvar), zero(eltype(V)))
+    xs[1:(nlp.meta.nvar)] .= x
   else
-    x = x0
+    xs = x
   end
-  output = AL(Val(:equ), reg_snlp; x0 = x, kwargs...)
+  output = AL(Val(:equ), reg_snlp; x = xs, kwargs...)
   output.solution = output.solution[1:(nlp.meta.nvar)]
   return output
 end
@@ -80,9 +79,18 @@ where y is an estimate of the Lagrange multiplier vector for the constraints lco
 
     L(x;y,μ) := f(x) - yᵀc(x) + ½ μ ‖c(x)‖².
 
-### Arguments
+For advanced usage, first define a solver "ALSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-* `reg_nlp::AbstractRegularizedNLPModel`: a regularized optimization problem, see `RegularizedProblems.jl`, 
+    solver = ALSolver(reg_nlp)
+    solve!(solver, reg_nlp)
+
+    stats = GenericExecutionStats(reg_nlp.model)
+    solver = ALSolver(reg_nlp)
+    solve!(solver, reg_nlp, stats)
+
+# Arguments
+
+- `reg_nlp::AbstractRegularizedNLPModel`: a regularized optimization problem, see `RegularizedProblems.jl`, 
   consisting of `model` representing a smooth optimization problem, see `NLPModels.jl`, and a regularizer `h` such
   as those defined in `ProximalOperators.jl`.
 
@@ -90,18 +98,18 @@ The objective and gradient of `model` will be accessed.
 The Hessian of `model` may be accessed or not, depending on the subsolver adopted.
 If adopted, the Hessian is accessed as an abstract operator and need not be the exact Hessian.
 
-### Keyword arguments
+# Keyword arguments
 
-* `x0::AbstractVector`: a primal initial guess (default: `reg_nlp.model.meta.x0`)
-* `y0::AbstractVector`: a dual initial guess (default: `reg_nlp.model.meta.y0`)
+- `x::AbstractVector`: a primal initial guess (default: `reg_nlp.model.meta.x0`)
+- `y::AbstractVector`: a dual initial guess (default: `reg_nlp.model.meta.y0`)
 - `atol::T = √eps(T)`: absolute optimality tolerance;
 - `ctol::T = atol`: absolute feasibility tolerance;
 - `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
 - `max_iter::Int = 10000`: maximum number of iterations;
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
 - `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
-* `subsolver::AbstractOptimizationSolver = has_bounds(nlp) ? TR : R2`: the procedure used to compute a step (e.g. `PG`, `R2`, `TR` or `TRDH`);
-* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver;
+- `subsolver::AbstractOptimizationSolver = has_bounds(nlp) ? TR : R2`: the procedure used to compute a step (e.g. `PG`, `R2`, `TR` or `TRDH`);
+- `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver;
 - `init_penalty::T = T(10)`: initial penalty parameter;
 - `factor_penalty_up::T = T(2)`: multiplicative factor to increase the penalty parameter;
 - `factor_primal_linear_improvement::T = T(3/4)`: fraction to declare sufficient improvement of feasibility;
@@ -109,23 +117,72 @@ If adopted, the Hessian is accessed as an abstract operator and need not be the 
 - `factor_decrease_subtol::T = T(1/4)`: multiplicative factor to decrease the subproblem tolerance;
 - `dual_safeguard = (nlp::AugLagModel) -> nothing`: in-place function to modify, as needed, the dual estimate.
 
-### Return values
+# Output
 
-* `stats::GenericExecutionStats`: solution and other info, see `SolverCore.jl`.
-
+- `stats::GenericExecutionStats`: solution and other info, see `SolverCore.jl`.
 """
-function AL(
-  ::Val{:equ},
-  reg_nlp::AbstractRegularizedNLPModel{T, V};
-  x0::V = reg_nlp.model.meta.x0,
-  y0::V = reg_nlp.model.meta.y0,
+mutable struct ALSolver{T, V, M, ST} <: AbstractOptimizationSolver
+  x::V
+  cx::V
+  y::V
+  has_bnds::Bool
+  sub_model::AugLagModel{M, T, V}
+  sub_solver::ST
+  sub_stats::GenericExecutionStats{T, V, V, Any}
+end
+
+function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
+  nlp = reg_nlp.model
+  nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
+  x = V(undef, nvar)
+  cx = V(undef, ncon)
+  y = V(undef, ncon)
+  has_bnds = has_bounds(nlp)
+  sub_model = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
+  sub_solver = R2Solver(reg_nlp; kwargs...)
+  sub_stats = GenericExecutionStats(sub_model)
+  M = typeof(nlp)
+  ST = typeof(sub_solver)
+  return ALSolver{T, V, M, ST}(x, cx, y, has_bnds, sub_model, sub_solver, sub_stats)
+end
+
+@doc (@doc ALSolver) function AL(::Val{:equ}, reg_nlp::AbstractRegularizedNLPModel; kwargs...)
+  nlp = reg_nlp.model
+  if !(nlp.meta.minimize)
+    error("AL only works for minimization problems")
+  end
+  if nlp.meta.ncon == 0 || !equality_constrained(nlp)
+    error(
+      "AL(::Val{:equ}, ...) should only be called for equality-constrained problems with bounded variables. Use AL(...)",
+    )
+  end
+  solver = ALSolver(reg_nlp)
+  solve!(solver, reg_nlp; kwargs...)
+end
+
+function SolverCore.solve!(
+  solver::AbstractOptimizationSolver,
+  model::AbstractRegularizedNLPModel;
+  kwargs...,
+)
+  stats = GenericExecutionStats(model.model)
+  solve!(solver, model, stats; kwargs...)
+end
+
+function SolverCore.solve!(
+  solver::ALSolver{T, V},
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
+  x::V = reg_nlp.model.meta.x0,
+  y::V = reg_nlp.model.meta.y0,
   atol::T = √eps(T),
   verbose::Int = 0,
   max_iter::Int = 10000,
   max_time::Float64 = 30.0,
   max_eval::Int = -1,
-  subsolver = has_bounds(reg_nlp.model) ? TR : R2,
-  subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
+  subsolver_verbose::Int = 0,
+  subsolver_max_iter::Int = 100000,
+  subsolver_max_eval::Int = -1,
   init_penalty::T = T(10),
   factor_penalty_up::T = T(2),
   ctol::T = atol,
@@ -140,6 +197,7 @@ function AL(
   h = reg_nlp.h
   selected = reg_nlp.selected
 
+  # Sanity checks
   if !(nlp.meta.minimize)
     error("AL only works for minimization problems")
   end
@@ -148,68 +206,87 @@ function AL(
       "AL(::Val{:equ}, ...) should only be called for equality-constrained problems. Use AL(...)",
     )
   end
+  @assert length(solver.x) == nlp.meta.nvar
+  @assert length(solver.y) == nlp.meta.ncon
+  #TODO check solver.has_bnds with has_bounds(nlp) for solver.sub_solver
 
-  stats = GenericExecutionStats(nlp)
+  reset!(stats)
   set_iter!(stats, 0)
   start_time = time()
   set_time!(stats, 0.0)
 
-  # parameters
+  # check parameter values
   @assert init_penalty > 0
   @assert factor_penalty_up > 1
   @assert 0 < factor_primal_linear_improvement < 1
   @assert 0 < factor_decrease_subtol < 1
 
   # initialization
-  @assert length(x0) == nlp.meta.nvar
-  @assert length(y0) == nlp.meta.ncon
-  x = similar(nlp.meta.x0)
-  y = similar(nlp.meta.y0)
-  x .= x0
-  y .= y0
-  set_solution!(stats, x)
-  set_constraint_multipliers!(stats, y)
+  solver.x .= max.(nlp.meta.lvar, min.(x, nlp.meta.uvar))
+  solver.y .= y
+  set_solution!(stats, solver.x)
+  set_constraint_multipliers!(stats, solver.y)
+  subout = solver.sub_stats
 
-  fx, cx = objcons(nlp, x)
+  objx, _ = objcons!(nlp, solver.x, solver.cx)
+  objx += @views h(solver.x[selected])
+  set_objective!(stats, objx)
+
   mu = init_penalty
-  alf = AugLagModel(nlp, y, mu, x, fx, cx)
+  solver.sub_model.y .= solver.y
+  update_μ!(solver.sub_model, mu)
 
-  cviol = norm(alf.cx, Inf)
+  cviol = norm(solver.cx, Inf)
   cviol_old = Inf
   iter = 0
   subiters = 0
   done = false
   subtol = init_subtol
+  rem_eval = max_eval
 
   if verbose > 0
     @info log_header(
-      [:iter, :subiter, :fx, :prim_res, :μ, :normy, :dual_tol, :inner_status],
+      [:iter, :sub_it, :obj, :cviol, :μ, :normy, :sub_tol, :sub_status],
       [Int, Int, Float64, Float64, Float64, Float64, Float64, Symbol],
     )
-    @info log_row(Any[iter, subiters, fx, cviol, alf.μ, norm(y), subtol])
+    @info log_row(Any[iter, subiters, objx, cviol, mu, norm(solver.y), subtol])
   end
 
   while !done
     iter += 1
 
     # dual safeguard
-    dual_safeguard(alf)
+    dual_safeguard(solver.sub_model)
 
     # AL subproblem
+    sub_reg_nlp = RegularizedNLPModel(solver.sub_model, h, selected)
     subtol = max(subtol, atol)
-    subout = with_logger(subsolver_logger) do
-      subsolver(alf, h, x = x, atol = subtol, rtol = zero(T), selected = selected)
-    end
-    x .= subout.solution
+    reset!(subout)
+    solve!(
+      solver.sub_solver,
+      sub_reg_nlp,
+      subout,
+      x = solver.x,
+      atol = subtol,
+      rtol = zero(T),
+      max_time = max_time - stats.elapsed_time,
+      max_eval = subsolver_max_eval < 0 ? rem_eval : min(subsolver_max_eval, rem_eval),
+      max_iter = subsolver_max_iter,
+      verbose = subsolver_verbose,
+    )
+    solver.x .= subout.solution
+    solver.cx .= solver.sub_model.cx
     subiters += subout.iter
 
     # objective
-    fx = obj(nlp, x)
-    set_objective!(stats, fx)
+    objx = obj(nlp, solver.x)
+    objx += @views h(solver.x[selected])
+    set_objective!(stats, objx)
 
     # dual estimate
-    update_y!(alf)
-    set_constraint_multipliers!(stats, alf.y)
+    update_y!(solver.sub_model)
+    solver.y .= solver.sub_model.y
+    set_constraint_multipliers!(stats, solver.y)
 
     # stationarity measure
     # FIXME it seems that R2 returns no dual_feas in `dual_feas`
@@ -219,7 +296,7 @@ function AL(
     end
 
     # primal violation
-    cviol = norm(alf.cx, Inf)
+    cviol = norm(solver.cx, Inf)
     set_primal_residual!(stats, cviol)
 
     # termination checks
@@ -250,22 +327,22 @@ function AL(
     done = stats.status != :unknown
 
     if verbose > 0 && (mod(stats.iter, verbose) == 0 || done)
-      @info log_row(Any[iter, subiters, fx, cviol, alf.μ, norm(alf.y), subtol, subout.status])
+      @info log_row(Any[iter, subiters, objx, cviol, mu, norm(solver.y), subtol, subout.status])
     end
 
     if !done
       if cviol > max(ctol, factor_primal_linear_improvement * cviol_old)
-        #@info "decreasing mu"
         mu *= factor_penalty_up
       end
-      update_μ!(alf, mu)
+      update_μ!(solver.sub_model, mu)
       cviol_old = cviol
       subtol *= factor_decrease_subtol
+      rem_eval = max_eval < 0 ? max_eval : max_eval - neval_obj(nlp)
     end
   end
-  set_solution!(stats, x)
-  set_constraint_multipliers!(stats, alf.y)
-  return stats
+  set_solution!(stats, solver.x)
+  set_constraint_multipliers!(stats, solver.y)
+  stats
 end
 
 """
