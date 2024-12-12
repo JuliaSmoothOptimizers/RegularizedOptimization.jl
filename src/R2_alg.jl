@@ -199,7 +199,8 @@ function R2(
     η1 = options.η1,
     η2 = options.η2,
     ν = options.ν,
-    γ = options.γ,
+    γ = options.γ;
+    kwargs_dict...
   )
 end
 
@@ -227,7 +228,8 @@ function R2(
     η1 = options.η1,
     η2 = options.η2,
     ν = options.ν,
-    γ = options.γ,
+    γ = options.γ;
+    kwargs...
   )
   outdict = Dict(
     :Fhist => stats.solver_specific[:Fhist],
@@ -291,12 +293,13 @@ function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
   max_iter = pop!(kwargs_dict, :max_iter, 10000)
   solver = R2Solver(reg_nlp, max_iter = max_iter)
   stats = GenericExecutionStats(reg_nlp.model)
-  cb =
+  cb = pop!(kwargs_dict, :callback,
     (nlp, solver, stats) -> begin
       solver.Fobj_hist[stats.iter + 1] = stats.solver_specific[:smooth_obj]
       solver.Hobj_hist[stats.iter + 1] = stats.solver_specific[:nonsmooth_obj]
       solver.Complex_hist[stats.iter + 1] += 1
     end
+  )
   solve!(solver, reg_nlp, stats; callback = cb, max_iter = max_iter, kwargs...)
   set_solver_specific!(stats, :Fhist, solver.Fobj_hist[1:(stats.iter + 1)])
   set_solver_specific!(stats, :Hhist, solver.Hobj_hist[1:(stats.iter + 1)])
