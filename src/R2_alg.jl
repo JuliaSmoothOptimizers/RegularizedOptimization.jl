@@ -269,7 +269,8 @@ function R2(
     η1 = options.η1,
     η2 = options.η2,
     ν = options.ν,
-    γ = options.γ,
+    γ = options.γ;
+    kwargs...
   )
   outdict = Dict(
     :Fhist => stats.solver_specific[:Fhist],
