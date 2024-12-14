@@ -123,7 +123,8 @@ function LM(
   JdFk = similar(Fk)   # temporary storage
   Jt_Fk = similar(∇fk)
 
-  σmax = opnorm(Jk)
+  σmax, found_σ = opnorm(Jk)
+  found_σ || error("operator norm computation failed")
   νInv = (1 + θ) * (σmax^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
 
   s = zero(xk)
@@ -243,7 +244,8 @@ function LM(
       Jk = jac_op_residual(nls, xk)
       jtprod_residual!(nls, xk, Fk, ∇fk)
 
-      σmax = opnorm(Jk)
+      σmax, found_σ = opnorm(Jk)
+      found_σ || error("operator norm computation failed")
 
       Complex_hist[k] += 1
     end
