@@ -205,6 +205,16 @@ function R2(
 end
 
 function R2(
+  nlp::AbstractNLPModel{R, V},
+  h;
+  selected::AbstractVector{<:Integer} = 1:(nlp.meta.nvar),
+  kwargs...,
+) where {R, V}
+  reg_nlp = RegularizedNLPModel(nlp, h, selected)
+  return R2(reg_nlp; kwargs...)
+end
+
+function R2(
   f::F,
   ∇f!::G,
   h::H,
