@@ -127,6 +127,7 @@ function SolverCore.solve!(
   γ::T = T(3),
   β::T = 1/eps(T),
   θ::T = eps(T)^(1/5),
+  kwargs...
 ) where {T, V}
 
   reset!(stats)
@@ -195,6 +196,7 @@ function SolverCore.solve!(
 
   local ξ1::T
   local ρk::T
+  ρk = T(1)
 
   fk = obj(nlp, xk)
   grad!(nlp, xk, ∇fk)
@@ -284,7 +286,7 @@ function SolverCore.solve!(
       substats, 
       x = s, 
       atol = sub_atol,
-      ν = ν_subsolver,
+      ν = ν_subsolver;
       kwargs...)  
  
     s .= substats.solution
