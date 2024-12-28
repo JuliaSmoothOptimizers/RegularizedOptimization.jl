@@ -236,7 +236,7 @@ function solve!(
   end
 
   local ξ::T
-  local ρk::T
+  local ρk::T = zero(T)
 
   σk = max(1 / ν, σmin)
 
