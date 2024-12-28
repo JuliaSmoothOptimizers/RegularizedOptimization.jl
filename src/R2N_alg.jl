@@ -180,7 +180,9 @@ function R2N(
     η1 = options.η1,
     η2 = options.η2,
     ν = options.ν,
-    γ = options.γ;
+    γ = options.γ,
+    θ = options.γ,
+    β = options.β;
     kwargs_dict...,
   )
 end
