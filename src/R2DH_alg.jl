@@ -261,12 +261,20 @@ function solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
 
-  φ(d) = ∇fk' * d + (d' * (dkσk .* d)) / 2
+  φ(d) = ∇fk' * d + (d' * (dkσk .* d)) / 2 #TODO This probably allocated a little 
   mk(d) = φ(d) + ψ(d)
 
   spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
 
-  mks = mk(s) #TODO check whether it is -Inf, perhaps add a while loop until we find an acceptable σ.
+  mks = mk(s) 
+  while mks == -Inf #TODO add test coverage for this
+    σk = σk * γ
+    dkσk .= D.d .+ σk
+    DNorm = norm(D.d, Inf)
+    ν₁ = 1 / ((DNorm + σk) * (1 + θ))
+    @. mν∇fk = -ν₁ * ∇fk
+    spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
+  end
 
   ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
   sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν₁) : sqrt(-ξ / ν₁)
@@ -361,7 +369,16 @@ function solve!(
     m_monotone > 1 && (m_fh_hist[mod(stats.iter+1, m_monotone - 1) + 1] = fk + hk)
 
     spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
-    mks = mk(s) #TODO check whether it is -Inf, perhaps add a while loop until we find an acceptable σ.
+    mks = mk(s)
+
+    while mks == -Inf  #TODO add test coverage for this
+      σk = σk * γ
+      dkσk .= D.d .+ σk
+      DNorm = norm(D.d, Inf)
+      ν₁ = 1 / ((DNorm + σk) * (1 + θ))
+      @. mν∇fk = -ν₁ * ∇fk
+      spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
+    end
 
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν₁) : sqrt(-ξ / ν₁)

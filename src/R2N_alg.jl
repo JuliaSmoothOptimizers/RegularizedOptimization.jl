@@ -207,7 +207,7 @@ function SolverCore.solve!(
   local λmax::T
   try
     λmax = opnorm(Bk)
-  catch LAPACKException
+  catch LAPACKException # This is really bad and should be removed ASAP; see PR #159.
     λmax = opnorm(Matrix(Bk))
   end
 
@@ -230,7 +230,7 @@ function SolverCore.solve!(
   mk1(d) = φ1(d) + ψ(d)
 
   # model for subsequent prox-gradient steps and ξ
-  φ(d) = (d' * (Bk * d)) / 2 + ∇fk' * d + σk * dot(d, d) / 2
+  φ(d) = (d' * (Bk * d)) / 2 + ∇fk' * d + σk * dot(d, d) / 2 # TODO this probably allocates a little.
 
   ∇φ!(g, d) = begin
     mul!(g, Bk, d)
