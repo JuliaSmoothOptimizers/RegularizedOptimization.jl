@@ -66,11 +66,11 @@ function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Sol
 end
 
 function R2N(
-  nlp::AbstractNLPModel{R, V},
+  nlp::AbstractNLPModel{T, V},
   h,
-  options::ROSolverOptions{R};
+  options::ROSolverOptions{T};
   kwargs...,
-) where {R <: Real, V}
+) where {T <: Real, V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
@@ -88,7 +88,9 @@ function R2N(
     η1 = options.η1,
     η2 = options.η2,
     ν = options.ν,
-    γ = options.γ;
+    γ = options.γ,
+    θ = options.γ,
+    β = options.β;
     kwargs_dict...,
   )
 end
@@ -123,9 +125,8 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   ν = eps(T)^(1/5),
   γ::T = T(3),
-  β = 1/eps(T),
-  θ = eps(T)^(1/5),
-  kwargs...
+  β::T = 1/eps(T),
+  θ::T = eps(T)^(1/5),
 ) where {T, V}
 
   reset!(stats)
