@@ -1,3 +1,7 @@
+export GenericExecutionStats
+
+import SolverCore.GenericExecutionStats
+
 # use Arpack to obtain largest eigenvalue in magnitude with a minimum of robustness
 function LinearAlgebra.opnorm(B; kwargs...)
   _, s, _ = tsvd(B)
@@ -20,3 +24,20 @@ ShiftedProximalOperators.iprox!(
 
 LinearAlgebra.diag(op::AbstractDiagonalQuasiNewtonOperator) = copy(op.d)
 LinearAlgebra.diag(op::SpectralGradient{T}) where {T} = zeros(T, op.nrow) .* op.d[1]
+
+"""
+    GenericExecutionStats(reg_nlp :: AbstractRegularizedNLPModel{T, V})
+
+Construct a GenericExecutionStats object from an AbstractRegularizedNLPModel. 
+More specifically, construct a GenericExecutionStats on the NLPModel of reg_nlp and add three solver_specific entries namely :smooth_obj, :nonsmooth_obj and :xi.
+This is useful for reducing the number of allocations when calling solve!(..., reg_nlp, stats) and should be used by default.
+Warning: This should *not* be used when adding other solver_specific entries that do not have the current scalar type. 
+For instance, when one adds the history of the objective value as a solver_specific entry (which has Vector{T} type), this will cause an error and `GenericExecutionStats(reg_nlp.model)` should be used instead.
+"""
+function GenericExecutionStats(reg_nlp :: AbstractRegularizedNLPModel{T, V}) where{T, V}
+  stats = GenericExecutionStats(reg_nlp.model, solver_specific = Dict{Symbol, T}())
+  set_solver_specific!(stats, :smooth_obj, T(Inf))
+  set_solver_specific!(stats, :nonsmooth_obj, T(Inf))
+  set_solver_specific!(stats, :xi, T(Inf))
+  return stats
+end
