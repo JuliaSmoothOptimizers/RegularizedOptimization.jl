@@ -26,23 +26,27 @@ allocate:
 ```
 """
 macro wrappedallocs(expr)
-  argnames = [gensym() for a in expr.args]
+  kwargs = [a for a in expr.args if isa(a, Expr)]
+  args = [a for a in expr.args if isa(a, Symbol)]
+
+  argnames = [gensym() for a in args]
+  kwargs_dict = Dict{Symbol, Any}(a.args[1] => a.args[2] for a in kwargs if a.head == :kw)
   quote
-    function g($(argnames...))
-      @allocated $(Expr(expr.head, argnames...))
+    function g($(argnames...); kwargs_dict...)
+      @allocated $(Expr(expr.head, argnames..., kwargs...))
     end
-    $(Expr(:call, :g, [esc(a) for a in expr.args]...))
+    $(Expr(:call, :g, [esc(a) for a in args]...))
   end
 end
 
 # Test non allocating solve!
 @testset "allocs" begin
-  for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
-    for solver ∈ (:R2Solver,)
-      reg_nlp = RegularizedNLPModel(bpdn, h)
-      solver = eval(solver)(reg_nlp)
-      stats = RegularizedExecutionStats(reg_nlp)
-      @test @wrappedallocs(solve!(solver, reg_nlp, stats)) == 0
+  for (h, h_name) ∈ ((NormL0(λ), "l0"),)
+    for solver_constructor ∈ (R2Solver, R2NSolver, R2DHSolver)
+      reg_nlp = RegularizedNLPModel(LSR1Model(bpdn), h)
+      solver = solver_constructor(reg_nlp)
+      stats = GenericExecutionStats(reg_nlp.model, solver_specific = Dict{Symbol, Float64}())
+      @test @wrappedallocs(solve!(solver, reg_nlp, stats, ν = 1.0, atol = 1e-6, rtol = 1e-6)) == 0
     end
   end
 end
