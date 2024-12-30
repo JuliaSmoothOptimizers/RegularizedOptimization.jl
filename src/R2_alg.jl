@@ -132,7 +132,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
     solver = R2Solver(reg_nlp)
     solve!(solver, reg_nlp)
 
-    stats = GenericExecutionStats(reg_nlp.model)
+    stats = GenericExecutionStats(reg_nlp)
     solver = R2Solver(reg_nlp)
     solve!(solver, reg_nlp, stats)
 
@@ -292,7 +292,7 @@ function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
   kwargs_dict = Dict(kwargs...)
   max_iter = pop!(kwargs_dict, :max_iter, 10000)
   solver = R2Solver(reg_nlp, max_iter = max_iter)
-  stats = GenericExecutionStats(reg_nlp.model)
+  stats = GenericExecutionStats(reg_nlp.model) # TODO: change this to `stats = GenericExecutionStats(reg_nlp)` when FHist etc. is ruled out.
   cb = pop!(
     kwargs_dict,
     :callback,
