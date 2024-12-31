@@ -71,51 +71,73 @@ end
   
 
 """
-    R2DH(nlp, h, options)
-    R2DH(f, ∇f!, h, options, x0)
+    R2DH(reg_nlp; kwargs…)
 
 A second-order quadratic regularization method for the problem
 
     min f(x) + h(x)
 
-where f: ℝⁿ → ℝ is C¹ and h: ℝⁿ → ℝ is lower semi-continuous, proper, and prox-bounded.
+where f: ℝⁿ → ℝ has a Lipschitz-continuous gradient, and h: ℝⁿ → ℝ is
+lower semi-continuous, proper and prox-bounded.
 
 About each iterate xₖ, a step sₖ is computed as a solution of
 
-    min  φ(s; xₖ) + ψ(s; xₖ)
+    min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ)
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ(Dₖ + σₖI)s is a quadratic approximation of f about xₖ,
-ψ(s; xₖ) = h(xₖ + s), Dₖ is a diagonal Hessian approximation and σₖ > 0 is the regularization parameter.
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀDₖs is a quadratic approximation of f about xₖ,
+ψ(s; xₖ) is either h(xₖ + s) or an approximation of h(xₖ + s), ‖⋅‖ is the ℓ₂ norm and σₖ > 0 is the regularization parameter.
 
-### Arguments
+For advanced usage, first define a solver "R2DHSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-* `nlp::AbstractDiagonalQNModel`: a smooth optimization problem
-* `h`: a regularizer such as those defined in ProximalOperators
-* `options::ROSolverOptions`: a structure containing algorithmic parameters
-* `x0::AbstractVector`: an initial guess (in the second calling form)
+    solver = R2DHSolver(reg_nlp; m_monotone = 1)
+    solve!(solver, reg_nlp)
 
-### Keyword Arguments
+    stats = RegularizedExecutionStats(reg_nlp)
+    solver = R2DHSolver(reg_nlp)
+    solve!(solver, reg_nlp, stats)
+  
+# Arguments
+* `reg_nlp::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
-* `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
-* `selected::AbstractVector{<:Integer}`: subset of variables to which `h` is applied (default `1:length(x0)`).
-* `D`: Diagonal quasi-Newton operator.
-* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotone variant (default: 6).
+# Keyword arguments 
+- `x::V = nlp.meta.x0`: the initial guess;
+- `atol::T = √eps(T)`: absolute tolerance;
+- `rtol::T = √eps(T)`: relative tolerance;
+- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance
+- `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
+- `max_time::Float64 = 30.0`: maximum time limit in seconds;
+- `max_iter::Int = 10000`: maximum number of iterations;
+- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
+- `σmin::T = eps(T)`: minimum value of the regularization parameter;
+- `η1::T = √√eps(T)`: very successful iteration threshold;
+- `η2::T = T(0.9)`: successful iteration threshold;
+- `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
+- `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
+- `θ::T = eps(T)^(1/5)`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
+- `m_monotone::Int = 1`: monotoneness parameter. By default, R2DH is monotone but the non-monotone variant can be used with `m_monotone > 1`
 
-The objective and gradient of `nlp` will be accessed.
+The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
-In the second form, instead of `nlp`, the user may pass in
+# Output
+The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
 
-* `f` a function such that `f(x)` returns the value of f at x
-* `∇f!` a function to evaluate the gradient in place, i.e., such that `∇f!(g, x)` store ∇f(x) in `g`
-
-### Return values
-
-* `xk`: the final iterate
-* `Fobj_hist`: an array with the history of values of the smooth objective
-* `Hobj_hist`: an array with the history of values of the nonsmooth objective
-* `Complex_hist`: an array with the history of number of inner iterations.
+# Callback
+The callback is called at each iteration.
+The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+Changing any of the input arguments will affect the subsequent iterations.
+In particular, setting `stats.status = :user` will stop the algorithm.
+All relevant information should be available in `nlp` and `solver`.
+Notably, you can access, and modify, the following:
+- `solver.xk`: current iterate;
+- `solver.∇fk`: current gradient;
+- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
+  - `stats.iter`: current iteration counter;
+  - `stats.objective`: current objective function value;
+  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function
+  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
+  - `stats.elapsed_time`: elapsed time in seconds.
 """
-
 function R2DH(
   nlp::AbstractDiagonalQNModel{T, V},
   h,
@@ -175,7 +197,7 @@ function solve!(
   η2::T = T(0.9),
   ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
-  θ::T = eps(T)^(1/5),
+  θ::T = eps(T)^(1 / 5),
 ) where{T, V}
   reset!(stats)
 
