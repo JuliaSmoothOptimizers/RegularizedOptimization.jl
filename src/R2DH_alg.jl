@@ -4,11 +4,13 @@ mutable struct R2DHSolver{
   T <: Real,
   G <: Union{ShiftedProximableFunction, Nothing},
   V <: AbstractVector{T},
+  QN <: AbstractDiagonalQuasiNewtonOperator{T}
 } <: AbstractOptimizationSolver
   xk::V
   ∇fk::V
   ∇fk⁻::V
   mν∇fk::V
+  D::QN
   ψ::G
   xkn::V
   s::V
@@ -21,7 +23,7 @@ mutable struct R2DHSolver{
   m_fh_hist::V
 end
 
-function R2DHSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; Dσ::T = T(1), m_monotone::Int = 1) where{T, V}
+function R2DHSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int = 1) where{T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -46,12 +48,14 @@ function R2DHSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; Dσ::T = T(1), m
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
   ψ = has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) : shifted(reg_nlp.h, xk)
+  D = isa(reg_nlp.model, AbstractDiagonalQNModel) ? hess_op(reg_nlp.model, x0) : SpectralGradient(T(1), reg_nlp.model.meta.nvar)
 
   return R2DHSolver(
     xk,
     ∇fk,
     ∇fk⁻,
     mν∇fk,
+    D,
     ψ,
     xkn,
     s,
@@ -159,7 +163,6 @@ function solve!(
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
-  D::AbstractDiagonalQuasiNewtonOperator{T} = isa(reg_nlp.model, AbstractDiagonalQNModel) ? hess_op(reg_nlp.model, x) : SpectralGradient(T(1), reg_nlp.model.meta.nvar),
   atol::T = √eps(T),
   rtol::T = √eps(T),
   neg_tol::T = eps(T)^(1 / 4),
@@ -189,6 +192,7 @@ function solve!(
   ∇fk = solver.∇fk
   ∇fk⁻ = solver.∇fk⁻
   mν∇fk = solver.mν∇fk
+  D = solver.D
   dkσk = solver.dkσk
   ψ = solver.ψ
   xkn = solver.xkn
@@ -200,7 +204,6 @@ function solve!(
     l_bound = solver.l_bound
     u_bound = solver.u_bound
   end
-  m_fh_hist = solver.m_fh_hist
   m_monotone = length(m_fh_hist) + 1
 
 
@@ -208,11 +211,11 @@ function solve!(
   improper = false
   hk = @views h(xk[selected])
   if hk == Inf
-    verbose > 0 && @info "R2: finding initial guess where nonsmooth term is finite"
+    verbose > 0 && @info "R2DH: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, xk, one(eltype(x0)))
     hk = @views h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
-    verbose > 0 && @debug "R2: found point where h has value" hk
+    verbose > 0 && @debug "R2DH: found point where h has value" hk
   end
   improper = (hk == -Inf)
 
@@ -261,8 +264,16 @@ function solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
 
-  φ(d) = ∇fk' * d + (d' * (dkσk .* d)) / 2 #TODO This probably allocated a little 
-  mk(d) = φ(d) + ψ(d)
+  φ(d) = begin
+    result = zero(T)
+    n = length(d)
+    @inbounds for i = 1:n
+      result += d[i]^2*dkσk[i]/2 + ∇fk[i]*d[i]
+    end
+    return result
+  end
+  
+  mk(d)::T = φ(d) + ψ(d)::T
 
   spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
 
@@ -274,13 +285,14 @@ function solve!(
     ν₁ = 1 / ((DNorm + σk) * (1 + θ))
     @. mν∇fk = -ν₁ * ∇fk
     spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
+    mks = mk(s)
   end
 
   ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
   sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν₁) : sqrt(-ξ / ν₁)
   solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
   (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
-    error("R2DH: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
   atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
 
   set_solver_specific!(stats, :xi, sqrt_ξ_νInv)
@@ -331,9 +343,6 @@ function solve!(
         ],
         colsep = 1,
       )
-    if η2 ≤ ρk < Inf
-      σk = max(σk / γ, σmin)
-    end
 
     if η1 ≤ ρk < Inf
       xk .= xkn
@@ -346,8 +355,13 @@ function solve!(
       hk = hkn
       shift!(ψ, xk)
       grad!(nlp, xk, ∇fk)
-      push!(D, s, ∇fk - ∇fk⁻) # update QN operator
+      @. ∇fk⁻ = ∇fk - ∇fk⁻
+      push!(D, s, ∇fk⁻) # update QN operator
       ∇fk⁻ .= ∇fk
+    end
+
+    if η2 ≤ ρk < Inf
+      σk = max(σk / γ, σmin)
     end
 
     if ρk < η1 || ρk == Inf
@@ -378,13 +392,14 @@ function solve!(
       ν₁ = 1 / ((DNorm + σk) * (1 + θ))
       @. mν∇fk = -ν₁ * ∇fk
       spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
+      mks = mk(s)
     end
 
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν₁) : sqrt(-ξ / ν₁)
     solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
-      error("R2DH: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+      error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
     set_solver_specific!(stats, :xi, sqrt_ξ_νInv)
     set_status!(
