@@ -41,7 +41,7 @@ end
     for solver ∈ (:R2Solver,)
       reg_nlp = RegularizedNLPModel(bpdn, h)
       solver = eval(solver)(reg_nlp)
-      stats = GenericExecutionStats(reg_nlp)
+      stats = RegularizedExecutionStats(reg_nlp)
       @test @wrappedallocs(solve!(solver, reg_nlp, stats)) == 0
     end
   end
