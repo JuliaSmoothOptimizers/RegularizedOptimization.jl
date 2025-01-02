@@ -4,7 +4,7 @@ module RegularizedOptimization
 using LinearAlgebra, Logging, Printf
 
 # external dependencies
-using ProximalOperators, TSVD
+using Arpack, ProximalOperators
 
 # dependencies from us
 using LinearOperators,
