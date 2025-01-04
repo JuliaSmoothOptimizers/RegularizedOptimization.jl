@@ -1,8 +1,10 @@
-export R2DH, R2DH_mine, R2DHSolver, solve!
+export R2DH, R2DHSolver, solve!
+
+import SolverCore.solve!
 
 mutable struct R2DHSolver{
   T <: Real,
-  G <: Union{ShiftedProximableFunction, Nothing},
+  G <: ShiftedProximableFunction,
   V <: AbstractVector{T},
   QN <: AbstractDiagonalQuasiNewtonOperator{T}
 } <: AbstractOptimizationSolver
@@ -179,7 +181,7 @@ function R2DH(
   return stats
 end
 
-function solve!(
+function SolverCore.solve!(
   solver::R2DHSolver{T},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
@@ -199,6 +201,7 @@ function solve!(
   γ::T = T(3),
   θ::T = eps(T)^(1 / 5),
 ) where{T, V}
+
   reset!(stats)
 
   # Retrieve workspace
@@ -223,6 +226,8 @@ function solve!(
   has_bnds = solver.has_bnds
 
   if has_bnds
+    l_bound_m_x = solver.l_bound_m_x
+    u_bound_m_x = solver.u_bound_m_x
     l_bound = solver.l_bound
     u_bound = solver.u_bound
   end
@@ -254,7 +259,7 @@ function solve!(
         :σ => "σ",
         :normx => "‖x‖",
         :norms => "‖s‖",
-        :arrow => " ",
+        :arrow => "R2DH",
       ),
       colsep = 1,
     )
