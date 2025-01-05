@@ -6,23 +6,26 @@ mutable struct R2NSolver{
   T <: Real,
   G <: ShiftedProximableFunction,
   V <: AbstractVector{T},
-  S <: AbstractOptimizationSolver,
+  ST <: AbstractOptimizationSolver,
+  PB <: AbstractRegularizedNLPModel
 } <: AbstractOptimizationSolver
   xk::V
   ∇fk::V
   ∇fk⁻::V
   mν∇fk::V
   ψ::G
-  sub_ψ::G
   xkn::V
   s::V
   s1::V
   has_bnds::Bool
   l_bound::V
   u_bound::V
+  l_bound_m_x::V
+  u_bound_m_x::V
   m_fh_hist::V
-  subsolver::S
-  substats::GenericExecutionStats{T, V, V, Any}
+  subsolver::ST
+  subpb::PB
+  substats::GenericExecutionStats{T, V, V, T}
 end
 
 function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solver, m_monotone::Int = 1) where {T, V}
@@ -35,42 +38,131 @@ function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Sol
   ∇fk⁻ = similar(x0)
   mν∇fk = similar(x0)
   xkn = similar(x0)
-  s = zero(x0)
+  s = similar(x0)
   s1 = similar(x0)
+  v = similar(x0)
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
+  if has_bnds
+    l_bound_m_x = similar(xk)
+    u_bound_m_x = similar(xk)
+    @. l_bound_m_x = l_bound - x0
+    @. u_bound_m_x = u_bound - x0
+  else
+    l_bound_m_x = similar(xk, 0)
+    u_bound_m_x = similar(xk, 0)
+  end
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
   ψ = has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) : shifted(reg_nlp.h, xk)
-  sub_ψ = has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) : shifted(reg_nlp.h, xk)
 
-	sub_nlp = RegularizedNLPModel(reg_nlp.model, sub_ψ)
-	substats = GenericExecutionStats(reg_nlp.model)
+  Bk = hess_op(reg_nlp.model, x0)
+  sub_nlp = R2NModel(
+    Bk,
+    ∇fk,
+    v,
+    T(1),
+    x0
+  )
+  subpb = RegularizedNLPModel(sub_nlp, ψ)
+  substats = GenericExecutionStats(subpb)
+  subsolver = subsolver(subpb)
 
-  return R2NSolver(
+  return R2NSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
     xk,
     ∇fk,
     ∇fk⁻,
     mν∇fk,
     ψ,
-    sub_ψ,
     xkn,
     s,
     s1,
     has_bnds,
     l_bound,
     u_bound,
+    l_bound_m_x,
+    u_bound_m_x,
     m_fh_hist,
-    subsolver(sub_nlp),
+    subsolver,
+    subpb,
     substats
   )
 end
+  
 
+"""
+    R2N(reg_nlp; kwargs…)
+
+A second-order quadratic regularization method for the problem
+
+    min f(x) + h(x)
+
+where f: ℝⁿ → ℝ has a Lipschitz-continuous gradient, and h: ℝⁿ → ℝ is
+lower semi-continuous, proper and prox-bounded.
+
+About each iterate xₖ, a step sₖ is computed as a solution of
+
+    min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ)
+
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀBₖs is a quadratic approximation of f about xₖ,
+ψ(s; xₖ) is either h(xₖ + s) or an approximation of h(xₖ + s), ‖⋅‖ is the ℓ₂ norm and σₖ > 0 is the regularization parameter.
+
+For advanced usage, first define a solver "R2NSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
+
+    solver = R2NSolver(reg_nlp; m_monotone = 1)
+    solve!(solver, reg_nlp)
+
+    stats = RegularizedExecutionStats(reg_nlp)
+    solver = R2NSolver(reg_nlp)
+    solve!(solver, reg_nlp, stats)
+  
+# Arguments
+* `reg_nlp::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
+
+# Keyword arguments 
+- `x::V = nlp.meta.x0`: the initial guess;
+- `atol::T = √eps(T)`: absolute tolerance;
+- `rtol::T = √eps(T)`: relative tolerance;
+- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance
+- `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
+- `max_time::Float64 = 30.0`: maximum time limit in seconds;
+- `max_iter::Int = 10000`: maximum number of iterations;
+- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
+- `σmin::T = eps(T)`: minimum value of the regularization parameter;
+- `η1::T = √√eps(T)`: very successful iteration threshold;
+- `η2::T = T(0.9)`: successful iteration threshold;
+- `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
+- `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
+- `θ::T = eps(T)^(1/5)`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
+- `m_monotone::Int = 1`: monotoneness parameter. By default, R2DH is monotone but the non-monotone variant can be used with `m_monotone > 1`
+
+The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
+
+# Output
+The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
+
+# Callback
+The callback is called at each iteration.
+The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+Changing any of the input arguments will affect the subsequent iterations.
+In particular, setting `stats.status = :user` will stop the algorithm.
+All relevant information should be available in `nlp` and `solver`.
+Notably, you can access, and modify, the following:
+- `solver.xk`: current iterate;
+- `solver.∇fk`: current gradient;
+- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
+  - `stats.iter`: current iteration counter;
+  - `stats.objective`: current objective function value;
+  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function
+  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
+  - `stats.elapsed_time`: elapsed time in seconds.
+"""
 function R2N(
   nlp::AbstractNLPModel{T, V},
   h,
   options::ROSolverOptions{T};
   kwargs...,
-) where {T <: Real, V}
+) where{T, V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
@@ -89,31 +181,30 @@ function R2N(
     η2 = options.η2,
     ν = options.ν,
     γ = options.γ,
-    θ = options.γ,
-    β = options.β;
+    θ = options.θ,
     kwargs_dict...,
   )
 end
 
-function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
+function R2N(
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
+  kwargs...
+) where{T, V}
   kwargs_dict = Dict(kwargs...)
   m_monotone = pop!(kwargs_dict, :m_monotone, 1)
-  subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
-  solver = R2NSolver(reg_nlp, subsolver = subsolver, m_monotone = m_monotone)
+  solver = R2NSolver(reg_nlp, m_monotone = m_monotone)
   stats = GenericExecutionStats(reg_nlp.model)
   solve!(solver, reg_nlp, stats; kwargs_dict...)
   return stats
 end
 
-
 function SolverCore.solve!(
-  solver::R2NSolver{T},
+  solver::R2NSolver{T, G, V},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
   atol::T = √eps(T),
-  sub_atol::T = atol,
   rtol::T = √eps(T),
   neg_tol::T = eps(T)^(1 / 4),
   verbose::Int = 0,
@@ -123,13 +214,12 @@ function SolverCore.solve!(
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.9),
-  ν = eps(T)^(1/5),
+  ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
-  β::T = 1/eps(T),
-  θ::T = eps(T)^(1/5),
+  β::T = 1 / eps(T),
+  θ::T = eps(T)^(1 / 5),
   kwargs...
-) where {T, V}
-
+) where{T, V, G}
   reset!(stats)
 
   # Retrieve workspace
@@ -142,7 +232,6 @@ function SolverCore.solve!(
   # Make sure ψ has the correct shift 
   shift!(solver.ψ, xk)
 
-  σk = 1/ν
   ∇fk = solver.∇fk
   ∇fk⁻ = solver.∇fk⁻
   mν∇fk = solver.mν∇fk
@@ -150,23 +239,23 @@ function SolverCore.solve!(
   xkn = solver.xkn
   s = solver.s
   s1 = solver.s1
+  m_fh_hist = solver.m_fh_hist
   has_bnds = solver.has_bnds
+
   if has_bnds
+    l_bound_m_x = solver.l_bound_m_x
+    u_bound_m_x = solver.u_bound_m_x
     l_bound = solver.l_bound
     u_bound = solver.u_bound
   end
-  m_fh_hist = solver.m_fh_hist
   m_monotone = length(m_fh_hist) + 1
-
-  subsolver = solver.subsolver
-  substats = solver.substats
 
   # initialize parameters
   improper = false
   hk = @views h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "R2N: finding initial guess where nonsmooth term is finite"
-    prox!(xk, h, xk, one(eltype(x0)))
+    prox!(xk, h, xk, T(1))
     hk = @views h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "R2N: found point where h has value" hk
@@ -176,15 +265,11 @@ function SolverCore.solve!(
   if verbose > 0
     @info log_header(
       [:outer, :inner, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :normB, :arrow],
-      [Int, Int, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Char],
-      hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
-        :outer => "outer",
-        :inner => "inner",
+      [Int, Int, T, T, T, T, T, T, T, T, Char],
+      hdr_override = Dict{Symbol, String}( 
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ1/ν)",
-        :ρ => "ρ",
-        :σ => "σ",
         :normx => "‖x‖",
         :norms => "‖s‖",
         :normB => "‖B‖",
@@ -195,27 +280,27 @@ function SolverCore.solve!(
   end
 
   local ξ1::T
-  local ρk::T
-  ρk = T(1)
+  local ρk::T = zero(T)
+
+  σk = max(1 / ν, σmin)
 
   fk = obj(nlp, xk)
   grad!(nlp, xk, ∇fk)
   ∇fk⁻ .= ∇fk
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
-  Bk = hess_op(nlp, xk)
-  local λmax::T
+  λmax::T = T(1)
+  """
   try
-    λmax = opnorm(Bk)
-  catch LAPACKException # This is really bad and should be removed ASAP; see PR #159.
-    λmax = opnorm(Matrix(Bk))
+    λmax = opnorm(solver.subpb.model.B) # TODO: This allocates; see utils.jl
+  catch LAPACKException # This should be removed ASAP; see PR #159.
+    λmax = opnorm(Matrix(solver.subpb.model.B))
   end
-
-  νInv = (1 + θ) *( σk + λmax)
+  """
+  ν₁ = 1 / ((λmax + σk) * (1 + θ))
   sqrt_ξ1_νInv = one(T)
-  ν_subsolver = 1/νInv
 
-  @. mν∇fk = -ν_subsolver * ∇fk
+  @. mν∇fk = -ν₁ * ∇fk
   m_monotone > 1 && (m_fh_hist[mod(stats.iter+1, m_monotone - 1) + 1] = fk + hk)
 
   set_iter!(stats, 0)
@@ -225,32 +310,28 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
 
-  # model for first prox-gradient step and ξ1
-  φ1(d) = ∇fk' * d
-  mk1(d) = φ1(d) + ψ(d)
-
-  # model for subsequent prox-gradient steps and ξ
-  φ(d) = (d' * (Bk * d)) / 2 + ∇fk' * d + σk * dot(d, d) / 2 # TODO this probably allocates a little.
-
-  ∇φ!(g, d) = begin
-    mul!(g, Bk, d)
-    g .+= ∇fk
-    g .+= σk * d
-    g
+  φ1 = let ∇fk = ∇fk
+           d -> dot(∇fk, d)
   end
 
-  mk(d) = φ(d) + ψ(d)
-  prox!(s, ψ, mν∇fk, ν_subsolver)
+  mk1 = let ψ = ψ
+            d -> φ1(d) + ψ(d)::T
+  end
+
+  mk = let ψ = ψ, solver = solver
+           d -> obj(solver.subpb.model, d) + ψ(d)::T
+  end
+
+  prox!(s, ψ, mν∇fk, ν₁)
   mks = mk1(s)
 
   ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
-  sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 * νInv) : sqrt(-ξ1 * νInv)
+  sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν₁) : sqrt(-ξ1 / ν₁)
   solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
   (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
     error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
-  sub_atol += rtol * sqrt_ξ1_νInv
-
+  
   set_solver_specific!(stats, :xi, sqrt_ξ1_νInv)
   set_status!(
     stats,
@@ -270,38 +351,31 @@ function SolverCore.solve!(
 
   done = stats.status != :unknown
 
-  while !done 
+  while !done
 
     s1 .= s
-
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3) # 1.0e-5 default
-    #@debug "setting inner stopping tolerance to" subsolver_options.optTol
-    #subsolver_args = subsolver == R2DH ? (SpectralGradient(1., f.meta.nvar),) : ()
-    nlp_model = FirstOrderModel(φ,∇φ!,s)
-    model = RegularizedNLPModel(nlp_model, ψ)
-    #model.selected .= reg_nlp.selected
+      
+    solver.subpb.model.σ = σk
     solve!(
-      subsolver, 
-      model, 
-      substats, 
-      x = s, 
+      solver.subsolver, 
+      solver.subpb, 
+      solver.substats;
+      x = s,
       atol = sub_atol,
-      ν = ν_subsolver;
-      kwargs...)  
- 
-    s .= substats.solution
+      ν = ν₁,
+      kwargs...
+      )
+
+    s .= solver.substats.solution
 
     if norm(s) > β * norm(s1)
       s .= s1
     end
-    """
-    if mk(s) > mk(s1)
-      s .= s1
-    end
-    """
+
     xkn .= xk .+ s
     fkn = obj(nlp, xkn)
-    hkn = h(xkn[selected])
+    hkn = @views h(xkn[selected])
     hkn == -Inf && error("nonsmooth term is not proper")
     mks = mk(s)
 
@@ -310,7 +384,7 @@ function SolverCore.solve!(
     Δmod = fhmax - (fk + mks) + max(1, abs(fhmax)) * 10 * eps()
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
-    if (ξ ≤ 0 || isnan(ξ))
+    if (ξ < 0 || isnan(ξ))
       error("R2N: failed to compute a step: ξ = $ξ")
     end
 
@@ -321,7 +395,7 @@ function SolverCore.solve!(
       @info log_row(
         Any[
           stats.iter,
-          substats.iter,
+          solver.substats.iter,
           fk,
           hk,
           sqrt_ξ1_νInv,
@@ -341,8 +415,11 @@ function SolverCore.solve!(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-      has_bounds(nlp) && set_bounds!(ψ, l_bound - xk, u_bound - xk)
-
+      if has_bnds
+        @. l_bound_m_x = l_bound - xk
+        @. u_bound_m_x = u_bound - xk
+        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+      end
       #update functions
       fk = fkn
       hk = hkn
@@ -351,22 +428,28 @@ function SolverCore.solve!(
       ∇fk = grad!(nlp, xk, ∇fk)
 
       if quasiNewtTest
-        push!(nlp, s, ∇fk - ∇fk⁻)
+        @. ∇fk⁻ = ∇fk - ∇fk⁻
+        push!(nlp, s, ∇fk⁻)
       end
-      Bk = hess_op(nlp, xk)
+      """
       try 
-        λmax = opnorm(Bk)
+        λmax = opnorm(solver.subpb.model.B)
       catch LAPACKException
-        λmax = opnorm(Matrix(Bk))
+        λmax = opnorm(Matrix(solver.subpb.model.B))
       end
+      """
       ∇fk⁻ .= ∇fk
+    end
+
+    if η2 ≤ ρk < Inf
+      σk = max(σk/γ, σmin)
     end
 
     if ρk < η1 || ρk == Inf
       σk = σk * γ
     end
-
-    νInv = (1 + θ) *( σk + λmax)
+    
+    ν₁ = 1/(1 + θ) *( σk + λmax)
     m_monotone > 1 && (m_fh_hist[mod(stats.iter+1, m_monotone - 1) + 1] = fk + hk)
 
     set_objective!(stats, fk + hk)
@@ -375,14 +458,13 @@ function SolverCore.solve!(
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
 
-    ν_subsolver = 1/νInv
-    @. mν∇fk = - ν_subsolver * ∇fk  
-    prox!(s, ψ, mν∇fk, ν_subsolver)
+    @. mν∇fk = - ν₁ * ∇fk  
+    prox!(s, ψ, mν∇fk, ν₁)
     mks = mk1(s)
 
     ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
 
-    sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 * νInv) : sqrt(-ξ1 * νInv)
+    sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν₁) : sqrt(-ξ1 / ν₁)
     solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
 		
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
@@ -427,6 +509,6 @@ function SolverCore.solve!(
     @info "R2N: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
   end
 
-  set_solution!(stats,xk)
+  set_solution!(stats, xk)
   return stats
 end

@@ -239,7 +239,7 @@ function SolverCore.solve!(
   hk = @views h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "R2DH: finding initial guess where nonsmooth term is finite"
-    prox!(xk, h, xk, one(eltype(x0)))
+    prox!(xk, h, xk, T(1))
     hk = @views h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "R2DH: found point where h has value" hk
@@ -249,14 +249,11 @@ function SolverCore.solve!(
   if verbose > 0
     @info log_header(
       [:iter, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :arrow],
-      [Int, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Char],
+      [Int, T, T, T, T, T, T, T, Char],
       hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
-        :iter => "iter",
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ/ν)",
-        :ρ => "ρ",
-        :σ => "σ",
         :normx => "‖x‖",
         :norms => "‖s‖",
         :arrow => "R2DH",
