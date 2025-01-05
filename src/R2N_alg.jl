@@ -162,7 +162,7 @@ function R2N(
   h,
   options::ROSolverOptions{T};
   kwargs...,
-) where {T <: Real, V}
+) where{T, V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
@@ -181,17 +181,18 @@ function R2N(
     η2 = options.η2,
     ν = options.ν,
     γ = options.γ,
-    θ = options.γ,
-    β = options.β;
+    θ = options.θ,
     kwargs_dict...,
   )
 end
 
-function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
+function R2N(
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
+  kwargs...
+) where{T, V}
   kwargs_dict = Dict(kwargs...)
   m_monotone = pop!(kwargs_dict, :m_monotone, 1)
-  subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
-  solver = R2NSolver(reg_nlp, subsolver = subsolver, m_monotone = m_monotone)
+  solver = R2NSolver(reg_nlp, m_monotone = m_monotone)
   stats = GenericExecutionStats(reg_nlp.model)
   solve!(solver, reg_nlp, stats; kwargs_dict...)
   return stats
