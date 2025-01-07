@@ -162,7 +162,7 @@ function R2N(
   h,
   options::ROSolverOptions{T};
   kwargs...,
-) where{T, V}
+) where {T <: Real, V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
@@ -180,19 +180,16 @@ function R2N(
     η1 = options.η1,
     η2 = options.η2,
     ν = options.ν,
-    γ = options.γ,
-    θ = options.θ,
+    γ = options.γ;
     kwargs_dict...,
   )
 end
 
-function R2N(
-  reg_nlp::AbstractRegularizedNLPModel{T, V};
-  kwargs...
-) where{T, V}
+function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
   kwargs_dict = Dict(kwargs...)
   m_monotone = pop!(kwargs_dict, :m_monotone, 1)
-  solver = R2NSolver(reg_nlp, m_monotone = m_monotone)
+  subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
+  solver = R2NSolver(reg_nlp, subsolver = subsolver, m_monotone = m_monotone)
   stats = GenericExecutionStats(reg_nlp.model)
   solve!(solver, reg_nlp, stats; kwargs_dict...)
   return stats
@@ -322,8 +319,8 @@ function SolverCore.solve!(
            d -> obj(solver.subpb.model, d) + ψ(d)::T
   end
 
-  prox!(s, ψ, mν∇fk, ν₁)
-  mks = mk1(s)
+  prox!(s1, ψ, mν∇fk, ν₁)
+  mks = mk1(s1)
 
   ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
   sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν₁) : sqrt(-ξ1 / ν₁)
@@ -353,15 +350,14 @@ function SolverCore.solve!(
 
   while !done
 
-    s1 .= s
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3) # 1.0e-5 default
-      
+    
     solver.subpb.model.σ = σk
     solve!(
       solver.subsolver, 
       solver.subpb, 
       solver.substats;
-      x = s,
+      x = s1,
       atol = sub_atol,
       ν = ν₁,
       kwargs...
@@ -429,7 +425,7 @@ function SolverCore.solve!(
 
       if quasiNewtTest
         @. ∇fk⁻ = ∇fk - ∇fk⁻
-        push!(nlp, s, ∇fk⁻)
+        push!(solver.subpb.model.B, s, ∇fk⁻)
       end
       """
       try 
@@ -459,8 +455,8 @@ function SolverCore.solve!(
     set_time!(stats, time() - start_time)
 
     @. mν∇fk = - ν₁ * ∇fk  
-    prox!(s, ψ, mν∇fk, ν₁)
-    mks = mk1(s)
+    prox!(s1, ψ, mν∇fk, ν₁)
+    mks = mk1(s1)
 
     ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
 
