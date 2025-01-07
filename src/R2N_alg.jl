@@ -162,7 +162,7 @@ function R2N(
   h,
   options::ROSolverOptions{T};
   kwargs...,
-) where{T, V}
+) where {T <: Real, V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
@@ -180,16 +180,12 @@ function R2N(
     η1 = options.η1,
     η2 = options.η2,
     ν = options.ν,
-    γ = options.γ,
-    θ = options.θ,
+    γ = options.γ;
     kwargs_dict...,
   )
 end
 
-function R2N(
-  reg_nlp::AbstractRegularizedNLPModel{T, V};
-  kwargs...
-) where{T, V}
+function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
   kwargs_dict = Dict(kwargs...)
   m_monotone = pop!(kwargs_dict, :m_monotone, 1)
   subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
@@ -426,7 +422,7 @@ function SolverCore.solve!(
 
       if quasiNewtTest
         @. ∇fk⁻ = ∇fk - ∇fk⁻
-        push!(nlp, s, ∇fk⁻)
+        push!(solver.subpb.model.B, s, ∇fk⁻)
       end
       solver.subpb.model.B = hess_op(nlp, xk)
     
