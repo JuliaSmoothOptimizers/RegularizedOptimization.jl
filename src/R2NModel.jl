@@ -1,5 +1,19 @@
 export R2NModel
 
+@doc raw"""
+    R2NModel(B, ∇f, v, σ, x0)
+
+Given the unconstrained optimization problem:
+```math
+\min f(x),
+```
+this model represents the smooth R2N subproblem:
+```math
+\min_s \ \tfrac{1}{2} s^T B s + ∇f^T s + \tfrac{1}{2} σ\|s\|^2
+```
+where `B` represents either an approximation of the Hessian of `f` or the Hessian itself and `∇f` represents the gradient of `f` on `x0`.
+`σ > 0` is a regularization parameter and `v` is a vector of the same size as `x0` used for computations
+"""
 mutable struct R2NModel{T <: Real, V <: AbstractVector{T}, G <: AbstractLinearOperator{T}} <: AbstractNLPModel{T, V}
   B :: G
   ∇f :: V
