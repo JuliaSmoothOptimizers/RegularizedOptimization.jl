@@ -44,7 +44,7 @@ end
   for (h, h_name) ∈ ((NormL0(λ), "l0"),)
     for (solver_constructor, solver_name) ∈ ((R2Solver, "R2"), (R2NSolver, "R2N"), (R2DHSolver, "R2DH"))
       @testset "$(solver_name) - allocations" begin
-        reg_nlp = RegularizedNLPModel(LSR1Model(bpdn), h)
+        reg_nlp = RegularizedNLPModel(LBFGSModel(bpdn), h)
         solver = solver_constructor(reg_nlp)
         stats = GenericExecutionStats(reg_nlp)
         @test @wrappedallocs(solve!(solver, reg_nlp, stats, ν = 1.0, atol = 1e-6, rtol = 1e-6)) == 0
