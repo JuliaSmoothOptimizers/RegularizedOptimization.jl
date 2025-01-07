@@ -287,13 +287,14 @@ function SolverCore.solve!(
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
   λmax::T = T(1)
-  """
+  solver.subpb.model.B = hess_op(nlp, xk)
+
   try
     λmax = opnorm(solver.subpb.model.B) # TODO: This allocates; see utils.jl
   catch LAPACKException # This should be removed ASAP; see PR #159.
     λmax = opnorm(Matrix(solver.subpb.model.B))
   end
-  """
+
   ν₁ = 1 / ((λmax + σk) * (1 + θ))
   sqrt_ξ1_νInv = one(T)
 
@@ -350,7 +351,7 @@ function SolverCore.solve!(
 
   while !done
 
-    sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3) # 1.0e-5 default
+    sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3)
     
     solver.subpb.model.σ = σk
     solve!(
@@ -405,10 +406,6 @@ function SolverCore.solve!(
         colsep = 1,
       )
 
-    if η2 ≤ ρk < Inf
-        σk = max(σk/γ, σmin)
-    end
-
     if η1 ≤ ρk < Inf
       xk .= xkn
       if has_bnds
@@ -425,15 +422,16 @@ function SolverCore.solve!(
 
       if quasiNewtTest
         @. ∇fk⁻ = ∇fk - ∇fk⁻
-        push!(solver.subpb.model.B, s, ∇fk⁻)
+        push!(nlp, s, ∇fk⁻)
       end
-      """
+      solver.subpb.model.B = hess_op(nlp, xk)
+    
       try 
         λmax = opnorm(solver.subpb.model.B)
       catch LAPACKException
         λmax = opnorm(Matrix(solver.subpb.model.B))
       end
-      """
+    
       ∇fk⁻ .= ∇fk
     end
 
@@ -445,7 +443,7 @@ function SolverCore.solve!(
       σk = σk * γ
     end
     
-    ν₁ = 1/(1 + θ) *( σk + λmax)
+    ν₁ = 1 / ((λmax + σk) * (1 + θ))
     m_monotone > 1 && (m_fh_hist[mod(stats.iter+1, m_monotone - 1) + 1] = fk + hk)
 
     set_objective!(stats, fk + hk)
