@@ -43,7 +43,7 @@ function NLPModels.grad!(nlp::R2NModel, x::AbstractVector, g::AbstractVector)
   increment!(nlp, :neval_grad)
   mul!(g, nlp.B, x)
   g .+= nlp.∇f
-  g .+= nlp.σ * x
+  g .+= nlp.σ .* x
   return  g
 end
 
