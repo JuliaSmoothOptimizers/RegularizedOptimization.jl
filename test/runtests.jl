@@ -138,7 +138,7 @@ R2N_R2DH(args...; kwargs...) = R2N(args...; subsolver = R2DHSolver, kwargs...)
 for (mod, mod_name) ∈ ((SpectralGradientModel, "spg"), (DiagonalPSBModel, "psb"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
   for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
     for solver_sym ∈ (:R2DH, :R2N, :R2N_R2DH)
-      solver_sym == (:R2N,:R2N_R2DH)  && mod_name == ("spg", "psb") && continue
+      solver_sym ∈ (:R2N,:R2N_R2DH)  && mod_name ∈ ("spg", "psb") && continue
       solver_sym == :R2DH && mod_name != "spg" && continue
       solver_sym == :R2N_R2DH  && h_name == "l1" && continue # this test seems to fail because s seems to be equal to zeros within the subsolver
       solver_name = string(solver_sym)
