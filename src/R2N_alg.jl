@@ -354,6 +354,7 @@ function SolverCore.solve!(
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3)
     
     solver.subpb.model.σ = σk
+    isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     solve!(
       solver.subsolver, 
       solver.subpb, 
