@@ -33,8 +33,8 @@ The Hessian is accessed as an abstract operator and need not be the exact Hessia
 * `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver (default: the null logger)
 * `subsolver`: the procedure used to compute a step (`R2DH`, `R2` or `PG`)
 * `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options)
-* `selected::AbstractVector{<:Integer}`: subset of variables to which `h` is applied (default `1:nlp.meta.nvar`).
 * `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotone variant (default: 1).
+* `selected::AbstractVector{<:Integer}`: subset of variables to which `h` is applied (default `1:nlp.meta.nvar`).
 
 ### Return values
 
