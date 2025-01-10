@@ -2,7 +2,6 @@ export R2DH
 
 """
     R2DH(nlp, h, options)
-    R2DH(f, ∇f!, h, options, x0)
 
 A second-order quadratic regularization method for the problem
 
@@ -33,11 +32,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ(Dₖ + σₖI)s is a qua
 The objective and gradient of `nlp` will be accessed.
 
 ### Return values
-
-* `xk`: the final iterate
-* `Fobj_hist`: an array with the history of values of the smooth objective
-* `Hobj_hist`: an array with the history of values of the nonsmooth objective
-* `Complex_hist`: an array with the history of number of inner iterations.
+The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
 """
 function R2DH(
     nlp::AbstractDiagonalQNModel{R, S},
@@ -74,6 +69,41 @@ function R2DH(
     return stats
   end
 
+"""
+    R2DH(f, ∇f!, h, options, x0)
+
+A second calling form for `R2DH` where the objective and gradient are passed as arguments.
+
+### Arguments
+
+* `f::Function`: the objective function
+* `∇f!::Function`: the gradient function
+* `h`: a regularizer such as those defined in ProximalOperators
+* `D`: Diagonal quasi-Newton operator.
+* `options::ROSolverOptions`: a structure containing algorithmic parameters
+* `x0::AbstractVector`: an initial guess
+
+### Keyword Arguments
+
+* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotone variant (default: 6).
+* `selected::AbstractVector{<:Integer}`: subset of variables to which `h` is applied (default `1:length(x0)`).
+
+### Return values
+
+* `xk`: the final iterate
+* `k`: the number of iterations
+* `outdict`: a dictionary containing the following fields:
+    * `Fhist`: an array with the history of values of the smooth objective
+    * `Hhist`: an array with the history of values of the nonsmooth objective
+    * `Time_hist`: an array with the history of elapsed times
+    * `Chist`: an array with the history of number of inner iterations
+    * `NonSmooth`: the nonsmooth term
+    * `status`: the status of the solver either `:first_order`, `:max_iter`, `:max_time` or `:exception`
+    * `fk`: the value of the smooth objective at the final iterate
+    * `hk`: the value of the nonsmooth objective at the final iterate
+    * `sqrt_ξ_νInv`: the square root of the ratio of the nonsmooth term to the regularization parameter
+    * `elapsed_time`: the elapsed time
+"""
 function R2DH(
   f::F,
   ∇f!::G,
