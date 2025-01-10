@@ -151,7 +151,7 @@ function R2N(
     mk1(d) = φ1(d) + ψ(d)
 
     # model for subsequent prox-gradient steps and ξ
-    φ(d) = (d' * (Bk * d)) / 2 + ∇fk' * d + σk * dot(d, d) / 2
+    φ(d) = ∇fk' * d + dot(d, Bk * d) / 2 +  σk * dot(d, d) / 2
 
     ∇φ!(g, d) = begin
       mul!(g, Bk, d)
