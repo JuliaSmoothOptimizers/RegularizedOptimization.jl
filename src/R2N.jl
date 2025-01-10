@@ -218,7 +218,7 @@ function R2N(
 
     ρk = Δobj / Δmod
 
-    R2N_stat = (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "=")
+    R2N_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
 
     if (verbose > 0) && ((k % ptf == 0) || (k == 1))
       #! format: off
