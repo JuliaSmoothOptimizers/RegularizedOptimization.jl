@@ -22,7 +22,6 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ(Dₖ + σₖI)s is a qua
 * `nlp::AbstractDiagonalQNModel`: a smooth optimization problem
 * `h`: a regularizer such as those defined in ProximalOperators
 * `options::ROSolverOptions`: a structure containing algorithmic parameters
-* `x0::AbstractVector`: an initial guess (in the second calling form)
 
 ### Keyword Arguments
 
