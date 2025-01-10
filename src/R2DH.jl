@@ -256,7 +256,6 @@ function R2DH(
     end
 
     Dkσk .= D.d .+ σk
-    DNorm = norm(D.d, Inf)
     ν = 1 / ((DNorm + σk) * (1 + θ))
     
     tired = maxIter > 0 && k ≥ maxIter
