@@ -32,11 +32,6 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ(Dₖ + σₖI)s is a qua
 
 The objective and gradient of `nlp` will be accessed.
 
-In the second form, instead of `nlp`, the user may pass in
-
-* `f` a function such that `f(x)` returns the value of f at x
-* `∇f!` a function to evaluate the gradient in place, i.e., such that `∇f!(g, x)` store ∇f(x) in `g`
-
 ### Return values
 
 * `xk`: the final iterate
