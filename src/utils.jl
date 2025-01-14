@@ -37,6 +37,5 @@ function RegularizedExecutionStats(reg_nlp :: AbstractRegularizedNLPModel{T, V})
   stats = GenericExecutionStats(reg_nlp.model, solver_specific = Dict{Symbol, T}())
   set_solver_specific!(stats, :smooth_obj, T(Inf))
   set_solver_specific!(stats, :nonsmooth_obj, T(Inf))
-  set_solver_specific!(stats, :xi, T(Inf))
   return stats
 end
