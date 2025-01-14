@@ -186,6 +186,7 @@ function R2N(
 
     subsolver_options.ϵa = k == 1 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3)
     verbose > 0 && @debug "setting inner stopping tolerance to" subsolver_options.optTol
+    subsolver_options.σk = σk
     subsolver_args = subsolver == R2DH ? (SpectralGradient(νInv, f.meta.nvar),) : ()
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
@@ -199,6 +200,7 @@ function R2N(
     # is not modified if there is an error
     subsolver_options.ν = ν_subsolver
     subsolver_options.ϵa = ϵ_subsolver_init
+    subsolver_options.σk = σk
     Complex_hist[k] = iter
 
     xkn .= xk .+ s
