@@ -239,7 +239,7 @@ function R2(
     :status => stats.status,
     :fk => stats.solver_specific[:smooth_obj],
     :hk => stats.solver_specific[:nonsmooth_obj],
-    :ξ => stats.solver_specific[:xi],
+    :ξ => stats.dual_feas,
     :elapsed_time => stats.elapsed_time,
   )
   return stats.solution, stats.iter, outdict
@@ -416,7 +416,6 @@ function SolverCore.solve!(
   (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
     error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
-  set_solver_specific!(stats, :xi, sqrt_ξ_νInv)
   set_status!(
     stats,
     get_status(
@@ -501,7 +500,6 @@ function SolverCore.solve!(
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
       error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
-    set_solver_specific!(stats, :xi, sqrt_ξ_νInv)
     set_status!(
       stats,
       get_status(
@@ -540,6 +538,7 @@ function SolverCore.solve!(
   end
 
   set_solution!(stats, xk)
+  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
   return stats
 end
 
