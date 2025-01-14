@@ -67,12 +67,12 @@ function TRDH(
     u_bound = nlp.meta.uvar,
     kwargs...,
   )
-  ξ = outdict[:ξ]
+  sqrt_ξ_νInv = outdict[:sqrt_ξ_νInv]
   stats = GenericExecutionStats(nlp)
   set_status!(stats, outdict[:status])
   set_solution!(stats, xk)
   set_objective!(stats, outdict[:fk] + outdict[:hk])
-  set_residuals!(stats, zero(eltype(xk)), ξ)
+  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
   set_iter!(stats, k)
   set_time!(stats, outdict[:elapsed_time])
   set_solver_specific!(stats, :Fhist, outdict[:Fhist])
@@ -362,7 +362,7 @@ function TRDH(
     :status => status,
     :fk => fk,
     :hk => hk,
-    :ξ => sqrt_ξ_νInv,
+    :sqrt_ξ_νInv => sqrt_ξ_νInv,
     :elapsed_time => elapsed_time,
   )
 
