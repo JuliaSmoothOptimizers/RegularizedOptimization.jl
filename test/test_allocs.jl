@@ -46,7 +46,7 @@ end
       @testset "$(solver_name) - allocations" begin
         reg_nlp = RegularizedNLPModel(LBFGSModel(bpdn), h)
         solver = solver_constructor(reg_nlp)
-        stats = GenericExecutionStats(reg_nlp)
+        stats = RegularizedExecutionStats(reg_nlp)
         @test @wrappedallocs(solve!(solver, reg_nlp, stats, ν = 1.0, atol = 1e-6, rtol = 1e-6)) == 0
         @test stats.status == :first_order
       end

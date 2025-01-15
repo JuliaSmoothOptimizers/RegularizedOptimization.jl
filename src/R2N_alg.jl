@@ -64,7 +64,7 @@ function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Sol
     x0
   )
   subpb = RegularizedNLPModel(sub_nlp, ψ)
-  substats = GenericExecutionStats(subpb)
+  substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
 
   return R2NSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
@@ -190,7 +190,7 @@ function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
   m_monotone = pop!(kwargs_dict, :m_monotone, 1)
   subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
   solver = R2NSolver(reg_nlp, subsolver = subsolver, m_monotone = m_monotone)
-  stats = GenericExecutionStats(reg_nlp.model)
+  stats = RegularizedExecutionStats(reg_nlp)
   solve!(solver, reg_nlp, stats; kwargs_dict...)
   return stats
 end
@@ -330,7 +330,6 @@ function SolverCore.solve!(
     error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
   
-  set_solver_specific!(stats, :xi, sqrt_ξ1_νInv)
   set_status!(
     stats,
     get_status(
@@ -464,7 +463,6 @@ function SolverCore.solve!(
 		
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
       error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-    set_solver_specific!(stats, :xi, sqrt_ξ1_νInv)
     set_status!(
       stats,
       get_status(
@@ -505,5 +503,6 @@ function SolverCore.solve!(
   end
 
   set_solution!(stats, xk)
+  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
   return stats
 end

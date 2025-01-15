@@ -176,7 +176,7 @@ function R2DH(
   kwargs_dict = Dict(kwargs...)
   m_monotone = pop!(kwargs_dict, :m_monotone, 1)
   solver = R2DHSolver(reg_nlp, m_monotone = m_monotone)
-  stats = GenericExecutionStats(reg_nlp.model)
+  stats = RegularizedExecutionStats(reg_nlp)
   solve!(solver, reg_nlp, stats; kwargs_dict...)
   return stats
 end
@@ -319,7 +319,6 @@ function SolverCore.solve!(
     error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
   atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
 
-  set_solver_specific!(stats, :xi, sqrt_ξ_νInv)
   set_status!(
     stats,
     get_status(
@@ -425,7 +424,6 @@ function SolverCore.solve!(
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
       error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
-    set_solver_specific!(stats, :xi, sqrt_ξ_νInv)
     set_status!(
       stats,
       get_status(
@@ -465,5 +463,6 @@ function SolverCore.solve!(
   end
 
   set_solution!(stats,xk)
+  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
   return stats
 end
