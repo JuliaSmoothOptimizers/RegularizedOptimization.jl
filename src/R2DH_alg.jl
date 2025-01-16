@@ -182,7 +182,7 @@ function R2DH(
 end
 
 function SolverCore.solve!(
-  solver::R2DHSolver{T},
+  solver::R2DHSolver{T, G, V},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
@@ -200,7 +200,7 @@ function SolverCore.solve!(
   ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
   θ::T = eps(T)^(1 / 5),
-) where{T, V}
+) where{T, V, G}
 
   reset!(stats)
 
@@ -288,18 +288,22 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
 
-  φ(d) = begin
-    result = zero(T)
-    n = length(d)
-    @inbounds for i = 1:n
-      result += d[i]^2*dkσk[i]/2 + ∇fk[i]*d[i]
-    end
-    return result
+  φ = let ∇fk = ∇fk, dkσk = dkσk
+    d ->begin
+          result = zero(T)
+          n = length(d)
+          @inbounds for i = 1:n
+            result += d[i]^2*dkσk[i]/2 + ∇fk[i]*d[i]
+          end
+          return result
+        end
   end
   
-  mk(d)::T = φ(d) + ψ(d)::T
+  mk = let ψ = ψ 
+    d -> φ(d) + ψ(d)::T
+  end
 
-  spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
+  spectral_test ? prox!(s, ψ, mν∇fk::V, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
 
   mks = mk(s) 
   while mks == -Inf #TODO add test coverage for this
