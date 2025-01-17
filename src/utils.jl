@@ -33,7 +33,7 @@ More specifically, construct a GenericExecutionStats on the NLPModel of reg_nlp 
 This is useful for reducing the number of allocations when calling solve!(..., reg_nlp, stats) and should be used by default.
 Warning: This should *not* be used when adding other solver_specific entries that do not have the current scalar type. 
 """
-function RegularizedExecutionStats(reg_nlp :: AbstractRegularizedNLPModel{T, V}) where{T, V}
+function RegularizedExecutionStats(reg_nlp::AbstractRegularizedNLPModel{T, V}) where {T, V}
   stats = GenericExecutionStats(reg_nlp.model, solver_specific = Dict{Symbol, T}())
   set_solver_specific!(stats, :smooth_obj, T(Inf))
   set_solver_specific!(stats, :nonsmooth_obj, T(Inf))

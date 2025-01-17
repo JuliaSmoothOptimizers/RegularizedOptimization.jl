@@ -51,7 +51,7 @@ function R2N(
   subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
-  Mmonotone::Int = 1, 
+  Mmonotone::Int = 1,
   selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
 ) where {H, R}
   start_time = time()
@@ -144,14 +144,14 @@ function R2N(
     elapsed_time = time() - start_time
     Fobj_hist[k] = fk
     Hobj_hist[k] = hk
-    Mmonotone > 1 && (FHobj_hist[mod(k-1, Mmonotone - 1) + 1] = fk + hk)
+    Mmonotone > 1 && (FHobj_hist[mod(k - 1, Mmonotone - 1) + 1] = fk + hk)
 
     # model for first prox-gradient step and ξ1
     φ1(d) = ∇fk' * d
     mk1(d) = φ1(d) + ψ(d)
 
     # model for subsequent prox-gradient steps and ξ
-    φ(d) = ∇fk' * d + dot(d, Bk * d) / 2 +  σk * dot(d, d) / 2
+    φ(d) = ∇fk' * d + dot(d, Bk * d) / 2 + σk * dot(d, d) / 2
 
     ∇φ!(g, d) = begin
       mul!(g, Bk, d)
@@ -184,7 +184,7 @@ function R2N(
     end
     s1 = copy(s)
 
-    subsolver_options.ϵa = k == 1 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3)
+    subsolver_options.ϵa = k == 1 ? 1.0e-3 : min(sqrt_ξ1_νInv^(1.5), sqrt_ξ1_νInv * 1e-3)
     verbose > 0 && @debug "setting inner stopping tolerance to" subsolver_options.optTol
     subsolver_options.σk = σk
     subsolver_args = subsolver == R2DH ? (SpectralGradient(νInv, f.meta.nvar),) : ()
