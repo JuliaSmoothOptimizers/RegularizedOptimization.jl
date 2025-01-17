@@ -35,39 +35,39 @@ The objective and gradient of `nlp` will be accessed.
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
 """
 function R2DH(
-    nlp::AbstractDiagonalQNModel{R, S},
+  nlp::AbstractDiagonalQNModel{R, S},
+  h,
+  options::ROSolverOptions{R};
+  kwargs...,
+) where {R <: Real, S}
+  kwargs_dict = Dict(kwargs...)
+  x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
+  xk, k, outdict = R2DH(
+    x -> obj(nlp, x),
+    (g, x) -> grad!(nlp, x, g),
     h,
-    options::ROSolverOptions{R};
+    hess_op(nlp, x0),
+    options,
+    x0;
+    l_bound = nlp.meta.lvar,
+    u_bound = nlp.meta.uvar,
     kwargs...,
-  ) where {R <: Real, S}
-    kwargs_dict = Dict(kwargs...)
-    x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
-    xk, k, outdict = R2DH(
-      x -> obj(nlp, x),
-      (g, x) -> grad!(nlp, x, g),
-      h,
-      hess_op(nlp, x0),
-      options,
-      x0;
-      l_bound = nlp.meta.lvar,
-      u_bound = nlp.meta.uvar,
-      kwargs...,
-    )
-    sqrt_ξ_νInv = outdict[:sqrt_ξ_νInv]
-    stats = GenericExecutionStats(nlp)
-    set_status!(stats, outdict[:status])
-    set_solution!(stats, xk)
-    set_objective!(stats, outdict[:fk] + outdict[:hk])
-    set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
-    set_iter!(stats, k)
-    set_time!(stats, outdict[:elapsed_time])
-    set_solver_specific!(stats, :Fhist, outdict[:Fhist])
-    set_solver_specific!(stats, :Hhist, outdict[:Hhist])
-    set_solver_specific!(stats, :Time_hist, outdict[:Time_hist])
-    set_solver_specific!(stats, :NonSmooth, outdict[:NonSmooth])
-    set_solver_specific!(stats, :SubsolverCounter, outdict[:Chist])
-    return stats
-  end
+  )
+  sqrt_ξ_νInv = outdict[:sqrt_ξ_νInv]
+  stats = GenericExecutionStats(nlp)
+  set_status!(stats, outdict[:status])
+  set_solution!(stats, xk)
+  set_objective!(stats, outdict[:fk] + outdict[:hk])
+  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
+  set_iter!(stats, k)
+  set_time!(stats, outdict[:elapsed_time])
+  set_solver_specific!(stats, :Fhist, outdict[:Fhist])
+  set_solver_specific!(stats, :Hhist, outdict[:Hhist])
+  set_solver_specific!(stats, :Time_hist, outdict[:Time_hist])
+  set_solver_specific!(stats, :NonSmooth, outdict[:NonSmooth])
+  set_solver_specific!(stats, :SubsolverCounter, outdict[:Chist])
+  return stats
+end
 
 """
     R2DH(f, ∇f!, h, options, x0)
@@ -169,11 +169,11 @@ function R2DH(
   s = zero(xk)
   ψ = has_bnds ? shifted(h, xk, l_bound - xk, u_bound - xk, selected) : shifted(h, xk)
 
-  Fobj_hist = zeros(maxIter+1)
-  Hobj_hist = zeros(maxIter+1)
-  time_hist = zeros(maxIter+1)
+  Fobj_hist = zeros(maxIter + 1)
+  Hobj_hist = zeros(maxIter + 1)
+  time_hist = zeros(maxIter + 1)
   FHobj_hist = fill!(Vector{R}(undef, Mmonotone - 1), R(-Inf))
-  Complex_hist = zeros(Int, maxIter+1)
+  Complex_hist = zeros(Int, maxIter + 1)
   if verbose > 0
     #! format: off
     @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√(ξ/ν)" "ρ" "σ" "‖x‖" "‖s‖" ""
@@ -265,7 +265,7 @@ function R2DH(
       shift!(ψ, xk)
       ∇f!(∇fk, xk)
       push!(D, s, ∇fk - ∇fk⁻) # update QN operator
-      DNorm = norm(D.d, Inf) 
+      DNorm = norm(D.d, Inf)
       ∇fk⁻ .= ∇fk
     end
 
@@ -275,7 +275,7 @@ function R2DH(
 
     Dkσk .= D.d .+ σk
     ν = 1 / ((DNorm + σk) * (1 + θ))
-    
+
     tired = maxIter > 0 && k ≥ maxIter
     if !tired
       @. mν∇fk = -ν * ∇fk
