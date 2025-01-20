@@ -64,7 +64,7 @@ function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Sol
     x0
   )
   subpb = RegularizedNLPModel(sub_nlp, ψ)
-  substats = GenericExecutionStats(subpb)
+  substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
 
   return R2NSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
