@@ -449,7 +449,6 @@ function SolverCore.solve!(
     @info log_row(
       Any[
         stats.iter,
-        0,
         fk,
         hk,
         sqrt_ξ_νInv,
