@@ -174,7 +174,7 @@ function R2DH(
   kwargs...
 ) where{T, V}
   kwargs_dict = Dict(kwargs...)
-  m_monotone = pop!(kwargs_dict, :m_monotone, 1)
+  m_monotone = pop!(kwargs_dict, :m_monotone, 6)
   solver = R2DHSolver(reg_nlp, m_monotone = m_monotone)
   stats = GenericExecutionStats(reg_nlp.model)
   solve!(solver, reg_nlp, stats; kwargs_dict...)
