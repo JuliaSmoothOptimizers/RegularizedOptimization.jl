@@ -296,6 +296,8 @@ function SolverCore.solve!(
   end
 
   ν₁ = 1 / ((λmax + σk) * (1 + θ))
+  ν_sub = ν₁
+  
   sqrt_ξ1_νInv = one(T)
 
   @. mν∇fk = -ν₁ * ∇fk
@@ -355,13 +357,14 @@ function SolverCore.solve!(
     
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
+    ν_sub = isa(solver.subsolver, R2DHSolver) ? 1/σk : ν₁
     solve!(
       solver.subsolver, 
       solver.subpb, 
       solver.substats;
       x = s1,
       atol = sub_atol,
-      ν = 1/σk,
+      ν = ν_sub,
       kwargs...
       )
 
