@@ -25,7 +25,7 @@ mutable struct R2DHSolver{
   m_fh_hist::V
 end
 
-function R2DHSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int = 1) where{T, V}
+function R2DHSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int = 6) where{T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -91,7 +91,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀDₖs is a quadratic appr
 
 For advanced usage, first define a solver "R2DHSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-    solver = R2DHSolver(reg_nlp; m_monotone = 1)
+    solver = R2DHSolver(reg_nlp; m_monotone = 6)
     solve!(solver, reg_nlp)
 
     stats = RegularizedExecutionStats(reg_nlp)
@@ -116,7 +116,7 @@ For advanced usage, first define a solver "R2DHSolver" to preallocate the memory
 - `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 - `θ::T = eps(T)^(1/5)`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
-- `m_monotone::Int = 1`: monotoneness parameter. By default, R2DH is monotone but the non-monotone variant can be used with `m_monotone > 1`
+- `m_monotone::Int = 6`: monotoneness parameter. By default, R2DH is non-monotone but the monotone variant can be used with `m_monotone = 1`
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
