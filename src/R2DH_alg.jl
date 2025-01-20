@@ -141,7 +141,7 @@ Notably, you can access, and modify, the following:
   - `stats.elapsed_time`: elapsed time in seconds.
 """
 function R2DH(
-  nlp::AbstractDiagonalQNModel{T, V},
+  nlp::AbstractNLPModel{T, V},
   h,
   options::ROSolverOptions{T};
   kwargs...,
