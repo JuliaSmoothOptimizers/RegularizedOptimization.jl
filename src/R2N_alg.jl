@@ -402,7 +402,7 @@ function SolverCore.solve!(
           norm(xk),
           norm(s),
           λmax,
-          (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "="),
+          (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
         ],
         colsep = 1,
       )
