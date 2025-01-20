@@ -236,7 +236,7 @@ function SolverCore.solve!(
   xkn = solver.xkn
   s = solver.s
   s1 = solver.s1
-  m_fh_hist = solver.m_fh_hist
+  m_fh_hist = solver.m_fh_hist .= T(-Inf)
   has_bnds = solver.has_bnds
 
   if has_bnds
@@ -299,7 +299,6 @@ function SolverCore.solve!(
   sqrt_ξ1_νInv = one(T)
 
   @. mν∇fk = -ν₁ * ∇fk
-  m_monotone > 1 && (m_fh_hist[mod(stats.iter+1, m_monotone - 1) + 1] = fk + hk)
 
   set_iter!(stats, 0)
   start_time = time()
@@ -307,6 +306,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone - 1) + 1] = fk + hk)
 
   φ1 = let ∇fk = ∇fk
            d -> dot(∇fk, d)
@@ -361,7 +361,7 @@ function SolverCore.solve!(
       solver.substats;
       x = s1,
       atol = sub_atol,
-      ν = ν₁,
+      ν = 1/σk,
       kwargs...
       )
 
@@ -445,7 +445,7 @@ function SolverCore.solve!(
     end
     
     ν₁ = 1 / ((λmax + σk) * (1 + θ))
-    m_monotone > 1 && (m_fh_hist[mod(stats.iter+1, m_monotone - 1) + 1] = fk + hk)
+    m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone - 1) + 1] = fk + hk)
 
     set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)
