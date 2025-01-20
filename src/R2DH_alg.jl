@@ -222,7 +222,7 @@ function SolverCore.solve!(
   ψ = solver.ψ
   xkn = solver.xkn
   s = solver.s
-  m_fh_hist = solver.m_fh_hist
+  m_fh_hist = solver.m_fh_hist .= T(-Inf)
   has_bnds = solver.has_bnds
 
   if has_bnds
@@ -279,7 +279,6 @@ function SolverCore.solve!(
   sqrt_ξ_νInv = one(T)
 
   @. mν∇fk = -ν₁ * ∇fk
-  m_monotone > 1 && (m_fh_hist[mod(stats.iter+1, m_monotone - 1) + 1] = fk + hk)
 
   set_iter!(stats, 0)
   start_time = time()
@@ -287,6 +286,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  m_monotone > 1 && (m_fh_hist[(stats.iter)%(m_monotone - 1) + 1] = fk + hk)
 
   φ(d) = begin
     result = zero(T)
@@ -404,7 +404,7 @@ function SolverCore.solve!(
     ν₁ = 1 / ((DNorm + σk) * (1 + θ))
 
     @. mν∇fk = -ν₁ * ∇fk
-    m_monotone > 1 && (m_fh_hist[mod(stats.iter+1, m_monotone - 1) + 1] = fk + hk)
+    m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone - 1) + 1] = fk + hk)
 
     spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
     mks = mk(s)
