@@ -59,7 +59,6 @@ function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Sol
   sub_nlp = R2NModel(
     Bk,
     ∇fk,
-    v,
     T(1),
     x0
   )

@@ -26,14 +26,15 @@ end
 function R2NModel(
   B :: G,
   ∇f :: V,
-  v :: V,
   σ :: T,
   x0 :: V
 ) where{T, V, G}
+  @assert length(x0) == length(∇f)
   meta = NLPModelMeta(
     length(∇f),
     x0 = x0, # Perhaps we should add lvar and uvar as well here.
   )
+  v = similar(x0)
   return R2NModel(
     B :: G,
     ∇f :: V,
@@ -59,8 +60,4 @@ function NLPModels.grad!(nlp::R2NModel, x::AbstractVector, g::AbstractVector)
   g .+= nlp.∇f
   g .+= nlp.σ .* x
   return  g
-end
-
-function NLPModels.push!(nlp::R2NModel, s::AbstractVector, y::AbstractVector)
-  push!(nlp.B, s, y)
 end
