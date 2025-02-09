@@ -96,7 +96,7 @@ A second-order quadratic regularization method for the problem
 
     min f(x) + h(x)
 
-where f: ℝⁿ → ℝ has a Lipschitz-continuous gradient, and h: ℝⁿ → ℝ is
+where f: ℝⁿ → ℝ is C¹, and h: ℝⁿ → ℝ is
 lower semi-continuous, proper and prox-bounded.
 
 About each iterate xₖ, a step sₖ is computed as a solution of
@@ -129,7 +129,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `σmin::T = eps(T)`: minimum value of the regularization parameter;
 - `η1::T = √√eps(T)`: successful iteration threshold;
 - `η2::T = T(0.9)`: very successful iteration threshold;
-- `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
+- `ν::T = eps(T)^(1 / 5)`: inverse of the initial regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 - `θ::T = eps(T)^(1/5)`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2DH is monotone but the non-monotone variant will be used if `m_monotone > 1`
@@ -288,11 +288,7 @@ function SolverCore.solve!(
   λmax::T = T(1)
   solver.subpb.model.B = hess_op(nlp, xk)
 
-  try
-    λmax = opnorm(solver.subpb.model.B) # TODO: This allocates; see utils.jl
-  catch LAPACKException # FIXME: This should be removed ASAP; see PR #159.
-    λmax = opnorm(Matrix(solver.subpb.model.B))
-  end
+  λmax = opnorm(solver.subpb.model.B)
 
   ν₁ = 1 / ((λmax + σk) * (1 + θ))
   ν_sub = ν₁
@@ -310,15 +306,15 @@ function SolverCore.solve!(
   m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone - 1) + 1] = fk + hk)
 
   φ1 = let ∇fk = ∇fk
-           d -> dot(∇fk, d)
+    d -> dot(∇fk, d)
   end
 
   mk1 = let ψ = ψ
-            d -> φ1(d) + ψ(d)::T
+    d -> φ1(d) + ψ(d)::T
   end
 
   mk = let ψ = ψ, solver = solver
-           d -> obj(solver.subpb.model, d) + ψ(d)::T
+    d -> obj(solver.subpb.model, d) + ψ(d)::T
   end
 
   prox!(s1, ψ, mν∇fk, ν₁)
@@ -331,7 +327,6 @@ function SolverCore.solve!(
     error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
   
-  set_solver_specific!(stats, :xi, sqrt_ξ1_νInv)
   set_status!(
     stats,
     get_status(
@@ -376,7 +371,6 @@ function SolverCore.solve!(
     xkn .= xk .+ s
     fkn = obj(nlp, xkn)
     hkn = @views h(xkn[selected])
-    hkn == -Inf && error("nonsmooth term is not proper")
     mks = mk(s)
 
     fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
@@ -429,11 +423,7 @@ function SolverCore.solve!(
       end
       solver.subpb.model.B = hess_op(nlp, xk)
     
-      try 
-        λmax = opnorm(solver.subpb.model.B)
-      catch LAPACKException
-        λmax = opnorm(Matrix(solver.subpb.model.B))
-      end
+      λmax = opnorm(solver.subpb.model.B)
     
       ∇fk⁻ .= ∇fk
     end
@@ -466,7 +456,6 @@ function SolverCore.solve!(
 		
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
       error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-    set_solver_specific!(stats, :xi, sqrt_ξ1_νInv)
     set_status!(
       stats,
       get_status(
@@ -507,5 +496,6 @@ function SolverCore.solve!(
   end
 
   set_solution!(stats, xk)
+  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
   return stats
 end

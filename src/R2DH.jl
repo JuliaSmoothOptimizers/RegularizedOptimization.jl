@@ -79,7 +79,7 @@ A second-order quadratic regularization method for the problem
 
     min f(x) + h(x)
 
-where f: ℝⁿ → ℝ has a Lipschitz-continuous gradient, and h: ℝⁿ → ℝ is
+where f: ℝⁿ → ℝ is C¹, and h: ℝⁿ → ℝ is
 lower semi-continuous, proper and prox-bounded.
 
 About each iterate xₖ, a step sₖ is computed as a solution of
@@ -113,7 +113,7 @@ For advanced usage, first define a solver "R2DHSolver" to preallocate the memory
 - `σmin::T = eps(T)`: minimum value of the regularization parameter;
 - `η1::T = √√eps(T)`: very successful iteration threshold;
 - `η2::T = T(0.9)`: successful iteration threshold;
-- `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
+- `ν::T = eps(T)^(1 / 5)`: inverse of the initial regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 - `θ::T = eps(T)^(1/5)`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
 - `m_monotone::Int = 6`: monotoneness parameter. By default, R2DH is non-monotone but the monotone variant can be used with `m_monotone = 1`
@@ -319,7 +319,6 @@ function SolverCore.solve!(
     error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
   atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
 
-  set_solver_specific!(stats, :xi, sqrt_ξ_νInv)
   set_status!(
     stats,
     get_status(
@@ -343,7 +342,6 @@ function SolverCore.solve!(
     xkn .= xk .+ s
     fkn = obj(nlp, xkn)
     hkn = @views h(xkn[selected])
-    improper = (hkn == -Inf)
 
     fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
@@ -425,7 +423,6 @@ function SolverCore.solve!(
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
       error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
-    set_solver_specific!(stats, :xi, sqrt_ξ_νInv)
     set_status!(
       stats,
       get_status(
@@ -464,5 +461,6 @@ function SolverCore.solve!(
   end
 
   set_solution!(stats,xk)
+  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
   return stats
 end
