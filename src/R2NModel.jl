@@ -9,10 +9,10 @@ Given the unconstrained optimization problem:
 ```
 this model represents the smooth R2N subproblem:
 ```math
-\min_s \ \tfrac{1}{2} s^T B s + ∇f^T s + \tfrac{1}{2} σ\|s\|^2
+\min_s \ ∇f^T s + \tfrac{1}{2} s^T B s + \tfrac{1}{2} σ \|s\|^2
 ```
-where `B` represents either an approximation of the Hessian of `f` or the Hessian itself and `∇f` represents the gradient of `f` on `x0`.
-`σ > 0` is a regularization parameter and `v` is a vector of the same size as `x0` used for computations
+where `B` is either an approximation of the Hessian of `f` or the Hessian itself and `∇f` represents the gradient of `f` at `x0`.
+`σ > 0` is a regularization parameter and `v` is a vector of the same size as `x0` used for intermediary computations.
 """
 mutable struct R2NModel{T <: Real, V <: AbstractVector{T}, G <: AbstractLinearOperator{T}} <: AbstractNLPModel{T, V}
   B :: G
@@ -23,7 +23,7 @@ mutable struct R2NModel{T <: Real, V <: AbstractVector{T}, G <: AbstractLinearOp
   counters::Counters
 end
   
-  function R2NModel(
+function R2NModel(
   B :: G,
   ∇f :: V,
   v :: V,

@@ -112,7 +112,6 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
     solve!(solver, reg_nlp)
 
     stats = RegularizedExecutionStats(reg_nlp)
-    solver = R2NSolver(reg_nlp)
     solve!(solver, reg_nlp, stats)
   
 # Arguments
@@ -128,12 +127,12 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `max_iter::Int = 10000`: maximum number of iterations;
 - `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
 - `σmin::T = eps(T)`: minimum value of the regularization parameter;
-- `η1::T = √√eps(T)`: very successful iteration threshold;
-- `η2::T = T(0.9)`: successful iteration threshold;
+- `η1::T = √√eps(T)`: successful iteration threshold;
+- `η2::T = T(0.9)`: very successful iteration threshold;
 - `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 - `θ::T = eps(T)^(1/5)`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
-- `m_monotone::Int = 1`: monotoneness parameter. By default, R2DH is monotone but the non-monotone variant can be used with `m_monotone > 1`
+- `m_monotone::Int = 1`: monotonicity parameter. By default, R2DH is monotone but the non-monotone variant will be used if `m_monotone > 1`
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
@@ -154,7 +153,7 @@ Notably, you can access, and modify, the following:
   - `stats.objective`: current objective function value;
   - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function
   - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function
-  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention.
   - `stats.elapsed_time`: elapsed time in seconds.
 """
 function R2N(
@@ -291,7 +290,7 @@ function SolverCore.solve!(
 
   try
     λmax = opnorm(solver.subpb.model.B) # TODO: This allocates; see utils.jl
-  catch LAPACKException # This should be removed ASAP; see PR #159.
+  catch LAPACKException # FIXME: This should be removed ASAP; see PR #159.
     λmax = opnorm(Matrix(solver.subpb.model.B))
   end
 
@@ -366,7 +365,7 @@ function SolverCore.solve!(
       atol = sub_atol,
       ν = ν_sub,
       kwargs...
-      )
+    )
 
     s .= solver.substats.solution
 
@@ -422,7 +421,7 @@ function SolverCore.solve!(
       hk = hkn
 
       shift!(ψ, xk)
-      ∇fk = grad!(nlp, xk, ∇fk)
+      grad!(nlp, xk, ∇fk)
 
       if quasiNewtTest
         @. ∇fk⁻ = ∇fk - ∇fk⁻
