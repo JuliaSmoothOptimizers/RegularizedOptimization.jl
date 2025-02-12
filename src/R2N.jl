@@ -130,7 +130,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `ν::T = eps(T)^(1 / 5)`: inverse of the initial regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
-- `θ::T = eps(T)^(1/5)`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
+- `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2DH is monotone but the non-monotone variant will be used if `m_monotone > 1`
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
@@ -212,7 +212,7 @@ function SolverCore.solve!(
   ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
   β::T = 1 / eps(T),
-  θ::T = eps(T)^(1 / 5),
+  θ::T = 1/(1+eps(T)^(1 / 5)),
   kwargs...
 ) where{T, V, G}
   reset!(stats)
@@ -289,7 +289,7 @@ function SolverCore.solve!(
 
   λmax = opnorm(solver.subpb.model.B)
 
-  ν₁ = 1 / ((λmax + σk) * (1 + θ))
+  ν₁ = θ / (λmax + σk)
   ν_sub = ν₁
   
   sqrt_ξ1_νInv = one(T)
@@ -435,7 +435,7 @@ function SolverCore.solve!(
       σk = σk * γ
     end
     
-    ν₁ = 1 / ((λmax + σk) * (1 + θ))
+    ν₁ = θ / (λmax + σk)
     m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone - 1) + 1] = fk + hk)
 
     set_objective!(stats, fk + hk)
