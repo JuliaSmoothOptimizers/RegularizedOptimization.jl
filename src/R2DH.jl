@@ -199,7 +199,7 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
-  θ::T = eps(T)^(1 / 5),
+  θ::T = 1/(1 + eps(T)^(1 / 5)),
 ) where{T, V}
 
   reset!(stats)
@@ -275,7 +275,7 @@ function SolverCore.solve!(
   @. dkσk = D.d .+ σk
   DNorm = norm(D.d, Inf)
 
-  ν₁ = 1 / ((DNorm + σk) * (1 + θ))
+  ν₁ = θ / (DNorm + σk)
   sqrt_ξ_νInv = one(T)
 
   @. mν∇fk = -ν₁ * ∇fk
@@ -306,7 +306,7 @@ function SolverCore.solve!(
     σk = σk * γ
     dkσk .= D.d .+ σk
     DNorm = norm(D.d, Inf)
-    ν₁ = 1 / ((DNorm + σk) * (1 + θ))
+    ν₁ = θ / (DNorm + σk)
     @. mν∇fk = -ν₁ * ∇fk
     spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
     mks = mk(s)
@@ -399,7 +399,7 @@ function SolverCore.solve!(
     @. dkσk = D.d .+ σk
     DNorm = norm(D.d, Inf)
 
-    ν₁ = 1 / ((DNorm + σk) * (1 + θ))
+    ν₁ = θ / (DNorm + σk)
 
     @. mν∇fk = -ν₁ * ∇fk
     m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone - 1) + 1] = fk + hk)
@@ -411,7 +411,7 @@ function SolverCore.solve!(
       σk = σk * γ
       dkσk .= D.d .+ σk
       DNorm = norm(D.d, Inf)
-      ν₁ = 1 / ((DNorm + σk) * (1 + θ))
+      ν₁ = θ / (DNorm + σk)
       @. mν∇fk = -ν₁ * ∇fk
       spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
       mks = mk(s)
@@ -464,3 +464,8 @@ function SolverCore.solve!(
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
   return stats
 end
+
+
+#theta 0.000740095979741405
+#nu1 0.0003700479898707025
+#original 0.4996302256786179
