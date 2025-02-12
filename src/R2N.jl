@@ -256,6 +256,8 @@ function SolverCore.solve!(
     verbose > 0 && @debug "R2N: found point where h has value" hk
   end
   improper = (hk == -Inf)
+  improper == true && @warn "R2N: Improper term detected"
+  improper == true && return stats
 
   if verbose > 0
     @info log_header(
