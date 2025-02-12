@@ -304,15 +304,6 @@ function SolverCore.solve!(
   spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
 
   mks = mk(s) 
-  while mks == -Inf #TODO add test coverage for this
-    σk = σk * γ
-    dkσk .= D.d .+ σk
-    DNorm = norm(D.d, Inf)
-    ν₁ = θ / (DNorm + σk)
-    @. mν∇fk = -ν₁ * ∇fk
-    spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
-    mks = mk(s)
-  end
 
   ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
   sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν₁) : sqrt(-ξ / ν₁)
@@ -408,16 +399,6 @@ function SolverCore.solve!(
 
     spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
     mks = mk(s)
-
-    while mks == -Inf  #TODO add test coverage for this
-      σk = σk * γ
-      dkσk .= D.d .+ σk
-      DNorm = norm(D.d, Inf)
-      ν₁ = θ / (DNorm + σk)
-      @. mν∇fk = -ν₁ * ∇fk
-      spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
-      mks = mk(s)
-    end
 
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν₁) : sqrt(-ξ / ν₁)
