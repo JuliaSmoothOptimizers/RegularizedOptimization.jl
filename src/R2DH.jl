@@ -447,8 +447,3 @@ function SolverCore.solve!(
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
   return stats
 end
-
-
-#theta 0.000740095979741405
-#nu1 0.0003700479898707025
-#original 0.4996302256786179
