@@ -180,7 +180,7 @@ function LM(
     prox!(s, ψ, ∇fk, ν)
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-    sqrt_ξ1_νInv = ξ1 > 0 ? sqrt(ξ1 * νInv) : 10.
+    sqrt_ξ1_νInv = sqrt(ξ1 * νInv)
 
     if ξ1 ≥ 0 && k == 1
       ϵ_increment = ϵr * sqrt_ξ1_νInv
