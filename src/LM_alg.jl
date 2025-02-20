@@ -262,7 +262,6 @@ function LM(
       σk = σk * γ
     end
     νInv = (1 + θ) * (σmax^2 + σk)  # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
-
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
