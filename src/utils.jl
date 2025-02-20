@@ -19,7 +19,7 @@ function opnorm_eig(B; max_attempts::Int = 3)
   while !(have_eig || attempt >= max_attempts)
       attempt += 1
       try
-          # Perform eigendecomposition
+          # Estimate largest eigenvalue in absolute value
           d, nconv, niter, nmult, resid = eigs(B; nev = nev, ncv = ncv, which = :LM, ritzvec = false, check = 1)
           
           # Check if eigenvalue has converged
@@ -55,7 +55,7 @@ function opnorm_svd(J; max_attempts::Int = 3)
   while !(have_svd || attempt >= max_attempts)
       attempt += 1
       try
-          # Perform singular value decomposition
+          # Estimate largest singular value
           s, nconv, niter, nmult, resid = svds(J; nsv = nsv, ncv = ncv, ritzvec = false, check = 1)
           
           # Check if singular value has converged
