@@ -32,7 +32,7 @@ function opnorm_eig(B; max_attempts::Int = 3)
               ncv = min(2 * ncv, n)
           end
       catch e
-          if occursin("XYAUPD_Exception", string(e))
+          if occursin("XYAUPD_Exception", string(e)) && ncv < n
               @warn "Arpack error: $e. Increasing NCV to $ncv and retrying."
               ncv = min(2 * ncv, n)  # Increase NCV but don't exceed matrix size
           else
@@ -68,7 +68,7 @@ function opnorm_svd(J; max_attempts::Int = 3)
               ncv = min(2 * ncv, n)
           end
       catch e
-          if occursin("XYAUPD_Exception", string(e))
+          if occursin("XYAUPD_Exception", string(e)) && ncv < n
               @warn "Arpack error: $e. Increasing NCV to $ncv and retrying."
               ncv = min(2 * ncv, n)  # Increase NCV but don't exceed matrix size
           else
