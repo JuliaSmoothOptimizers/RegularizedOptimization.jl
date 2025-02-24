@@ -4,8 +4,12 @@ import SolverCore.GenericExecutionStats
 
 # use Arpack to obtain largest eigenvalue in magnitude with a minimum of robustness
 function LinearAlgebra.opnorm(B; kwargs...)
-  _, s, _ = tsvd(B)
-  return s[1]
+  try
+    _, s, _ = tsvd(B) # TODO: This allocates; see utils.jl
+    return s[1]
+  catch LAPACKException # FIXME: This should be removed ASAP; see PR #159.
+    return LinearAlgebra.opnorm(Matrix(B))
+  end
 end
 
 ShiftedProximalOperators.iprox!(
