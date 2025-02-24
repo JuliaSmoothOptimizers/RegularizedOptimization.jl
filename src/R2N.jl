@@ -28,7 +28,7 @@ mutable struct R2NSolver{
   substats::GenericExecutionStats{T, V, V, T}
 end
 
-function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solver, m_monotone::Int = 1) where {T, V}
+function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver::AbstractOptimizationSolver = R2Solver, m_monotone::Int = 1) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
