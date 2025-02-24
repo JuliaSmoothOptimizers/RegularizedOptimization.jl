@@ -2,7 +2,11 @@
 
 julia_version = "1.11.1"
 manifest_format = "2.0"
+<<<<<<< HEAD
 project_hash = "9fe38f5c99c6c58cf2b2755f50a48fa53f4ecb4e"
+=======
+project_hash = "261150330d6a84c0b2b794132aee3751ae491129"
+>>>>>>> 11a0180 (fix comment indentation)
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -39,6 +43,7 @@ version = "1.1.3"
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 version = "1.1.2"
 
+<<<<<<< HEAD
 [[deps.Arpack]]
 deps = ["Arpack_jll", "Libdl", "LinearAlgebra", "Logging"]
 git-tree-sha1 = "9b9b347613394885fd1c8c7729bfc60528faa436"
@@ -51,6 +56,8 @@ git-tree-sha1 = "5ba6c757e8feccf03a1554dfaf3e26b3cfc7fd5e"
 uuid = "68821587-b530-5797-8361-c406ea357684"
 version = "3.5.1+1"
 
+=======
+>>>>>>> 11a0180 (fix comment indentation)
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 version = "1.11.0"
@@ -178,12 +185,15 @@ deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
 
+<<<<<<< HEAD
 [[deps.DelimitedFiles]]
 deps = ["Mmap"]
 git-tree-sha1 = "9e2f36d3c96a820c678f2f1f1782582fcf685bae"
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 version = "1.9.1"
 
+=======
+>>>>>>> 11a0180 (fix comment indentation)
 [[deps.DiffResults]]
 deps = ["StaticArraysCore"]
 git-tree-sha1 = "782dd5f4561f5d267313f23853baaaa4c52ea621"
