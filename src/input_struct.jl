@@ -34,7 +34,7 @@ mutable struct ROSolverOptions{R}
     α::R = 1 / eps(R),
     ν::R = eps(R)^(1 / 5),
     γ::R = R(3),
-    θ::R = 1/(1+eps(R)^(1 / 5)),
+    θ::R = eps(R)^(1 / 5),
     β::R = 1 / eps(R),
     reduce_TR::Bool = true,
   ) where {R <: Real}
