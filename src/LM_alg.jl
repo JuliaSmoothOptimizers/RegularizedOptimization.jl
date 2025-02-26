@@ -102,11 +102,10 @@ function LM(
   xkn = similar(xk)
 
   local ξ1
+  local sqrt_ξ1_νInv
   k = 0
   Fobj_hist = zeros(maxIter)
   Hobj_hist = zeros(maxIter)
-  R = eltype(xk)
-  sqrt_ξ1_νInv = one(R)
   Complex_hist = zeros(Int, maxIter)
   Grad_hist = zeros(Int, maxIter)
   Resid_hist = zeros(Int, maxIter)
