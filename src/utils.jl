@@ -8,6 +8,7 @@ function LinearAlgebra.opnorm(B; kwargs...)
   opnorm_fcn = m == n ? opnorm_eig : opnorm_svd
   return opnorm_fcn(B; kwargs...)
 end
+
 function opnorm_eig(B; max_attempts::Int = 3)
   have_eig = false
   attempt = 0
