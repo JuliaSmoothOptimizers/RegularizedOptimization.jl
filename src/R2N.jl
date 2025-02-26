@@ -132,7 +132,8 @@ function R2N(
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
 
-  λmax = opnorm(Bk)
+  λmax, found_λ = opnorm(Bk)
+  found_λ || error("operator norm computation failed")
   νInv = (1 + θ) * (σk + λmax)
   sqrt_ξ1_νInv = one(R)
 
@@ -247,7 +248,8 @@ function R2N(
         push!(f, s, ∇fk - ∇fk⁻)
       end
       Bk = hess_op(f, xk)
-      λmax = opnorm(Bk)
+      λmax, found_λ = opnorm(Bk)
+      found_λ || error("operator norm computation failed")
       ∇fk⁻ .= ∇fk
     end
 
