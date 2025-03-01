@@ -102,18 +102,12 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
 end
 
 # LM with R2DH as subsolver
-for (h, h_name) ∈ ((NormL0(λ), "l0"), )
+for (h, h_name) ∈ ((NormL0(λ), "l0"),)
   @testset "bpdn-with-bounds-ls-LM-$(h_name)-R2DH" begin
     x0 = zeros(bpdn_nls2.meta.nvar)
     @test has_bounds(bpdn_nls2)
-    LM_out = LM(
-      bpdn_nls2,
-      h,
-      options,
-      x0 = x0,
-      subsolver = R2DH,
-      subsolver_options = subsolver_options,
-    )
+    LM_out =
+      LM(bpdn_nls2, h, options, x0 = x0, subsolver = R2DH, subsolver_options = subsolver_options)
     @test typeof(LM_out.solution) == typeof(bpdn_nls2.meta.x0)
     @test length(LM_out.solution) == bpdn_nls2.meta.nvar
     @test typeof(LM_out.solver_specific[:Fhist]) == typeof(LM_out.solution)
