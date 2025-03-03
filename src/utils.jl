@@ -38,5 +38,6 @@ function RegularizedExecutionStats(reg_nlp::AbstractRegularizedNLPModel{T, V}) w
   set_solver_specific!(stats, :smooth_obj, T(Inf))
   set_solver_specific!(stats, :nonsmooth_obj, T(Inf))
   set_solver_specific!(stats, :sigma, T(Inf))
+  set_solver_specific!(stats, :radius, T(Inf))
   return stats
 end
