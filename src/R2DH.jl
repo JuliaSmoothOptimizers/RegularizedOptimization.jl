@@ -79,20 +79,21 @@ A second-order quadratic regularization method for the problem
 
     min f(x) + h(x)
 
-where f: ℝⁿ → ℝ is C¹, and h: ℝⁿ → ℝ is
-lower semi-continuous, proper and prox-bounded.
+where f: ℝⁿ → ℝ is C¹, and h: ℝⁿ → ℝ is lower semi-continuous, proper and prox-bounded.
 
 About each iterate xₖ, a step sₖ is computed as a solution of
 
     min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ)
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀDₖs is a quadratic approximation of f about xₖ,
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀDₖs is a diagonal quadratic approximation of f about xₖ,
 ψ(s; xₖ) is either h(xₖ + s) or an approximation of h(xₖ + s), ‖⋅‖ is the ℓ₂ norm and σₖ > 0 is the regularization parameter.
 
-For advanced usage, first define a solver "R2DHSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
+For advanced usage, first define a solver `R2DHSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
 
     solver = R2DHSolver(reg_nlp; m_monotone = 6)
     solve!(solver, reg_nlp)
+
+or
 
     stats = RegularizedExecutionStats(reg_nlp)
     solver = R2DHSolver(reg_nlp)
