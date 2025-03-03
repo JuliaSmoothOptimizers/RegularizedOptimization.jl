@@ -131,7 +131,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `ν::T = eps(T)^(1 / 5)`: inverse of the initial regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
-- `m_monotone::Int = 1`: monotonicity parameter. By default, R2DH is monotone but the non-monotone variant will be used if `m_monotone > 1`
+- `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
@@ -289,7 +289,8 @@ function SolverCore.solve!(
   λmax::T = T(1)
   solver.subpb.model.B = hess_op(nlp, xk)
 
-  λmax = opnorm(solver.subpb.model.B)
+  λmax, found_λ = opnorm(solver.subpb.model.B)
+  found_λ || error("operator norm computation failed")
 
   ν₁ = θ / (λmax + σk)
   ν_sub = ν₁
@@ -424,8 +425,9 @@ function SolverCore.solve!(
       end
       solver.subpb.model.B = hess_op(nlp, xk)
     
-      λmax = opnorm(solver.subpb.model.B)
-    
+      λmax, found_λ = opnorm(solver.subpb.model.B)
+      found_λ || error("operator norm computation failed")
+
       ∇fk⁻ .= ∇fk
     end
 
