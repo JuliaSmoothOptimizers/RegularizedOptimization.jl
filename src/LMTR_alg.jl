@@ -132,7 +132,7 @@ function LMTR(
 
   σmax, found_σ = opnorm(Jk)
   found_σ || error("operator norm computation failed")
-  νInv = σmax^2/θ # ‖J'J‖ = ‖J‖²
+  νInv = σmax^2 / θ # ‖J'J‖ = ‖J‖²
 
   mν∇fk = -∇fk / νInv
 
@@ -255,7 +255,7 @@ function LMTR(
       jtprod_residual!(nls, xk, Fk, ∇fk)
       σmax, found_σ = opnorm(Jk)
       found_σ || error("operator norm computation failed")
-      νInv = σmax^2/θ # ‖J'J‖ = ‖J‖²
+      νInv = σmax^2 / θ # ‖J'J‖ = ‖J‖²
       @. mν∇fk = -∇fk / νInv
     end
 
