@@ -410,6 +410,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :sigma, σk)
 
   φk(d) = dot(∇fk, d)
   mk(d)::T = φk(d) + ψ(d)::T
@@ -498,6 +499,7 @@ function SolverCore.solve!(
     set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)
     set_solver_specific!(stats, :nonsmooth_obj, hk)
+    set_solver_specific!(stats, :sigma, σk)
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
 
