@@ -25,7 +25,7 @@ mutable struct R2DHSolver{
   m_fh_hist::V
 end
 
-function R2DHSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int = 6) where{T, V}
+function R2DHSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int = 6, D :: Union{Nothing, AbstractDiagonalQuasiNewtonOperator} = nothing) where{T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -50,7 +50,7 @@ function R2DHSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int 
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
   ψ = has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) : shifted(reg_nlp.h, xk)
-  D = isa(reg_nlp.model, AbstractDiagonalQNModel) ? hess_op(reg_nlp.model, x0) : SpectralGradient(T(1), reg_nlp.model.meta.nvar)
+  isnothing(D) && (D = isa(reg_nlp.model, AbstractDiagonalQNModel) ? hess_op(reg_nlp.model, x0) : SpectralGradient(T(1), reg_nlp.model.meta.nvar))
 
   return R2DHSolver(
     xk,
@@ -171,12 +171,47 @@ function R2DH(
 end
 
 function R2DH(
+  f::F,
+  ∇f!::G,
+  h::H,
+  D::DQN,
+  options::ROSolverOptions{R},
+  x0::AbstractVector{R};
+  selected::AbstractVector{<:Integer} = 1:length(x0),
+  kwargs...,
+) where {F <: Function, G <: Function, H, R <: Real, DQN <: AbstractDiagonalQuasiNewtonOperator}
+  nlp = FirstOrderModel(f, ∇f!, x0)
+  reg_nlp = RegularizedNLPModel(nlp, h, selected)
+  stats = R2DH(
+    reg_nlp,
+    x = x0,
+    D = D,
+    atol = options.ϵa,
+    rtol = options.ϵr,
+    neg_tol = options.neg_tol,
+    verbose = options.verbose,
+    max_iter = options.maxIter,
+    max_time = options.maxTime,
+    σmin = options.σmin,
+    η1 = options.η1,
+    η2 = options.η2,
+    ν = options.ν,
+    γ = options.γ,
+    θ = options.θ,
+    kwargs...,
+  )
+  
+  return stats.solution, stats.iter, nothing
+end
+
+function R2DH(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
   kwargs...
 ) where{T, V}
   kwargs_dict = Dict(kwargs...)
   m_monotone = pop!(kwargs_dict, :m_monotone, 6)
-  solver = R2DHSolver(reg_nlp, m_monotone = m_monotone)
+  D = pop!(kwargs_dict, :D, nothing)
+  solver = R2DHSolver(reg_nlp, m_monotone = m_monotone, D = D)
   stats = GenericExecutionStats(reg_nlp.model)
   solve!(solver, reg_nlp, stats; kwargs_dict...)
   return stats
