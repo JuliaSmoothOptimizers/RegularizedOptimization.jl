@@ -193,8 +193,8 @@ function LM(
       continue
     end
 
-  #  subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
-    subsolver_options.ϵa = k == 1 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3) # 1.0e-5 default
+    #  subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
+    subsolver_options.ϵa = k == 1 ? 1.0e-3 : min(sqrt_ξ1_νInv^(1.5), sqrt_ξ1_νInv * 1e-3) # 1.0e-5 default
     subsolver_options.ν = ν
     subsolver_args = subsolver == R2DH ? (SpectralGradient(νInv, nls.meta.nvar),) : ()
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
