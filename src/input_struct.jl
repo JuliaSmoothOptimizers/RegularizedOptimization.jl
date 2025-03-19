@@ -1,4 +1,5 @@
 export ROSolverOptions
+# TODO remove mk1::Union{Nothing, Function} when done wirh debugging
 
 mutable struct ROSolverOptions{R}
   ϵa::R  # termination criteria
@@ -18,6 +19,10 @@ mutable struct ROSolverOptions{R}
   θ::R  # step length factor in relation to Hessian norm
   β::R  # TR size as factor of first PG step
   reduce_TR::Bool
+  dualGap::Union{R, Nothing} # duality gap tolerance for inexact prox computation
+  κξ::R # tolerance for the inexact prox computation : \hat{ξ} ≥ κξ * ξ
+  callback_pointer::Union{Ptr{Cvoid}, Nothing} # pointer to callback function
+  mk1::Union{Nothing, Function} # iR2N's model to give to iR2 for inexact prox computation 
 
   function ROSolverOptions{R}(;
     ϵa::R = √eps(R),
@@ -37,6 +42,14 @@ mutable struct ROSolverOptions{R}
     θ::R = eps(R)^(1 / 5),
     β::R = 1 / eps(R),
     reduce_TR::Bool = true,
+    dualGap::Union{R, Nothing} = 1e-5,
+    κξ::R = R(3 / 4),
+    callback_pointer::Union{Ptr{Cvoid}, Nothing} = @cfunction(
+      default_prox_callback,
+      Cint,
+      (Ptr{Cdouble}, Csize_t, Cdouble, Ptr{Cvoid})
+    ),
+    mk1::Union{Nothing, Function} = x -> 0.0,
   ) where {R <: Real}
     @assert ϵa ≥ 0
     @assert ϵr ≥ 0
@@ -53,6 +66,8 @@ mutable struct ROSolverOptions{R}
     @assert γ > 1
     @assert θ > 0
     @assert β ≥ 1
+    @assert (isnothing(dualGap) || dualGap ≥ 0)
+    @assert κξ > 0
     return new{R}(
       ϵa,
       ϵr,
@@ -71,6 +86,10 @@ mutable struct ROSolverOptions{R}
       θ,
       β,
       reduce_TR,
+      dualGap,
+      κξ,
+      callback_pointer,
+      mk1,
     )
   end
 end

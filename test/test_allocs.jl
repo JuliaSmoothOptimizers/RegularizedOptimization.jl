@@ -41,7 +41,7 @@ end
 
 # Test non allocating solve!
 @testset "allocs" begin
-  for (h, h_name) ∈ ((NormL0(λ), "l0"), )
+  for (h, h_name) ∈ ((NormL0(λ), "l0"),)
     for (solver, solver_name) ∈ ((:R2Solver, "R2"), (:R2DHSolver, "R2DH"), (:R2NSolver, "R2N"))
       @testset "$(solver_name)" begin
         solver_name == "R2N" && continue #FIXME
