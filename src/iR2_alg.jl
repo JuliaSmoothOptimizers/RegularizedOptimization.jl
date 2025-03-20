@@ -158,7 +158,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
     solver = R2Solver(reg_nlp)
     solve!(solver, reg_nlp)
 
-    stats = GenericExecutionStats(reg_nlp.model)
+    stats = RegularizedExecutionStats(reg_nlp)
     solver = R2Solver(reg_nlp)
     solve!(solver, reg_nlp, stats)
 
@@ -327,7 +327,6 @@ end
 
 function iR2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
   kwargs_dict = Dict(kwargs...)
-
   max_iter = pop!(kwargs_dict, :max_iter, 10000)
   dualGap = pop!(kwargs_dict, :dualGap, 0.0) # 4 next lines: if those parameters are not provided, use default values
   κξ = pop!(kwargs_dict, :κξ, 3 / 4)
@@ -446,7 +445,7 @@ function SolverCore.solve!(
   end
 
   local ξ::T
-  local ρk::T = NaN
+  local ρk::T
   σk = max(1 / ν, σmin)
   ν = 1 / σk
   sqrt_ξ_νInv = one(T)
@@ -469,7 +468,7 @@ function SolverCore.solve!(
   context.hk = hk
   context.mk = mk
   context.κξ = κξ
-  context.shift = ψ.xk + ψ.sj
+  @. context.shift = ψ.xk + ψ.sj
   context.dualGap = dualGap
 
   prox!(s, ψ, mν∇fk, ν, context, prox_callback_pointer)
@@ -566,23 +565,15 @@ function SolverCore.solve!(
     context.hk = hk
     context.mk = mk
     context.κξ = κξ
-    context.shift = ψ.xk + ψ.sj
+    @. context.shift = ψ.xk + ψ.sj
     context.dualGap = dualGap # reset dualGap to its initial value
 
     prox!(s, ψ, mν∇fk, ν, context, prox_callback_pointer)
     mks = mk(s)
 
-    # ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps() # TODO remove this line after tests
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
-    # if ξ1 < ξ
-    #   println("Warning - iR2 ξ = $ξ > ξ = iR2N $ξ1")
-    # else
-    #   println("OK - iR2 ξ = $ξ <= ξ = iR2N $ξ1")
-    # end
-
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
     solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol * √κξ)
-
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) && error(
       "iR2: prox-gradient step should produce a decrease but ξ = $(ξ) and sqrt_ξ_νInv = $(sqrt_ξ_νInv) > $(neg_tol)",
     )
