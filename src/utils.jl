@@ -98,9 +98,11 @@ function default_prox_callback(
   @. context.s_k_unshifted = s_k - context.shift
 
   # Computations without allocations
-  ξk = context.hk - context.mk(context.s_k_unshifted) + max(1, abs(context.hk)) * 10 * eps()
-  condition = delta_k ≤ (1 - context.κξ) / context.κξ * ξk
-  return condition ? Int32(1) : Int32(0)
+  return (
+    delta_k ≤
+    (1 - context.κξ) / context.κξ *
+    (context.hk - context.mk(context.s_k_unshifted) + max(1, abs(context.hk)) * 10 * eps())
+  ) ? Int32(1) : Int32(0)
 end
 
 function default_prox_callback_v2(

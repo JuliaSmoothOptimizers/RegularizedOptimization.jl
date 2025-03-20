@@ -1,6 +1,7 @@
 export iR2, iR2Solver, solve!
 
 import SolverCore.solve!
+import LinearAlgebra: axpby!
 
 mutable struct iR2Solver{
   R <: Real,
@@ -26,7 +27,7 @@ mutable struct iR2Solver{
   context::AlgorithmContextCallback
 end
 
-# Not used anywhere
+# !!!!!! Not used anywhere !!!!!
 function iR2Solver(
   x0::S,
   options::ROSolverOptions,
@@ -62,6 +63,7 @@ function iR2Solver(
     κξ = options.κξ,
     shift = ψ.xk + ψ.sj,
     s_k_unshifted = s_k_unshifted,
+    mk = ModelFunction(similar(x0), ψ),
   )
   return iR2Solver(
     xk,
@@ -340,6 +342,10 @@ function iR2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
     s_k_unshifted = s_k_unshifted,
     dualGap = dualGap,
     κξ = κξ,
+    mk = ModelFunction(
+      similar(reg_nlp.model.meta.x0),
+      shifted(reg_nlp.h, zeros(reg_nlp.model.meta.nvar)),
+    ),
     mk1 = mk1,
   )
   callback_pointer = pop!(
@@ -466,9 +472,10 @@ function SolverCore.solve!(
 
   # prepare context for prox callback
   context.hk = hk
-  context.mk = mk
+  context.mk.∇f = ∇fk
+  context.mk.ψ = ψ
   context.κξ = κξ
-  @. context.shift = ψ.xk + ψ.sj
+  @. context.shift .= ψ.xk + ψ.sj
   context.dualGap = dualGap
 
   prox!(s, ψ, mν∇fk, ν, context, prox_callback_pointer)
@@ -563,10 +570,11 @@ function SolverCore.solve!(
 
     # prepare callback context and pointer to callback function
     context.hk = hk
-    context.mk = mk
+    context.mk.∇f = ∇fk
+    context.mk.ψ = ψ
     context.κξ = κξ
-    @. context.shift = ψ.xk + ψ.sj
-    context.dualGap = dualGap # reset dualGap to its initial value
+    @. context.shift .= ψ.xk + ψ.sj
+    context.dualGap = dualGap
 
     prox!(s, ψ, mν∇fk, ν, context, prox_callback_pointer)
     mks = mk(s)
