@@ -78,6 +78,7 @@ function iR2N(
   κξ = options.κξ
 
   # initialize callback and pointer to callback function
+  # TODO: move this to iR2Nsolver 
   if prox_callback_flag == 0
     options.callback_pointer =
       @cfunction(default_prox_callback, Cint, (Ptr{Cdouble}, Csize_t, Cdouble, Ptr{Cvoid}))
@@ -89,6 +90,7 @@ function iR2N(
       @cfunction(default_prox_callback_v3, Cint, (Ptr{Cdouble}, Csize_t, Cdouble, Ptr{Cvoid}))
   end
 
+  # TODO: remove this function
   function update_κξ(a, b, k)
     return a + (b - a) * k / options.maxIter
   end
@@ -132,7 +134,7 @@ function iR2N(
   #σk = max(1 / options.ν, σmin) #SVM
   xk = copy(x0)
   hk = h(xk[selected])
-  if hk == Inf # TODO 
+  if hk == Inf # TODO check this (projLp = 1??)
     verbose > 0 && @info "iR2N: finding initial guess where nonsmooth term is finite"
     prox!(
       xk,
@@ -181,6 +183,7 @@ function iR2N(
   sqrt_ξ1_νInv = one(R)
 
   # initialize context for prox_callback
+  # TODO: move this to iR2Nsolver, and add callback_pointer to it
   context = AlgorithmContextCallback(
     hk = hk,
     κξ = κξ,

@@ -1,7 +1,6 @@
 export iR2, iR2Solver, solve!
 
 import SolverCore.solve!
-import LinearAlgebra: axpby!
 
 mutable struct iR2Solver{
   R <: Real,
@@ -22,75 +21,67 @@ mutable struct iR2Solver{
   Fobj_hist::Vector{R}
   Hobj_hist::Vector{R}
   Complex_hist::Vector{Int}
-  # Additional parameters specific to iR2
-  callback_pointer::Ptr{Cvoid}
-  context::AlgorithmContextCallback
 end
 
 # !!!!!! Not used anywhere !!!!!
-function iR2Solver(
-  x0::S,
-  options::ROSolverOptions,
-  l_bound::S,
-  u_bound::S;
-  ψ = nothing,
-) where {R <: Real, S <: AbstractVector{R}}
-  maxIter = options.maxIter
-  xk = similar(x0)
-  ∇fk = similar(x0)
-  mν∇fk = similar(x0)
-  xkn = similar(x0)
-  s = zero(x0)
-  has_bnds = any(l_bound .!= R(-Inf)) || any(u_bound .!= R(Inf))
-  if has_bnds
-    l_bound_m_x = similar(xk)
-    u_bound_m_x = similar(xk)
-  else
-    l_bound_m_x = similar(xk, 0)
-    u_bound_m_x = similar(xk, 0)
-  end
-  Fobj_hist = zeros(R, maxIter + 2)
-  Hobj_hist = zeros(R, maxIter + 2)
-  Complex_hist = zeros(Int, maxIter + 2)
-  dualGap = options.dualGap
-  κξ = options.κξ
-  mk1 = options.mk1
-  shift = similar(x0)
-  s_k_unshifted = similar(x0)
-  callback_pointer = options.callback_pointer
-  context = AlgorithmContextCallback(
-    dualGap = options.dualGap,
-    κξ = options.κξ,
-    shift = ψ.xk + ψ.sj,
-    s_k_unshifted = s_k_unshifted,
-    mk = ModelFunction(similar(x0), ψ),
-  )
-  return iR2Solver(
-    xk,
-    ∇fk,
-    mν∇fk,
-    ψ,
-    xkn,
-    s,
-    has_bnds,
-    l_bound,
-    u_bound,
-    l_bound_m_x,
-    u_bound_m_x,
-    Fobj_hist,
-    Hobj_hist,
-    Complex_hist,
-    callback_pointer,
-    context,
-  )
-end
+# function iR2Solver(
+#   x0::S,
+#   options::ROSolverOptions,
+#   l_bound::S,
+#   u_bound::S;
+#   ψ = nothing,
+# ) where {R <: Real, S <: AbstractVector{R}}
+#   maxIter = options.maxIter
+#   xk = similar(x0)
+#   ∇fk = similar(x0)
+#   mν∇fk = similar(x0)
+#   xkn = similar(x0)
+#   s = zero(x0)
+#   has_bnds = any(l_bound .!= R(-Inf)) || any(u_bound .!= R(Inf))
+#   if has_bnds
+#     l_bound_m_x = similar(xk)
+#     u_bound_m_x = similar(xk)
+#   else
+#     l_bound_m_x = similar(xk, 0)
+#     u_bound_m_x = similar(xk, 0)
+#   end
+#   Fobj_hist = zeros(R, maxIter + 2)
+#   Hobj_hist = zeros(R, maxIter + 2)
+#   Complex_hist = zeros(Int, maxIter + 2)
+#   dualGap = options.dualGap
+#   κξ = options.κξ
+#   mk1 = options.mk1
+#   shift = similar(x0)
+#   s_k_unshifted = similar(x0)
+#   callback_pointer = options.callback_pointer
+#   context = AlgorithmContextCallback(
+#     dualGap = options.dualGap,
+#     κξ = options.κξ,
+#     shift = ψ.xk + ψ.sj,
+#     s_k_unshifted = s_k_unshifted,
+#     mk = ModelFunction(similar(x0), ψ),
+#   )
+#   return iR2Solver(
+#     xk,
+#     ∇fk,
+#     mν∇fk,
+#     ψ,
+#     xkn,
+#     s,
+#     has_bnds,
+#     l_bound,
+#     u_bound,
+#     l_bound_m_x,
+#     u_bound_m_x,
+#     Fobj_hist,
+#     Hobj_hist,
+#     Complex_hist,
+#     callback_pointer,
+#     context,
+#   )
+# end
 
-function iR2Solver(
-  reg_nlp::AbstractRegularizedNLPModel{T, V},
-  context::AlgorithmContextCallback,
-  callback_pointer::Ptr{Cvoid};
-  max_iter::Int = 10000,
-) where {T, V}
+function iR2Solver(reg_nlp::AbstractRegularizedNLPModel{T, V}; max_iter::Int = 10000) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -133,8 +124,6 @@ function iR2Solver(
     Fobj_hist,
     Hobj_hist,
     Complex_hist,
-    callback_pointer,
-    context,
   )
 end
 
@@ -228,10 +217,6 @@ function iR2(
     η2 = options.η2,
     ν = options.ν,
     γ = options.γ,
-    dualGap = options.dualGap,
-    κξ = options.κξ,
-    callback_pointer = options.callback_pointer,
-    mk1 = options.mk1,
   )
 end
 
@@ -260,10 +245,6 @@ function iR2(
     η2 = options.η2,
     ν = options.ν,
     γ = options.γ,
-    dualGap = options.dualGap,
-    κξ = options.κξ,
-    callback_pointer = options.callback_pointer,
-    mk1 = options.mk1,
   )
   outdict = Dict(
     :Fhist => stats.solver_specific[:Fhist],
@@ -307,10 +288,6 @@ function iR2(
     η2 = options.η2,
     ν = options.ν,
     γ = options.γ,
-    dualGap = options.dualGap,
-    κξ = options.κξ,
-    callback_pointer = options.callback_pointer,
-    mk1 = options.mk1,
   )
   outdict = Dict(
     :Fhist => stats.solver_specific[:Fhist],
@@ -328,32 +305,17 @@ function iR2(
 end
 
 function iR2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
+
+  # if h has exact prox, switch to R2 
+  if !(shifted(reg_nlp.h, reg_nlp.model.meta.x0) isa InexactShiftedProximableFunction)
+    @warn "h has exact prox, switching to R2"
+    return R2(reg_nlp; kwargs...)
+  end
+
   kwargs_dict = Dict(kwargs...)
   max_iter = pop!(kwargs_dict, :max_iter, 10000)
-  dualGap = pop!(kwargs_dict, :dualGap, 0.0) # 4 next lines: if those parameters are not provided, use default values
-  κξ = pop!(kwargs_dict, :κξ, 3 / 4)
-  mk1 = pop!(kwargs_dict, :mk1, x -> 0.0)
 
-  shift = similar(reg_nlp.model.meta.x0)
-  s_k_unshifted = similar(reg_nlp.model.meta.x0)
-
-  context = AlgorithmContextCallback(
-    shift = shift,
-    s_k_unshifted = s_k_unshifted,
-    dualGap = dualGap,
-    κξ = κξ,
-    mk = ModelFunction(
-      similar(reg_nlp.model.meta.x0),
-      shifted(reg_nlp.h, zeros(reg_nlp.model.meta.nvar)),
-    ),
-    mk1 = mk1,
-  )
-  callback_pointer = pop!(
-    kwargs_dict,
-    :callback_pointer,
-    @cfunction(default_prox_callback, Cint, (Ptr{Cdouble}, Csize_t, Cdouble, Ptr{Cvoid}))
-  )
-  solver = iR2Solver(reg_nlp, context, callback_pointer, max_iter = max_iter)
+  solver = iR2Solver(reg_nlp, max_iter = max_iter)
   stats = GenericExecutionStats(reg_nlp.model)
   cb =
     (nlp, solver, stats) -> begin
@@ -361,11 +323,11 @@ function iR2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
       solver.Hobj_hist[stats.iter + 1] = stats.solver_specific[:nonsmooth_obj]
       solver.Complex_hist[stats.iter + 1] += 1
     end
+
   solve!(solver, reg_nlp, stats; callback = cb, max_iter = max_iter, kwargs_dict...)
   set_solver_specific!(stats, :Fhist, solver.Fobj_hist[1:(stats.iter + 1)])
   set_solver_specific!(stats, :Hhist, solver.Hobj_hist[1:(stats.iter + 1)])
   set_solver_specific!(stats, :SubsolverCounter, solver.Complex_hist[1:(stats.iter + 1)])
-  set_solver_specific!(stats, :ItersProx, solver.context.prox_stats[3])
   return stats
 end
 
@@ -395,19 +357,17 @@ function SolverCore.solve!(
   h = reg_nlp.h
   nlp = reg_nlp.model
 
-  context = solver.context
-  prox_callback_pointer = solver.callback_pointer
-  κξ = context.κξ
-  dualGap = context.dualGap
-
   xk = solver.xk .= x
 
   # Make sure ψ has the correct shift 
   shift!(solver.ψ, xk)
 
-  ∇fk = solver.∇fk
+  # ∇fk = solver.∇fk
   mν∇fk = solver.mν∇fk
   ψ = solver.ψ
+  κξ = ψ.h.context.κξ
+  dualGap = ψ.h.context.dualGap
+
   xkn = solver.xkn
   s = solver.s
   has_bnds = solver.has_bnds
@@ -420,15 +380,15 @@ function SolverCore.solve!(
 
   # initialize parameters
   improper = false
-  hk = @views h(xk[selected])
-  if hk == Inf # TODO 
+  ψ.h.context.hk = @views h(xk[selected])
+  if ψ.h.context.hk == Inf # TODO 
     verbose > 0 && @info "iR2: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, xk, one(eltype(x0)))
-    hk = @views h(xk[selected])
-    hk < Inf || error("prox computation must be erroneous")
-    verbose > 0 && @debug "R2: found point where h has value" hk
+    ψ.h.context.hk = @views h(xk[selected])
+    ψ.h.context.hk < Inf || error("prox computation must be erroneous")
+    verbose > 0 && @debug "R2: found point where h has value" ψ.h.context.hk
   end
-  improper = (hk == -Inf)
+  improper = (ψ.h.context.hk == -Inf)
 
   if verbose > 0
     @info log_header(
@@ -457,31 +417,25 @@ function SolverCore.solve!(
   sqrt_ξ_νInv = one(T)
 
   fk = obj(nlp, xk)
-  grad!(nlp, xk, ∇fk)
-  @. mν∇fk = -ν * ∇fk
+  grad!(nlp, xk, solver.∇fk)
+  @. mν∇fk = -ν * solver.∇fk
 
   set_iter!(stats, 0)
   start_time = time()
   set_time!(stats, 0.0)
-  set_objective!(stats, fk + hk)
+  set_objective!(stats, fk + ψ.h.context.hk)
   set_solver_specific!(stats, :smooth_obj, fk)
-  set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :nonsmooth_obj, ψ.h.context.hk)
 
-  φk(d) = dot(∇fk, d)
+  φk(d) = dot(solver.∇fk, d)
   mk(d)::T = φk(d) + ψ(d)::T
 
-  # prepare context for prox callback
-  context.hk = hk
-  context.mk.∇f = ∇fk
-  context.mk.ψ = ψ
-  context.κξ = κξ
-  @. context.shift .= ψ.xk + ψ.sj
-  context.dualGap = dualGap
+  update_prox_context!(solver, ψ)
+  prox!(s, ψ, mν∇fk, ν)
 
-  prox!(s, ψ, mν∇fk, ν, context, prox_callback_pointer)
   mks = mk(s)
 
-  ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
+  ξ = ψ.h.context.hk - mks + max(1, abs(ψ.h.context.hk)) * 10 * eps()
 
   sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
   atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
@@ -518,7 +472,7 @@ function SolverCore.solve!(
     hkn = @views h(xkn[selected])
     improper = (hkn == -Inf)
 
-    Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+    Δobj = (fk + ψ.h.context.hk) - (fkn + hkn) + max(1, abs(fk + ψ.h.context.hk)) * 10 * eps()
     ρk = Δobj / ξ
 
     verbose > 0 &&
@@ -527,13 +481,13 @@ function SolverCore.solve!(
         Any[
           stats.iter,
           fk,
-          hk,
+          ψ.h.context.hk,
           sqrt_ξ_νInv,
           ρk,
           σk,
           norm(xk),
           norm(s),
-          context.dualGap,
+          dualGap,
           (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
         ],
         colsep = 1,
@@ -547,8 +501,8 @@ function SolverCore.solve!(
         set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
       end
       fk = fkn
-      hk = hkn
-      grad!(nlp, xk, ∇fk)
+      ψ.h.context.hk = hkn
+      grad!(nlp, xk, solver.∇fk)
       shift!(ψ, xk)
     end
 
@@ -560,26 +514,20 @@ function SolverCore.solve!(
     end
 
     ν = 1 / σk
-    @. mν∇fk = -ν * ∇fk
+    @. mν∇fk = -ν * solver.∇fk
 
-    set_objective!(stats, fk + hk)
+    set_objective!(stats, fk + ψ.h.context.hk)
     set_solver_specific!(stats, :smooth_obj, fk)
-    set_solver_specific!(stats, :nonsmooth_obj, hk)
+    set_solver_specific!(stats, :nonsmooth_obj, ψ.h.context.hk)
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
 
     # prepare callback context and pointer to callback function
-    context.hk = hk
-    context.mk.∇f = ∇fk
-    context.mk.ψ = ψ
-    context.κξ = κξ
-    @. context.shift .= ψ.xk + ψ.sj
-    context.dualGap = dualGap
-
-    prox!(s, ψ, mν∇fk, ν, context, prox_callback_pointer)
+    update_prox_context!(solver, ψ)
+    prox!(s, ψ, mν∇fk, ν)
     mks = mk(s)
 
-    ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
+    ξ = ψ.h.context.hk - mks + max(1, abs(ψ.h.context.hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
     solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol * √κξ)
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) && error(
@@ -610,13 +558,13 @@ function SolverCore.solve!(
       Any[
         stats.iter,
         fk,
-        hk,
+        ψ.h.context.hk,
         sqrt_ξ_νInv,
         ρk,
         σk,
         norm(xk),
         norm(s),
-        context.dualGap,
+        dualGap,
         (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
       ],
       colsep = 1,
@@ -624,7 +572,7 @@ function SolverCore.solve!(
     @info "iR2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
   end
 
-  solver.context.prox_stats[3] = context.prox_stats[3]
+  set_solver_specific!(stats, :ItersProx, ψ.h.context.prox_stats[3])
   set_solution!(stats, xk)
   return stats
 end
