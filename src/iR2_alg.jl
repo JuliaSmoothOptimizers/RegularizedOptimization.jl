@@ -381,9 +381,9 @@ function SolverCore.solve!(
   # initialize parameters
   improper = false
   ψ.h.context.hk = @views h(xk[selected])
-  if ψ.h.context.hk == Inf # TODO 
+  if ψ.h.context.hk == Inf
     verbose > 0 && @info "iR2: finding initial guess where nonsmooth term is finite"
-    prox!(xk, h, xk, one(eltype(x0)))
+    prox!(xk, h, xk, one(eltype(xk)))
     ψ.h.context.hk = @views h(xk[selected])
     ψ.h.context.hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "R2: found point where h has value" ψ.h.context.hk
