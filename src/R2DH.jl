@@ -61,6 +61,7 @@ function R2DH(
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
   set_iter!(stats, k)
   set_time!(stats, outdict[:elapsed_time])
+  set_solver_specific!(stats, :sigma, outdict[:sigma])
   set_solver_specific!(stats, :Fhist, outdict[:Fhist])
   set_solver_specific!(stats, :Hhist, outdict[:Hhist])
   set_solver_specific!(stats, :Time_hist, outdict[:Time_hist])
@@ -313,6 +314,7 @@ function R2DH(
     :hk => hk,
     :sqrt_ξ_νInv => sqrt_ξ_νInv,
     :elapsed_time => elapsed_time,
+    :sigma => σk
   )
 
   return xk, k, outdict

@@ -75,6 +75,7 @@ function TRDH(
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
   set_iter!(stats, k)
   set_time!(stats, outdict[:elapsed_time])
+  set_solver_specific!(stats, :radius, outdict[:radius])
   set_solver_specific!(stats, :Fhist, outdict[:Fhist])
   set_solver_specific!(stats, :Hhist, outdict[:Hhist])
   set_solver_specific!(stats, :NonSmooth, outdict[:NonSmooth])
@@ -364,6 +365,7 @@ function TRDH(
     :hk => hk,
     :sqrt_ξ_νInv => sqrt_ξ_νInv,
     :elapsed_time => elapsed_time,
+    :radius => Δk,
   )
 
   return xk, k, outdict

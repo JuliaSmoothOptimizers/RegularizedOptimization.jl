@@ -282,6 +282,7 @@ function LM(
   set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt(ξ1) : ξ1)
   set_iter!(stats, k)
   set_time!(stats, elapsed_time)
+  set_solver_specific!(stats, :sigma, σk)
   set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])
   set_solver_specific!(stats, :Hhist, Hobj_hist[1:k])
   set_solver_specific!(stats, :NonSmooth, h)

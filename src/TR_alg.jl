@@ -283,6 +283,7 @@ function TR(
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
   set_iter!(stats, k)
   set_time!(stats, elapsed_time)
+  set_solver_specific!(stats, :radius, Δk)
   set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])
   set_solver_specific!(stats, :Hhist, Hobj_hist[1:k])
   set_solver_specific!(stats, :NonSmooth, h)
