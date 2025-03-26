@@ -127,7 +127,7 @@ function LM(
 
   σmax, found_σ = opnorm(Jk)
   found_σ || error("operator norm computation failed")
-  νInv = (σmax^2 + σk) / θ # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+  ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
 
   s = zero(xk)
 
@@ -174,12 +174,11 @@ function LM(
 
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
-    ν = 1 / νInv
     ∇fk .*= -ν  # reuse gradient storage
     prox!(s, ψ, ∇fk, ν)
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
     ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-    sqrt_ξ1_νInv = sqrt(ξ1 * νInv)
+    sqrt_ξ1_νInv = sqrt(ξ1 / ν)
 
     if ξ1 ≥ 0 && k == 1
       ϵ_increment = ϵr * sqrt_ξ1_νInv
@@ -196,7 +195,7 @@ function LM(
   #  subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
     subsolver_options.ϵa = k == 1 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3) # 1.0e-5 default
     subsolver_options.ν = ν
-    subsolver_args = subsolver == R2DH ? (SpectralGradient(νInv, nls.meta.nvar),) : ()
+    subsolver_args = subsolver == R2DH ? (SpectralGradient(1 / ν, nls.meta.nvar),) : ()
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
@@ -226,7 +225,7 @@ function LM(
 
     if (verbose > 0) && (k % ptf == 0)
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt_ξ1_νInv sqrt(ξ) ρk σk norm(xk) norm(s) νInv σ_stat
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt_ξ1_νInv sqrt(ξ) ρk σk norm(xk) norm(s) 1/ν σ_stat
       #! format: off
     end
 
@@ -260,7 +259,7 @@ function LM(
     if ρk < η1 || ρk == Inf
       σk = σk * γ
     end
-    νInv = (σmax^2 + σk) / θ # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+    ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
@@ -269,7 +268,7 @@ function LM(
       @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
     elseif optimal
       #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt_ξ1_νInv sqrt(ξ1) "" σk norm(xk) norm(s) νInv
+      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt_ξ1_νInv sqrt(ξ1) "" σk norm(xk) norm(s) 1/ν
       #! format: on
       @info "LM: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
     end
