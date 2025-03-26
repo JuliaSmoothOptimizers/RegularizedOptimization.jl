@@ -191,7 +191,7 @@ function R2DH(
   Dkσk = D.d .+ σk
   DNorm = norm(D.d, Inf)
 
-  ν = 1 / ((DNorm + σk) * (1 + θ))
+  ν = θ / (DNorm + σk)
   mν∇fk = -ν * ∇fk
   sqrt_ξ_νInv = one(R)  
 
@@ -274,7 +274,7 @@ function R2DH(
     end
 
     Dkσk .= D.d .+ σk
-    ν = 1 / ((DNorm + σk) * (1 + θ))
+    ν = θ / (DNorm + σk)
 
     tired = maxIter > 0 && k ≥ maxIter
     if !tired
