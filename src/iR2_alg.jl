@@ -572,7 +572,7 @@ function SolverCore.solve!(
     @info "iR2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
   end
 
-  set_solver_specific!(stats, :ItersProx, ψ.h.context.prox_stats[3])
+  set_solver_specific!(stats, :ItersProx, sum(ψ.h.context.prox_stats[3])) # TODO: maybe implement += in prox! instead of a long vector. 
   set_solution!(stats, xk)
   return stats
 end
