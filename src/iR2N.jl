@@ -378,9 +378,13 @@ function SolverCore.solve!(
       x = s1,
       atol = sub_atol,
       ν = ν_sub,
+      neg_tol = neg_tol,
       kwargs...,
     )
     s .= solver.substats.solution
+
+    push!(ψ.h.context.prox_stats[2], solver.substats.iter)
+    push!(ψ.h.context.prox_stats[3], solver.substats.solver_specific[:ItersProx])
 
     if norm(s) > β * norm(s1)
       s .= s1
@@ -473,6 +477,8 @@ function SolverCore.solve!(
     set_time!(stats, time() - start_time)
 
     @. mν∇fk = -ν₁ * solver.∇fk
+
+    update_prox_context!(solver, ψ)
     prox!(s1, ψ, mν∇fk, ν₁)
     mks = mk1(s1)
 
@@ -481,8 +487,9 @@ function SolverCore.solve!(
     sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν₁) : sqrt(-ξ1 / ν₁)
     solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol * √κξ)
 
-    (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
-      error("iR2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) && error(
+      "iR2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1) with sqrt_ξ1_νInv = $sqrt_ξ1_νInv > $neg_tol",
+    )
     set_status!(
       stats,
       get_status(
@@ -522,6 +529,23 @@ function SolverCore.solve!(
     @info "iR2N: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
   end
 
+  # Store prox statistics
+  set_solver_specific!(
+    stats,
+    :total_iters_subsolver,
+    Float64(sum(solver.ψ.h.context.prox_stats[2])),
+  )
+  set_solver_specific!(
+    stats,
+    :mean_iters_subsolver,
+    Float64(sum(solver.ψ.h.context.prox_stats[2]) / length(solver.ψ.h.context.prox_stats[2])),
+  )
+  set_solver_specific!(stats, :total_iters_prox, Float64(sum(solver.ψ.h.context.prox_stats[3])))
+  set_solver_specific!(
+    stats,
+    :mean_iters_prox,
+    Float64(sum(solver.ψ.h.context.prox_stats[3]) / length(solver.ψ.h.context.prox_stats[3])),
+  )
   set_solution!(stats, xk)
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
   return stats
