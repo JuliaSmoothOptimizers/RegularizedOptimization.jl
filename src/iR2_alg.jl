@@ -380,15 +380,15 @@ function SolverCore.solve!(
 
   # initialize parameters
   improper = false
-  ψ.h.context.hk = @views h(xk[selected])
-  if ψ.h.context.hk == Inf
+  hk = @views h(xk[selected])
+  if hk == Inf
     verbose > 0 && @info "iR2: finding initial guess where nonsmooth term is finite"
     prox!(xk, h, xk, one(eltype(xk)))
-    ψ.h.context.hk = @views h(xk[selected])
-    ψ.h.context.hk < Inf || error("prox computation must be erroneous")
-    verbose > 0 && @debug "R2: found point where h has value" ψ.h.context.hk
+    hk = @views h(xk[selected])
+    hk < Inf || error("prox computation must be erroneous")
+    verbose > 0 && @debug "R2: found point where h has value" hk
   end
-  improper = (ψ.h.context.hk == -Inf)
+  improper = (hk == -Inf)
 
   if verbose > 0
     @info log_header(
@@ -423,19 +423,19 @@ function SolverCore.solve!(
   set_iter!(stats, 0)
   start_time = time()
   set_time!(stats, 0.0)
-  set_objective!(stats, fk + ψ.h.context.hk)
+  set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
-  set_solver_specific!(stats, :nonsmooth_obj, ψ.h.context.hk)
+  set_solver_specific!(stats, :nonsmooth_obj, hk)
 
   φk(d) = dot(solver.∇fk, d)
   mk(d)::T = φk(d) + ψ(d)::T
 
-  update_prox_context!(solver, ψ)
+  update_prox_context!(solver, stats, ψ)
   prox!(s, ψ, mν∇fk, ν)
 
   mks = mk(s)
 
-  ξ = ψ.h.context.hk - mks + max(1, abs(ψ.h.context.hk)) * 10 * eps()
+  ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
   sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
   atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
@@ -472,7 +472,7 @@ function SolverCore.solve!(
     hkn = @views h(xkn[selected])
     improper = (hkn == -Inf)
 
-    Δobj = (fk + ψ.h.context.hk) - (fkn + hkn) + max(1, abs(fk + ψ.h.context.hk)) * 10 * eps()
+    Δobj = (fk + hk) - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ρk = Δobj / ξ
 
     verbose > 0 &&
@@ -481,7 +481,7 @@ function SolverCore.solve!(
         Any[
           stats.iter,
           fk,
-          ψ.h.context.hk,
+          hk,
           sqrt_ξ_νInv,
           ρk,
           σk,
@@ -501,7 +501,7 @@ function SolverCore.solve!(
         set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
       end
       fk = fkn
-      ψ.h.context.hk = hkn
+      hk = hkn
       grad!(nlp, xk, solver.∇fk)
       shift!(ψ, xk)
     end
@@ -516,18 +516,18 @@ function SolverCore.solve!(
     ν = 1 / σk
     @. mν∇fk = -ν * solver.∇fk
 
-    set_objective!(stats, fk + ψ.h.context.hk)
+    set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)
-    set_solver_specific!(stats, :nonsmooth_obj, ψ.h.context.hk)
+    set_solver_specific!(stats, :nonsmooth_obj, hk)
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
 
     # prepare callback context and pointer to callback function
-    update_prox_context!(solver, ψ)
+    update_prox_context!(solver, stats, ψ)
     prox!(s, ψ, mν∇fk, ν)
     mks = mk(s)
 
-    ξ = ψ.h.context.hk - mks + max(1, abs(ψ.h.context.hk)) * 10 * eps()
+    ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
     solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol * √κξ)
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) && error(
@@ -558,7 +558,7 @@ function SolverCore.solve!(
       Any[
         stats.iter,
         fk,
-        ψ.h.context.hk,
+        hk,
         sqrt_ξ_νInv,
         ρk,
         σk,
@@ -572,7 +572,7 @@ function SolverCore.solve!(
     @info "iR2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
   end
 
-  set_solver_specific!(stats, :ItersProx, sum(ψ.h.context.prox_stats[3])) # TODO: maybe implement += in prox! instead of a long vector. 
+  set_solver_specific!(stats, :ItersProx, ψ.h.context.prox_stats[3]) # TODO: maybe implement += in prox! instead of a long vector. 
   set_solution!(stats, xk)
   return stats
 end
