@@ -132,7 +132,8 @@ function LMTR(
 
   σmax, found_σ = opnorm(Jk)
   found_σ || error("operator norm computation failed")
-  ν = θ / σmax^2 # ‖J'J‖ = ‖J‖²
+  α⁻¹Δ⁻¹ = 1 / (α * Δk)
+  ν = 1 / (α⁻¹Δ⁻¹ + σmax^2 * (α⁻¹Δ⁻¹ + 1)) # ‖J'J‖ = ‖J‖²
 
   mν∇fk = -∇fk * ν
 
@@ -174,8 +175,7 @@ function LMTR(
 
     # Take first proximal gradient step s1 and see if current xk is nearly stationary.
     # s1 minimizes φ1(d) + ‖d‖² / 2 / ν + ψ(d) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0))
-    ν1 = 1 / (1/ν + 1 / (Δk * α))
-    prox!(s, ψ, mν∇fk, ν1)
+    prox!(s, ψ, mν∇fk, ν)
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
@@ -197,8 +197,8 @@ function LMTR(
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
     set_radius!(ψ, ∆_effective)
     subsolver_options.Δk = ∆_effective / 10
-    subsolver_options.ν = ν1
-    subsolver_args = subsolver == TRDH ? (SpectralGradient(1 / ν1, nls.meta.nvar),) : ()
+    subsolver_options.ν = ν
+    subsolver_args = subsolver == TRDH ? (SpectralGradient(1 / ν, nls.meta.nvar),) : ()
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
     end
@@ -255,7 +255,8 @@ function LMTR(
       jtprod_residual!(nls, xk, Fk, ∇fk)
       σmax, found_σ = opnorm(Jk)
       found_σ || error("operator norm computation failed")
-      ν = θ / σmax^2  # ‖J'J‖ = ‖J‖²
+      α⁻¹Δ⁻¹ = 1 / (α * Δk)
+      ν = 1 / (α⁻¹Δ⁻¹ + σmax^2 * (α⁻¹Δ⁻¹ + 1)) # ‖J'J‖ = ‖J‖²
       @. mν∇fk = -∇fk * ν
     end
 
