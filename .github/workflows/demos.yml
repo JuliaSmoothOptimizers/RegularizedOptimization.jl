@@ -35,7 +35,7 @@ jobs:
             ${{ runner.os }}-test-
             ${{ runner.os }}-
       - name: Setup TeX Live
-        uses: teatimeguest/setup-texlive-action@v2
+        uses: teatimeguest/setup-texlive-action@v3
         with:
           packages: >-
             scheme-minimal
