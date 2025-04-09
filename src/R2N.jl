@@ -134,7 +134,7 @@ function R2N(
 
   λmax, found_λ = opnorm(Bk)
   found_λ || error("operator norm computation failed")
-  ν =  θ / (σk + λmax)
+  ν = θ / (σk + λmax)
   sqrt_ξ1_νInv = one(R)
 
   optimal = false
