@@ -314,7 +314,7 @@ function R2DH(
     :hk => hk,
     :sqrt_ξ_νInv => sqrt_ξ_νInv,
     :elapsed_time => elapsed_time,
-    :sigma => σk
+    :sigma => σk,
   )
 
   return xk, k, outdict
