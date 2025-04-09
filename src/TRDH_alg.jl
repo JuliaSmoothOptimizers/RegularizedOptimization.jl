@@ -201,8 +201,7 @@ function TRDH(
   ∇f!(∇fk, xk)
   ∇fk⁻ = copy(∇fk)
   DNorm = norm(D.d, Inf)
-  νInv = DNorm + one(R) / (α * Δk)
-  ν = one(R) / νInv
+  ν = (α * Δk)/(DNorm + one(R))
   mν∇fk = -ν .* ∇fk
   sqrt_ξ_νInv = one(R)
 
@@ -319,8 +318,7 @@ function TRDH(
       has_bnds ? set_bounds!(ψ, l_bound_k, u_bound_k) : set_radius!(ψ, Δk)
     end
 
-    νInv = reduce_TR ? (DNorm + one(R) / (α * Δk)) : (DNorm + one(R) / α)
-    ν = one(R) / νInv
+    ν = reduce_TR ? (α * Δk)/(DNorm + one(R)) : α / (DNorm + one(R))
     mν∇fk .= -ν .* ∇fk
 
     tired = k ≥ maxIter || elapsed_time > maxTime

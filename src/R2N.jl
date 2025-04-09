@@ -132,8 +132,9 @@ function R2N(
   quasiNewtTest = isa(f, QuasiNewtonModel)
   Bk = hess_op(f, xk)
 
-  λmax = opnorm(Bk)
-  νInv = (1 + θ) * (σk + λmax)
+  λmax, found_λ = opnorm(Bk)
+  found_λ || error("operator norm computation failed")
+  ν =  θ / (σk + λmax)
   sqrt_ξ1_νInv = one(R)
 
   optimal = false
@@ -165,11 +166,11 @@ function R2N(
     # take first proximal gradient step s1 and see if current xk is nearly stationary
     # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
 
-    subsolver_options.ν = 1 / νInv
+    subsolver_options.ν = ν
     prox!(s, ψ, -subsolver_options.ν * ∇fk, subsolver_options.ν)
     ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
     ξ1 > 0 || error("R2N: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-    sqrt_ξ1_νInv = sqrt(ξ1 * νInv)
+    sqrt_ξ1_νInv = sqrt(ξ1 / ν)
 
     if ξ1 ≥ 0 && k == 1
       ϵ_increment = ϵr * sqrt_ξ1_νInv
@@ -187,7 +188,7 @@ function R2N(
     subsolver_options.ϵa = k == 1 ? 1.0e-3 : min(sqrt_ξ1_νInv^(1.5), sqrt_ξ1_νInv * 1e-3)
     verbose > 0 && @debug "setting inner stopping tolerance to" subsolver_options.optTol
     subsolver_options.σk = σk
-    subsolver_args = subsolver == R2DH ? (SpectralGradient(νInv, f.meta.nvar),) : ()
+    subsolver_args = subsolver == R2DH ? (SpectralGradient(1 / ν, f.meta.nvar),) : ()
     s, iter, _ = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
     end
@@ -247,14 +248,15 @@ function R2N(
         push!(f, s, ∇fk - ∇fk⁻)
       end
       Bk = hess_op(f, xk)
-      λmax = opnorm(Bk)
+      λmax, found_λ = opnorm(Bk)
+      found_λ || error("operator norm computation failed")
       ∇fk⁻ .= ∇fk
     end
 
     if ρk < η1 || ρk == Inf
         σk = σk * γ
     end
-    νInv = (1 + θ) * (σk + λmax)
+    ν = θ / (σk + λmax)
     tired = k ≥ maxIter || elapsed_time > maxTime
   end
 
