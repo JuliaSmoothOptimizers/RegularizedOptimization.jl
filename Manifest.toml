@@ -2,7 +2,7 @@
 
 julia_version = "1.11.3"
 manifest_format = "2.0"
-project_hash = "3e5166738e6e1fc8c0c795b2ef37f922995d35a7"
+project_hash = "03c0fdff3ef0725f62f22599429b9d604de9c5ed"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -383,19 +383,25 @@ version = "1.11.0"
 
 [[deps.LinearOperators]]
 deps = ["FastClosures", "LinearAlgebra", "Printf", "Requires", "SparseArrays", "TimerOutputs"]
-git-tree-sha1 = "f55281226cdae8edea2c850fda88d8f5a03485b6"
+git-tree-sha1 = "1894a798ed8887895c5ae70f1fe8331c0c1d8480"
 uuid = "5c8ed15e-5a4c-59e4-a42b-c7e8811fb125"
-version = "2.9.0"
+version = "2.10.0"
 
     [deps.LinearOperators.extensions]
+    LinearOperatorsAMDGPUExt = "AMDGPU"
     LinearOperatorsCUDAExt = "CUDA"
     LinearOperatorsChainRulesCoreExt = "ChainRulesCore"
+    LinearOperatorsJLArraysExt = "JLArrays"
     LinearOperatorsLDLFactorizationsExt = "LDLFactorizations"
+    LinearOperatorsMetalExt = "Metal"
 
     [deps.LinearOperators.weakdeps]
+    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
     CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
     ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    JLArrays = "27aeb0d3-9eb9-45fb-866b-73c2ecf80fcb"
     LDLFactorizations = "40e66cde-538c-5869-a4ad-c39174c6795b"
+    Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
 
 [[deps.LogExpFunctions]]
 deps = ["DocStringExtensions", "IrrationalConstants", "LinearAlgebra"]
