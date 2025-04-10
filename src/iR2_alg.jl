@@ -307,10 +307,10 @@ end
 function iR2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
 
   # if h has exact prox, switch to R2 
-  if !(shifted(reg_nlp.h, reg_nlp.model.meta.x0) isa InexactShiftedProximableFunction)
-    @warn "h has exact prox, switching to R2"
-    return R2(reg_nlp; kwargs...)
-  end
+  # if !(shifted(reg_nlp.h, reg_nlp.model.meta.x0) isa InexactShiftedProximableFunction)
+  #   @warn "h has exact prox, switching to R2"
+  #   return R2(reg_nlp; kwargs...)
+  # end
 
   kwargs_dict = Dict(kwargs...)
   max_iter = pop!(kwargs_dict, :max_iter, 10000)
@@ -365,8 +365,13 @@ function SolverCore.solve!(
   # ∇fk = solver.∇fk
   mν∇fk = solver.mν∇fk
   ψ = solver.ψ
-  κξ = ψ.h.context.κξ
-  dualGap = ψ.h.context.dualGap
+  if ψ isa ShiftedProximableFunction
+    κξ = 1.0
+    dualGap = Inf
+  else
+    κξ = ψ.h.context.κξ
+    dualGap = ψ.h.context.dualGap
+  end
 
   xkn = solver.xkn
   s = solver.s
@@ -572,7 +577,9 @@ function SolverCore.solve!(
     @info "iR2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
   end
 
-  # set_solver_specific!(stats, :ItersProx, ψ.h.context.prox_stats[3])
+  if ψ isa InexactShiftedProximableFunction
+    set_solver_specific!(stats, :ItersProx, ψ.h.context.prox_stats[3])
+  end
   set_solution!(stats, xk)
   return stats
 end

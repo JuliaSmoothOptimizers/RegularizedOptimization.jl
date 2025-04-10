@@ -57,20 +57,24 @@ function iR2NSolver(
   end
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
-  # Create a new context for the main solver
   ψ =
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk)
 
-  # Create a completely new context for the subsolver
-  function create_new_context(h, xk, l_bound_m_x, u_bound_m_x, selected)
-    new_h = deepcopy(h)
-    new_context = deepcopy(h.context)
-    new_h.context = new_context
-    return has_bnds ? shifted(new_h, xk, l_bound_m_x, u_bound_m_x, selected) : shifted(new_h, xk)
-  end
+  if ψ isa InexactShiftedProximableFunction
 
-  ψ_sub = create_new_context(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected)
+    # Create a completely new context for the subsolver
+    function create_new_context(h, xk, l_bound_m_x, u_bound_m_x, selected)
+      new_h = deepcopy(h)
+      new_context = deepcopy(h.context)
+      new_h.context = new_context
+      return has_bnds ? shifted(new_h, xk, l_bound_m_x, u_bound_m_x, selected) : shifted(new_h, xk)
+    end
+
+    ψ_sub = create_new_context(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected)
+  else
+    ψ_sub = ψ
+  end
 
   Bk = hess_op(reg_nlp.model, x0)
   sub_nlp = R2NModel(Bk, ∇fk, T(1), x0)
@@ -246,8 +250,11 @@ function SolverCore.solve!(
   ∇fk⁻ = solver.∇fk⁻
   mν∇fk = solver.mν∇fk
   ψ = solver.ψ
-  κξ = ψ.h.context.κξ
-  # dualGap = ψ.h.context.dualGap useless right now
+  if ψ isa ShiftedProximableFunction
+    κξ = 1.0
+  else
+    κξ = ψ.h.context.κξ
+  end
   xkn = solver.xkn
   s = solver.s
   s1 = solver.s1
@@ -381,10 +388,13 @@ function SolverCore.solve!(
       neg_tol = neg_tol,
       kwargs...,
     )
+
     s .= solver.substats.solution
 
-    ψ.h.context.prox_stats[2] += solver.substats.iter
-    ψ.h.context.prox_stats[3] += solver.substats.solver_specific[:ItersProx]
+    if ψ isa InexactShiftedProximableFunction
+      ψ.h.context.prox_stats[2] += solver.substats.iter
+      ψ.h.context.prox_stats[3] += solver.substats.solver_specific[:ItersProx]
+    end
 
     if norm(s) > β * norm(s1)
       s .= s1
@@ -529,11 +539,16 @@ function SolverCore.solve!(
     @info "iR2N: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
   end
 
-  # Store prox statistics
-  set_solver_specific!(stats, :total_iters_subsolver, solver.ψ.h.context.prox_stats[2]),
-  set_solver_specific!(stats, :mean_iters_subsolver, solver.ψ.h.context.prox_stats[2] / stats.iter)
-  set_solver_specific!(stats, :total_iters_prox, solver.ψ.h.context.prox_stats[3])
-  # set_solver_specific!(stats, :mean_iters_prox, solver.ψ.h.context.prox_stats[3] / stats.iter) #TODO: work on this line to specify iR2 prox calls and iR2N prox calls
+  if ψ isa InexactShiftedProximableFunction
+    set_solver_specific!(stats, :total_iters_subsolver, solver.ψ.h.context.prox_stats[2])
+    set_solver_specific!(
+      stats,
+      :mean_iters_subsolver,
+      solver.ψ.h.context.prox_stats[2] / stats.iter,
+    )
+    set_solver_specific!(stats, :total_iters_prox, solver.ψ.h.context.prox_stats[3])
+    # set_solver_specific!(stats, :mean_iters_prox, solver.ψ.h.context.prox_stats[3] / stats.iter) #TODO: work on this line to specify iR2 prox calls and iR2N prox calls
+  end
   set_solution!(stats, xk)
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
   return stats
