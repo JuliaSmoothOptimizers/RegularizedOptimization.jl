@@ -6,7 +6,7 @@ mutable struct R2DHSolver{
   T <: Real,
   G <: ShiftedProximableFunction,
   V <: AbstractVector{T},
-  QN <: AbstractDiagonalQuasiNewtonOperator{T}
+  QN <: AbstractDiagonalQuasiNewtonOperator{T},
 } <: AbstractOptimizationSolver
   xk::V
   ∇fk::V
@@ -25,7 +25,11 @@ mutable struct R2DHSolver{
   m_fh_hist::V
 end
 
-function R2DHSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int = 6, D :: Union{Nothing, AbstractDiagonalQuasiNewtonOperator} = nothing) where{T, V}
+function R2DHSolver(
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
+  m_monotone::Int = 6,
+  D::Union{Nothing, AbstractDiagonalQuasiNewtonOperator} = nothing,
+) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -49,8 +53,14 @@ function R2DHSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int 
   end
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
-  ψ = has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) : shifted(reg_nlp.h, xk)
-  isnothing(D) && (D = isa(reg_nlp.model, AbstractDiagonalQNModel) ? hess_op(reg_nlp.model, x0) : SpectralGradient(T(1), reg_nlp.model.meta.nvar))
+  ψ =
+    has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
+    shifted(reg_nlp.h, xk)
+  isnothing(D) && (
+    D =
+      isa(reg_nlp.model, AbstractDiagonalQNModel) ? hess_op(reg_nlp.model, x0) :
+      SpectralGradient(T(1), reg_nlp.model.meta.nvar)
+  )
 
   return R2DHSolver(
     xk,
@@ -67,10 +77,9 @@ function R2DHSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int 
     u_bound,
     l_bound_m_x,
     u_bound_m_x,
-    m_fh_hist
+    m_fh_hist,
   )
 end
-  
 
 """
     R2DH(reg_nlp; kwargs…)
@@ -141,12 +150,7 @@ Notably, you can access, and modify, the following:
   - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
   - `stats.elapsed_time`: elapsed time in seconds.
 """
-function R2DH(
-  nlp::AbstractNLPModel{T, V},
-  h,
-  options::ROSolverOptions{T};
-  kwargs...,
-) where{T, V}
+function R2DH(nlp::AbstractNLPModel{T, V}, h, options::ROSolverOptions{T}; kwargs...) where {T, V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
@@ -200,14 +204,11 @@ function R2DH(
     θ = options.θ,
     kwargs...,
   )
-  
+
   return stats.solution, stats.iter, nothing
 end
 
-function R2DH(
-  reg_nlp::AbstractRegularizedNLPModel{T, V};
-  kwargs...
-) where{T, V}
+function R2DH(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
   kwargs_dict = Dict(kwargs...)
   m_monotone = pop!(kwargs_dict, :m_monotone, 6)
   D = pop!(kwargs_dict, :D, nothing)
@@ -236,8 +237,7 @@ function SolverCore.solve!(
   ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
-) where{T, V}
-
+) where {T, V}
   reset!(stats)
 
   # Retrieve workspace
@@ -268,7 +268,6 @@ function SolverCore.solve!(
     u_bound = solver.u_bound
   end
   m_monotone = length(m_fh_hist) + 1
-
 
   # initialize parameters
   improper = false
@@ -324,7 +323,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
-  m_monotone > 1 && (m_fh_hist[(stats.iter)%(m_monotone - 1) + 1] = fk + hk)
+  m_monotone > 1 && (m_fh_hist[(stats.iter) % (m_monotone - 1) + 1] = fk + hk)
 
   φ(d) = begin
     result = zero(T)
@@ -334,12 +333,12 @@ function SolverCore.solve!(
     end
     return result
   end
-  
+
   mk(d)::T = φ(d) + ψ(d)::T
 
   spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
 
-  mks = mk(s) 
+  mks = mk(s)
 
   ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
   sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν₁) : sqrt(-ξ / ν₁)
@@ -431,7 +430,7 @@ function SolverCore.solve!(
     ν₁ = θ / (DNorm + σk)
 
     @. mν∇fk = -ν₁ * ∇fk
-    m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone - 1) + 1] = fk + hk)
+    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
     spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
     mks = mk(s)
@@ -479,7 +478,7 @@ function SolverCore.solve!(
     @info "R2DH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
   end
 
-  set_solution!(stats,xk)
+  set_solution!(stats, xk)
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
   return stats
 end

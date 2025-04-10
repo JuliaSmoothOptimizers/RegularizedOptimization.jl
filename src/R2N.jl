@@ -7,7 +7,7 @@ mutable struct R2NSolver{
   G <: ShiftedProximableFunction,
   V <: AbstractVector{T},
   ST <: AbstractOptimizationSolver,
-  PB <: AbstractRegularizedNLPModel
+  PB <: AbstractRegularizedNLPModel,
 } <: AbstractOptimizationSolver
   xk::V
   ∇fk::V
@@ -28,7 +28,11 @@ mutable struct R2NSolver{
   substats::GenericExecutionStats{T, V, V, T}
 end
 
-function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solver, m_monotone::Int = 1) where {T, V}
+function R2NSolver(
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
+  subsolver = R2Solver,
+  m_monotone::Int = 1,
+) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -53,15 +57,12 @@ function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Sol
   end
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
-  ψ = has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) : shifted(reg_nlp.h, xk)
+  ψ =
+    has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
+    shifted(reg_nlp.h, xk)
 
   Bk = hess_op(reg_nlp.model, x0)
-  sub_nlp = R2NModel(
-    Bk,
-    ∇fk,
-    T(1),
-    x0
-  )
+  sub_nlp = R2NModel(Bk, ∇fk, T(1), x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -83,10 +84,9 @@ function R2NSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Sol
     m_fh_hist,
     subsolver,
     subpb,
-    substats
+    substats,
   )
 end
-  
 
 """
     R2N(reg_nlp; kwargs…)
@@ -212,9 +212,9 @@ function SolverCore.solve!(
   ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
   β::T = 1 / eps(T),
-  θ::T = 1/(1+eps(T)^(1 / 5)),
-  kwargs...
-) where{T, V, G}
+  θ::T = 1/(1 + eps(T)^(1 / 5)),
+  kwargs...,
+) where {T, V, G}
   reset!(stats)
 
   # Retrieve workspace
@@ -263,7 +263,7 @@ function SolverCore.solve!(
     @info log_header(
       [:outer, :inner, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :normB, :arrow],
       [Int, Int, T, T, T, T, T, T, T, T, Char],
-      hdr_override = Dict{Symbol, String}( 
+      hdr_override = Dict{Symbol, String}(
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ1/ν)",
@@ -294,7 +294,7 @@ function SolverCore.solve!(
 
   ν₁ = θ / (λmax + σk)
   ν_sub = ν₁
-  
+
   sqrt_ξ1_νInv = one(T)
 
   @. mν∇fk = -ν₁ * ∇fk
@@ -305,7 +305,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
-  m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone - 1) + 1] = fk + hk)
+  m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
   φ1 = let ∇fk = ∇fk
     d -> dot(∇fk, d)
@@ -328,7 +328,7 @@ function SolverCore.solve!(
   (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
     error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
-  
+
   set_status!(
     stats,
     get_status(
@@ -348,20 +348,19 @@ function SolverCore.solve!(
   done = stats.status != :unknown
 
   while !done
+    sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
 
-    sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5) , sqrt_ξ1_νInv * 1e-3)
-    
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     ν_sub = isa(solver.subsolver, R2DHSolver) ? 1/σk : ν₁
     solve!(
-      solver.subsolver, 
-      solver.subpb, 
+      solver.subsolver,
+      solver.subpb,
       solver.substats;
       x = s1,
       atol = sub_atol,
       ν = ν_sub,
-      kwargs...
+      kwargs...,
     )
 
     s .= solver.substats.solution
@@ -424,7 +423,7 @@ function SolverCore.solve!(
         push!(nlp, s, ∇fk⁻)
       end
       solver.subpb.model.B = hess_op(nlp, xk)
-    
+
       λmax, found_λ = opnorm(solver.subpb.model.B)
       found_λ || error("operator norm computation failed")
 
@@ -438,9 +437,9 @@ function SolverCore.solve!(
     if ρk < η1 || ρk == Inf
       σk = σk * γ
     end
-    
+
     ν₁ = θ / (λmax + σk)
-    m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone - 1) + 1] = fk + hk)
+    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
     set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)
@@ -448,7 +447,7 @@ function SolverCore.solve!(
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
 
-    @. mν∇fk = - ν₁ * ∇fk  
+    @. mν∇fk = - ν₁ * ∇fk
     prox!(s1, ψ, mν∇fk, ν₁)
     mks = mk1(s1)
 
@@ -456,7 +455,7 @@ function SolverCore.solve!(
 
     sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν₁) : sqrt(-ξ1 / ν₁)
     solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
-		
+
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
       error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
     set_status!(
