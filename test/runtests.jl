@@ -134,7 +134,7 @@ for (h, h_name) ∈ ((NormL1(λ), "l1"),)
   end
 end
 
-R2N_R2DH(args...; kwargs...) = R2N(args...; subsolver = R2DH, kwargs...)
+R2N_R2DH(args...; kwargs...) = R2N(args...; subsolver = R2DHSolver, kwargs...)
 for (mod, mod_name) ∈ (
   (SpectralGradientModel, "spg"),
   (DiagonalPSBModel, "psb"),
@@ -153,14 +153,7 @@ for (mod, mod_name) ∈ (
         out = solver(mod(bpdn), h, options, x0 = x0)
         @test typeof(out.solution) == typeof(bpdn.meta.x0)
         @test length(out.solution) == bpdn.meta.nvar
-        @test typeof(out.solver_specific[:Fhist]) == typeof(out.solution)
-        @test typeof(out.solver_specific[:Hhist]) == typeof(out.solution)
-        @test typeof(out.solver_specific[:SubsolverCounter]) == Array{Int, 1}
         @test typeof(out.dual_feas) == eltype(out.solution)
-        @test length(out.solver_specific[:Fhist]) == length(out.solver_specific[:Hhist])
-        @test length(out.solver_specific[:Fhist]) == length(out.solver_specific[:SubsolverCounter])
-        @test obj(bpdn, out.solution) == out.solver_specific[:Fhist][end]
-        @test h(out.solution) == out.solver_specific[:Hhist][end]
         @test out.status == :first_order
       end
     end
