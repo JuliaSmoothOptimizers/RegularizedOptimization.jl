@@ -44,7 +44,6 @@ function R2NSolver(
   xkn = similar(x0)
   s = similar(x0)
   s1 = similar(x0)
-  v = similar(x0)
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
   if has_bnds
     l_bound_m_x = similar(xk)

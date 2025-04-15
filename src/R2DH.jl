@@ -150,7 +150,7 @@ Notably, you can access, and modify, the following:
   - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
   - `stats.elapsed_time`: elapsed time in seconds.
 """
-function R2DH(nlp::AbstractNLPModel{T, V}, h, options::ROSolverOptions{T}; kwargs...) where {T, V}
+function R2DH(nlp::AbstractDiagonalQNModel{T, V}, h, options::ROSolverOptions{T}; kwargs...) where {T, V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
