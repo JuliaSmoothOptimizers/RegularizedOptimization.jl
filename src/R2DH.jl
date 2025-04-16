@@ -196,6 +196,7 @@ function R2DH(
     verbose = options.verbose,
     max_iter = options.maxIter,
     max_time = options.maxTime,
+    σk = options.σk,
     σmin = options.σmin,
     η1 = options.η1,
     η2 = options.η2,
@@ -231,6 +232,7 @@ function SolverCore.solve!(
   max_iter::Int = 10000,
   max_time::Float64 = 30.0,
   max_eval::Int = -1,
+  σk::T = eps(T)^(1 / 5),
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.9),
@@ -301,8 +303,6 @@ function SolverCore.solve!(
 
   local ξ::T
   local ρk::T = zero(T)
-
-  σk = max(1 / ν, σmin)
 
   fk = obj(nlp, xk)
   grad!(nlp, xk, ∇fk)
