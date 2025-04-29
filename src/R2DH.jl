@@ -121,9 +121,9 @@ or
 - `max_iter::Int = 10000`: maximum number of iterations;
 - `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
 - `σmin::T = eps(T)`: minimum value of the regularization parameter;
+- `σk::T = eps(T)^(1 / 5)`: initial value of the regularization parameter;
 - `η1::T = √√eps(T)`: very successful iteration threshold;
 - `η2::T = T(0.9)`: successful iteration threshold;
-- `ν::T = eps(T)^(1 / 5)`: inverse of the initial regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
 - `m_monotone::Int = 6`: monotoneness parameter. By default, R2DH is non-monotone but the monotone variant can be used with `m_monotone = 1`
@@ -173,7 +173,6 @@ function R2DH(
     σmin = options.σmin,
     η1 = options.η1,
     η2 = options.η2,
-    ν = options.ν,
     γ = options.γ,
     θ = options.θ,
     kwargs_dict...,
@@ -206,7 +205,6 @@ function R2DH(
     σmin = options.σmin,
     η1 = options.η1,
     η2 = options.η2,
-    ν = options.ν,
     γ = options.γ,
     θ = options.θ,
     kwargs...,
@@ -242,7 +240,6 @@ function SolverCore.solve!(
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.9),
-  ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
 ) where {T, V}

@@ -128,7 +128,6 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `σk::T = eps(T)^(1 / 5)`: initial value of the regularization parameter;
 - `η1::T = √√eps(T)`: successful iteration threshold;
 - `η2::T = T(0.9)`: very successful iteration threshold;
-- `ν::T = eps(T)^(1 / 5)`: inverse of the initial regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
@@ -180,7 +179,6 @@ function R2N(
     σk = options.σk,
     η1 = options.η1,
     η2 = options.η2,
-    ν = options.ν,
     γ = options.γ,
     sub_kwargs = sub_kwargs;
     kwargs_dict...,
@@ -214,7 +212,6 @@ function SolverCore.solve!(
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.9),
-  ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
@@ -355,16 +352,12 @@ function SolverCore.solve!(
 
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
-    sub_ν = isa(solver.subsolver, R2DHSolver) ? 1/σk : ν₁
-    solve!(
-      solver.subsolver,
-      solver.subpb,
-      solver.substats;
-      x = s1,
-      atol = sub_atol,
-      ν = sub_ν,
-      sub_kwargs...,
-    )
+    if isa(solver.subsolver, R2Solver) #FIXME
+      sub_kwargs[:ν] = ν₁
+    else
+      sub_kwargs[:σk] = σk
+    end
+    solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, atol = sub_atol, sub_kwargs...)
 
     s .= solver.substats.solution
 
