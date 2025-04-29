@@ -1,5 +1,243 @@
-export TRDH
+export TRDH, TRDHSolver, solve!
 
+import SolverCore.solve!
+
+mutable struct TRDHSolver{
+  T <: Real,
+  G <: ShiftedProximableFunction,
+  V <: AbstractVector{T},
+  QN <: AbstractDiagonalQuasiNewtonOperator{T},
+} <: AbstractOptimizationSolver
+  xk::V
+  ∇fk::V
+  ∇fk⁻::V
+  mν∇fk::V
+  D::QN
+  ψ::G
+  xkn::V
+  s::V
+  dkσk::V
+  has_bnds::Bool
+  l_bound::V
+  u_bound::V
+  l_bound_m_x::V
+  u_bound_m_x::V
+end
+
+function TRDHSolver(
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
+  D::Union{Nothing, AbstractDiagonalQuasiNewtonOperator} = nothing,
+) where {T, V}
+  x0 = reg_nlp.model.meta.x0
+  l_bound = reg_nlp.model.meta.lvar
+  u_bound = reg_nlp.model.meta.uvar
+
+  xk = similar(x0)
+  ∇fk = similar(x0)
+  ∇fk⁻ = similar(x0)
+  mν∇fk = similar(x0)
+  xkn = similar(x0)
+  s = similar(x0)
+  dkσk = similar(x0)
+  has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
+  if has_bnds
+    l_bound_m_x = similar(xk)
+    u_bound_m_x = similar(xk)
+    @. l_bound_m_x = l_bound - x0
+    @. u_bound_m_x = u_bound - x0
+  else
+    l_bound_m_x = similar(xk, 0)
+    u_bound_m_x = similar(xk, 0)
+  end
+
+  ψ =
+    has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
+    shifted(reg_nlp.h, xk)
+  isnothing(D) && (
+    D =
+      isa(reg_nlp.model, AbstractDiagonalQNModel) ? hess_op(reg_nlp.model, x0) :
+      SpectralGradient(T(1), reg_nlp.model.meta.nvar)
+  )
+
+  return TRDHSolver(
+    xk,
+    ∇fk,
+    ∇fk⁻,
+    mν∇fk,
+    D,
+    ψ,
+    xkn,
+    s,
+    dkσk,
+    has_bnds,
+    l_bound,
+    u_bound,
+    l_bound_m_x,
+    u_bound_m_x,
+  )
+end
+
+function SolverCore.solve!(
+  solver::TRDHSolver{T},
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
+  callback = (args...) -> nothing,
+  x::V = reg_nlp.model.meta.x0,
+  atol::T = √eps(T),
+  rtol::T = √eps(T),
+  neg_tol::T = eps(T)^(1 / 4),
+  verbose::Int = 0,
+  max_iter::Int = 10000,
+  max_time::Float64 = 30.0,
+  max_eval::Int = -1,
+  reduce_TR::Bool = true,
+  Δk::T = T(1),
+  η1::T = √√eps(T),
+  η2::T = T(0.9),
+  γ::T = T(3),
+  α::T = 1 / eps(T),
+  β::T = 1 / eps(T)
+) where {T, V}
+  reset!(stats)
+  
+  # Retrieve workspace
+  selected = reg_nlp.selected
+  h = reg_nlp.h
+  nlp = reg_nlp.model
+
+  xk = solver.xk .= x
+
+  # Make sure ψ has the correct shift 
+  shift!(solver.ψ, xk)
+
+  ∇fk = solver.∇fk
+  ∇fk⁻ = solver.∇fk⁻
+  mν∇fk = solver.mν∇fk
+  D = solver.D
+  dkσk = solver.dkσk
+  ψ = solver.ψ
+  xkn = solver.xkn
+  s = solver.s
+  has_bnds = solver.has_bnds
+
+  if has_bnds
+    l_bound_m_x = solver.l_bound_m_x
+    u_bound_m_x = solver.u_bound_m_x
+    l_bound = solver.l_bound
+    u_bound = solver.u_bound
+  end
+
+  # initialize parameters
+  improper = false
+  hk = @views h(xk[selected])
+  if hk == Inf
+    verbose > 0 && @info "TRDH: finding initial guess where nonsmooth term is finite"
+    prox!(xk, h, xk, T(1))
+    hk = @views h(xk[selected])
+    hk < Inf || error("prox computation must be erroneous")
+    verbose > 0 && @debug "TRDH: found point where h has value" hk
+  end
+  improper = (hk == -Inf)
+  improper == true && @warn "TRDH: Improper term detected"
+  improper == true && return stats
+
+  if verbose > 0
+    @info log_header(
+      [:iter, :fx, :hx, :xi, :ρ, :Δ, :normx, :norms, :normD, :arrow],
+      [Int, T, T, T, T, T, T, T, T, Char],
+      hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
+        :fx => "f(x)",
+        :hx => "h(x)",
+        :xi => "√(ξ/ν)",
+        :normx => "‖x‖",
+        :norms => "‖s‖",
+        :normD => "‖D‖",
+        :arrow => "TRDH",
+      ),
+      colsep = 1,
+    )
+  end
+
+  local ξ1::T
+  local ρk::T = zero(T)
+
+  fk = obj(nlp, xk)
+  grad!(nlp, xk, ∇fk)
+  ∇fk⁻ .= ∇fk
+
+  DNorm = norm(D.d, Inf)
+
+  ν = (α * Δk)/(DNorm + one(T))
+  sqrt_ξ_νInv = one(T)
+
+  @. mν∇fk = -ν * ∇fk
+
+  set_iter!(stats, 0)
+  start_time = time()
+  set_time!(stats, 0.0)
+  set_objective!(stats, fk + hk)
+  set_solver_specific!(stats, :smooth_obj, fk)
+  set_solver_specific!(stats, :nonsmooth_obj, hk)
+
+  φ1(d) = dot(∇fk, d)
+  mk1(d)::T = φ1(d) + ψ(d)::T #TODO put this in reduce_TR conditionals and see if the code compiles.
+
+  φ(d) = begin
+    result = zero(T)
+    n = length(d)
+    @inbounds for i = 1:n
+      result += d[i]^2*D.d[i]/2 + ∇fk[i]*d[i]
+    end
+    return result
+  end
+  mk(d) = φ(d) + ψ(d)
+
+  if reduce_TR
+    prox!(s, ψ, mν∇fk, ν)
+    mks = mk1(s)
+
+    ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
+    sqrt_ξ_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
+    solved = (ξ1 < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ_νInv ≤ atol)
+    (ξ1 < 0 && sqrt_ξ_νInv > neg_tol) &&
+      error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
+    atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
+  else
+    if has_bnds
+      update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δk)
+      set_bounds!(ψ, l_bound_k, u_bound_k)
+    else
+      set_radius!(ψ, Δk)
+    end
+
+  end
+
+  
+
+  set_status!(
+    stats,
+    get_status(
+      reg_nlp,
+      elapsed_time = stats.elapsed_time,
+      iter = stats.iter,
+      optimal = solved,
+      improper = improper,
+      max_eval = max_eval,
+      max_time = max_time,
+      max_iter = max_iter,
+    ),
+  )
+
+  callback(nlp, solver, stats)
+
+  done = stats.status != :unknown
+
+
+  return stats
+  """
+
+  """
+end
 """
     TRDH(nlp, h, χ, options; kwargs...)
     TRDH(f, ∇f!, h, options, x0)
