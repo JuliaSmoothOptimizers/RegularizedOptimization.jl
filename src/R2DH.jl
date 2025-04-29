@@ -145,12 +145,17 @@ Notably, you can access, and modify, the following:
 - `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
   - `stats.iter`: current iteration counter;
   - `stats.objective`: current objective function value;
-  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function
-  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function
-  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention.
+  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
+  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function;
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention;
   - `stats.elapsed_time`: elapsed time in seconds.
 """
-function R2DH(nlp::AbstractDiagonalQNModel{T, V}, h, options::ROSolverOptions{T}; kwargs...) where {T, V}
+function R2DH(
+  nlp::AbstractDiagonalQNModel{T, V},
+  h,
+  options::ROSolverOptions{T};
+  kwargs...,
+) where {T, V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
@@ -164,6 +169,7 @@ function R2DH(nlp::AbstractDiagonalQNModel{T, V}, h, options::ROSolverOptions{T}
     verbose = options.verbose,
     max_iter = options.maxIter,
     max_time = options.maxTime,
+    σk = options.σk,
     σmin = options.σmin,
     η1 = options.η1,
     η2 = options.η2,

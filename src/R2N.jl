@@ -119,18 +119,19 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = √eps(T)`: absolute tolerance;
 - `rtol::T = √eps(T)`: relative tolerance;
-- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance
+- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance;
 - `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
 - `max_iter::Int = 10000`: maximum number of iterations;
 - `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
 - `σmin::T = eps(T)`: minimum value of the regularization parameter;
+- `σk::T = eps(T)^(1 / 5)`: initial value of the regularization parameter;
 - `η1::T = √√eps(T)`: successful iteration threshold;
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `ν::T = eps(T)^(1 / 5)`: inverse of the initial regularization parameter: ν = 1/σ;
-- `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
-- `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
-- `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`
+- `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
+- `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
+- `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
 - `sub_kwargs::Dict{Symbol}`: a dictionary containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
@@ -150,9 +151,9 @@ Notably, you can access, and modify, the following:
 - `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
   - `stats.iter`: current iteration counter;
   - `stats.objective`: current objective function value;
-  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function
-  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function
-  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention.
+  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
+  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function;
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention;
   - `stats.elapsed_time`: elapsed time in seconds.
 """
 function R2N(
@@ -176,6 +177,7 @@ function R2N(
     max_iter = options.maxIter,
     max_time = options.maxTime,
     σmin = options.σmin,
+    σk = options.σk,
     η1 = options.η1,
     η2 = options.η2,
     ν = options.ν,
@@ -208,6 +210,7 @@ function SolverCore.solve!(
   max_iter::Int = 10000,
   max_time::Float64 = 30.0,
   max_eval::Int = -1,
+  σk::T = eps(T)^(1 / 5),
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.9),
@@ -215,7 +218,7 @@ function SolverCore.solve!(
   γ::T = T(3),
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
-  sub_kwargs::Dict{Symbol} = Dict()
+  sub_kwargs::Dict{Symbol} = Dict(),
 ) where {T, V, G}
   reset!(stats)
 
@@ -280,8 +283,6 @@ function SolverCore.solve!(
 
   local ξ1::T
   local ρk::T = zero(T)
-
-  σk = max(1 / ν, σmin)
 
   fk = obj(nlp, xk)
   grad!(nlp, xk, ∇fk)
