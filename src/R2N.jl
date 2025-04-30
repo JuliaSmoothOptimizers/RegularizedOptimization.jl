@@ -293,7 +293,6 @@ function SolverCore.solve!(
   found_λ || error("operator norm computation failed")
 
   ν₁ = θ / (λmax + σk)
-  ν_sub = ν₁
 
   sqrt_ξ1_νInv = one(T)
 
