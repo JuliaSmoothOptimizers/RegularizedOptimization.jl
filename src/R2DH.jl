@@ -1,110 +1,184 @@
-export R2DH
+export R2DH, R2DHSolver, solve!
+
+import SolverCore.solve!
+
+mutable struct R2DHSolver{
+  T <: Real,
+  G <: ShiftedProximableFunction,
+  V <: AbstractVector{T},
+  QN <: AbstractDiagonalQuasiNewtonOperator{T},
+} <: AbstractOptimizationSolver
+  xk::V
+  ∇fk::V
+  ∇fk⁻::V
+  mν∇fk::V
+  D::QN
+  ψ::G
+  xkn::V
+  s::V
+  dkσk::V
+  has_bnds::Bool
+  l_bound::V
+  u_bound::V
+  l_bound_m_x::V
+  u_bound_m_x::V
+  m_fh_hist::V
+end
+
+function R2DHSolver(
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
+  m_monotone::Int = 6,
+  D::Union{Nothing, AbstractDiagonalQuasiNewtonOperator} = nothing,
+) where {T, V}
+  x0 = reg_nlp.model.meta.x0
+  l_bound = reg_nlp.model.meta.lvar
+  u_bound = reg_nlp.model.meta.uvar
+
+  xk = similar(x0)
+  ∇fk = similar(x0)
+  ∇fk⁻ = similar(x0)
+  mν∇fk = similar(x0)
+  xkn = similar(x0)
+  s = similar(x0)
+  dkσk = similar(x0)
+  has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
+  if has_bnds
+    l_bound_m_x = similar(xk)
+    u_bound_m_x = similar(xk)
+    @. l_bound_m_x = l_bound - x0
+    @. u_bound_m_x = u_bound - x0
+  else
+    l_bound_m_x = similar(xk, 0)
+    u_bound_m_x = similar(xk, 0)
+  end
+  m_fh_hist = fill(T(-Inf), m_monotone - 1)
+
+  ψ =
+    has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
+    shifted(reg_nlp.h, xk)
+  isnothing(D) && (
+    D =
+      isa(reg_nlp.model, AbstractDiagonalQNModel) ? hess_op(reg_nlp.model, x0) :
+      SpectralGradient(T(1), reg_nlp.model.meta.nvar)
+  )
+
+  return R2DHSolver(
+    xk,
+    ∇fk,
+    ∇fk⁻,
+    mν∇fk,
+    D,
+    ψ,
+    xkn,
+    s,
+    dkσk,
+    has_bnds,
+    l_bound,
+    u_bound,
+    l_bound_m_x,
+    u_bound_m_x,
+    m_fh_hist,
+  )
+end
 
 """
-    R2DH(nlp, h, options)
+    R2DH(reg_nlp; kwargs…)
 
 A second-order quadratic regularization method for the problem
 
     min f(x) + h(x)
 
-where f: ℝⁿ → ℝ is C¹ and h: ℝⁿ → ℝ is lower semi-continuous, proper, and prox-bounded.
+where f: ℝⁿ → ℝ is C¹, and h: ℝⁿ → ℝ is lower semi-continuous, proper and prox-bounded.
 
 About each iterate xₖ, a step sₖ is computed as a solution of
 
-    min  φ(s; xₖ) + ψ(s; xₖ)
+    min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ)
 
-where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ(Dₖ + σₖI)s is a quadratic approximation of f about xₖ,
-ψ(s; xₖ) = h(xₖ + s), Dₖ is a diagonal Hessian approximation and σₖ > 0 is the regularization parameter.
+where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀDₖs is a diagonal quadratic approximation of f about xₖ,
+ψ(s; xₖ) is either h(xₖ + s) or an approximation of h(xₖ + s), ‖⋅‖ is the ℓ₂ norm and σₖ > 0 is the regularization parameter.
 
-### Arguments
+For advanced usage, first define a solver `R2DHSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
 
-* `nlp::AbstractDiagonalQNModel`: a smooth optimization problem
-* `h`: a regularizer such as those defined in ProximalOperators
-* `options::ROSolverOptions`: a structure containing algorithmic parameters
+    solver = R2DHSolver(reg_nlp; m_monotone = 6)
+    solve!(solver, reg_nlp)
 
-### Keyword Arguments
+or
 
-* `x0::AbstractVector`: an initial guess (in the first calling form: default = `nlp.meta.x0`)
-* `selected::AbstractVector{<:Integer}`: subset of variables to which `h` is applied (default `1:length(x0)`).
-* `D`: Diagonal quasi-Newton operator.
-* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotone variant (default: 6).
+    stats = RegularizedExecutionStats(reg_nlp)
+    solver = R2DHSolver(reg_nlp)
+    solve!(solver, reg_nlp, stats)
+  
+# Arguments
+* `reg_nlp::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
-The objective and gradient of `nlp` will be accessed.
+# Keyword arguments 
+- `x::V = nlp.meta.x0`: the initial guess;
+- `atol::T = √eps(T)`: absolute tolerance;
+- `rtol::T = √eps(T)`: relative tolerance;
+- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance
+- `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
+- `max_time::Float64 = 30.0`: maximum time limit in seconds;
+- `max_iter::Int = 10000`: maximum number of iterations;
+- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
+- `σmin::T = eps(T)`: minimum value of the regularization parameter;
+- `σk::T = eps(T)^(1 / 5)`: initial value of the regularization parameter;
+- `η1::T = √√eps(T)`: very successful iteration threshold;
+- `η2::T = T(0.9)`: successful iteration threshold;
+- `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
+- `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
+- `m_monotone::Int = 6`: monotoneness parameter. By default, R2DH is non-monotone but the monotone variant can be used with `m_monotone = 1`
 
-### Return values
+The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
+
+# Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
+
+# Callback
+The callback is called at each iteration.
+The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+Changing any of the input arguments will affect the subsequent iterations.
+In particular, setting `stats.status = :user` will stop the algorithm.
+All relevant information should be available in `nlp` and `solver`.
+Notably, you can access, and modify, the following:
+- `solver.xk`: current iterate;
+- `solver.∇fk`: current gradient;
+- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
+  - `stats.iter`: current iteration counter;
+  - `stats.objective`: current objective function value;
+  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
+  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function;
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention;
+  - `stats.elapsed_time`: elapsed time in seconds.
 """
 function R2DH(
-  nlp::AbstractDiagonalQNModel{R, S},
+  nlp::AbstractDiagonalQNModel{T, V},
   h,
-  options::ROSolverOptions{R};
+  options::ROSolverOptions{T};
   kwargs...,
-) where {R <: Real, S}
+) where {T, V}
   kwargs_dict = Dict(kwargs...)
+  selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
-  xk, k, outdict = R2DH(
-    x -> obj(nlp, x),
-    (g, x) -> grad!(nlp, x, g),
-    h,
-    hess_op(nlp, x0),
-    options,
-    x0;
-    l_bound = nlp.meta.lvar,
-    u_bound = nlp.meta.uvar,
-    kwargs...,
+  reg_nlp = RegularizedNLPModel(nlp, h, selected)
+  return R2DH(
+    reg_nlp,
+    x = x0,
+    atol = options.ϵa,
+    rtol = options.ϵr,
+    neg_tol = options.neg_tol,
+    verbose = options.verbose,
+    max_iter = options.maxIter,
+    max_time = options.maxTime,
+    σk = options.σk,
+    σmin = options.σmin,
+    η1 = options.η1,
+    η2 = options.η2,
+    γ = options.γ,
+    θ = options.θ,
+    kwargs_dict...,
   )
-  sqrt_ξ_νInv = outdict[:sqrt_ξ_νInv]
-  stats = GenericExecutionStats(nlp)
-  set_status!(stats, outdict[:status])
-  set_solution!(stats, xk)
-  set_objective!(stats, outdict[:fk] + outdict[:hk])
-  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
-  set_iter!(stats, k)
-  set_time!(stats, outdict[:elapsed_time])
-  set_solver_specific!(stats, :sigma, outdict[:sigma])
-  set_solver_specific!(stats, :Fhist, outdict[:Fhist])
-  set_solver_specific!(stats, :Hhist, outdict[:Hhist])
-  set_solver_specific!(stats, :Time_hist, outdict[:Time_hist])
-  set_solver_specific!(stats, :NonSmooth, outdict[:NonSmooth])
-  set_solver_specific!(stats, :SubsolverCounter, outdict[:Chist])
-  return stats
 end
 
-"""
-    R2DH(f, ∇f!, h, options, x0)
-
-A second calling form for `R2DH` where the objective and gradient are passed as arguments.
-
-### Arguments
-
-* `f::Function`: the objective function
-* `∇f!::Function`: the gradient function
-* `h`: a regularizer such as those defined in ProximalOperators
-* `D`: Diagonal quasi-Newton operator.
-* `options::ROSolverOptions`: a structure containing algorithmic parameters
-* `x0::AbstractVector`: an initial guess
-
-### Keyword Arguments
-
-* `Mmonotone::Int`: number of previous values of the objective to consider for the non-monotone variant (default: 6).
-* `selected::AbstractVector{<:Integer}`: subset of variables to which `h` is applied (default `1:length(x0)`).
-
-### Return values
-
-* `xk`: the final iterate
-* `k`: the number of iterations
-* `outdict`: a dictionary containing the following fields:
-    * `Fhist`: an array with the history of values of the smooth objective
-    * `Hhist`: an array with the history of values of the nonsmooth objective
-    * `Time_hist`: an array with the history of elapsed times
-    * `Chist`: an array with the history of number of inner iterations
-    * `NonSmooth`: the nonsmooth term
-    * `status`: the status of the solver either `:first_order`, `:max_iter`, `:max_time` or `:exception`
-    * `fk`: the value of the smooth objective at the final iterate
-    * `hk`: the value of the nonsmooth objective at the final iterate
-    * `sqrt_ξ_νInv`: the square root of the ratio of the nonsmooth term to the regularization parameter
-    * `elapsed_time`: the elapsed time
-"""
 function R2DH(
   f::F,
   ∇f!::G,
@@ -112,210 +186,302 @@ function R2DH(
   D::DQN,
   options::ROSolverOptions{R},
   x0::AbstractVector{R};
-  Mmonotone::Int = 6,
   selected::AbstractVector{<:Integer} = 1:length(x0),
   kwargs...,
 ) where {F <: Function, G <: Function, H, R <: Real, DQN <: AbstractDiagonalQuasiNewtonOperator}
-  start_time = time()
-  elapsed_time = 0.0
-  ϵ = options.ϵa
-  ϵr = options.ϵr
-  neg_tol = options.neg_tol
-  verbose = options.verbose
-  maxIter = options.maxIter
-  maxTime = options.maxTime
-  σmin = options.σmin
-  σk = options.σk
-  η1 = options.η1
-  η2 = options.η2
-  ν = options.ν
-  γ = options.γ
-  θ = options.θ
+  nlp = FirstOrderModel(f, ∇f!, x0)
+  reg_nlp = RegularizedNLPModel(nlp, h, selected)
+  stats = R2DH(
+    reg_nlp,
+    x = x0,
+    D = D,
+    atol = options.ϵa,
+    rtol = options.ϵr,
+    neg_tol = options.neg_tol,
+    verbose = options.verbose,
+    max_iter = options.maxIter,
+    max_time = options.maxTime,
+    σk = options.σk,
+    σmin = options.σmin,
+    η1 = options.η1,
+    η2 = options.η2,
+    γ = options.γ,
+    θ = options.θ,
+    kwargs...,
+  )
 
-  local l_bound, u_bound
-  has_bnds = false
-  for (key, val) in kwargs
-    if key == :l_bound
-      l_bound = val
-      has_bnds = has_bnds || any(l_bound .!= R(-Inf))
-    elseif key == :u_bound
-      u_bound = val
-      has_bnds = has_bnds || any(u_bound .!= R(Inf))
-    end
-  end
+  return stats.solution, stats.iter, nothing
+end
 
-  if verbose == 0
-    ptf = Inf
-  elseif verbose == 1
-    ptf = round(maxIter / 10)
-  elseif verbose == 2
-    ptf = round(maxIter / 100)
-  else
-    ptf = 1
+function R2DH(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
+  kwargs_dict = Dict(kwargs...)
+  m_monotone = pop!(kwargs_dict, :m_monotone, 6)
+  D = pop!(kwargs_dict, :D, nothing)
+  solver = R2DHSolver(reg_nlp, m_monotone = m_monotone, D = D)
+  stats = GenericExecutionStats(reg_nlp.model)
+  solve!(solver, reg_nlp, stats; kwargs_dict...)
+  return stats
+end
+
+function SolverCore.solve!(
+  solver::R2DHSolver{T},
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
+  callback = (args...) -> nothing,
+  x::V = reg_nlp.model.meta.x0,
+  atol::T = √eps(T),
+  rtol::T = √eps(T),
+  neg_tol::T = eps(T)^(1 / 4),
+  verbose::Int = 0,
+  max_iter::Int = 10000,
+  max_time::Float64 = 30.0,
+  max_eval::Int = -1,
+  σk::T = eps(T)^(1 / 5),
+  σmin::T = eps(T),
+  η1::T = √√eps(T),
+  η2::T = T(0.9),
+  γ::T = T(3),
+  θ::T = 1/(1 + eps(T)^(1 / 5)),
+) where {T, V}
+  reset!(stats)
+
+  # Retrieve workspace
+  selected = reg_nlp.selected
+  h = reg_nlp.h
+  nlp = reg_nlp.model
+
+  xk = solver.xk .= x
+
+  # Make sure ψ has the correct shift 
+  shift!(solver.ψ, xk)
+
+  ∇fk = solver.∇fk
+  ∇fk⁻ = solver.∇fk⁻
+  mν∇fk = solver.mν∇fk
+  D = solver.D
+  dkσk = solver.dkσk
+  ψ = solver.ψ
+  xkn = solver.xkn
+  s = solver.s
+  m_fh_hist = solver.m_fh_hist .= T(-Inf)
+  has_bnds = solver.has_bnds
+
+  if has_bnds
+    l_bound_m_x = solver.l_bound_m_x
+    u_bound_m_x = solver.u_bound_m_x
+    l_bound = solver.l_bound
+    u_bound = solver.u_bound
   end
+  m_monotone = length(m_fh_hist) + 1
 
   # initialize parameters
-  xk = copy(x0)
-  hk = h(xk[selected])
+  improper = false
+  hk = @views h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "R2DH: finding initial guess where nonsmooth term is finite"
-    prox!(xk, h, x0, one(eltype(x0)))
-    hk = h(xk[selected])
+    prox!(xk, h, xk, T(1))
+    hk = @views h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "R2DH: found point where h has value" hk
   end
-  hk == -Inf && error("nonsmooth term is not proper")
+  improper = (hk == -Inf)
+  improper == true && @warn "R2DH: Improper term detected"
+  improper == true && return stats
 
-  xkn = similar(xk)
-  s = zero(xk)
-  ψ = has_bnds ? shifted(h, xk, l_bound - xk, u_bound - xk, selected) : shifted(h, xk)
-
-  Fobj_hist = zeros(maxIter + 1)
-  Hobj_hist = zeros(maxIter + 1)
-  time_hist = zeros(maxIter + 1)
-  FHobj_hist = fill!(Vector{R}(undef, Mmonotone - 1), R(-Inf))
-  Complex_hist = zeros(Int, maxIter + 1)
   if verbose > 0
-    #! format: off
-    @info @sprintf "%6s %8s %8s %7s %8s %7s %7s %7s %1s" "iter" "f(x)" "h(x)" "√(ξ/ν)" "ρ" "σ" "‖x‖" "‖s‖" ""
-    #! format: off
+    @info log_header(
+      [:iter, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :arrow],
+      [Int, T, T, T, T, T, T, T, Char],
+      hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
+        :fx => "f(x)",
+        :hx => "h(x)",
+        :xi => "√(ξ/ν)",
+        :normx => "‖x‖",
+        :norms => "‖s‖",
+        :arrow => "R2DH",
+      ),
+      colsep = 1,
+    )
   end
 
-  local ξ
-  k = 0
+  local ξ::T
+  local ρk::T = zero(T)
 
-  fk = f(xk)
-  ∇fk = similar(xk)
-  ∇f!(∇fk, xk)
-  ∇fk⁻ = copy(∇fk) 
+  fk = obj(nlp, xk)
+  grad!(nlp, xk, ∇fk)
+  ∇fk⁻ .= ∇fk
   spectral_test = isa(D, SpectralGradient)
-  Dkσk = D.d .+ σk
+
+  @. dkσk = D.d .+ σk
   DNorm = norm(D.d, Inf)
 
-  ν = θ / (DNorm + σk)
-  mν∇fk = -ν * ∇fk
-  sqrt_ξ_νInv = one(R)  
+  ν₁ = θ / (DNorm + σk)
+  sqrt_ξ_νInv = one(T)
 
-  optimal = false
-  tired = maxIter > 0 && k ≥ maxIter || elapsed_time > maxTime
+  @. mν∇fk = -ν₁ * ∇fk
 
-  while !(optimal || tired)
-    # model with diagonal hessian
-    φ(d) = ∇fk' * d + (d' * (Dkσk .* d)) / 2
-    mk(d) = φ(d) + ψ(d)
+  set_iter!(stats, 0)
+  start_time = time()
+  set_time!(stats, 0.0)
+  set_objective!(stats, fk + hk)
+  set_solver_specific!(stats, :smooth_obj, fk)
+  set_solver_specific!(stats, :nonsmooth_obj, hk)
+  m_monotone > 1 && (m_fh_hist[(stats.iter) % (m_monotone - 1) + 1] = fk + hk)
 
-    if spectral_test
-      prox!(s, ψ, mν∇fk, ν)
-    else
-      iprox!(s, ψ, ∇fk, Dkσk)
+  φ(d) = begin
+    result = zero(T)
+    n = length(d)
+    @inbounds for i = 1:n
+      result += d[i]^2*dkσk[i]/2 + ∇fk[i]*d[i]
     end
-    mks = mk(s)
+    return result
+  end
 
-    k = k + 1
-    elapsed_time = time() - start_time
-    Fobj_hist[k] = fk
-    Hobj_hist[k] = hk
-    time_hist[k] = elapsed_time
-    Mmonotone > 1 && (FHobj_hist[mod(k-1, Mmonotone - 1) + 1] = fk + hk)
+  mk(d)::T = φ(d) + ψ(d)::T
 
-    Complex_hist[k] += 1
+  spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
+
+  mks = mk(s)
+
+  ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
+  sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν₁) : sqrt(-ξ / ν₁)
+  solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
+  (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
+    error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
+  atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
+
+  set_status!(
+    stats,
+    get_status(
+      reg_nlp,
+      elapsed_time = stats.elapsed_time,
+      iter = stats.iter,
+      optimal = solved,
+      improper = improper,
+      max_eval = max_eval,
+      max_time = max_time,
+      max_iter = max_iter,
+    ),
+  )
+
+  callback(nlp, solver, stats)
+
+  done = stats.status != :unknown
+
+  while !done
+    # Update xk, sigma_k
     xkn .= xk .+ s
-    fkn = f(xkn)
-    hkn = h(xkn[selected])
-    hkn == -Inf && error("nonsmooth term is not proper")
-    
-    fhmax = Mmonotone > 1 ? maximum(FHobj_hist) : fk + hk
+    fkn = obj(nlp, xkn)
+    hkn = @views h(xkn[selected])
+
+    fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
     Δmod = fhmax - (fk + mks) + max(1, abs(hk)) * 10 * eps()
-    ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
-    sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
-
-    if ξ ≥ 0 && k == 1
-      ϵ += ϵr * sqrt_ξ_νInv  # make stopping test absolute and relative
-    end
-    
-    if (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < ϵ)
-        # the current xk is approximately first-order stationary
-      optimal = true
-      continue
-    end
-
-    if (ξ ≤ 0 || isnan(ξ))
-        error("R2DH: failed to compute a step: ξ = $ξ")
-    end
 
     ρk = Δobj / Δmod
 
-    σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
+    verbose > 0 &&
+      stats.iter % verbose == 0 &&
+      @info log_row(
+        Any[
+          stats.iter,
+          fk,
+          hk,
+          sqrt_ξ_νInv,
+          ρk,
+          σk,
+          norm(xk),
+          norm(s),
+          (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
+        ],
+        colsep = 1,
+      )
 
-    if (verbose > 0) && ((k % ptf == 0) || (k == 1))
-      #! format: off
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8.1e %7.1e %7.1e %7.1e %1s" k fk hk sqrt_ξ_νInv ρk σk norm(xk) norm(s) σ_stat
-      #! format: on
+    if η1 ≤ ρk < Inf
+      xk .= xkn
+      if has_bnds
+        @. l_bound_m_x = l_bound - xk
+        @. u_bound_m_x = u_bound - xk
+        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+      end
+      fk = fkn
+      hk = hkn
+      shift!(ψ, xk)
+      grad!(nlp, xk, ∇fk)
+      @. ∇fk⁻ = ∇fk - ∇fk⁻
+      push!(D, s, ∇fk⁻) # update QN operator
+      ∇fk⁻ .= ∇fk
     end
 
     if η2 ≤ ρk < Inf
       σk = max(σk / γ, σmin)
     end
 
-    if η1 ≤ ρk < Inf
-      xk .= xkn
-      has_bnds && set_bounds!(ψ, l_bound - xk, u_bound - xk)
-      fk = fkn
-      hk = hkn
-      shift!(ψ, xk)
-      ∇f!(∇fk, xk)
-      push!(D, s, ∇fk - ∇fk⁻) # update QN operator
-      DNorm = norm(D.d, Inf)
-      ∇fk⁻ .= ∇fk
-    end
-
     if ρk < η1 || ρk == Inf
       σk = σk * γ
     end
 
-    Dkσk .= D.d .+ σk
-    ν = θ / (DNorm + σk)
+    set_objective!(stats, fk + hk)
+    set_solver_specific!(stats, :smooth_obj, fk)
+    set_solver_specific!(stats, :nonsmooth_obj, hk)
+    set_iter!(stats, stats.iter + 1)
+    set_time!(stats, time() - start_time)
 
-    tired = maxIter > 0 && k ≥ maxIter
-    if !tired
-      @. mν∇fk = -ν * ∇fk
-    end
+    @. dkσk = D.d .+ σk
+    DNorm = norm(D.d, Inf)
+
+    ν₁ = θ / (DNorm + σk)
+
+    @. mν∇fk = -ν₁ * ∇fk
+    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
+
+    spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
+    mks = mk(s)
+
+    ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
+    sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν₁) : sqrt(-ξ / ν₁)
+    solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
+    (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
+      error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
+
+    set_status!(
+      stats,
+      get_status(
+        reg_nlp,
+        elapsed_time = stats.elapsed_time,
+        iter = stats.iter,
+        optimal = solved,
+        improper = improper,
+        max_eval = max_eval,
+        max_time = max_time,
+        max_iter = max_iter,
+      ),
+    )
+
+    callback(nlp, solver, stats)
+
+    done = stats.status != :unknown
   end
 
-  if verbose > 0
-    if k == 1
-      @info @sprintf "%6d %8.1e %8.1e" k fk hk
-    elseif optimal
-      #! format: off
-      @info @sprintf "%6d %8.1e %8.1e %7.1e %8s %7.1e %7.1e %7.1e" k fk hk sqrt_ξ_νInv "" σk norm(xk) norm(s)
-      #! format: on
-      @info "R2DH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv))"
-    end
+  if verbose > 0 && stats.status == :first_order
+    @info log_row(
+      Any[
+        stats.iter,
+        fk,
+        hk,
+        sqrt_ξ_νInv,
+        ρk,
+        σk,
+        norm(xk),
+        norm(s),
+        (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
+      ],
+      colsep = 1,
+    )
+    @info "R2DH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
   end
 
-  status = if optimal
-    :first_order
-  elseif elapsed_time > maxTime
-    :max_time
-  elseif tired
-    :max_iter
-  else
-    :exception
-  end
-  outdict = Dict(
-    :Fhist => Fobj_hist[1:k],
-    :Hhist => Hobj_hist[1:k],
-    :Time_hist => time_hist[1:k],
-    :Chist => Complex_hist[1:k],
-    :NonSmooth => h,
-    :status => status,
-    :fk => fk,
-    :hk => hk,
-    :sqrt_ξ_νInv => sqrt_ξ_νInv,
-    :elapsed_time => elapsed_time,
-    :sigma => σk,
-  )
-
-  return xk, k, outdict
+  set_solution!(stats, xk)
+  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
+  return stats
 end
