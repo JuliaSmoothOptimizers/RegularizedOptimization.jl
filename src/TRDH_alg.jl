@@ -27,10 +27,13 @@ end
 function TRDHSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
   D::Union{Nothing, AbstractDiagonalQuasiNewtonOperator} = nothing,
+  χ = NormLinf(one(T))
 ) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
+  l_bound_k = similar(l_bound)
+  u_bound_k = similar(u_bound)
 
   xk = similar(x0)
   ∇fk = similar(x0)
@@ -40,19 +43,26 @@ function TRDHSolver(
   s = similar(x0)
   dkσk = similar(x0)
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
-  if has_bnds
-    l_bound_m_x = similar(xk)
-    u_bound_m_x = similar(xk)
-    @. l_bound_m_x = l_bound - x0
-    @. u_bound_m_x = u_bound - x0
-  else
-    l_bound_m_x = similar(xk, 0)
-    u_bound_m_x = similar(xk, 0)
-  end
 
-  ψ =
-    has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
-    shifted(reg_nlp.h, xk)
+  is_subsolver = reg_nlp.h isa ShiftedProximableFunction # case TRDH is used as a subsolver
+  if is_subsolver
+    ψ = shifted(reg_nlp.h, xk)
+    @assert !has_bnds
+    l_bound = copy(ψ.l)
+    u_bound = copy(ψ.u)
+    @. l_bound_k = max(xk - one(T), l_bound)
+    @. u_bound_k = min(xk + one(T), u_bound)
+    has_bnds = true
+    set_bounds!(ψ, l_bound_k, u_bound_k)
+  else
+    if has_bnds
+      @. l_bound_k = max(-one(T), l_bound - xk)
+      @. u_bound_k = min(one(T), u_bound - xk)
+      ψ = shifted(reg_nlp.h, xk, l_bound_k, u_bound_k, selected)
+    else
+      ψ = shifted(reg_nlp.h, xk, one(T), χ)
+    end
+  end
   isnothing(D) && (
     D =
       isa(reg_nlp.model, AbstractDiagonalQNModel) ? hess_op(reg_nlp.model, x0) :
@@ -72,8 +82,8 @@ function TRDHSolver(
     has_bnds,
     l_bound,
     u_bound,
-    l_bound_m_x,
-    u_bound_m_x,
+    l_bound_k,
+    u_bound_k,
   )
 end
 
@@ -83,6 +93,7 @@ function SolverCore.solve!(
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
+  #χ = NormLinf(one(T)),
   atol::T = √eps(T),
   rtol::T = √eps(T),
   neg_tol::T = eps(T)^(1 / 4),
@@ -182,6 +193,7 @@ function SolverCore.solve!(
   φ1(d) = dot(∇fk, d)
   mk1(d)::T = φ1(d) + ψ(d)::T #TODO put this in reduce_TR conditionals and see if the code compiles.
 
+  # model with diagonal Hessian
   φ(d) = begin
     result = zero(T)
     n = length(d)
@@ -202,15 +214,20 @@ function SolverCore.solve!(
     (ξ1 < 0 && sqrt_ξ_νInv > neg_tol) &&
       error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
     atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
-  else
-    if has_bnds
-      update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δk)
-      set_bounds!(ψ, l_bound_k, u_bound_k)
-    else
-      set_radius!(ψ, Δk)
-    end
-
   end
+  return
+
+  Δ_effective = reduce_TR ? min(β * χ(s), Δk) : Δk
+
+  # update radius
+  if has_bnds
+    update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δ_effective)
+    set_bounds!(ψ, l_bound_k, u_bound_k)
+  else
+    set_radius!(ψ, Δ_effective)
+  end
+
+  iprox!(s, ψ, ∇fk, D)
 
   
 
