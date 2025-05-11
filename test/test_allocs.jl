@@ -39,16 +39,33 @@ macro wrappedallocs(expr)
   end
 end
 
-# Test non allocating solve!
 @testset "allocs" begin
-  for (h, h_name) ∈ ((NormL0(λ), "l0"),)
-    for (solver, solver_name) ∈ ((:R2Solver, "R2"), (:R2DHSolver, "R2DH"), (:R2NSolver, "R2N"))
+  for (h, h_name) ∈ ((NormL1(λ), "l1"),)
+    for (solver, solver_name) ∈
+        ((:R2Solver, "R2"), (:R2DHSolver, "R2DH"), (:R2NSolver, "R2N"), (:R2NSolver, "R2N"))
       @testset "$(solver_name)" begin
         solver_name == "R2N" && continue #FIXME
         reg_nlp = RegularizedNLPModel(LBFGSModel(bpdn), h)
         solver = eval(solver)(reg_nlp)
         stats = RegularizedExecutionStats(reg_nlp)
         @test @wrappedallocs(solve!(solver, reg_nlp, stats, ν = 1.0, atol = 1e-6, rtol = 1e-6)) == 0
+        @test stats.status == :first_order
+      end
+    end
+  end
+  for (h, h_name) ∈ (
+    (NormL1(0.1), "l1"),
+    (NormLp(0.1, 1.6, bpdn.meta.nvar), "lp"),
+    # (NormTVp(0.1, 1.6, bpdn.meta.nvar), "tvp"), hits max time limit
+  )
+    for (solver, solver_name) ∈ ((:iR2Solver, "iR2"),)
+      @testset "$(solver_name)" begin
+        reg_nlp = RegularizedNLPModel(LBFGSModel(bpdn), h)
+        solver = eval(solver)(reg_nlp)
+        stats = RegularizedExecutionStats(reg_nlp)
+        @test @wrappedallocs(
+          solve!(solver, reg_nlp, stats, ν = 1.0, atol = 1e-6, rtol = 1e-6, verbose = 0)
+        ) == 0
         @test stats.status == :first_order
       end
     end

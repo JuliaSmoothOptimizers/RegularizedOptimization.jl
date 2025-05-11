@@ -2,7 +2,7 @@
 
 julia_version = "1.11.3"
 manifest_format = "2.0"
-project_hash = "03c0fdff3ef0725f62f22599429b9d604de9c5ed"
+project_hash = "f820c4b591a9ad58f85b009f47f5ce9839bd2bf3"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -106,9 +106,9 @@ version = "0.12.11"
 
 [[deps.CommonMark]]
 deps = ["Crayons", "PrecompileTools"]
-git-tree-sha1 = "3faae67b8899797592335832fccf4b3c80bb04fa"
+git-tree-sha1 = "5fdf00d1979fd4883b44b754fc3423175c9504b4"
 uuid = "a80b9123-70ca-4bc0-993e-6e3bcb318db6"
-version = "0.8.15"
+version = "0.8.16"
 
 [[deps.CommonSolve]]
 git-tree-sha1 = "0eee5eb66b1cf62cd6ad1b460238e60e4b09400c"
@@ -615,11 +615,9 @@ version = "1.11.0"
 
 [[deps.ProxTV]]
 deps = ["JuliaFormatter", "LAPACK_jll", "LinearAlgebra", "OpenBLAS32_jll", "ShiftedProximalOperators", "proxTV_jll"]
-git-tree-sha1 = "6bb5dcb7782b566ec75bbbc84a5509e628aa0bbd"
-repo-rev = "main"
-repo-url = "https://github.com/nathanemac/ProxTV.jl"
+git-tree-sha1 = "f4da4d1406155964e55c712023eb3c5f451d1e5e"
 uuid = "925ea013-038b-5ab6-a1ab-e0849925e528"
-version = "1.1.0"
+version = "1.2.0"
 
 [[deps.ProximalCore]]
 deps = ["LinearAlgebra"]

@@ -365,12 +365,13 @@ function SolverCore.solve!(
   # ∇fk = solver.∇fk
   mν∇fk = solver.mν∇fk
   ψ = solver.ψ
-  if ψ isa ShiftedProximableFunction
-    κξ = 1.0
-    dualGap = Inf
-  else
-    κξ = ψ.h.context.κξ
-    dualGap = ψ.h.context.dualGap
+  κξ = one(T)
+  dualGap = zero(T)
+  if ψ isa InexactShiftedProximableFunction
+    let ctx = ψ.h.context
+      κξ = ctx.κξ
+      dualGap = ctx.dualGap
+    end
   end
 
   xkn = solver.xkn
@@ -533,6 +534,7 @@ function SolverCore.solve!(
     mks = mk(s)
 
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
+
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
     solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol * √κξ)
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) && error(
