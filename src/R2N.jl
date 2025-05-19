@@ -12,6 +12,7 @@ mutable struct R2NSolver{
   xk::V
   ∇fk::V
   ∇fk⁻::V
+  y::V
   mν∇fk::V
   ψ::G
   xkn::V
@@ -40,6 +41,7 @@ function R2NSolver(
   xk = similar(x0)
   ∇fk = similar(x0)
   ∇fk⁻ = similar(x0)
+  y = similar(x0)
   mν∇fk = similar(x0)
   xkn = similar(x0)
   s = similar(x0)
@@ -70,6 +72,7 @@ function R2NSolver(
     xk,
     ∇fk,
     ∇fk⁻,
+    y,
     mν∇fk,
     ψ,
     xkn,
@@ -154,6 +157,12 @@ Notably, you can access, and modify, the following:
   - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function;
   - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention;
   - `stats.elapsed_time`: elapsed time in seconds.
+Similarly to the callback, when using a quasi-Newton approximation, two functions, `qn_update_y!(nlp, solver, stats)` and `qn_copy!(nlp, solver, stats)` are called at each update of the approximation.
+Namely, the former computes the `y` vector for which the pair `(s, y)` is pushed into the approximation.
+By default, `y := ∇fk⁻ - ∇fk`.
+The latter allows the user to tell which values should be copied for the next iteration.
+By default, only the gradient is copied: `∇fk⁻ .= ∇fk`.
+This might be useful when using R2N in a constrained optimization context, when the gradient of the Lagrangian function is pushed at each iteration rather than the gradient of the objective function.
 """
 function R2N(
   nlp::AbstractNLPModel{T, V},
@@ -200,6 +209,8 @@ function SolverCore.solve!(
   reg_nlp::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
+  qn_update_y!::Function = _qn_grad_update_y!,
+  qn_copy!::Function = _qn_grad_copy!,
   x::V = reg_nlp.model.meta.x0,
   atol::T = √eps(T),
   rtol::T = √eps(T),
@@ -283,7 +294,7 @@ function SolverCore.solve!(
 
   fk = obj(nlp, xk)
   grad!(nlp, xk, ∇fk)
-  ∇fk⁻ .= ∇fk
+  qn_copy!(nlp, solver, stats)
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
   λmax::T = T(1)
@@ -416,15 +427,14 @@ function SolverCore.solve!(
       grad!(nlp, xk, ∇fk)
 
       if quasiNewtTest
-        @. ∇fk⁻ = ∇fk - ∇fk⁻
-        push!(nlp, s, ∇fk⁻)
+        qn_update_y!(nlp, solver, stats)
+        push!(nlp, s, solver.y)
+        qn_copy!(nlp, solver, stats)
       end
       solver.subpb.model.B = hess_op(nlp, xk)
 
       λmax, found_λ = opnorm(solver.subpb.model.B)
       found_λ || error("operator norm computation failed")
-
-      ∇fk⁻ .= ∇fk
     end
 
     if η2 ≤ ρk < Inf
@@ -499,4 +509,12 @@ function SolverCore.solve!(
   set_solution!(stats, xk)
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
   return stats
+end
+
+function _qn_grad_update_y!(nlp::AbstractNLPModel{T, V}, solver::R2NSolver{T, G, V}, stats::GenericExecutionStats) where{T, V, G}
+  @. solver.y = solver.∇fk - solver.∇fk⁻ 
+end
+
+function _qn_grad_copy!(nlp::AbstractNLPModel{T, V}, solver::R2NSolver{T, G, V}, stats::GenericExecutionStats) where{T, V,  G}
+  solver.∇fk⁻ .= solver.∇fk
 end
