@@ -301,13 +301,13 @@ function SolverCore.solve!(
   λmax::T = T(1)
   if !solver.store_h 
     solver.subpb.model.B = hess_op(nlp, xk)
+    λmax, found_λ = opnorm(solver.subpb.model.B)
+    found_λ || error("operator norm computation failed")
   else
     hess_coord!(nlp, xk, solver.subpb.model.B.vals)
+    λmax = opnorm(solver.subpb.model.B)
   end
-
-  λmax, found_λ = opnorm(solver.subpb.model.B)
-  found_λ || error("operator norm computation failed")
-
+  
   ν₁ = θ / (λmax + σk)
 
   sqrt_ξ1_νInv = one(T)
@@ -435,13 +435,13 @@ function SolverCore.solve!(
       end
       if !solver.store_h 
         solver.subpb.model.B = hess_op(nlp, xk)
+        λmax, found_λ = opnorm(solver.subpb.model.B)
+        found_λ || error("operator norm computation failed")
       else
         hess_coord!(nlp, xk, solver.subpb.model.B.vals)
+        λmax = opnorm(solver.subpb.model.B)
       end
-
-      λmax, found_λ = opnorm(solver.subpb.model.B)
-      found_λ || error("operator norm computation failed")
-
+      
       ∇fk⁻ .= ∇fk
     end
 
