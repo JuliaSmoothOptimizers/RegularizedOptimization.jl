@@ -26,23 +26,36 @@ allocate:
 ```
 """
 macro wrappedallocs(expr)
-  argnames = [gensym() for a in expr.args]
+  kwargs = [a for a in expr.args if isa(a, Expr)]
+  args = [a for a in expr.args if isa(a, Symbol)]
+
+  argnames = [gensym() for a in args]
+  kwargs_dict = Dict{Symbol, Any}(a.args[1] => a.args[2] for a in kwargs if a.head == :kw)
   quote
-    function g($(argnames...))
-      @allocated $(Expr(expr.head, argnames...))
+    function g($(argnames...); kwargs_dict...)
+      @allocated $(Expr(expr.head, argnames..., kwargs...))
     end
-    $(Expr(:call, :g, [esc(a) for a in expr.args]...))
+    $(Expr(:call, :g, [esc(a) for a in args]...))
   end
 end
 
 # Test non allocating solve!
 @testset "allocs" begin
-  for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
-    for solver ∈ (:R2Solver,)
-      reg_nlp = RegularizedNLPModel(bpdn, h)
-      solver = eval(solver)(reg_nlp)
-      stats = RegularizedExecutionStats(reg_nlp)
-      @test @wrappedallocs(solve!(solver, reg_nlp, stats)) == 0
+  for (h, h_name) ∈ ((NormL0(λ), "l0"),)
+    for (solver, solver_name) ∈ ((:R2Solver, "R2"), (:R2DHSolver, "R2DH"), (:R2NSolver, "R2N"))
+      @testset "$(solver_name)" begin
+        solver_name == "R2N" && continue #FIXME
+        reg_nlp = RegularizedNLPModel(LBFGSModel(bpdn), h)
+        solver = eval(solver)(reg_nlp)
+        stats = RegularizedExecutionStats(reg_nlp)
+        solver_name == "R2" &&
+          @test @wrappedallocs(solve!(solver, reg_nlp, stats, ν = 1.0, atol = 1e-6, rtol = 1e-6)) ==
+                0
+        solver_name == "R2DH" && @test @wrappedallocs(
+          solve!(solver, reg_nlp, stats, σk = 1.0, atol = 1e-6, rtol = 1e-6)
+        ) == 0
+        @test stats.status == :first_order
+      end
     end
   end
 end

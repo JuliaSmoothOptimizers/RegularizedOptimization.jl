@@ -19,7 +19,7 @@ Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 
 [compat]
 LinearOperators = "2.10.0"
-NLPModels = "0.19, 0.20"
+NLPModels = "0.19, 0.20, 0.21"
 NLPModelsModifiers = "0.7"
 Percival = "0.7.2"
 ProximalOperators = "0.15"
