@@ -226,7 +226,7 @@ function SolverCore.solve!(
     sqrt_ξ_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
     solved = (ξ1 < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ_νInv ≤ atol)
     (ξ1 < 0 && sqrt_ξ_νInv > neg_tol) &&
-      error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
+      error("TR: prox-gradient step should produce a decrease but ξ = $(ξ)")
     atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
   end
 
@@ -272,15 +272,11 @@ function SolverCore.solve!(
 
   while !done
 
-    stats.iter > 0 && iprox!(s, ψ, ∇fk, dk)
-    sNorm = χ(s)
-
     xkn .= xk .+ s
     fkn = obj(nlp, xkn)
     hkn = @views h(xkn[selected])
 
     Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
     ρk = Δobj / ξ
 
     verbose > 0 &&
@@ -349,8 +345,13 @@ function SolverCore.solve!(
       solved = (ξ1 < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ_νInv < atol)
       (ξ1 < 0 && sqrt_ξ_νInv > neg_tol) &&
         error("TRDH: prox-gradient step should produce a decrease but ξ = $(ξ)")
+    end
     
-    else 
+    iprox!(s, ψ, ∇fk, dk)
+    sNorm = χ(s)
+
+    if !reduce_TR
+      ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps() 
       sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
       solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < atol)
       (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
