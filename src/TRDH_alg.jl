@@ -7,6 +7,7 @@ mutable struct TRDHSolver{
   G <: ShiftedProximableFunction,
   V <: AbstractVector{T},
   QN <: AbstractDiagonalQuasiNewtonOperator{T},
+  N
 } <: AbstractOptimizationSolver
   xk::V
   ∇fk::V
@@ -14,9 +15,10 @@ mutable struct TRDHSolver{
   mν∇fk::V
   D::QN
   ψ::G
+  χ::N
   xkn::V
   s::V
-  dkσk::V
+  dk::V
   has_bnds::Bool
   l_bound::V
   u_bound::V
@@ -41,7 +43,7 @@ function TRDHSolver(
   mν∇fk = similar(x0)
   xkn = similar(x0)
   s = similar(x0)
-  dkσk = similar(x0)
+  dk = similar(x0)
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
 
   is_subsolver = reg_nlp.h isa ShiftedProximableFunction # case TRDH is used as a subsolver
@@ -76,9 +78,10 @@ function TRDHSolver(
     mν∇fk,
     D,
     ψ,
+    χ,
     xkn,
     s,
-    dkσk,
+    dk,
     has_bnds,
     l_bound,
     u_bound,
@@ -88,7 +91,7 @@ function TRDHSolver(
 end
 
 function SolverCore.solve!(
-  solver::TRDHSolver{T},
+  solver::TRDHSolver{T, G, V},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
@@ -108,7 +111,7 @@ function SolverCore.solve!(
   γ::T = T(3),
   α::T = 1 / eps(T),
   β::T = 1 / eps(T)
-) where {T, V}
+) where {T, G, V}
   reset!(stats)
   
   # Retrieve workspace
@@ -125,10 +128,11 @@ function SolverCore.solve!(
   ∇fk⁻ = solver.∇fk⁻
   mν∇fk = solver.mν∇fk
   D = solver.D
-  dkσk = solver.dkσk
+  dk = solver.dk
   ψ = solver.ψ
   xkn = solver.xkn
   s = solver.s
+  χ = solver.χ
   has_bnds = solver.has_bnds
 
   if has_bnds
@@ -152,6 +156,7 @@ function SolverCore.solve!(
   improper == true && @warn "TRDH: Improper term detected"
   improper == true && return stats
 
+  is_subsolver = h isa ShiftedProximableFunction # case TRDH is used as a subsolver
   if verbose > 0
     @info log_header(
       [:iter, :fx, :hx, :xi, :ρ, :Δ, :normx, :norms, :normD, :arrow],
@@ -176,6 +181,7 @@ function SolverCore.solve!(
   grad!(nlp, xk, ∇fk)
   ∇fk⁻ .= ∇fk
 
+  dk .= D.d
   DNorm = norm(D.d, Inf)
 
   ν = (α * Δk)/(DNorm + one(T))
@@ -190,20 +196,28 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
 
-  φ1(d) = dot(∇fk, d)
-  mk1(d)::T = φ1(d) + ψ(d)::T #TODO put this in reduce_TR conditionals and see if the code compiles.
-
-  # model with diagonal Hessian
-  φ(d) = begin
-    result = zero(T)
-    n = length(d)
-    @inbounds for i = 1:n
-      result += d[i]^2*D.d[i]/2 + ∇fk[i]*d[i]
-    end
-    return result
+  # models
+  φ1 = let ∇fk = ∇fk
+    d -> dot(∇fk, d)
   end
-  mk(d) = φ(d) + ψ(d)
+  mk1 = let ψ = ψ
+    d -> φ1(d) + ψ(d)::T
+  end
 
+  φ = let ∇fk = ∇fk, dk = dk
+    d -> begin
+        result = zero(T)
+        n = length(d)
+        @inbounds for i = 1:n
+            result += d[i]^2 * dk[i] / 2 + ∇fk[i] * d[i]
+        end
+        result
+    end
+  end
+  mk = let ψ = ψ
+      d -> φ(d) + ψ(d)::T
+  end
+  
   if reduce_TR
     prox!(s, ψ, mν∇fk, ν)
     mks = mk1(s)
@@ -215,21 +229,28 @@ function SolverCore.solve!(
       error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
     atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
   end
-  return
 
   Δ_effective = reduce_TR ? min(β * χ(s), Δk) : Δk
 
   # update radius
   if has_bnds
-    update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δ_effective)
-    set_bounds!(ψ, l_bound_k, u_bound_k)
+    update_bounds!(l_bound_m_x, u_bound_m_x, is_subsolver, l_bound, u_bound, xk, Δ_effective)
+    set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
   else
     set_radius!(ψ, Δ_effective)
   end
-
-  iprox!(s, ψ, ∇fk, D)
-
   
+  iprox!(s, ψ, ∇fk, dk)
+  ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
+  sNorm = χ(s)
+
+  if !reduce_TR
+      sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
+      solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < atol)
+      (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
+      error("TRDH: prox-gradient step should produce a decrease but ξ = $(ξ)")
+      atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative #TODO : this is redundant code with the other case of the test.
+  end
 
   set_status!(
     stats,
@@ -249,12 +270,132 @@ function SolverCore.solve!(
 
   done = stats.status != :unknown
 
+  while !done
 
-  return stats
-  """
+    stats.iter > 0 && iprox!(s, ψ, ∇fk, dk)
+    sNorm = χ(s)
 
-  """
+    xkn .= xk .+ s
+    fkn = obj(nlp, xkn)
+    hkn = @views h(xkn[selected])
+
+    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+    ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
+    ρk = Δobj / ξ
+
+    verbose > 0 &&
+      stats.iter % verbose == 0 &&
+      @info log_row(
+        Any[
+          stats.iter,
+          fk,
+          hk,
+          sqrt_ξ_νInv,
+          ρk,
+          Δk,
+          χ(xk),
+          sNorm,
+          norm(D.d),
+          (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "="),
+        ],
+        colsep = 1,
+      )
+  
+    if η1 ≤ ρk < Inf
+      xk .= xkn
+      if has_bnds
+        update_bounds!(l_bound_m_x, u_bound_m_x, is_subsolver, l_bound, u_bound, xk, Δk)
+        has_bnds && set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+      end
+      fk = fkn
+      hk = hkn
+      shift!(ψ, xk)
+      grad!(nlp, xk, ∇fk)
+      @. ∇fk⁻ = ∇fk - ∇fk⁻
+      push!(D, s, ∇fk⁻) # update QN operator
+      dk .= D.d
+      DNorm = norm(D.d, Inf)
+      ∇fk⁻ .= ∇fk
+    end
+
+    if η2 ≤ ρk < Inf
+      Δk = max(Δk, γ * sNorm)
+      !has_bnds && set_radius!(ψ, Δk)
+    end
+
+    if ρk < η1 || ρk == Inf
+      Δk = Δk / 2
+      if has_bnds
+        update_bounds!(l_bound_m_x, u_bound_m_x, is_subsolver, l_bound, u_bound, xk, Δ_effective)
+        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+      else
+        set_radius!(ψ, Δ_effective)
+      end
+    end
+
+    set_objective!(stats, fk + hk)
+    set_solver_specific!(stats, :smooth_obj, fk)
+    set_solver_specific!(stats, :nonsmooth_obj, hk)
+    set_iter!(stats, stats.iter + 1)
+    set_time!(stats, time() - start_time)
+
+    ν = reduce_TR ? (α * Δk)/(DNorm + one(T)) : α / (DNorm + one(T))
+    mν∇fk .= -ν .* ∇fk
+    
+    if reduce_TR
+      prox!(s, ψ, mν∇fk, ν)
+      ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
+      sqrt_ξ_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
+      solved = (ξ1 < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ_νInv < atol)
+      (ξ1 < 0 && sqrt_ξ_νInv > neg_tol) &&
+        error("TRDH: prox-gradient step should produce a decrease but ξ = $(ξ)")
+    
+    else 
+      sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
+      solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < atol)
+      (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
+        error("TRDH: prox-gradient step should produce a decrease but ξ = $(ξ)")
+    end
+
+    set_status!(
+    stats,
+    get_status(
+      reg_nlp,
+      elapsed_time = stats.elapsed_time,
+      iter = stats.iter,
+      optimal = solved,
+      improper = improper,
+      max_eval = max_eval,
+      max_time = max_time,
+      max_iter = max_iter,
+      ),
+    )
+
+  callback(nlp, solver, stats)
+
+  done = stats.status != :unknown
+  end
+
+  if verbose > 0 && stats.status == :first_order
+    @info log_row(
+        Any[
+          stats.iter,
+          fk,
+          hk,
+          sqrt_ξ_νInv,
+          ρk,
+          Δk,
+          χ(xk),
+          sNorm,
+          norm(D.d),
+          "",
+        ],
+        colsep = 1,
+      )
+    @info "TRDH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
+  end
 end
+
 """
     TRDH(nlp, h, χ, options; kwargs...)
     TRDH(f, ∇f!, h, options, x0)
