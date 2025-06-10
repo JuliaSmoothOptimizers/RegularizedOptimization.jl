@@ -1,4 +1,92 @@
-export TR
+export TR, TRSolver#, solve!
+
+import SolverCore.solve!
+
+mutable struct TRSolver{
+  T <: Real,
+  G <: ShiftedProximableFunction,
+  V <: AbstractVector{T},
+  QN <: AbstractDiagonalQuasiNewtonOperator{T},
+  N,
+  ST <: AbstractOptimizationSolver,
+  PB <: AbstractRegularizedNLPModel
+} <: AbstractOptimizationSolver
+  xk::V
+  ∇fk::V
+  ∇fk⁻::V
+  mν∇fk::V
+  D::QN
+  ψ::G
+  χ::N
+  xkn::V
+  s::V
+  has_bnds::Bool
+  l_bound::V
+  u_bound::V
+  l_bound_m_x::V
+  u_bound_m_x::V
+  subsolver::ST
+  subpb::PB
+  substats::GenericExecutionStats{T, V, V, T}
+end
+
+function TRSolver(
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  χ::X,
+  subsolver = R2Solver,
+) where {T, V, X}
+  x0 = reg_nlp.model.meta.x0
+  l_bound = reg_nlp.model.meta.lvar
+  u_bound = reg_nlp.model.meta.uvar
+
+  xk = similar(x0)
+  ∇fk = similar(x0)
+  ∇fk⁻ = similar(x0)
+  mν∇fk = similar(x0)
+  xkn = similar(x0)
+  s = similar(x0)
+  has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
+  if has_bnds
+    l_bound_m_x = similar(xk)
+    u_bound_m_x = similar(xk)
+    @. l_bound_m_x = l_bound - x0
+    @. u_bound_m_x = u_bound - x0
+  else
+    l_bound_m_x = similar(xk, 0)
+    u_bound_m_x = similar(xk, 0)
+  end
+  m_fh_hist = fill(T(-Inf), m_monotone - 1)
+
+  ψ =
+    has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
+    shifted(reg_nlp.h, xk)
+
+  Bk = hess_op(reg_nlp.model, x0)
+  sub_nlp = R2NModel(Bk, ∇fk, T(1), x0)
+  subpb = RegularizedNLPModel(sub_nlp, ψ)
+  substats = RegularizedExecutionStats(subpb)
+  subsolver = subsolver(subpb)
+
+  return R2NSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
+    xk,
+    ∇fk,
+    ∇fk⁻,
+    mν∇fk,
+    ψ,
+    xkn,
+    s,
+    s1,
+    has_bnds,
+    l_bound,
+    u_bound,
+    l_bound_m_x,
+    u_bound_m_x,
+    m_fh_hist,
+    subsolver,
+    subpb,
+    substats,
+  )
+end
 
 """
     TR(nlp, h, χ, options; kwargs...)
