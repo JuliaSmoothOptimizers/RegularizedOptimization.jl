@@ -55,7 +55,7 @@ function TRDHSolver(
     @. l_bound_k = max(xk - one(T), l_bound)
     @. u_bound_k = min(xk + one(T), u_bound)
     has_bnds = true
-    ψ = shifted(reg_nlp.h, xk, l_bound_k, u_bound_k, reg_nlp.selected) #fails
+    set_bounds!(ψ, l_bound_k, u_bound_k)
   else
     if has_bnds
       @. l_bound_k = max(-one(T), l_bound - xk)
@@ -161,7 +161,8 @@ function TRDH(
     η2 = options.η2,
     γ = options.γ,
     α = options.α,
-    β = options.β
+    β = options.β,
+    kwargs_dict...
   )
   return stats
 end
@@ -196,8 +197,7 @@ function TRDH(
     η2 = options.η2,
     γ = options.γ,
     α = options.α,
-    β = options.β,
-    kwargs_dict...,
+    β = options.β
   )
   return stats
 end
@@ -516,6 +516,10 @@ function SolverCore.solve!(
       )
     @info "TRDH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
   end
+
+  set_solution!(stats, xk)
+
+  return stats
 end
 
 # update l_bound_k and u_bound_k
