@@ -1,4 +1,4 @@
-export TR, TRSolver#, solve!
+export TR, TRSolver, solve!
 
 import SolverCore.solve!
 
@@ -6,7 +6,6 @@ mutable struct TRSolver{
   T <: Real,
   G <: ShiftedProximableFunction,
   V <: AbstractVector{T},
-  QN <: AbstractDiagonalQuasiNewtonOperator{T},
   N,
   ST <: AbstractOptimizationSolver,
   PB <: AbstractRegularizedNLPModel
@@ -15,7 +14,6 @@ mutable struct TRSolver{
   ∇fk::V
   ∇fk⁻::V
   mν∇fk::V
-  D::QN
   ψ::G
   χ::N
   xkn::V
@@ -32,8 +30,8 @@ end
 
 function TRSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V},
-  χ::X,
-  subsolver = R2Solver,
+  χ::X;
+  subsolver = R2Solver
 ) where {T, V, X}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
@@ -55,33 +53,31 @@ function TRSolver(
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
-  m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
   ψ =
-    has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
-    shifted(reg_nlp.h, xk)
+    has_bnds || isa(subsolver, TRDHSolver) ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
+    shifted(reg_nlp.h, xk, T(1), χ)
 
   Bk = hess_op(reg_nlp.model, x0)
-  sub_nlp = R2NModel(Bk, ∇fk, T(1), x0)
+  sub_nlp = R2NModel(Bk, ∇fk, zero(T), x0) #FIXME 
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
 
-  return R2NSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
+  return TRSolver(
     xk,
     ∇fk,
     ∇fk⁻,
     mν∇fk,
     ψ,
+    χ,
     xkn,
     s,
-    s1,
     has_bnds,
     l_bound,
     u_bound,
     l_bound_m_x,
     u_bound_m_x,
-    m_fh_hist,
     subsolver,
     subpb,
     substats,
@@ -276,9 +272,11 @@ function TR(
     subsolver_options.Δk = ∆_effective / 10
     subsolver_options.ν = ν
     subsolver_args = subsolver == TRDH ? (SpectralGradient(1 / ν, f.meta.nvar),) : ()
+
     s, iter, outdict = with_logger(subsolver_logger) do
       subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
     end
+
     # restore initial values of subsolver_options here so that it is not modified
     # if there is an error
     subsolver_options.ν = ν_subsolver
@@ -379,4 +377,320 @@ function TR(
   set_solver_specific!(stats, :NonSmooth, h)
   set_solver_specific!(stats, :SubsolverCounter, Complex_hist[1:k])
   return stats
+end
+
+function SolverCore.solve!(
+  solver::TRSolver{T, G, V},
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
+  callback = (args...) -> nothing,
+  x::V = reg_nlp.model.meta.x0,
+  atol::T = √eps(T),
+  sub_atol::T = √eps(T),
+  rtol::T = √eps(T),
+  neg_tol::T = eps(T)^(1 / 4),
+  verbose::Int = 0,
+  max_iter::Int = 10000,
+  max_time::Float64 = 30.0,
+  max_eval::Int = -1,
+  reduce_TR::Bool = true,
+  Δk::T = T(1),
+  η1::T = √√eps(T),
+  η2::T = T(0.9),
+  γ::T = T(3),
+  α::T = 1 / eps(T),
+  β::T = 1 / eps(T)
+) where {T, G, V}
+  reset!(stats)
+  
+  # Retrieve workspace
+  selected = reg_nlp.selected
+  h = reg_nlp.h
+  nlp = reg_nlp.model
+
+  xk = solver.xk .= x
+
+  # Make sure ψ has the correct shift 
+  shift!(solver.ψ, xk)
+
+  ∇fk = solver.∇fk
+  ∇fk⁻ = solver.∇fk⁻
+  mν∇fk = solver.mν∇fk
+  ψ = solver.ψ
+  xkn = solver.xkn
+  s = solver.s
+  χ = solver.χ
+  has_bnds = solver.has_bnds
+
+  if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
+    @. l_bound_m_x = l_bound - xk
+    @. u_bound_m_x = u_bound - xk
+    set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+  else
+    set_radius!(ψ, Δk)
+  end
+
+  # initialize parameters
+  improper = false
+  hk = @views h(xk[selected])
+  if hk == Inf
+    verbose > 0 && @info "TR: finding initial guess where nonsmooth term is finite"
+    prox!(xk, h, xk, T(1))
+    hk = @views h(xk[selected])
+    hk < Inf || error("prox computation must be erroneous")
+    verbose > 0 && @debug "TR: found point where h has value" hk
+  end
+  improper = (hk == -Inf)
+  improper == true && @warn "TR: Improper term detected"
+  improper == true && return stats
+
+  if verbose > 0
+    @info log_header(
+      [:outer, :inner, :fx, :hx, :xi, :ρ, :Δ, :normx, :norms, :normB, :arrow],
+      [Int, Int, T, T, T, T, T, T, T, T, Char],
+      hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
+        :fx => "f(x)",
+        :hx => "h(x)",
+        :xi => "√(ξ1/ν)",
+        :normx => "‖x‖",
+        :norms => "‖s‖",
+        :normB => "‖B‖",
+        :arrow => "TR",
+      ),
+      colsep = 1,
+    )
+  end
+
+  local ξ1::T
+  local ρk::T = zero(T)
+
+  fk = obj(nlp, xk)
+  grad!(nlp, xk, ∇fk)
+  ∇fk⁻ .= ∇fk
+
+  quasiNewtTest = isa(nlp, QuasiNewtonModel)
+  λmax::T = T(1)
+  solver.subpb.model.B = hess_op(nlp, xk)
+
+  λmax, found_λ = opnorm(solver.subpb.model.B)
+  found_λ || error("operator norm computation failed")
+
+  ν₁ = α * Δk / (1 + λmax * (α * Δk + 1))
+  sqrt_ξ1_νInv = one(T)
+
+  @. mν∇fk = -ν₁ * ∇fk
+
+  set_iter!(stats, 0)
+  start_time = time()
+  set_time!(stats, 0.0)
+  set_objective!(stats, fk + hk)
+  set_solver_specific!(stats, :smooth_obj, fk)
+  set_solver_specific!(stats, :nonsmooth_obj, hk)
+
+  # models
+  φ1 = let ∇fk = ∇fk
+    d -> dot(∇fk, d)
+  end
+  mk1 = let ψ = ψ, φ1 = φ1
+    d -> φ1(d) + ψ(d)
+  end
+
+  mk = let ψ = ψ, solver = solver
+    d -> obj(solver.subpb.model, d) + ψ(d)::T
+  end
+
+  prox!(s, ψ, mν∇fk, ν₁)
+  ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
+  ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+  sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
+
+  solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
+  (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
+    error("TR: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+  atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
+  sub_atol += rtol * sqrt_ξ1_νInv
+
+  set_status!(
+    stats,
+    get_status(
+      reg_nlp,
+      elapsed_time = stats.elapsed_time,
+      iter = stats.iter,
+      optimal = solved,
+      improper = improper,
+      max_eval = max_eval,
+      max_time = max_time,
+      max_iter = max_iter,
+    ),
+  )
+
+  callback(nlp, solver, stats)
+
+  done = stats.status != :unknown
+
+  while !done
+
+    sub_atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv))
+    ∆_effective = min(β * χ(s), Δk)
+    
+    if isa(solver.subsolver, TRDHSolver) #FIXME
+      solver.subsolver.D.d[1] = 1/ν₁
+      solve!(
+        solver.subsolver, 
+        solver.subpb, 
+        solver.substats; 
+        x = s, 
+        atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
+        Δk = Δ_effective / 10
+        )
+    else 
+      solve!(
+        solver.subsolver, 
+        solver.subpb, 
+        solver.substats; 
+        x = s, 
+        atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
+        ν  = ν₁,
+      )
+    end
+
+    s .= solver.substats.solution
+
+    xkn .= xk .+ s
+    fkn = obj(nlp, xkn)
+    hkn = @views h(xkn[selected])
+    sNorm = χ(s)
+
+    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+    ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
+
+    if (ξ ≤ 0 || isnan(ξ))
+      error("TR: failed to compute a step: ξ = $ξ")
+    end
+
+    ρk = Δobj / ξ
+
+    verbose > 0 &&
+      stats.iter % verbose == 0 &&
+      @info log_row(
+        Any[
+          stats.iter,
+          solver.substats.iter,
+          fk,
+          hk,
+          sqrt_ξ1_νInv,
+          ρk,
+          Δk,
+          χ(xk),
+          sNorm,
+          λmax,
+          (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "="),
+        ],
+        colsep = 1,
+      )
+  
+    if η1 ≤ ρk < Inf
+      xk .= xkn
+      ∆_effective = min(β * χ(s), Δk)
+      if has_bnds || isa(solver.subsolver, TRDHSolver)
+        @. l_bound_m_x = l_bound - xk
+        @. u_bound_m_x = u_bound - xk
+        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+      end
+      fk = fkn
+      hk = hkn
+
+      shift!(ψ, xk)
+      grad!(nlp, xk, ∇fk)
+
+      if quasiNewtTest
+        @. ∇fk⁻ = ∇fk - ∇fk⁻
+        push!(nlp, s, ∇fk⁻) # update QN operator
+      end
+
+      solver.subpb.model.B = hess_op(nlp, xk)
+
+      λmax, found_λ = opnorm(solver.subpb.model.B)
+      found_λ || error("operator norm computation failed")
+
+      ∇fk⁻ .= ∇fk
+    end
+
+    if η2 ≤ ρk < Inf
+      Δk = max(Δk, γ * sNorm)
+      if !(has_bnds || isa(solver.subsolver, TRDHSolver))
+        set_radius!(ψ, Δk)
+      end
+    end
+
+    if η2 ≤ ρk < Inf
+      Δk = max(Δk, γ * sNorm)
+      !has_bnds && set_radius!(ψ, Δk)
+    end
+
+    if ρk < η1 || ρk == Inf
+      Δk = Δk / 2
+      if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
+      @. l_bound_m_x = l_bound - xk
+      @. u_bound_m_x = u_bound - xk
+      set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+      else
+        set_radius!(ψ, Δk)
+      end
+    end
+
+    set_objective!(stats, fk + hk)
+    set_solver_specific!(stats, :smooth_obj, fk)
+    set_solver_specific!(stats, :nonsmooth_obj, hk)
+    set_iter!(stats, stats.iter + 1)
+    set_time!(stats, time() - start_time)
+
+    ν₁ = α * Δk / (1 + λmax * (α * Δk + 1))
+    @. mν∇fk = -ν₁ * ∇fk
+    
+    prox!(s, ψ, mν∇fk, ν₁)
+    ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
+    sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
+
+    solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
+    (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
+      error("TR: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+
+    set_status!(
+    stats,
+    get_status(
+      reg_nlp,
+      elapsed_time = stats.elapsed_time,
+      iter = stats.iter,
+      optimal = solved,
+      improper = improper,
+      max_eval = max_eval,
+      max_time = max_time,
+      max_iter = max_iter,
+      ),
+    )
+
+    callback(nlp, solver, stats)
+
+    done = stats.status != :unknown
+  end
+  if verbose > 0 && stats.status == :first_order
+    @info log_row(
+        Any[
+          stats.iter,
+          solver.substats.iter,
+          fk,
+          hk,
+          sqrt_ξ1_νInv,
+          ρk,
+          Δk,
+          χ(xk),
+          χ(s),
+          λmax,
+          "",
+        ],
+        colsep = 1,
+      )
+    @info "TR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
+  end
 end
