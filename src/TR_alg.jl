@@ -44,7 +44,7 @@ function TRSolver(
   xkn = similar(x0)
   s = similar(x0)
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
-  if has_bnds
+  if has_bnds || subsolver == TRDHSolver
     l_bound_m_x = similar(xk)
     u_bound_m_x = similar(xk)
     @. l_bound_m_x = l_bound - x0
@@ -55,7 +55,7 @@ function TRSolver(
   end
 
   ψ =
-    has_bnds || isa(subsolver, TRDHSolver) ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
+    has_bnds || subsolver == TRDHSolver ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk, T(1), χ)
 
   Bk = hess_op(reg_nlp.model, x0)
@@ -273,9 +273,9 @@ function TR(
     subsolver_options.ν = ν
     subsolver_args = subsolver == TRDH ? (SpectralGradient(1 / ν, f.meta.nvar),) : ()
 
-    s, iter, outdict = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
-    end
+    #s, iter, outdict = with_logger(subsolver_logger) do
+      s, iter, outdict = subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
+    #end
 
     # restore initial values of subsolver_options here so that it is not modified
     # if there is an error
@@ -423,6 +423,10 @@ function SolverCore.solve!(
   has_bnds = solver.has_bnds
 
   if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
+    l_bound_m_x = solver.l_bound_m_x
+    u_bound_m_x = solver.u_bound_m_x
+    l_bound = solver.l_bound
+    u_bound = solver.u_bound
     @. l_bound_m_x = l_bound - xk
     @. u_bound_m_x = u_bound - xk
     set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
@@ -531,7 +535,6 @@ function SolverCore.solve!(
   while !done
 
     sub_atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv))
-    ∆_effective = min(β * χ(s), Δk)
     
     if isa(solver.subsolver, TRDHSolver) #FIXME
       solver.subsolver.D.d[1] = 1/ν₁
@@ -541,7 +544,7 @@ function SolverCore.solve!(
         solver.substats; 
         x = s, 
         atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
-        Δk = Δ_effective / 10
+        Δk = min(β * χ(s), Δk) / 10
         )
     else 
       solve!(
@@ -625,7 +628,7 @@ function SolverCore.solve!(
 
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
-      !has_bnds && set_radius!(ψ, Δk)
+      !(has_bnds || isa(solver.subsolver, TRDHSolver)) && set_radius!(ψ, Δk)
     end
 
     if ρk < η1 || ρk == Inf
