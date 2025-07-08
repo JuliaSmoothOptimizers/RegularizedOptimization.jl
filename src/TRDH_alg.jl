@@ -55,12 +55,12 @@ function TRDHSolver(
     @. l_bound_k = max(xk - one(T), l_bound)
     @. u_bound_k = min(xk + one(T), u_bound)
     has_bnds = true
-    set_bounds!(ψ, l_bound_k, u_bound_k)
+    ψ = shifted(reg_nlp.h, xk, l_bound_k, u_bound_k, reg_nlp.selected) #fails
   else
     if has_bnds
       @. l_bound_k = max(-one(T), l_bound - xk)
       @. u_bound_k = min(one(T), u_bound - xk)
-      ψ = shifted(reg_nlp.h, xk, l_bound_k, u_bound_k, selected)
+      ψ = shifted(reg_nlp.h, xk, l_bound_k, u_bound_k, reg_nlp.selected)
     else
       ψ = shifted(reg_nlp.h, xk, one(T), χ)
     end
@@ -161,8 +161,7 @@ function TRDH(
     η2 = options.η2,
     γ = options.γ,
     α = options.α,
-    β = options.β,
-    kwargs_dict...,
+    β = options.β
   )
   return stats
 end
