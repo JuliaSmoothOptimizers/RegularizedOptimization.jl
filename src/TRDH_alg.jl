@@ -99,8 +99,8 @@ A trust-region method with diagonal Hessian approximation for the problem
 
     min f(x) + h(x)
 
-where f: ℝⁿ → ℝ has a Lipschitz-continuous Jacobian, and h: ℝⁿ → ℝ is
-lower semi-continuous and proper.
+where f: ℝⁿ → ℝ has a Lipschitz-continuous gradient,, and h: ℝⁿ → ℝ is
+lower semi-continuous, proper and prox-bounded.
 
 About each iterate xₖ, a step sₖ is computed as an approximate solution of
 
@@ -110,28 +110,57 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Dₖ s  is a quadratic a
 ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm, Dₖ is a diagonal Hessian approximation
 and Δₖ > 0 is the trust-region radius.
 
-### Arguments
+For advanced usage, first define a solver "TRDHSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-* `nlp::AbstractDiagonalQNModel`: a smooth optimization problem
-* `h`: a regularizer such as those defined in ProximalOperators
-* `χ`: a norm used to define the trust region in the form of a regularizer
-* `options::ROSolverOptions`: a structure containing algorithmic parameters
+    solver = TRDH(reg_nlp; D = nothing, χ =  NormLinf(1))
+    solve!(solver, reg_nlp)
 
-The objective and gradient of `nlp` will be accessed.
+    stats = RegularizedExecutionStats(reg_nlp)
+    solve!(solver, reg_nlp, stats)
 
-In the second form, instead of `nlp`, the user may pass in
+# Arguments
+* `reg_nlp::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
-* `f` a function such that `f(x)` returns the value of f at x
-* `∇f!` a function to evaluate the gradient in place, i.e., such that `∇f!(g, x)` store ∇f(x) in `g`
-* `x0::AbstractVector`: an initial guess.
+# Keyword arguments
+- `x::V = nlp.meta.x0`: the initial guess;
+- `atol::T = √eps(T)`: absolute tolerance;
+- `rtol::T = √eps(T)`: relative tolerance;
+- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance;
+- `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
+- `max_time::Float64 = 30.0`: maximum time limit in seconds;
+- `max_iter::Int = 10000`: maximum number of iterations;
+- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
+- `Δk::T = T(1)`: initial value of the trust-region radius;
+- `η1::T = √√eps(T)`: successful iteration threshold;
+- `η2::T = T(0.9)`: very successful iteration threshold;
+- `γ::T = T(3)`: trust-region radius parameter multiplier, Δ := Δ*γ when the iteration is very successful and Δ := Δ/γ when the iteration is unsuccessful;
+- `α::T = 1/eps(T)`: TODO
+- `β::T = 1/eps(T)`: TODO
+- `reduce_TR::Bool = True`: TODO
+- `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
+- `D::L = nothing`: diagonal quasi-Newton approximation used for the model φ. If nothing is provided and `reg_nlp.model` is not a diagonal quasi-Newton approximation, a spectral gradient approximation is used.`
 
-### Keyword arguments
+The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
-#TODO
+#  Output
+The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
 
-### Return values
-
-#TODO
+# Callback
+The callback is called at each iteration.
+The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+Changing any of the input arguments will affect the subsequent iterations.
+In particular, setting `stats.status = :user` will stop the algorithm.
+All relevant information should be available in `nlp` and `solver`.
+Notably, you can access, and modify, the following:
+- `solver.xk`: current iterate;
+- `solver.∇fk`: current gradient;
+- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
+  - `stats.iter`: current iteration counter;
+  - `stats.objective`: current objective function value;
+  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
+  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function;
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention;
+  - `stats.elapsed_time`: elapsed time in seconds.
 """
 function TRDH(
   nlp::AbstractDiagonalQNModel{T, V},
