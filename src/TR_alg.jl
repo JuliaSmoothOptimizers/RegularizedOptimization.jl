@@ -134,7 +134,7 @@ function TR(
   χ::X,
   options::ROSolverOptions{R};
   x0::AbstractVector{R} = f.meta.x0,
-  subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
+  subsolver_logger::Logging.AbstractLogger = Logging.SimpleLogger(),
   subsolver = R2,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
@@ -264,7 +264,7 @@ function TR(
       continue
     end
 
-    subsolver_options.ϵa = k == 1 ? 1.0e-5 : max(ϵ_subsolver, min(1e-2, sqrt_ξ1_νInv))
+    subsolver_options.ϵa = k == 2 ? 1.0e-5 : max(ϵ_subsolver, min(1e-2, sqrt_ξ1_νInv))
     ∆_effective = min(β * χ(s), Δk)
     (has_bounds(f) || subsolver == TRDH) ?
     set_bounds!(ψ, max.(-∆_effective, l_bound - xk), min.(∆_effective, u_bound - xk)) :
@@ -273,9 +273,10 @@ function TR(
     subsolver_options.ν = ν
     subsolver_args = subsolver == TRDH ? (SpectralGradient(1 / ν, f.meta.nvar),) : ()
 
-    #s, iter, outdict = with_logger(subsolver_logger) do
-      s, iter, outdict = subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
-    #end
+    stats = subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
+
+    s = stats.solution
+    iter = stats.iter
 
     # restore initial values of subsolver_options here so that it is not modified
     # if there is an error
@@ -283,7 +284,7 @@ function TR(
     subsolver_options.ϵa = ϵa_subsolver
     subsolver_options.Δk = Δk_subsolver
 
-    Complex_hist[k] = sum(outdict[:Chist])
+    Complex_hist[k] = 1
 
     sNorm = χ(s)
     xkn .= xk .+ s
@@ -429,6 +430,8 @@ function SolverCore.solve!(
     u_bound = solver.u_bound
     @. l_bound_m_x = l_bound - xk
     @. u_bound_m_x = u_bound - xk
+    @. l_bound_m_x .= max.(l_bound_m_x, -Δk)
+    @. u_bound_m_x .= min.(u_bound_m_x, Δk)
     set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
   else
     set_radius!(ψ, Δk)
@@ -535,7 +538,18 @@ function SolverCore.solve!(
   while !done
 
     sub_atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv))
-    
+    ∆_effective = min(β * χ(s), Δk)
+
+    if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
+      @. l_bound_m_x = l_bound - xk
+      @. u_bound_m_x = u_bound - xk
+      @. l_bound_m_x .= max.(l_bound_m_x, -∆_effective)
+      @. u_bound_m_x .= min.(u_bound_m_x, ∆_effective)
+      set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+    else
+      set_radius!(ψ, ∆_effective)
+    end
+
     if isa(solver.subsolver, TRDHSolver) #FIXME
       solver.subsolver.D.d[1] = 1/ν₁
       solve!(
@@ -544,7 +558,7 @@ function SolverCore.solve!(
         solver.substats; 
         x = s, 
         atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
-        Δk = min(β * χ(s), Δk) / 10
+        Δk = ∆_effective / 10
         )
     else 
       solve!(
@@ -633,13 +647,6 @@ function SolverCore.solve!(
 
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
-      if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
-      @. l_bound_m_x = l_bound - xk
-      @. u_bound_m_x = u_bound - xk
-      set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-      else
-        set_radius!(ψ, Δk)
-      end
     end
 
     set_objective!(stats, fk + hk)
