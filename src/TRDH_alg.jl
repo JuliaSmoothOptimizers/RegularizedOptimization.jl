@@ -52,8 +52,8 @@ function TRDHSolver(
     @assert !has_bnds
     l_bound = copy(ψ.l)
     u_bound = copy(ψ.u)
-    @. l_bound_k = max(xk - one(T), l_bound)
-    @. u_bound_k = min(xk + one(T), u_bound)
+    @. l_bound_k = max(x0 - one(T), l_bound)
+    @. u_bound_k = min(x0 + one(T), u_bound)
     has_bnds = true
     set_bounds!(ψ, l_bound_k, u_bound_k)
   else
