@@ -58,8 +58,8 @@ function TRDHSolver(
     set_bounds!(ψ, l_bound_k, u_bound_k)
   else
     if has_bnds
-      @. l_bound_k = max(-one(T), l_bound - xk)
-      @. u_bound_k = min(one(T), u_bound - xk)
+      @. l_bound_k = max(-one(T), l_bound - x0)
+      @. u_bound_k = min(one(T), u_bound - x0)
       ψ = shifted(reg_nlp.h, xk, l_bound_k, u_bound_k, reg_nlp.selected)
     else
       ψ = shifted(reg_nlp.h, xk, one(T), χ)
@@ -229,7 +229,7 @@ function TRDH(
     β = options.β,
     kwargs...
   )
-  return stats
+  return stats.solution, stats.iter, stats
 end
 
 function TRDH(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
