@@ -226,7 +226,8 @@ function TRDH(
     η2 = options.η2,
     γ = options.γ,
     α = options.α,
-    β = options.β
+    β = options.β,
+    kwargs...
   )
   return stats
 end
