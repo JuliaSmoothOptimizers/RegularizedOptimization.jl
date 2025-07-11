@@ -85,14 +85,15 @@ function TRSolver(
 end
 
 """
+    TR(reg_nlp; kwargs…)
     TR(nlp, h, χ, options; kwargs...)
 
 A trust-region method for the problem
 
     min f(x) + h(x)
 
-where f: ℝⁿ → ℝ has a Lipschitz-continuous Jacobian, and h: ℝⁿ → ℝ is
-lower semi-continuous and proper.
+where f: ℝⁿ → ℝ has a Lipschitz-continuous gradient, and h: ℝⁿ → ℝ is
+lower semi-continuous, proper and prox-bounded.
 
 About each iterate xₖ, a step sₖ is computed as an approximate solution of
 
@@ -100,33 +101,57 @@ About each iterate xₖ, a step sₖ is computed as an approximate solution of
 
 where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Bₖ s  is a quadratic approximation of f about xₖ,
 ψ(s; xₖ) = h(xₖ + s), ‖⋅‖ is a user-defined norm and Δₖ > 0 is the trust-region radius.
-The subproblem is solved inexactly by way of a first-order method such as the proximal-gradient
-method or the quadratic regularization method.
 
-### Arguments
+For advanced usage, first define a solver "TRSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-* `nlp::AbstractNLPModel`: a smooth optimization problem
-* `h`: a regularizer such as those defined in ProximalOperators
-* `χ`: a norm used to define the trust region in the form of a regularizer
-* `options::ROSolverOptions`: a structure containing algorithmic parameters
+    solver = TR(reg_nlp; χ =  NormLinf(1), subsolver = R2Solver)
+    solve!(solver, reg_nlp)
 
-The objective, gradient and Hessian of `nlp` will be accessed.
-The Hessian is accessed as an abstract operator and need not be the exact Hessian.
+    stats = RegularizedExecutionStats(reg_nlp)
+    solve!(solver, reg_nlp, stats)
 
-### Keyword arguments
+# Arguments
+* `reg_nlp::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
-* `x0::AbstractVector`: an initial guess (default: `nlp.meta.x0`)
-* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver (default: the null logger)
-* `subsolver`: the procedure used to compute a step (`PG`, `R2` or `TRDH`)
-* `subsolver_options::ROSolverOptions`: default options to pass to the subsolver (default: all defaut options)
-* `selected::AbstractVector{<:Integer}`: (default `1:f.meta.nvar`).
+# Keyword arguments
+- `x::V = nlp.meta.x0`: the initial guess;
+- `atol::T = √eps(T)`: absolute tolerance;
+- `rtol::T = √eps(T)`: relative tolerance;
+- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance;
+- `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
+- `max_time::Float64 = 30.0`: maximum time limit in seconds;
+- `max_iter::Int = 10000`: maximum number of iterations;
+- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
+- `Δk::T = T(1)`: initial value of the trust-region radius;
+- `η1::T = √√eps(T)`: successful iteration threshold;
+- `η2::T = T(0.9)`: very successful iteration threshold;
+- `γ::T = T(3)`: trust-region radius parameter multiplier, Δ := Δ*γ when the iteration is very successful and Δ := Δ/γ when the iteration is unsuccessful;
+- `α::T = 1/eps(T)`: TODO
+- `β::T = 1/eps(T)`: TODO
+- `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
+- `subsolver::S = R2Solver`: subsolver used to solve the subproblem that appears at each iteration.
 
-### Return values
+The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
-* `xk`: the final iterate
-* `Fobj_hist`: an array with the history of values of the smooth objective
-* `Hobj_hist`: an array with the history of values of the nonsmooth objective
-* `Complex_hist`: an array with the history of number of inner iterations.
+#  Output
+The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
+
+# Callback
+The callback is called at each iteration.
+The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+Changing any of the input arguments will affect the subsequent iterations.
+In particular, setting `stats.status = :user` will stop the algorithm.
+All relevant information should be available in `nlp` and `solver`.
+Notably, you can access, and modify, the following:
+- `solver.xk`: current iterate;
+- `solver.∇fk`: current gradient;
+- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
+  - `stats.iter`: current iteration counter;
+  - `stats.objective`: current objective function value;
+  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
+  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function;
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention;
+  - `stats.elapsed_time`: elapsed time in seconds.
 """
 function TR(
   f::AbstractNLPModel,
