@@ -1,5 +1,5 @@
 const subsolver_options = deepcopy(options)
-TR_TRDH(args...; kwargs...) = TR(args...; subsolver = TRDH, kwargs...)
+TR_TRDH(args...; kwargs...) = TR(args...; subsolver = TRDHSolver, kwargs...)
 
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
   for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
