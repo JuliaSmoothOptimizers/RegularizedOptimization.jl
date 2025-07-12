@@ -308,6 +308,12 @@ function SolverCore.solve!(
   improper == true && return stats
 
   is_subsolver = h isa ShiftedProximableFunction # case TRDH is used as a subsolver
+
+  if is_subsolver
+    l_bound .= ψ.l
+    u_bound .= ψ.u
+  end
+
   if verbose > 0
     @info log_header(
       [:iter, :fx, :hx, :xi, :ρ, :Δ, :normx, :norms, :normD, :arrow],
