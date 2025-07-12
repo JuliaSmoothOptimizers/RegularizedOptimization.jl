@@ -476,7 +476,7 @@ function SolverCore.solve!(
         update_bounds!(l_bound_m_x, u_bound_m_x, is_subsolver, l_bound, u_bound, xk, Δ_effective)
         set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
       else
-        set_radius!(ψ, Δ_effective)
+        set_radius!(ψ, Δk)
       end
     end
 
@@ -499,6 +499,7 @@ function SolverCore.solve!(
     end
     
     iprox!(s, ψ, ∇fk, dk)
+
     sNorm = χ(s)
 
     if !reduce_TR
