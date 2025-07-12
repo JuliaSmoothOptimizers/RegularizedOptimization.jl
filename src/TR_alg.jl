@@ -159,8 +159,7 @@ function TR(
   χ::X,
   options::ROSolverOptions{R};
   x0::AbstractVector{R} = f.meta.x0,
-  subsolver_logger::Logging.AbstractLogger = Logging.SimpleLogger(),
-  subsolver = R2,
+  subsolver = R2Solver,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
   kwargs...
@@ -182,6 +181,7 @@ function TR(
     γ = options.γ,
     α = options.α,
     β = options.β,
+    subsolver = R2Solver,
     kwargs...
   )
   return stats
@@ -252,8 +252,10 @@ function SolverCore.solve!(
     @. l_bound_m_x .= max.(l_bound_m_x, -Δk)
     @. u_bound_m_x .= min.(u_bound_m_x, Δk)
     set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+    set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
   else
     set_radius!(ψ, Δk)
+    set_radius!(solver.subsolver.ψ, Δk)
   end
 
   # initialize parameters
@@ -365,7 +367,9 @@ function SolverCore.solve!(
       @. l_bound_m_x .= max.(l_bound_m_x, -∆_effective)
       @. u_bound_m_x .= min.(u_bound_m_x, ∆_effective)
       set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+      set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
     else
+      set_radius!(solver.subsolver.ψ, ∆_effective)
       set_radius!(ψ, ∆_effective)
     end
 
@@ -432,6 +436,7 @@ function SolverCore.solve!(
         @. l_bound_m_x = l_bound - xk
         @. u_bound_m_x = u_bound - xk
         set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+        set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
       end
       fk = fkn
       hk = hkn
