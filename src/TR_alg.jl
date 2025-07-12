@@ -159,7 +159,6 @@ function TR(
   χ::X,
   options::ROSolverOptions{R};
   x0::AbstractVector{R} = f.meta.x0,
-  subsolver = R2Solver,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
   kwargs...
@@ -181,7 +180,6 @@ function TR(
     γ = options.γ,
     α = options.α,
     β = options.β,
-    subsolver = R2Solver,
     kwargs...
   )
   return stats
@@ -429,12 +427,21 @@ function SolverCore.solve!(
         colsep = 1,
       )
   
+    if η2 ≤ ρk < Inf
+      Δk = max(Δk, γ * sNorm)
+      if !(has_bnds || isa(solver.subsolver, TRDHSolver))
+        set_radius!(ψ, Δk)
+        set_radius!(solver.subsolver.ψ, Δk)
+      end
+    end
+
     if η1 ≤ ρk < Inf
       xk .= xkn
-      ∆_effective = min(β * χ(s), Δk)
       if has_bnds || isa(solver.subsolver, TRDHSolver)
         @. l_bound_m_x = l_bound - xk
         @. u_bound_m_x = u_bound - xk
+        @. l_bound_m_x .= max.(l_bound_m_x, -Δk)
+        @. u_bound_m_x .= min.(u_bound_m_x, Δk)
         set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
         set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
       end
@@ -447,6 +454,8 @@ function SolverCore.solve!(
       if quasiNewtTest
         @. ∇fk⁻ = ∇fk - ∇fk⁻
         push!(nlp, s, ∇fk⁻) # update QN operator
+        #println(ψ)
+        #stats.iter == 1 && error("done")
       end
 
       solver.subpb.model.B = hess_op(nlp, xk)
@@ -457,20 +466,19 @@ function SolverCore.solve!(
       ∇fk⁻ .= ∇fk
     end
 
-    if η2 ≤ ρk < Inf
-      Δk = max(Δk, γ * sNorm)
-      if !(has_bnds || isa(solver.subsolver, TRDHSolver))
-        set_radius!(ψ, Δk)
-      end
-    end
-
-    if η2 ≤ ρk < Inf
-      Δk = max(Δk, γ * sNorm)
-      !(has_bnds || isa(solver.subsolver, TRDHSolver)) && set_radius!(ψ, Δk)
-    end
-
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
+      if has_bnds || isa(solver.subsolver, TRDHSolver)
+        @. l_bound_m_x = l_bound - xk
+        @. u_bound_m_x = u_bound - xk
+        @. l_bound_m_x .= max.(l_bound_m_x, -Δk)
+        @. u_bound_m_x .= min.(u_bound_m_x, Δk)
+        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+        set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
+      else
+        set_radius!(ψ, Δk)
+        set_radius!(solver.subsolver.ψ, Δk)
+      end
     end
 
     set_objective!(stats, fk + hk)
