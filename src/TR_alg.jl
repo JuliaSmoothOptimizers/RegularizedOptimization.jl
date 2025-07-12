@@ -454,8 +454,6 @@ function SolverCore.solve!(
       if quasiNewtTest
         @. ∇fk⁻ = ∇fk - ∇fk⁻
         push!(nlp, s, ∇fk⁻) # update QN operator
-        #println(ψ)
-        #stats.iter == 1 && error("done")
       end
 
       solver.subpb.model.B = hess_op(nlp, xk)
