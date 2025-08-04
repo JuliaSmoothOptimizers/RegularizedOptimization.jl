@@ -1,4 +1,195 @@
-export LM
+export LM, LMSolver, solve!
+
+import SolverCore.solve!
+
+mutable struct TRDHSolver # FIXME
+end
+
+mutable struct LMSolver{
+  T <: Real,
+  G <: ShiftedProximableFunction,
+  V <: AbstractVector{T},
+  M <: AbstractLinearOperator{T},
+  ST <: AbstractOptimizationSolver,
+  PB <: AbstractRegularizedNLPModel,
+} <: AbstractOptimizationSolver
+  xk::V
+  ∇fk::V
+  mν∇fk::V
+  Fk::V
+  Fkn::V
+  Jk::M
+  ψ::G
+  xkn::V
+  s::V
+  has_bnds::Bool
+  l_bound::V
+  u_bound::V
+  l_bound_m_x::V
+  u_bound_m_x::V
+  subsolver::ST
+  subpb::PB
+  substats::GenericExecutionStats{T, V, V, T}
+end
+
+function LMSolver(
+  reg_nls::AbstractRegularizedNLPModel{T, V};
+  subsolver = R2Solver,
+) where{T, V}
+  x0 = reg_nls.model.meta.x0
+  l_bound = reg_nls.model.meta.lvar
+  u_bound = reg_nls.model.meta.uvar
+
+  xk = similar(x0)
+  ∇fk = similar(x0)
+  mν∇fk = similar(x0)
+  Fk = similar(x0, reg_nls.model.nls_meta.nequ)
+  Fkn = similar(Fk)
+  Jk = jac_op_residual(reg_nls.model, xk)
+  xkn = similar(x0)
+  s = similar(x0)
+  has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf)) || subsolver == TRDHSolver
+  if has_bnds
+    l_bound_m_x = similar(xk)
+    u_bound_m_x = similar(xk)
+    @. l_bound_m_x = l_bound - x0
+    @. u_bound_m_x = u_bound - x0
+  else
+    l_bound_m_x = similar(xk, 0)
+    u_bound_m_x = similar(xk, 0)
+  end
+
+  ψ =
+    has_bnds ? shifted(reg_nls.h, xk, l_bound_m_x, u_bound_m_x, reg_nls.selected) :
+    shifted(reg_nls.h, xk)
+  
+  sub_nlp = LMModel(Jk, Fk, T(1), x0)
+  subpb = RegularizedNLPModel(sub_nlp, ψ)
+  substats = RegularizedExecutionStats(subpb)
+  subsolver = subsolver(subpb)
+
+  return LMSolver(
+    xk,
+    ∇fk,
+    mν∇fk,
+    Fk,
+    Fkn,
+    Jk,
+    ψ,
+    xkn,
+    s,
+    has_bnds,
+    l_bound,
+    u_bound,
+    l_bound_m_x,
+    u_bound_m_x,
+    subsolver,
+    subpb,
+    substats
+  )
+end
+
+function SolverCore.solve!(
+  solver::LMSolver{T, G, V},
+  reg_nls::AbstractRegularizedNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
+  callback = (args...) -> nothing, 
+  x::V = reg_nls.model.meta.x0,
+  atol::T = √eps(T),
+  rtol::T = √eps(T),
+  verbose::Int = 0,
+  max_iter::Int = 10000,
+  max_time::Float64 = 30.0,
+  max_eval::Int = -1,
+  σk::T = eps(T)^(1 / 5),
+  σmin::T = eps(T),
+  η1::T = √√eps(T),
+  η2::T = T(0.9),
+  γ::T = T(3),
+  θ::T = 1/(1 + eps(T)^(1 / 5)),
+) where {T, V, G}
+  reset!(stats)
+
+  # Retrieve workspace
+  selected = reg_nls.selected
+  h = reg_nls.h
+  nls = reg_nls.model
+
+  xk = solver.xk .= x
+
+  # Make sure ψ has the correct shift 
+  shift!(solver.ψ, xk)
+
+  Fk = solver.Fk
+  Fkn = solver.Fkn
+  Jk = solver.Jk
+  ∇fk = solver.∇fk
+  JdFk = solver.JdFk
+  Jt_Fk = solver.Jt_Fk
+  ψ = solver.ψ
+  xkn = solver.xkn
+  s = solver.s
+
+  has_bnds = solver.has_bnds
+  if has_bnds
+    l_bound = solver.l_bound
+    u_bound = solver.u_bound
+    l_bound_m_x = solver.l_bound_m_x
+    u_bound_m_x = solver.u_bound_m_x
+  end
+
+  # initialize parameters
+  improper = false
+  hk = @views h(xk[selected])
+  if hk == Inf
+    verbose > 0 && @info "LM: finding initial guess where nonsmooth term is finite"
+    prox!(xk, h, xk, one(eltype(x0)))
+    hk = @views h(xk[selected])
+    hk < Inf || error("prox computation must be erroneous")
+    verbose > 0 && @debug "LM: found point where h has value" hk
+  end
+  improper = (hk == -Inf)
+  improper == true && @warn "LM: Improper term detected"
+  improper == true && return stats
+
+  if verbose > 0
+    @info log_header(
+      [:outer, :inner, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :normJ, :arrow],
+      [Int, Int, T, T, T, T, T, T, T, T, Char],
+      hdr_override = Dict{Symbol, String}(
+        :fx => "f(x)",
+        :hx => "h(x)",
+        :xi => "√(ξ1/ν)",
+        :normx => "‖x‖",
+        :norms => "‖s‖",
+        :normB => "‖J‖²",
+        :arrow => "R2N",
+      ),
+      colsep = 1,
+    )
+  end
+
+  local ξ1::T
+  local ρk::T = zero(T)
+
+  residual!(nls, xk, Fk)
+  Jk = jac_op_residual(nls, xk)
+  mul!(∇fk, Jk', Fk)
+  fk = dot(Fk, Fk) / 2
+
+  σmax, found_σ = opnorm(Jk)
+  found_σ || error("operator norm computation failed")
+  ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+  sqrt_ξ1_νInv = one(T)
+
+  @. mν∇fk = -ν * ∇fk
+
+  φ1(d) = let Fk = Fk, Jk = Jk, 
+    d -> dot(Fk, Fk) / 2  
+  end
+
+  return
+end
 
 """
     LM(nls, h, options; kwargs...)
@@ -143,7 +334,7 @@ function LM(
     Resid_hist[k] = nls.counters.neval_residual
 
     # model for first prox-gradient iteration
-    φ1(d) = begin
+    φ1(d) = begin # || Fk ||^2/2 + d*Jk'*Fk
       jtprod_residual!(nls, xk, Fk, Jt_Fk)
       dot(Fk, Fk) / 2 + dot(Jt_Fk, d)
     end
