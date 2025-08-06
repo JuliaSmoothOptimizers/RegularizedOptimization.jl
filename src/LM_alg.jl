@@ -95,8 +95,10 @@ function SolverCore.solve!(
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing, 
   x::V = reg_nls.model.meta.x0,
+  nonlinear::Bool = true,
   atol::T = √eps(T),
   rtol::T = √eps(T),
+  neg_tol::T = zero(T),
   verbose::Int = 0,
   max_iter::Int = 10000,
   max_time::Float64 = 30.0,
@@ -124,8 +126,7 @@ function SolverCore.solve!(
   Fkn = solver.Fkn
   Jk = solver.Jk
   ∇fk = solver.∇fk
-  JdFk = solver.JdFk
-  Jt_Fk = solver.Jt_Fk
+  mν∇fk = solver.mν∇fk
   ψ = solver.ψ
   xkn = solver.xkn
   s = solver.s
@@ -162,8 +163,8 @@ function SolverCore.solve!(
         :xi => "√(ξ1/ν)",
         :normx => "‖x‖",
         :norms => "‖s‖",
-        :normB => "‖J‖²",
-        :arrow => "R2N",
+        :normJ => "‖J‖²",
+        :arrow => "LM",
       ),
       colsep = 1,
     )
@@ -174,7 +175,7 @@ function SolverCore.solve!(
 
   residual!(nls, xk, Fk)
   Jk = jac_op_residual(nls, xk)
-  mul!(∇fk, Jk', Fk)
+  jtprod_residual!(nls, xk, Fk, ∇fk)
   fk = dot(Fk, Fk) / 2
 
   σmax, found_σ = opnorm(Jk)
@@ -184,11 +185,208 @@ function SolverCore.solve!(
 
   @. mν∇fk = -ν * ∇fk
 
-  φ1(d) = let Fk = Fk, Jk = Jk, 
-    d -> dot(Fk, Fk) / 2  
+  set_iter!(stats, 0)
+  start_time = time()
+  set_time!(stats, 0.0)
+  set_objective!(stats, fk + hk)
+  set_solver_specific!(stats, :smooth_obj, fk)
+  set_solver_specific!(stats, :nonsmooth_obj, hk)
+
+  φ1 = let Fk = Fk, ∇fk = ∇fk
+    d -> dot(Fk, Fk) / 2 + dot(∇fk, d) # ∇fk = Jk^T Fk
   end
 
-  return
+  mk1 = let φ1 = φ1, ψ = ψ
+    d -> φ1(d) + ψ(d)
+  end
+
+  mk = let ψ = ψ, solver = solver
+    d -> obj(solver.subpb.model, d) + ψ(d)
+  end
+
+  prox!(s, ψ, mν∇fk, ν)
+  ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
+  sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
+  solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
+  (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
+    error("LM: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+  atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
+
+  set_status!(
+    stats,
+    get_status(
+      reg_nls,
+      elapsed_time = stats.elapsed_time,
+      iter = stats.iter,
+      optimal = solved,
+      improper = improper,
+      max_eval = max_eval,
+      max_time = max_time,
+      max_iter = max_iter,
+    ),
+  )
+
+  callback(nls, solver, stats)
+
+  done = stats.status != :unknown
+
+  while !done
+
+    sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
+    solver.subpb.model.σ = σk
+    isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
+    if isa(solver.subsolver, R2Solver) #FIXME
+      solve!(
+        solver.subsolver,
+        solver.subpb,
+        solver.substats,
+        x = s,
+        atol = sub_atol,
+        ν = ν,
+      )
+    else
+      solve!(
+        solver.subsolver,
+        solver.subpb,
+        solver.substats,
+        x = s,
+        atol = sub_atol,
+        σk = σk, #FIXME
+      )
+    end
+
+    s .= solver.substats.solution
+
+    xkn .= xk .+ s
+    residual!(nls, xkn, Fkn)
+    fkn = dot(Fkn, Fkn) / 2
+    hkn = @views h(xkn[selected])
+    mks = mk(s)
+    ξ = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
+
+    if (ξ ≤ 0 || isnan(ξ))
+      error("LM: failed to compute a step: ξ = $ξ")
+    end
+
+    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+    ρk = Δobj / ξ
+
+    verbose > 0 &&
+      stats.iter % verbose == 0 &&
+      @info log_row(
+        Any[
+          stats.iter,
+          solver.substats.iter,
+          fk,
+          hk,
+          sqrt_ξ1_νInv,
+          ρk,
+          σk,
+          norm(xk),
+          norm(s),
+          1 / ν,
+          (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
+        ],
+        colsep = 1,
+      )
+    
+    if η1 ≤ ρk < Inf
+      xk .= xkn
+
+      if has_bnds
+        @. l_bound_m_x = l_bound - xk
+        @. u_bound_m_x = u_bound - xk
+        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+      end
+
+      #update functions
+      Fk .= Fkn
+      fk = fkn
+      hk = hkn
+
+      # update gradient & Hessian
+      shift!(ψ, xk)
+      Jk = jac_op_residual(nls, xk)
+      jtprod_residual!(nls, xk, Fk, ∇fk)
+
+      # update opnorm if not linear least squares
+      if nonlinear == true
+        σmax, found_σ = opnorm(Jk)
+        found_σ || error("operator norm computation failed")
+      end
+    end
+
+    if η2 ≤ ρk < Inf
+      σk = max(σk / γ, σmin)
+    end
+
+    if ρk < η1 || ρk == Inf
+      σk = σk * γ
+    end
+
+    set_objective!(stats, fk + hk)
+    set_solver_specific!(stats, :smooth_obj, fk)
+    set_solver_specific!(stats, :nonsmooth_obj, hk)
+    set_iter!(stats, stats.iter + 1)
+    set_time!(stats, time() - start_time)
+
+    ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+
+    @. mν∇fk = - ν * ∇fk
+    prox!(s, ψ, mν∇fk, ν)
+    mks = mk1(s)
+
+    ξ1 = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
+
+    sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
+    solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
+
+    (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
+      error("LM: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+
+    set_status!(
+      stats,
+      get_status(
+        reg_nls,
+        elapsed_time = stats.elapsed_time,
+        iter = stats.iter,
+        optimal = solved,
+        improper = improper,
+        max_eval = max_eval,
+        max_time = max_time,
+        max_iter = max_iter,
+      ),
+    )
+
+    callback(nls, solver, stats)
+
+    done = stats.status != :unknown
+
+  end
+  
+  if verbose > 0 && stats.status == :first_order
+    @info log_row(
+      Any[
+        stats.iter,
+        0,
+        fk,
+        hk,
+        sqrt_ξ1_νInv,
+        ρk,
+        σk,
+        norm(xk),
+        norm(s),
+        1 / ν,
+        "",
+      ],
+      colsep = 1,
+    )
+    @info "LM: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
+  end
+
+  set_solution!(stats, xk)
+  set_residuals!(stats, zero(T), sqrt_ξ1_νInv)
+  return stats
 end
 
 """
@@ -388,9 +586,10 @@ function LM(
     subsolver_options.ν = ν
     subsolver_args = subsolver == R2DH ? (SpectralGradient(1 / ν, nls.meta.nvar),) : ()
     @debug "setting inner stopping tolerance to" subsolver_options.optTol
-    s, iter, _ = with_logger(subsolver_logger) do
-      subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
-    end
+    #s, iter, _ = with_logger(subsolver_logger) do
+    #subsolver_options.verbose = 1
+    s, iter, _ = subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
+    #end
     # restore initial subsolver_options here so that it is not modified if there is an error
     subsolver_options.ν = ν_subsolver
     subsolver_options.ϵa = ϵa_subsolver

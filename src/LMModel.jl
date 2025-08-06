@@ -48,7 +48,7 @@ function NLPModels.grad!(nlp::LMModel, x::AbstractVector{T}, g::AbstractVector{T
   @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_grad)
   nlp.v .= nlp.F
-  @. nlp.g = nlp.σ .* x
+  @. g = nlp.σ .* x
   mul!(nlp.v, nlp.J, x, one(T), one(T))
   mul!(g, nlp.J', nlp.v, one(T), one(T))
   return g
