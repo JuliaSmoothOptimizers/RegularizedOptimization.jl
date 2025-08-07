@@ -17,6 +17,8 @@ mutable struct LMSolver{
   mν∇fk::V
   Fk::V
   Fkn::V
+  Jv::V
+  Jtv::V
   ψ::G
   xkn::V
   s::V
@@ -43,6 +45,8 @@ function LMSolver(
   mν∇fk = similar(x0)
   Fk = similar(x0, reg_nls.model.nls_meta.nequ)
   Fkn = similar(Fk)
+  Jv = similar(Fk)
+  Jtv = similar(x0)
   xkn = similar(x0)
   s = similar(x0)
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf)) || subsolver == TRDHSolver
@@ -78,6 +82,8 @@ function LMSolver(
     mν∇fk,
     Fk,
     Fkn,
+    Jv, 
+    Jtv,
     ψ,
     xkn,
     s,
@@ -171,7 +177,7 @@ function LM(
   x0 = pop!(kwargs_dict, :x0, nls.meta.x0)
   reg_nls = RegularizedNLPModel(nls, h, selected)
   return LM(
-    reg_nls,
+    reg_nls;
     x = x0,
     atol = options.ϵa,
     rtol = options.ϵr,
@@ -188,11 +194,11 @@ function LM(
   )
 end
 
-function LM(reg_nls::AbstractRegularizedNLPModel, kwargs...)
+function LM(reg_nls::AbstractRegularizedNLPModel; kwargs...)
   kwargs_dict = Dict(kwargs...)
   subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
   solver = LMSolver(reg_nls, subsolver = subsolver)
-  stats = RegularizedExecutionStats(reg_nls.model)
+  stats = RegularizedExecutionStats(reg_nls)
   solve!(solver, reg_nls, stats; kwargs_dict...)
   return stats
 end
@@ -232,6 +238,8 @@ function SolverCore.solve!(
 
   Fk = solver.Fk
   Fkn = solver.Fkn
+  Jv = solver.Jv
+  Jtv = solver.Jtv
   ∇fk = solver.∇fk
   mν∇fk = solver.mν∇fk
   ψ = solver.ψ
@@ -284,7 +292,7 @@ function SolverCore.solve!(
   jtprod_residual!(nls, xk, Fk, ∇fk)
   fk = dot(Fk, Fk) / 2
 
-  σmax, found_σ = opnorm(solver.subpb.model.J)
+  σmax, found_σ = opnorm(jac_op_residual!(nls, xk, Jv, Jtv))
   found_σ || error("operator norm computation failed")
   ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
   sqrt_ξ1_νInv = one(T)
@@ -417,7 +425,7 @@ function SolverCore.solve!(
 
       # update opnorm if not linear least squares
       if nonlinear == true
-        σmax, found_σ = opnorm(solver.subpb.model.J)
+        σmax, found_σ = opnorm(jac_op_residual!(nls, xk, Jv, Jtv))
         found_σ || error("operator norm computation failed")
       end
     end
