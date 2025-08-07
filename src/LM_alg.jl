@@ -92,6 +92,74 @@ function LMSolver(
   )
 end
 
+"""
+    LM(reg_nls; kwargs...)
+
+A Levenberg-Marquardt method for the problem
+
+    min ½ ‖F(x)‖² + h(x)
+
+where F: ℝⁿ → ℝᵐ and its Jacobian J are Lipschitz continuous and h: ℝⁿ → ℝ is
+lower semi-continuous, proper and prox-bounded.
+
+At each iteration, a step s is computed as an approximate solution of
+
+    min  ½ ‖J(x) s + F(x)‖² + ½ σ ‖s‖² + ψ(s; x)
+
+where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; xₖ) is either h(xₖ + s) or an approximation of h(xₖ + s),
+‖⋅‖ is the ℓ₂ norm and σₖ > 0 is the regularization parameter.
+
+For advanced usage, first define a solver "LMSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
+
+    solver = LMSolver(reg_nls; subsolver = R2Solver)
+    solve!(solver, reg_nls)
+
+    stats = RegularizedExecutionStats(reg_nls)
+    solve!(solver, reg_nls, stats)
+  
+# Arguments
+* `reg_nls::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
+
+# Keyword arguments
+- `x::V = nlp.meta.x0`: the initial guess;
+- `nonlinear::Bool = true`: whether the function `F` is nonlinear or not.
+- `atol::T = √eps(T)`: absolute tolerance;
+- `rtol::T = √eps(T)`: relative tolerance;
+- `neg_tol::T = zero(T): negative tolerance;
+- `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
+- `max_time::Float64 = 30.0`: maximum time limit in seconds;
+- `max_iter::Int = 10000`: maximum number of iterations;
+- `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
+- `σmin::T = eps(T)`: minimum value of the regularization parameter;
+- `σk::T = eps(T)^(1 / 5)`: initial value of the regularization parameter;
+- `η1::T = √√eps(T)`: successful iteration threshold;
+- `η2::T = T(0.9)`: very successful iteration threshold;
+- `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
+- `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
+- `subsolver = R2Solver`: the solver used to solve the subproblems.
+
+The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
+
+# Output
+The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
+
+# Callback
+The callback is called at each iteration.
+The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+Changing any of the input arguments will affect the subsequent iterations.
+In particular, setting `stats.status = :user` will stop the algorithm.
+All relevant information should be available in `nlp` and `solver`.
+Notably, you can access, and modify, the following:
+- `solver.xk`: current iterate;
+- `solver.∇fk`: current gradient;
+- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
+  - `stats.iter`: current iteration counter;
+  - `stats.objective`: current objective function value;
+  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
+  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function;
+  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention;
+  - `stats.elapsed_time`: elapsed time in seconds.
+"""
 function SolverCore.solve!(
   solver::LMSolver{T, G, V},
   reg_nls::AbstractRegularizedNLPModel{T, V},
@@ -179,8 +247,7 @@ function SolverCore.solve!(
   jtprod_residual!(nls, xk, Fk, ∇fk)
   fk = dot(Fk, Fk) / 2
 
-  #σmax, found_σ = opnorm(solver.subpb.model.J)
-  σmax, found_σ = one(T), true
+  σmax, found_σ = opnorm(solver.subpb.model.J)
   found_σ || error("operator norm computation failed")
   ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
   sqrt_ξ1_νInv = one(T)
@@ -313,8 +380,7 @@ function SolverCore.solve!(
 
       # update opnorm if not linear least squares
       if nonlinear == true
-        #σmax, found_σ = opnorm(solver.subpb.model.J)
-        σmax, found_σ = one(T), true
+        σmax, found_σ = opnorm(solver.subpb.model.J)
         found_σ || error("operator norm computation failed")
       end
     end
@@ -389,306 +455,5 @@ function SolverCore.solve!(
 
   set_solution!(stats, xk)
   set_residuals!(stats, zero(T), sqrt_ξ1_νInv)
-  return stats
-end
-
-"""
-    LM(nls, h, options; kwargs...)
-
-A Levenberg-Marquardt method for the problem
-
-    min ½ ‖F(x)‖² + h(x)
-
-where F: ℝⁿ → ℝᵐ and its Jacobian J are Lipschitz continuous and h: ℝⁿ → ℝ is
-lower semi-continuous, proper and prox-bounded.
-
-At each iteration, a step s is computed as an approximate solution of
-
-    min  ½ ‖J(x) s + F(x)‖² + ½ σ ‖s‖² + ψ(s; x)
-
-where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; x) = h(x + s),
-and σ > 0 is a regularization parameter.
-
-### Arguments
-
-* `nls::AbstractNLSModel`: a smooth nonlinear least-squares problem
-* `h`: a regularizer such as those defined in ProximalOperators
-* `options::ROSolverOptions`: a structure containing algorithmic parameters
-
-### Keyword arguments
-
-* `x0::AbstractVector`: an initial guess (default: `nls.meta.x0`)
-* `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver
-* `subsolver`: the procedure used to compute a step (`PG`, `R2` or `TRDH`)
-* `subsolver_options::ROSolverOptions`: default options to pass to the subsolver.
-* `selected::AbstractVector{<:Integer}`: (default `1:nls.meta.nvar`).
-
-### Return values
-
-* `xk`: the final iterate
-* `Fobj_hist`: an array with the history of values of the smooth objective
-* `Hobj_hist`: an array with the history of values of the nonsmooth objective
-* `Complex_hist`: an array with the history of number of inner iterations.
-"""
-function LM(
-  nls::AbstractNLSModel,
-  h::H,
-  options::ROSolverOptions;
-  x0::AbstractVector = nls.meta.x0,
-  subsolver_logger::Logging.AbstractLogger = Logging.NullLogger(),
-  subsolver = R2,
-  subsolver_options = ROSolverOptions(ϵa = options.ϵa),
-  selected::AbstractVector{<:Integer} = 1:(nls.meta.nvar),
-  nonlinear::Bool = true,
-) where {H}
-  start_time = time()
-  elapsed_time = 0.0
-  # initialize passed options
-  ϵ = options.ϵa
-  ϵ_subsolver = subsolver_options.ϵa
-  ϵr = options.ϵr
-  verbose = options.verbose
-  maxIter = options.maxIter
-  maxTime = options.maxTime
-  η1 = options.η1
-  η2 = options.η2
-  γ = options.γ
-  θ = options.θ
-  σmin = options.σmin
-  σk = options.σk
-
-  # store initial values of the subsolver_options fields that will be modified
-  ν_subsolver = subsolver_options.ν
-  ϵa_subsolver = subsolver_options.ϵa
-
-  local l_bound, u_bound
-  treats_bounds = has_bounds(nls) || subsolver == TRDH
-  if treats_bounds
-    l_bound = nls.meta.lvar
-    u_bound = nls.meta.uvar
-  end
-
-  if verbose == 0
-    ptf = Inf
-  elseif verbose == 1
-    ptf = round(maxIter / 10)
-  elseif verbose == 2
-    ptf = round(maxIter / 100)
-  else
-    ptf = 1
-  end
-
-  # initialize parameters
-  xk = copy(x0)
-  hk = h(xk[selected])
-  if hk == Inf
-    verbose > 0 && @info "LM: finding initial guess where nonsmooth term is finite"
-    prox!(xk, h, x0, one(eltype(x0)))
-    hk = h(xk[selected])
-    hk < Inf || error("prox computation must be erroneous")
-    verbose > 0 && @debug "LM: found point where h has value" hk
-  end
-  hk == -Inf && error("nonsmooth term is not proper")
-  ψ = treats_bounds ? shifted(h, xk, l_bound - xk, u_bound - xk, selected) : shifted(h, xk)
-
-  xkn = similar(xk)
-
-  local ξ1
-  local sqrt_ξ1_νInv
-  k = 0
-  Fobj_hist = zeros(maxIter)
-  Hobj_hist = zeros(maxIter)
-  Complex_hist = zeros(Int, maxIter)
-  Grad_hist = zeros(Int, maxIter)
-  Resid_hist = zeros(Int, maxIter)
-
-  if verbose > 0
-    #! format: off
-    @info @sprintf "%6s %8s %8s %8s %7s %7s %8s %7s %7s %7s %7s %1s" "outer" "inner" "f(x)" "h(x)" "√(ξ1/ν)" "√ξ" "ρ" "σ" "‖x‖" "‖s‖" "‖Jₖ‖²" "reg"
-    #! format: on
-  end
-
-  # main algorithm initialization
-  Fk = residual(nls, xk)
-  Fkn = similar(Fk)
-  fk = dot(Fk, Fk) / 2
-  Jk = jac_op_residual(nls, xk)
-  ∇fk = Jk' * Fk
-  JdFk = similar(Fk)   # temporary storage
-  Jt_Fk = similar(∇fk)
-
-  σmax, found_σ = opnorm(Jk)
-  found_σ || error("operator norm computation failed")
-  ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
-
-  s = zero(xk)
-
-  optimal = false
-  tired = k ≥ maxIter || elapsed_time > maxTime
-
-  while !(optimal || tired)
-    k = k + 1
-    elapsed_time = time() - start_time
-    Fobj_hist[k] = fk
-    Hobj_hist[k] = hk
-    Grad_hist[k] = nls.counters.neval_jtprod_residual + nls.counters.neval_jprod_residual
-    Resid_hist[k] = nls.counters.neval_residual
-
-    # model for first prox-gradient iteration
-    φ1(d) = begin # || Fk ||^2/2 + d*Jk'*Fk
-      jtprod_residual!(nls, xk, Fk, Jt_Fk)
-      dot(Fk, Fk) / 2 + dot(Jt_Fk, d)
-    end
-
-    mk1(d) = φ1(d) + ψ(d)
-
-    # TODO: reuse residual computation
-    # model for subsequent prox-gradient iterations
-    φ(d) = begin
-      jprod_residual!(nls, xk, d, JdFk)
-      JdFk .+= Fk
-      return dot(JdFk, JdFk) / 2 + σk * dot(d, d) / 2
-    end
-
-    ∇φ!(g, d) = begin
-      jprod_residual!(nls, xk, d, JdFk)
-      JdFk .+= Fk
-      jtprod_residual!(nls, xk, JdFk, g)
-      g .+= σk * d
-      return g
-    end
-
-    mk(d) = begin
-      jprod_residual!(nls, xk, d, JdFk)
-      JdFk .+= Fk
-      return dot(JdFk, JdFk) / 2 + σk * dot(d, d) / 2 + ψ(d)
-    end
-
-    # take first proximal gradient step s1 and see if current xk is nearly stationary
-    # s1 minimizes φ1(s) + ‖s‖² / 2 / ν + ψ(s) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0)).
-    ∇fk .*= -ν  # reuse gradient storage
-    prox!(s, ψ, ∇fk, ν)
-    ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()  # TODO: isn't mk(s) returned by subsolver?
-    ξ1 > 0 || error("LM: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-    sqrt_ξ1_νInv = sqrt(ξ1 / ν)
-
-    if ξ1 ≥ 0 && k == 1
-      ϵ_increment = ϵr * sqrt_ξ1_νInv
-      ϵ += ϵ_increment  # make stopping test absolute and relative
-      ϵ_subsolver += ϵ_increment
-    end
-
-    if sqrt_ξ1_νInv < ϵ
-      # the current xk is approximately first-order stationary
-      optimal = true
-      continue
-    end
-
-    #  subsolver_options.ϵa = k == 1 ? 1.0e-1 : max(ϵ_subsolver, min(1.0e-2, ξ1 / 10))
-    subsolver_options.ϵa = k == 1 ? 1.0e-3 : min(sqrt_ξ1_νInv^(1.5), sqrt_ξ1_νInv * 1e-3) # 1.0e-5 default
-    subsolver_options.ν = ν
-    subsolver_args = subsolver == R2DH ? (SpectralGradient(1 / ν, nls.meta.nvar),) : ()
-    @debug "setting inner stopping tolerance to" subsolver_options.optTol
-    #s, iter, _ = with_logger(subsolver_logger) do
-    #subsolver_options.verbose = 1
-    s, iter, _ = subsolver(φ, ∇φ!, ψ, subsolver_args..., subsolver_options, s)
-    #end
-    # restore initial subsolver_options here so that it is not modified if there is an error
-    subsolver_options.ν = ν_subsolver
-    subsolver_options.ϵa = ϵa_subsolver
-
-    Complex_hist[k] = iter
-
-    xkn .= xk .+ s
-    residual!(nls, xkn, Fkn)
-    fkn = dot(Fkn, Fkn) / 2
-    hkn = h(xkn[selected])
-    hkn == -Inf && error("nonsmooth term is not proper")
-    mks = mk(s)
-    ξ = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
-
-    if (ξ ≤ 0 || isnan(ξ))
-      error("LM: failed to compute a step: ξ = $ξ")
-    end
-
-    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ρk = Δobj / ξ
-
-    σ_stat = (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "=")
-
-    if (verbose > 0) && (k % ptf == 0)
-      #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8.1e %7.1e %7.1e %7.1e %7.1e %1s" k iter fk hk sqrt_ξ1_νInv sqrt(ξ) ρk σk norm(xk) norm(s) 1/ν σ_stat
-      #! format: off
-    end
-
-    if η2 ≤ ρk < Inf
-      σk = max(σk / γ, σmin)
-    end
-
-    if η1 ≤ ρk < Inf
-      xk .= xkn
-      treats_bounds && set_bounds!(ψ, l_bound - xk, u_bound - xk)
-
-      # update functions
-      Fk .= Fkn
-      fk = fkn
-      hk = hkn
-
-      # update gradient & Hessian
-      shift!(ψ, xk)
-      Jk = jac_op_residual(nls, xk)
-      jtprod_residual!(nls, xk, Fk, ∇fk)
-
-      # update opnorm if not linear least squares
-      if nonlinear == true
-        σmax, found_σ = opnorm(Jk)
-        found_σ || error("operator norm computation failed")
-      end
-
-      Complex_hist[k] += 1
-    end
-
-    if ρk < η1 || ρk == Inf
-      σk = σk * γ
-    end
-    ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
-    tired = k ≥ maxIter || elapsed_time > maxTime
-  end
-
-  if verbose > 0
-    if k == 1
-      @info @sprintf "%6d %8s %8.1e %8.1e" k "" fk hk
-    elseif optimal
-      #! format: off
-      @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt_ξ1_νInv sqrt(ξ1) "" σk norm(xk) norm(s) 1/ν
-      #! format: on
-      @info "LM: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
-    end
-  end
-  status = if optimal
-    :first_order
-  elseif elapsed_time > maxTime
-    :max_time
-  elseif tired
-    :max_iter
-  else
-    :exception
-  end
-
-  stats = GenericExecutionStats(nls)
-  set_status!(stats, status)
-  set_solution!(stats, xk)
-  set_objective!(stats, fk + hk)
-  set_residuals!(stats, zero(eltype(xk)), ξ1 ≥ 0 ? sqrt_ξ1_νInv : ξ1)
-  set_iter!(stats, k)
-  set_time!(stats, elapsed_time)
-  set_solver_specific!(stats, :sigma, σk)
-  set_solver_specific!(stats, :Fhist, Fobj_hist[1:k])
-  set_solver_specific!(stats, :Hhist, Hobj_hist[1:k])
-  set_solver_specific!(stats, :NonSmooth, h)
-  set_solver_specific!(stats, :SubsolverCounter, Complex_hist[1:k])
-  set_solver_specific!(stats, :NLSGradHist, Grad_hist[1:k])
-  set_solver_specific!(stats, :ResidHist, Resid_hist[1:k])
   return stats
 end
