@@ -9,7 +9,6 @@ mutable struct LMSolver{
   T <: Real,
   G <: ShiftedProximableFunction,
   V <: AbstractVector{T},
-  M <: AbstractLinearOperator{T},
   ST <: AbstractOptimizationSolver,
   PB <: AbstractRegularizedNLPModel,
 } <: AbstractOptimizationSolver
@@ -18,7 +17,6 @@ mutable struct LMSolver{
   mν∇fk::V
   Fk::V
   Fkn::V
-  Jk::M
   ψ::G
   xkn::V
   s::V
@@ -45,7 +43,6 @@ function LMSolver(
   mν∇fk = similar(x0)
   Fk = similar(x0, reg_nls.model.nls_meta.nequ)
   Fkn = similar(Fk)
-  Jk = jac_op_residual(reg_nls.model, xk)
   xkn = similar(x0)
   s = similar(x0)
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf)) || subsolver == TRDHSolver
@@ -63,18 +60,24 @@ function LMSolver(
     has_bnds ? shifted(reg_nls.h, xk, l_bound_m_x, u_bound_m_x, reg_nls.selected) :
     shifted(reg_nls.h, xk)
   
-  sub_nlp = LMModel(Jk, Fk, T(1), x0)
+  jprod! = let nls = reg_nls.model
+    (x, v, Jv) -> jprod_residual!(nls, x, v, Jv)
+  end
+  jt_prod! = let nls = reg_nls.model
+    (x, v, Jtv) -> jtprod_residual!(nls, x, v, Jtv)
+  end
+
+  sub_nlp = LMModel(jprod!, jt_prod!, Fk, T(1), xk)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
 
-  return LMSolver(
+  return LMSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
     xk,
     ∇fk,
     mν∇fk,
     Fk,
     Fkn,
-    Jk,
     ψ,
     xkn,
     s,
@@ -124,13 +127,11 @@ function SolverCore.solve!(
 
   Fk = solver.Fk
   Fkn = solver.Fkn
-  Jk = solver.Jk
   ∇fk = solver.∇fk
   mν∇fk = solver.mν∇fk
   ψ = solver.ψ
   xkn = solver.xkn
   s = solver.s
-
   has_bnds = solver.has_bnds
   if has_bnds
     l_bound = solver.l_bound
@@ -144,7 +145,7 @@ function SolverCore.solve!(
   hk = @views h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "LM: finding initial guess where nonsmooth term is finite"
-    prox!(xk, h, xk, one(eltype(x0)))
+    prox!(xk, h, xk, one(T))
     hk = @views h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "LM: found point where h has value" hk
@@ -174,11 +175,12 @@ function SolverCore.solve!(
   local ρk::T = zero(T)
 
   residual!(nls, xk, Fk)
-  Jk = jac_op_residual(nls, xk)
+  #solver.subpb.model.J = jac_op_residual!(nls, xk, Jv, Jtv)
   jtprod_residual!(nls, xk, Fk, ∇fk)
   fk = dot(Fk, Fk) / 2
 
-  σmax, found_σ = opnorm(Jk)
+  #σmax, found_σ = opnorm(solver.subpb.model.J)
+  σmax, found_σ = one(T), true
   found_σ || error("operator norm computation failed")
   ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
   sqrt_ξ1_νInv = one(T)
@@ -306,12 +308,13 @@ function SolverCore.solve!(
 
       # update gradient & Hessian
       shift!(ψ, xk)
-      Jk = jac_op_residual(nls, xk)
+      #solver.subpb.model.J = jac_op_residual!(nls, xk, Jv, Jtv)
       jtprod_residual!(nls, xk, Fk, ∇fk)
 
       # update opnorm if not linear least squares
       if nonlinear == true
-        σmax, found_σ = opnorm(Jk)
+        #σmax, found_σ = opnorm(solver.subpb.model.J)
+        σmax, found_σ = one(T), true
         found_σ || error("operator norm computation failed")
       end
     end
