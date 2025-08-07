@@ -288,7 +288,6 @@ function SolverCore.solve!(
   local ρk::T = zero(T)
 
   residual!(nls, xk, Fk)
-  #solver.subpb.model.J = jac_op_residual!(nls, xk, Jv, Jtv)
   jtprod_residual!(nls, xk, Fk, ∇fk)
   fk = dot(Fk, Fk) / 2
 
@@ -420,7 +419,6 @@ function SolverCore.solve!(
 
       # update gradient & Hessian
       shift!(ψ, xk)
-      #solver.subpb.model.J = jac_op_residual!(nls, xk, Jv, Jtv)
       jtprod_residual!(nls, xk, Fk, ∇fk)
 
       # update opnorm if not linear least squares
