@@ -1,7 +1,7 @@
 export LMModel
 
 @doc raw"""
-    LMModel(J, F, v, σ, x0)
+    LMModel(j_prod!, jt_prod, F, v, σ, xk)
 
 Given the unconstrained optimization problem:
 ```math
@@ -11,35 +11,37 @@ this model represents the smooth LM subproblem:
 ```math
 \min_s \ \tfrac{1}{2} \| F(x) + J(x)s \|^2 + \tfrac{1}{2} σ \|s\|^2
 ```
-where `J` is the Jacobian of `F` at `x0` in sparse format or as a linear operator.
-`σ > 0` is a regularization parameter and `v` is a vector of the same size as `F(x0)` used for intermediary computations.
+where `J` is the Jacobian of `F` at `xk`, represented via matrix-free operations.
+`j_prod!(xk, s, out)` computes `J(xk) * s`, and `jt_prod!(xk, r, out)` computes `J(xk)' * r`.
+
+`σ > 0` is a regularization parameter and `v` is a vector of the same size as `F(xk)` used for intermediary computations.
 """
-mutable struct LMModel{T <: Real, V <: AbstractVector{T}, G <: Union{AbstractMatrix{T}, AbstractLinearOperator{T}}} <:
+mutable struct LMModel{T <: Real, V <: AbstractVector{T}, J <: Function , Jt <: Function} <:
                AbstractNLPModel{T, V}
-  J::G
+  j_prod!::J
+  jt_prod!::Jt
   F::V
   v::V
+  xk::V
   σ::T
   meta::NLPModelMeta{T, V}
   counters::Counters
 end
 
-function LMModel(J::G, F::V, σ::T, x0::V) where {T, V, G}
-  @assert length(x0) == size(J, 2)
-  @assert length(F) == size(J, 1)
+function LMModel(j_prod!::J, jt_prod!::Jt, F::V, σ::T, xk::V) where {T, V, J, Jt}
   meta = NLPModelMeta(
-    length(x0),
-    x0 = x0, # Perhaps we should add lvar and uvar as well here.
+    length(xk),
+    x0 = xk, # Perhaps we should add lvar and uvar as well here.
   )
   v = similar(F)
-  return LMModel(J::G, F::V, v::V, σ::T, meta, Counters())
+  return LMModel(j_prod!, jt_prod!, F, v, xk, σ, meta, Counters())
 end
 
 function NLPModels.obj(nlp::LMModel, x::AbstractVector{T}) where{T}
   @lencheck nlp.meta.nvar x
   increment!(nlp, :neval_obj)
-  nlp.v .= nlp.F
-  mul!(nlp.v, nlp.J, x, one(T), one(T))
+  nlp.j_prod!(nlp.xk, x, nlp.v) # v = J(xk)x
+  nlp.v .+= nlp.F
   return ( dot(nlp.v, nlp.v) + nlp.σ * dot(x, x) ) / 2
 end
 
@@ -47,9 +49,9 @@ function NLPModels.grad!(nlp::LMModel, x::AbstractVector{T}, g::AbstractVector{T
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_grad)
-  nlp.v .= nlp.F
-  @. g = nlp.σ .* x
-  mul!(nlp.v, nlp.J, x, one(T), one(T))
-  mul!(g, nlp.J', nlp.v, one(T), one(T))
+  nlp.j_prod!(nlp.xk, x, nlp.v) # v = J(xk)x + F
+  nlp.v .+= nlp.F
+  nlp.jt_prod!(nlp.xk, nlp.v, g) # g = J^T(xk) v
+  @. g += nlp.σ .* x
   return g
 end
