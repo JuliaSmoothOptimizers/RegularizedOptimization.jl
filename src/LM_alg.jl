@@ -160,6 +160,43 @@ Notably, you can access, and modify, the following:
   - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention;
   - `stats.elapsed_time`: elapsed time in seconds.
 """
+function LM(
+  nls::AbstractNLSModel,
+  h::H,
+  options::ROSolverOptions;
+  kwargs...,
+) where {H}
+  kwargs_dict = Dict(kwargs...)
+  selected = pop!(kwargs_dict, :selected, 1:(nls.meta.nvar))
+  x0 = pop!(kwargs_dict, :x0, nls.meta.x0)
+  reg_nls = RegularizedNLPModel(nls, h, selected)
+  return LM(
+    reg_nls,
+    x = x0,
+    atol = options.ϵa,
+    rtol = options.ϵr,
+    neg_tol = options.neg_tol,
+    verbose = options.verbose,
+    max_iter = options.maxIter,
+    max_time = options.maxTime,
+    σmin = options.σmin,
+    σk = options.σk,
+    η1 = options.η1,
+    η2 = options.η2,
+    γ = options.γ,
+    kwargs_dict...,
+  )
+end
+
+function LM(reg_nls::AbstractRegularizedNLPModel, kwargs...)
+  kwargs_dict = Dict(kwargs...)
+  subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
+  solver = LMSolver(reg_nls, subsolver = subsolver)
+  stats = RegularizedExecutionStats(reg_nls.model)
+  solve!(solver, reg_nls, stats; kwargs_dict...)
+  return stats
+end
+
 function SolverCore.solve!(
   solver::LMSolver{T, G, V},
   reg_nls::AbstractRegularizedNLPModel{T, V},
