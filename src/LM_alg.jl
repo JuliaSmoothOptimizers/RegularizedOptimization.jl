@@ -32,10 +32,7 @@ mutable struct LMSolver{
   substats::GenericExecutionStats{T, V, V, T}
 end
 
-function LMSolver(
-  reg_nls::AbstractRegularizedNLPModel{T, V};
-  subsolver = R2Solver,
-) where{T, V}
+function LMSolver(reg_nls::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solver) where {T, V}
   x0 = reg_nls.model.meta.x0
   l_bound = reg_nls.model.meta.lvar
   u_bound = reg_nls.model.meta.uvar
@@ -63,7 +60,7 @@ function LMSolver(
   ψ =
     has_bnds ? shifted(reg_nls.h, xk, l_bound_m_x, u_bound_m_x, reg_nls.selected) :
     shifted(reg_nls.h, xk)
-  
+
   jprod! = let nls = reg_nls.model
     (x, v, Jv) -> jprod_residual!(nls, x, v, Jv)
   end
@@ -82,7 +79,7 @@ function LMSolver(
     mν∇fk,
     Fk,
     Fkn,
-    Jv, 
+    Jv,
     Jtv,
     ψ,
     xkn,
@@ -94,7 +91,7 @@ function LMSolver(
     u_bound_m_x,
     subsolver,
     subpb,
-    substats
+    substats,
   )
 end
 
@@ -166,12 +163,7 @@ Notably, you can access, and modify, the following:
   - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention;
   - `stats.elapsed_time`: elapsed time in seconds.
 """
-function LM(
-  nls::AbstractNLSModel,
-  h::H,
-  options::ROSolverOptions;
-  kwargs...,
-) where {H}
+function LM(nls::AbstractNLSModel, h::H, options::ROSolverOptions; kwargs...) where {H}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nls.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nls.meta.x0)
@@ -207,7 +199,7 @@ function SolverCore.solve!(
   solver::LMSolver{T, G, V},
   reg_nls::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
-  callback = (args...) -> nothing, 
+  callback = (args...) -> nothing,
   x::V = reg_nls.model.meta.x0,
   nonlinear::Bool = true,
   atol::T = √eps(T),
@@ -344,19 +336,11 @@ function SolverCore.solve!(
   done = stats.status != :unknown
 
   while !done
-
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
     if isa(solver.subsolver, R2Solver) #FIXME
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats,
-        x = s,
-        atol = sub_atol,
-        ν = ν,
-      )
+      solve!(solver.subsolver, solver.subpb, solver.substats, x = s, atol = sub_atol, ν = ν)
     else
       solve!(
         solver.subsolver,
@@ -402,7 +386,7 @@ function SolverCore.solve!(
         ],
         colsep = 1,
       )
-    
+
     if η1 ≤ ρk < Inf
       xk .= xkn
 
@@ -473,24 +457,11 @@ function SolverCore.solve!(
     callback(nls, solver, stats)
 
     done = stats.status != :unknown
-
   end
-  
+
   if verbose > 0 && stats.status == :first_order
     @info log_row(
-      Any[
-        stats.iter,
-        0,
-        fk,
-        hk,
-        sqrt_ξ1_νInv,
-        ρk,
-        σk,
-        norm(xk),
-        norm(s),
-        1 / ν,
-        "",
-      ],
+      Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, ρk, σk, norm(xk), norm(s), 1 / ν, ""],
       colsep = 1,
     )
     @info "LM: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
