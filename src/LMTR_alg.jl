@@ -182,8 +182,10 @@ function LMTR(
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nls.meta.nvar))
   reg_nls = RegularizedNLPModel(nls, h, selected)
+  x0 = pop!(kwargs_dict, :x0, nls.meta.x0)
   return LMTR(
     reg_nls;
+    x = x0,
     χ = χ,
     atol = options.ϵa,
     rtol = options.ϵr,
