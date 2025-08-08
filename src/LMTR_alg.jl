@@ -134,19 +134,20 @@ For advanced usage, first define a solver "LMSolver" to preallocate the memory u
 # Keyword arguments
 - `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = √eps(T)`: absolute tolerance;
+- `sub_atol::T = atol`: subsolver absolute tolerance;
 - `rtol::T = √eps(T)`: relative tolerance;
 - `neg_tol::T = zero(T): negative tolerance;
 - `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
 - `max_iter::Int = 10000`: maximum number of iterations;
 - `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
-- `Δk::T = eps(T)`: minimum value of the regularization parameter;
+- `Δk::T = eps(T)`: initial value of the trust-region radius;
 - `η1::T = √√eps(T)`: successful iteration threshold;
 - `η2::T = T(0.9)`: very successful iteration threshold;
-- `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
+- `γ::T = T(3)`: trust-region radius parameter multiplier, Δ := Δ*γ when the iteration is very successful and Δ := Δ/γ when the iteration is unsuccessful;
 - `α::T = 1/eps(T)`: TODO
 - `β::T = 1/eps(T)`: TODO
-- `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
+- `χ =  NormLinf(1)`: norm used to define the trust-region;`
 - `subsolver::S = R2Solver`: subsolver used to solve the subproblem that appears at each iteration.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
@@ -178,14 +179,35 @@ function LMTR(
   options::ROSolverOptions;
   kwargs...
 ) where {H, X}
-
+  kwargs_dict = Dict(kwargs...)
+  selected = pop!(kwargs_dict, :selected, 1:(nls.meta.nvar))
+  reg_nls = RegularizedNLPModel(nls, h, selected)
+  return LMTR(
+    reg_nls;
+    χ = χ,
+    atol = options.ϵa,
+    rtol = options.ϵr,
+    neg_tol = options.neg_tol,
+    verbose = options.verbose,
+    max_iter = options.maxIter,
+    max_time = options.maxTime,
+    Δk = options.Δk,
+    η1 = options.η1,
+    η2 = options.η2,
+    γ = options.γ,
+    α = options.α,
+    β = options.β,
+    kwargs_dict...,
+  )
 end
 
-function LMTR(
-  reg_nls::AbstractRegularizedNLPModel;
-  kwargs...
-)
-
+function LMTR(reg_nls::AbstractRegularizedNLPModel{T}; kwargs...) where{T}
+  kwargs_dict = Dict(kwargs...)
+  subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
+  χ = pop!(kwargs_dict, :χ, NormLinf(one(T)))
+  solver = LMTRSolver(reg_nls, χ = χ, subsolver = subsolver)
+  stats = RegularizedExecutionStats(reg_nls)
+  solve!(solver, reg_nls, stats; kwargs_dict...)
 end
 
 function SolverCore.solve!(
