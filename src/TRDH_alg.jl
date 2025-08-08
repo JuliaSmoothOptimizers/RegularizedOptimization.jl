@@ -7,7 +7,7 @@ mutable struct TRDHSolver{
   G <: ShiftedProximableFunction,
   V <: AbstractVector{T},
   QN <: AbstractDiagonalQuasiNewtonOperator{T},
-  N
+  N,
 } <: AbstractOptimizationSolver
   xk::V
   ∇fk::V
@@ -29,7 +29,7 @@ end
 function TRDHSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
   D::Union{Nothing, AbstractDiagonalQuasiNewtonOperator} = nothing,
-  χ = NormLinf(one(T))
+  χ = NormLinf(one(T)),
 ) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
@@ -191,7 +191,7 @@ function TRDH(
     γ = options.γ,
     α = options.α,
     β = options.β,
-    kwargs_dict...
+    kwargs_dict...,
   )
   return stats
 end
@@ -227,7 +227,7 @@ function TRDH(
     γ = options.γ,
     α = options.α,
     β = options.β,
-    kwargs...
+    kwargs...,
   )
   return stats.solution, stats.iter, stats
 end
@@ -261,10 +261,10 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   γ::T = T(3),
   α::T = 1 / eps(T),
-  β::T = 1 / eps(T)
+  β::T = 1 / eps(T),
 ) where {T, G, V}
   reset!(stats)
-  
+
   # Retrieve workspace
   selected = reg_nlp.selected
   h = reg_nlp.h
@@ -363,18 +363,18 @@ function SolverCore.solve!(
 
   φ = let ∇fk = ∇fk, dk = dk
     d -> begin
-        result = zero(T)
-        n = length(d)
-        @inbounds for i = 1:n
-            result += d[i]^2 * dk[i] / 2 + ∇fk[i] * d[i]
-        end
-        result
+      result = zero(T)
+      n = length(d)
+      @inbounds for i = 1:n
+        result += d[i]^2 * dk[i] / 2 + ∇fk[i] * d[i]
+      end
+      result
     end
   end
   mk = let ψ = ψ
-      d -> φ(d) + ψ(d)::T
+    d -> φ(d) + ψ(d)::T
   end
-  
+
   if reduce_TR
     prox!(s, ψ, mν∇fk, ν)
     mks = mk1(s)
@@ -396,17 +396,17 @@ function SolverCore.solve!(
   else
     set_radius!(ψ, Δ_effective)
   end
-  
+
   iprox!(s, ψ, ∇fk, dk)
   ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
   sNorm = χ(s)
 
   if !reduce_TR
-      sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
-      solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < atol)
-      (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
+    sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
+    solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < atol)
+    (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
       error("TRDH: prox-gradient step should produce a decrease but ξ = $(ξ)")
-      atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative #TODO : this is redundant code with the other case of the test.
+    atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative #TODO : this is redundant code with the other case of the test.
   end
 
   set_status!(
@@ -428,7 +428,6 @@ function SolverCore.solve!(
   done = stats.status != :unknown
 
   while !done
-
     xkn .= xk .+ s
     fkn = obj(nlp, xkn)
     hkn = @views h(xkn[selected])
@@ -453,7 +452,7 @@ function SolverCore.solve!(
         ],
         colsep = 1,
       )
-  
+
     if η1 ≤ ρk < Inf
       xk .= xkn
       if has_bnds
@@ -494,7 +493,7 @@ function SolverCore.solve!(
 
     ν = reduce_TR ? (α * Δk)/(DNorm + one(T)) : α / (DNorm + one(T))
     mν∇fk .= -ν .* ∇fk
-    
+
     if reduce_TR
       prox!(s, ψ, mν∇fk, ν)
       ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
@@ -503,13 +502,13 @@ function SolverCore.solve!(
       (ξ1 < 0 && sqrt_ξ_νInv > neg_tol) &&
         error("TRDH: prox-gradient step should produce a decrease but ξ = $(ξ)")
     end
-    
+
     iprox!(s, ψ, ∇fk, dk)
 
     sNorm = χ(s)
 
     if !reduce_TR
-      ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps() 
+      ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
       sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
       solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < atol)
       (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
@@ -517,40 +516,29 @@ function SolverCore.solve!(
     end
 
     set_status!(
-    stats,
-    get_status(
-      reg_nlp,
-      elapsed_time = stats.elapsed_time,
-      iter = stats.iter,
-      optimal = solved,
-      improper = improper,
-      max_eval = max_eval,
-      max_time = max_time,
-      max_iter = max_iter,
+      stats,
+      get_status(
+        reg_nlp,
+        elapsed_time = stats.elapsed_time,
+        iter = stats.iter,
+        optimal = solved,
+        improper = improper,
+        max_eval = max_eval,
+        max_time = max_time,
+        max_iter = max_iter,
       ),
     )
 
-  callback(nlp, solver, stats)
+    callback(nlp, solver, stats)
 
-  done = stats.status != :unknown
+    done = stats.status != :unknown
   end
 
   if verbose > 0 && stats.status == :first_order
     @info log_row(
-        Any[
-          stats.iter,
-          fk,
-          hk,
-          sqrt_ξ_νInv,
-          ρk,
-          Δk,
-          χ(xk),
-          sNorm,
-          norm(D.d),
-          "",
-        ],
-        colsep = 1,
-      )
+      Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, Δk, χ(xk), sNorm, norm(D.d), ""],
+      colsep = 1,
+    )
     @info "TRDH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
   end
 
