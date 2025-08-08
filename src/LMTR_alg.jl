@@ -64,7 +64,7 @@ function LMTRSolver(
   end
 
   ψ =
-    has_bnds ? shifted(reg_nls.h, xk, max.(-one(T), l_bound_m_x), min.(one(T), u_bound_m_x), selected) :
+    has_bnds ? shifted(reg_nls.h, xk, max.(-one(T), l_bound_m_x), min.(one(T), u_bound_m_x), reg_nls.selected) :
     shifted(reg_nls.h, xk, one(T), χ)
   
   jprod! = let nls = reg_nls.model
