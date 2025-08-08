@@ -8,7 +8,7 @@ mutable struct TRSolver{
   V <: AbstractVector{T},
   N,
   ST <: AbstractOptimizationSolver,
-  PB <: AbstractRegularizedNLPModel
+  PB <: AbstractRegularizedNLPModel,
 } <: AbstractOptimizationSolver
   xk::V
   ∇fk::V
@@ -31,7 +31,7 @@ end
 function TRSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
   χ::X = NormLinf(one(T)),
-  subsolver = R2Solver
+  subsolver = R2Solver,
 ) where {T, V, X}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
@@ -55,7 +55,8 @@ function TRSolver(
   end
 
   ψ =
-    has_bnds || subsolver == TRDHSolver ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
+    has_bnds || subsolver == TRDHSolver ?
+    shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk, T(1), χ)
 
   Bk = hess_op(reg_nlp.model, x0)
@@ -161,7 +162,7 @@ function TR(
   x0::AbstractVector{R} = f.meta.x0,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
-  kwargs...
+  kwargs...,
 ) where {H, X, R}
   reg_nlp = RegularizedNLPModel(f, h, selected)
   stats = TR(
@@ -180,15 +181,12 @@ function TR(
     γ = options.γ,
     α = options.α,
     β = options.β,
-    kwargs...
+    kwargs...,
   )
   return stats
 end
 
-function TR(
-  reg_nlp::AbstractRegularizedNLPModel{T, V};
-  kwargs...
-) where{T, V}
+function TR(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
   kwargs_dict = Dict(kwargs...)
   subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
   χ = pop!(kwargs_dict, :χ, NormLinf(one(T)))
@@ -217,10 +215,10 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   γ::T = T(3),
   α::T = 1 / eps(T),
-  β::T = 1 / eps(T)
+  β::T = 1 / eps(T),
 ) where {T, G, V}
   reset!(stats)
-  
+
   # Retrieve workspace
   selected = reg_nlp.selected
   h = reg_nlp.h
@@ -355,7 +353,6 @@ function SolverCore.solve!(
   done = stats.status != :unknown
 
   while !done
-
     sub_atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv))
     ∆_effective = min(β * χ(s), Δk)
 
@@ -374,21 +371,21 @@ function SolverCore.solve!(
     if isa(solver.subsolver, TRDHSolver) #FIXME
       solver.subsolver.D.d[1] = 1/ν₁
       solve!(
-        solver.subsolver, 
-        solver.subpb, 
-        solver.substats; 
-        x = s, 
+        solver.subsolver,
+        solver.subpb,
+        solver.substats;
+        x = s,
         atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
-        Δk = ∆_effective / 10
-        )
-    else 
+        Δk = ∆_effective / 10,
+      )
+    else
       solve!(
-        solver.subsolver, 
-        solver.subpb, 
-        solver.substats; 
-        x = s, 
+        solver.subsolver,
+        solver.subpb,
+        solver.substats;
+        x = s,
         atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
-        ν  = ν₁,
+        ν = ν₁,
       )
     end
 
@@ -426,7 +423,7 @@ function SolverCore.solve!(
         ],
         colsep = 1,
       )
-  
+
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
       if !(has_bnds || isa(solver.subsolver, TRDHSolver))
@@ -487,7 +484,7 @@ function SolverCore.solve!(
 
     ν₁ = α * Δk / (1 + λmax * (α * Δk + 1))
     @. mν∇fk = -ν₁ * ∇fk
-    
+
     prox!(s, ψ, mν∇fk, ν₁)
     ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
@@ -497,16 +494,16 @@ function SolverCore.solve!(
       error("TR: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     set_status!(
-    stats,
-    get_status(
-      reg_nlp,
-      elapsed_time = stats.elapsed_time,
-      iter = stats.iter,
-      optimal = solved,
-      improper = improper,
-      max_eval = max_eval,
-      max_time = max_time,
-      max_iter = max_iter,
+      stats,
+      get_status(
+        reg_nlp,
+        elapsed_time = stats.elapsed_time,
+        iter = stats.iter,
+        optimal = solved,
+        improper = improper,
+        max_eval = max_eval,
+        max_time = max_time,
+        max_iter = max_iter,
       ),
     )
 
@@ -516,21 +513,9 @@ function SolverCore.solve!(
   end
   if verbose > 0 && stats.status == :first_order
     @info log_row(
-        Any[
-          stats.iter,
-          solver.substats.iter,
-          fk,
-          hk,
-          sqrt_ξ1_νInv,
-          ρk,
-          Δk,
-          χ(xk),
-          χ(s),
-          λmax,
-          "",
-        ],
-        colsep = 1,
-      )
+      Any[stats.iter, solver.substats.iter, fk, hk, sqrt_ξ1_νInv, ρk, Δk, χ(xk), χ(s), λmax, ""],
+      colsep = 1,
+    )
     @info "TR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
   end
 end
