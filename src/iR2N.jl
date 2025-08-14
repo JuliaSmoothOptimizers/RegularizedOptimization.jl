@@ -547,7 +547,7 @@ function SolverCore.solve!(
       solver.ψ.h.context.prox_stats[2] / stats.iter,
     )
     set_solver_specific!(stats, :total_iters_prox, solver.ψ.h.context.prox_stats[3])
-    # set_solver_specific!(stats, :mean_iters_prox, solver.ψ.h.context.prox_stats[3] / stats.iter) #TODO: work on this line to specify iR2 prox calls and iR2N prox calls
+    set_solver_specific!(stats, :mean_iters_prox, solver.ψ.h.context.prox_stats[3] / stats.iter) #TODO: work on this line to specify iR2 prox calls and iR2N prox calls
   end
   set_solution!(stats, xk)
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
