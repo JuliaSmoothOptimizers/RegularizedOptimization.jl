@@ -305,7 +305,7 @@ function SolverCore.solve!(
 
   σk = max(1 / ν, σmin)
 
-  fk = obj(nlp, xk)
+  fk = obj(nlp, xk) #TODO : recompute if needed??
   grad!(nlp, xk, solver.∇fk)
   ∇fk⁻ .= solver.∇fk
 
