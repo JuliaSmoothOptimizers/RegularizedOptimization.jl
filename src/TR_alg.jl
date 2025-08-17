@@ -225,14 +225,9 @@ function SolverCore.solve!(
   has_bnds = solver.has_bnds
 
   if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
-    l_bound_m_x = solver.l_bound_m_x
-    u_bound_m_x = solver.u_bound_m_x
-    l_bound = solver.l_bound
-    u_bound = solver.u_bound
-    @. l_bound_m_x = l_bound - xk
-    @. u_bound_m_x = u_bound - xk
-    @. l_bound_m_x .= max.(l_bound_m_x, -Δk)
-    @. u_bound_m_x .= min.(u_bound_m_x, Δk)
+    l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
+    l_bound, u_bound = solver.l_bound, solver.u_bound
+    update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
     set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
     set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
   else
@@ -342,10 +337,7 @@ function SolverCore.solve!(
     ∆_effective = min(β * χ(s), Δk)
 
     if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
-      @. l_bound_m_x = l_bound - xk
-      @. u_bound_m_x = u_bound - xk
-      @. l_bound_m_x .= max.(l_bound_m_x, -∆_effective)
-      @. u_bound_m_x .= min.(u_bound_m_x, ∆_effective)
+      update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
       set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
       set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
     else
@@ -420,10 +412,7 @@ function SolverCore.solve!(
     if η1 ≤ ρk < Inf
       xk .= xkn
       if has_bnds || isa(solver.subsolver, TRDHSolver)
-        @. l_bound_m_x = l_bound - xk
-        @. u_bound_m_x = u_bound - xk
-        @. l_bound_m_x .= max.(l_bound_m_x, -Δk)
-        @. u_bound_m_x .= min.(u_bound_m_x, Δk)
+        update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
         set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
         set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
       end
@@ -447,10 +436,7 @@ function SolverCore.solve!(
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
       if has_bnds || isa(solver.subsolver, TRDHSolver)
-        @. l_bound_m_x = l_bound - xk
-        @. u_bound_m_x = u_bound - xk
-        @. l_bound_m_x .= max.(l_bound_m_x, -Δk)
-        @. u_bound_m_x .= min.(u_bound_m_x, Δk)
+        update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
         set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
         set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
       else

@@ -532,14 +532,3 @@ function SolverCore.solve!(
 
   return stats
 end
-
-# update l_bound_k and u_bound_k
-function update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δ)
-  if is_subsolver
-    @. l_bound_k = max(xk - Δ, l_bound)
-    @. u_bound_k = min(xk + Δ, u_bound)
-  else
-    @. l_bound_k = max(-Δ, l_bound - xk)
-    @. u_bound_k = min(Δ, u_bound - xk)
-  end
-end
