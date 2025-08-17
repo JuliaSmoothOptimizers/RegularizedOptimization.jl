@@ -118,7 +118,7 @@ For advanced usage, first define a solver "TRSolver" to preallocate the memory u
 - `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = √eps(T)`: absolute tolerance;
 - `rtol::T = √eps(T)`: relative tolerance;
-- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance;
+- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance (see stopping conditions below);
 - `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
 - `max_iter::Int = 10000`: maximum number of iterations;
