@@ -193,6 +193,7 @@ function SolverCore.solve!(
   rtol::T = √eps(T),
   neg_tol::T = eps(T)^(1 / 4),
   verbose::Int = 0,
+  subsolver_logger::Logging.AbstractLogger = Logging.SimpleLogger(),
   max_iter::Int = 10000,
   max_time::Float64 = 30.0,
   max_eval::Int = -1,
@@ -344,26 +345,27 @@ function SolverCore.solve!(
       set_radius!(solver.subsolver.ψ, ∆_effective)
       set_radius!(ψ, ∆_effective)
     end
-
-    if isa(solver.subsolver, TRDHSolver) #FIXME
-      solver.subsolver.D.d[1] = 1/ν₁
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats;
-        x = s,
-        atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
-        Δk = ∆_effective / 10,
-      )
-    else
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats;
-        x = s,
-        atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
-        ν = ν₁,
-      )
+    with_logger(subsolver_logger) do 
+      if isa(solver.subsolver, TRDHSolver) #FIXME
+        solver.subsolver.D.d[1] = 1/ν₁
+        solve!(
+          solver.subsolver,
+          solver.subpb,
+          solver.substats;
+          x = s,
+          atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
+          Δk = ∆_effective / 10,
+        )
+      else
+        solve!(
+          solver.subsolver,
+          solver.subpb,
+          solver.substats;
+          x = s,
+          atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
+          ν = ν₁,
+        )
+      end
     end
 
     s .= solver.substats.solution
