@@ -59,7 +59,7 @@ function TRSolver(
     shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk, T(1), χ)
 
-  Bk = hess_op(reg_nlp.model, x0)
+  Bk = isa(reg_nlp.model, QuasiNewtonModel) ? hess_op(reg_nlp.model, xk) : hess_op!(reg_nlp.model, xk, similar(xk))
   sub_nlp = R2NModel(Bk, ∇fk, zero(T), x0) #FIXME 
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
@@ -94,7 +94,7 @@ A trust-region method for the problem
     min f(x) + h(x)
 
 where f: ℝⁿ → ℝ has a Lipschitz-continuous gradient, and h: ℝⁿ → ℝ is
-lower semi-continuous, proper and prox-bounded.
+lower semi-continuous and proper.
 
 About each iterate xₖ, a step sₖ is computed as an approximate solution of
 
@@ -266,7 +266,6 @@ function SolverCore.solve!(
   end
   improper = (hk == -Inf)
   improper == true && @warn "TR: Improper term detected"
-  improper == true && return stats
 
   if verbose > 0
     @info log_header(
@@ -286,15 +285,14 @@ function SolverCore.solve!(
   end
 
   local ξ1::T
-  local ρk::T = zero(T)
+  local ρk = zero(T)
 
   fk = obj(nlp, xk)
   grad!(nlp, xk, ∇fk)
   ∇fk⁻ .= ∇fk
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
-  λmax::T = T(1)
-  solver.subpb.model.B = hess_op(nlp, xk)
+  λmax = T(1)
 
   λmax, found_λ = opnorm(solver.subpb.model.B)
   found_λ || error("operator norm computation failed")
@@ -324,6 +322,7 @@ function SolverCore.solve!(
   end
 
   prox!(s, ψ, mν∇fk, ν₁)
+  #println(solver.subpb.model.B*ones(length(xk)))
   ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
   ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
@@ -419,7 +418,7 @@ function SolverCore.solve!(
           χ(xk),
           sNorm,
           λmax,
-          (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "="),
+          (η2 ≤ ρk < Inf) ? '↗' : (ρk < η1 ? '↘' : '='),
         ],
         colsep = 1,
       )
@@ -452,8 +451,6 @@ function SolverCore.solve!(
         @. ∇fk⁻ = ∇fk - ∇fk⁻
         push!(nlp, s, ∇fk⁻) # update QN operator
       end
-
-      solver.subpb.model.B = hess_op(nlp, xk)
 
       λmax, found_λ = opnorm(solver.subpb.model.B)
       found_λ || error("operator norm computation failed")
