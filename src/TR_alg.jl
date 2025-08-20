@@ -127,8 +127,6 @@ For advanced usage, first define a solver "TRSolver" to preallocate the memory u
 - `η1::T = √√eps(T)`: successful iteration threshold;
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: trust-region radius parameter multiplier. Must satisfy `γ > 1`. The trust-region radius is updated as Δ := Δ*γ when the iteration is very successful and Δ := Δ/γ when the iteration is unsuccessful;
-- `α::T = 1/eps(T)`: TODO
-- `β::T = 1/eps(T)`: TODO
 - `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
 - `subsolver::S = R2Solver`: subsolver used to solve the subproblem that appears at each iteration.
 
@@ -165,8 +163,6 @@ function TR(
     η1 = options.η1,
     η2 = options.η2,
     γ = options.γ,
-    α = options.α,
-    β = options.β,
     kwargs...,
   )
   return stats
@@ -201,8 +197,6 @@ function SolverCore.solve!(
   η1::T = √√eps(T),
   η2::T = T(0.9),
   γ::T = T(3),
-  α::T = 1 / eps(T),
-  β::T = 1 / eps(T),
 ) where {T, G, V}
   reset!(stats)
 
@@ -268,6 +262,9 @@ function SolverCore.solve!(
 
   local ξ1::T
   local ρk = zero(T)
+
+  α = 1 / eps(T)
+  β = 1 / eps(T)
 
   fk = obj(nlp, xk)
   grad!(nlp, xk, ∇fk)
