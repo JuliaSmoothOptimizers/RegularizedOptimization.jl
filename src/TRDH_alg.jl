@@ -134,8 +134,6 @@ For advanced usage, first define a solver "TRDHSolver" to preallocate the memory
 - `η1::T = √√eps(T)`: successful iteration threshold;
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: trust-region radius parameter multiplier. Must satisfy `γ > 1`. The trust-region radius is updated as Δ := Δ*γ when the iteration is very successful and Δ := Δ/γ when the iteration is unsuccessful;
-- `α::T = 1/eps(T)`: TODO
-- `β::T = 1/eps(T)`: TODO
 - `reduce_TR::Bool = True`: TODO
 - `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
 - `D::L = nothing`: diagonal quasi-Newton approximation used for the model φ. If nothing is provided and `reg_nlp.model` is not a diagonal quasi-Newton approximation, a spectral gradient approximation is used.`
@@ -175,8 +173,6 @@ function TRDH(
     η1 = options.η1,
     η2 = options.η2,
     γ = options.γ,
-    α = options.α,
-    β = options.β,
     kwargs_dict...,
   )
   return stats
@@ -211,8 +207,6 @@ function TRDH(
     η1 = options.η1,
     η2 = options.η2,
     γ = options.γ,
-    α = options.α,
-    β = options.β,
     kwargs...,
   )
   return stats.solution, stats.iter, stats
@@ -246,8 +240,6 @@ function SolverCore.solve!(
   η1::T = √√eps(T),
   η2::T = T(0.9),
   γ::T = T(3),
-  α::T = 1 / eps(T),
-  β::T = 1 / eps(T),
 ) where {T, G, V}
   reset!(stats)
 
@@ -319,6 +311,9 @@ function SolverCore.solve!(
 
   local ξ1::T
   local ρk::T = zero(T)
+
+  α = 1 / eps(T)
+  β = 1 / eps(T)
 
   fk = obj(nlp, xk)
   grad!(nlp, xk, ∇fk)
