@@ -223,7 +223,7 @@ function SolverCore.solve!(
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
   compute_opnorm::Bool = false,
-  sub_kwargs::Dict{Symbol} = Dict(),
+  sub_kwargs::Dict = Dict(),
 ) where {T, V, G}
   reset!(stats)
 
