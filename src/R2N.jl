@@ -138,7 +138,6 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
 - `compute_opnorm::Bool = false`: whether the operator norm of Bₖ should be computed at each iteration. If false, a Rayleigh quotient is computed instead. The first option causes the solver to converge in fewer iterations but the computational cost per iteration is larger;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
-- `sub_kwargs::Dict{Symbol}`: a dictionary containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
@@ -172,7 +171,6 @@ function R2N(
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
-  sub_kwargs = pop!(kwargs_dict, :sub_kwargs, Dict{Symbol, Any}())
   return R2N(
     reg_nlp,
     x = x0,
@@ -187,7 +185,6 @@ function R2N(
     η1 = options.η1,
     η2 = options.η2,
     γ = options.γ,
-    sub_kwargs = sub_kwargs;
     kwargs_dict...,
   )
 end
@@ -223,7 +220,6 @@ function SolverCore.solve!(
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
   compute_opnorm::Bool = false,
-  sub_kwargs::Dict = Dict(),
 ) where {T, V, G}
   reset!(stats)
 
@@ -366,11 +362,11 @@ function SolverCore.solve!(
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     if isa(solver.subsolver, R2Solver) #FIXME
-      sub_kwargs[:ν] = ν₁
+      solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, atol = sub_atol, ν = ν₁)
     else
-      sub_kwargs[:σk] = σk
+      solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, atol = sub_atol, σk = σk)
     end
-    solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, atol = sub_atol, sub_kwargs...)
+    
 
     s .= solver.substats.solution
 
