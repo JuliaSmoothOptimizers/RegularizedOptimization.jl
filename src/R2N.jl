@@ -181,7 +181,7 @@ function R2N(
     σk = options.σk,
     η1 = options.η1,
     η2 = options.η2,
-    γ = options.γ,
+    γ = options.γ;
     kwargs_dict...,
   )
 end
