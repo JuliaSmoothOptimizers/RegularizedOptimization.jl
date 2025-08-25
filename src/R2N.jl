@@ -49,7 +49,7 @@ function R2NSolver(
   s1 = similar(x0)
 
   v0 = randn(T, length(x0))
-  v0 /= norm(v0)
+  v0 ./= norm(v0)
 
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
   if has_bnds
