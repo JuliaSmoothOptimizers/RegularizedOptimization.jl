@@ -34,9 +34,9 @@ header-includes: |
 
 [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) is a Julia package that implements a family of regularization and trust-region type algorithms for solving unconstrained or composite nonsmooth optimization problems of the form
 
-\[
-\min_{x \in \mathbb{R}^n} \; f(x) + h(x),
-\]
+$$
+\min_{x \in \mathbb{R}^n} f(x) + h(x),
+$$
 
 where $f$ is typically smooth (possibly nonconvex) and $h$ is convex but possibly nonsmooth.
 The library provides a modular and extensible framework for experimenting with regularization-based methods such as:
