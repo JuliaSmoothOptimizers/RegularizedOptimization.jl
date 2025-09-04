@@ -32,7 +32,7 @@ header-includes: |
 
 # Summary
 
-[RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) is a Julia package that implements a family of regularization and trust-region type algorithms for solving unconstrained or composite nonsmooth optimization problems of the form
+[RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) is a Julia package that implements a family of regularization and trust-region type algorithms for solving unconstrained or composite nonsmooth optimization problems of the form [@aravkin-baraldi-orban-2022]:
 
 $$
 \min_{x \in \mathbb{R}^n} f(x) + h(x),
