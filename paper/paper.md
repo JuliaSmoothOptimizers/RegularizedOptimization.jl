@@ -14,7 +14,7 @@ authors:
     orcid: 0009-0008-3158-7912
     affiliation: 1
   - name: Mohamed Laghdaf Habiboullah^[corresponding author]
-    orcid: 0000-0003-3385-9379
+    orcid: 0009-0005-3631-2799
     affiliation: 1
   - name: Dominique Orban
     orcid: 0000-0002-8017-7687
@@ -41,13 +41,13 @@ Both $f$ and $h$ may be nonconvex.
 
 The library provides a modular and extensible framework for experimenting some nonsmooth nonconvex optimization algorithms, including:
 
-- **Trust-region methods (TR, TRDH)** [@aravkin-baraldi-orban-2022,@leconte-orban-2023],
-- **Quadratic regularization methods (R2, R2N)** [@diouane-habiboullah-orban-2024,@aravkin-baraldi-orban-2022],
+- **Trust-region methods (TR, TRDH)** [@aravkin-baraldi-orban-2022] and [@leconte-orban-2023],
+- **Quadratic regularization methods (R2, R2N)** [@diouane-habiboullah-orban-2024] and [@aravkin-baraldi-orban-2022],
 - **Levenbergh-Marquardt methods (LM, LMTR)** [@aravkin-baraldi-orban-2024].
 
 These methods rely solely on the gradient and Hessian(-vector) information of the smooth part $f$ and the proximal mapping of the nonsmooth part $h$ in order to compute steps.
 Then, the objective function $f + h$ is used only to accept or reject trial points.
-Moreover, they can handle cases where Hessian approximations are unbounded[@diouane-habiboullah-orban-2024,@leconte-orban-2023-2], making the package particularly suited for large-scale, ill-conditioned, and nonsmooth problems.
+Moreover, they can handle cases where Hessian approximations are unbounded[@diouane-habiboullah-orban-2024] and [@leconte-orban-2023-2], making the package particularly suited for large-scale, ill-conditioned, and nonsmooth problems.
 
 # Statement of need
 
@@ -77,7 +77,7 @@ The design of the package is motivated by recent advances in the complexity anal
 - **Model Hessians (quasi-Newton, diagonal approximations)** via [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl), which represents Hessians as linear operators and implements efficient Hessian–vector products.
 - **Definition of $h$** via [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl), which offers a large collection of nonsmooth terms $h$, and [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl), which provides shifted proximal mappings.
 
-This modularity makes it easy to prototype, benchmark, and extend regularization-based methods [@diouane-habiboullah-orban-2024,@aravkin-baraldi-orban-2022,@aravkin-baraldi-orban-2024,@leconte-orban-2023-2,@diouane-gollier-orban-2024].
+This modularity makes it easy to prototype, benchmark, and extend regularization-based methods [@diouane-habiboullah-orban-2024],[@aravkin-baraldi-orban-2022],[@aravkin-baraldi-orban-2024],[@leconte-orban-2023-2] and [@diouane-gollier-orban-2024].
 
 ## Support for inexact subproblem solves
 
