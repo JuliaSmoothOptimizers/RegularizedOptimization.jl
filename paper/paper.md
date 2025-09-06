@@ -55,7 +55,7 @@ Moreover, they can handle cases where Hessian approximations are unbounded[@diou
 
 There exists a way to solve \eqref{eq:nlp} in Julia via [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl).
 It implements several proximal algorithms for nonsmooth optimization.
-However, the available examples only consider convex instances of $h$, nmaely the $\ell_1$ norm and there are no tests for memory allocations.
+However, the available examples only consider convex instances of $h$, namely the $\ell_1$ norm and there are no tests for memory allocations.
 Moreover, it implements only one quasi-Newton method (L-BFGS) and does not support Hessian approximations via linear operators.
 In contrast, **RegularizedOptimization.jl** leverages [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl)[@leconte_linearoperators_jl_linear_operators_2023] to represent a variety of Hessian approximations, such as L-SR1, L-BFGS, and diagonal approximations.
 
@@ -77,7 +77,7 @@ The design of the package is motivated by recent advances in the complexity anal
 - **Model Hessians (quasi-Newton, diagonal approximations)** via [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl), which represents Hessians as linear operators and implements efficient Hessian–vector products.
 - **Definition of $h$** via [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl), which offers a large collection of nonsmooth terms $h$, and [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl), which provides shifted proximal mappings.
 
-This modularity makes it easy to prototype, benchmark, and extend regularization-based methods [@diouane-habiboullah-orban-2024],[@aravkin-baraldi-orban-2022],[@aravkin-baraldi-orban-2024],[@leconte-orban-2023-2] and [@diouane-gollier-orban-2024].
+This modularity makes it easy to prototype, benchmark, and extend regularization-based methods [@diouane-habiboullah-orban-2024],[@aravkin-baraldi-orban-2022],[@aravkin-baraldi-orban-2024] and[@leconte-orban-2023-2].
 
 ## Support for inexact subproblem solves
 

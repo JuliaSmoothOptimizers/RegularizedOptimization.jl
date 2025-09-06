@@ -7,8 +7,6 @@
   Number        = 2,
   Pages         = {900--929},
   doi           = {10.1137/21M1409536},
-  abstract      = { We develop a trust-region method for minimizing the sum of a smooth term (f) and a nonsmooth term (h), both of which can be nonconvex. Each iteration of our method minimizes a possibly nonconvex model of (f + h) in a trust region. The model coincides with (f + h) in value and subdifferential at the center. We establish global convergence to a first-order stationary point when (f) satisfies a smoothness condition that holds, in particular, when it has a Lipschitz-continuous gradient, and (h) is proper and lower semicontinuous. The model of (h) is required to be proper, lower semi-continuous and prox-bounded. Under these weak assumptions, we establish a worst-case (O(1/\epsilon^2)) iteration complexity bound that matches the best known complexity bound of standard trust-region methods for smooth optimization. We detail a special instance, named TR-PG, in which we use a limited-memory quasi-Newton model of (f) and compute a step with the proximal gradient method,
-                  resulting in a practical proximal quasi-Newton method. We establish similar convergence properties and complexity bound for a quadratic regularization variant, named R2, and provide an interpretation as a proximal gradient method with adaptive step size for nonconvex problems. R2 may also be used to compute steps inside the trust-region method, resulting in an implementation named TR-R2. We describe our Julia implementations and report numerical results on inverse problems from sparse optimization and signal processing. Both TR-PG and TR-R2 exhibit promising performance and compare favorably with two linesearch proximal quasi-Newton methods based on convex models. },
 }
 
 @Article{         aravkin-baraldi-orban-2024,
@@ -20,10 +18,6 @@
   Number        = 4,
   Pages         = {A2557--A2581},
   doi           = {10.1137/22M1538971},
-  preprint      = {https://www.gerad.ca/en/papers/G-2022-58/view},
-  grant         = nserc,
-  abstract      = { Abstract. We develop a Levenberg–Marquardt method for minimizing the sum of a smooth nonlinear least-squares term \(f(x) = \frac{1}{2} \|F(x)\|\_2^2\) and a nonsmooth term \(h\). Both \(f\) and \(h\) may be nonconvex. Steps are computed by minimizing the sum of a regularized linear least-squares model and a model of \(h\) using a first-order method such as the proximal gradient method. We establish global convergence to a first-order stationary point under the assu mptions that \(F\) and its Jacobian are Lipschitz continuous and \(h\) is proper and lower semicontinuous. In the worst case, our method performs \(O(\epsilon^{-2})\) iterations to bring a measure of stationarity below \(\epsilon \in (0, 1)\) . We also derive a trust-region variant that enjoys similar asymptotic worst-case iteration complexity as a special case of the trust-region algorithm of Aravkin, Baraldi, and Orban [SIAM J. Optim., 32 (2022), pp. 900–929]. We report numerica l results on three
-                  examples: a group-lasso basis-pursuit denoise example, a nonlinear support vector machine, and parameter estimation in a neuroscience application. To implement those examples, we describe in detail how to evaluate proximal operators for separable \(h\) and for the group lasso with trust-region constraint. In all cases, the Levenberg–Marquardt methods perform fewer outer iterations than either a proximal gradient method with adaptive step length or a quasi-Newto n trust-region method, neither of which exploit the least-squares structure of the problem. Our results also highlight the need for more sophisticated subproblem solvers than simple first-order methods. },
 }
 
 @Software{        leconte_linearoperators_jl_linear_operators_2023,
@@ -35,15 +29,15 @@
   Year          = 2023,
 }
 
-@TechReport{      leconte-orban-2023,
+@Article{         leconte-orban-2023,
   Author        = {G. Leconte and D. Orban},
   Title         = {The Indefinite Proximal Gradient Method},
-  Institution   = gerad,
-  Year          = 2023,
-  Type          = {Cahier},
-  Number        = {G-2023-37},
-  Address       = gerad-address,
-  doi           = {10.13140/RG.2.2.11836.41606},
+  Journal       = coap,
+  Year          = 2025,
+  Volume        = 91,
+  Number        = 2,
+  Pages         = 861--903,
+  doi           = {10.1007/s10589-024-00604-5},
 }
 
 @TechReport{      leconte-orban-2023-2,
