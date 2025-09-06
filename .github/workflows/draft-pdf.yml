@@ -4,6 +4,7 @@ on:
     branches:
       - paper
       - paper-draft
+      - paper-workflow
   pull_request:
     types: [opened, synchronize, reopened]
 
