@@ -1,7 +1,7 @@
 name: add artifact links to pr
 on:
   workflow_run:
-    workflows: ["demos"]
+    workflows: ["Build joss paper draft PDF"]
     types: [completed]
 
 jobs:
