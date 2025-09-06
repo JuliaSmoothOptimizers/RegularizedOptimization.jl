@@ -2,6 +2,7 @@ using LinearAlgebra: length
 using LinearAlgebra, Random, Test
 using ProximalOperators
 using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, SolverCore
+using ProxTV
 
 const global compound = 1
 const global nz = 10 * compound
