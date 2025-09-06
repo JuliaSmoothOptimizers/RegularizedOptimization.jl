@@ -13,9 +13,6 @@ using Percival: AugLagModel, update_y!, update_μ!
 
 include("utils.jl")
 include("input_struct.jl")
-include("PG_alg.jl")
-include("Fista_alg.jl")
-include("splitting.jl")
 include("TR_alg.jl")
 include("TRDH_alg.jl")
 include("R2_alg.jl")
