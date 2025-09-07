@@ -1,5 +1,5 @@
 ---
-title: 'RegularizedOptimization.jl: A Julia framework for regularization-based nonlinear optimization'
+title: 'RegularizedOptimization.jl: A Julia framework for regularized and nonsmooth optimization'
 tags:
   - Julia
   - nonsmooth optimization
