@@ -18,6 +18,7 @@ mutable struct R2NSolver{
   s::V
   s1::V
   has_bnds::Bool
+  store_h::Bool
   l_bound::V
   u_bound::V
   l_bound_m_x::V
@@ -32,6 +33,7 @@ function R2NSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
   subsolver = R2Solver,
   m_monotone::Int = 1,
+  store_h = false
 ) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
@@ -60,7 +62,15 @@ function R2NSolver(
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk)
 
-  Bk = hess_op(reg_nlp.model, x0)
+  store_h = isa(reg_nlp.model, QuasiNewtonModel) ? false : store_h
+
+  if !store_h
+    Bk = hess_op(reg_nlp.model, x0) 
+  else
+    rows, cols = hess_structure(reg_nlp.model)
+    vals = hess_coord(reg_nlp.model, x0)
+    Bk = SparseMatrixCOO(reg_nlp.model.meta.nvar, reg_nlp.model.meta.nvar, rows, cols, vals)
+  end
   sub_nlp = R2NModel(Bk, ∇fk, T(1), x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
@@ -76,6 +86,7 @@ function R2NSolver(
     s,
     s1,
     has_bnds,
+    store_h,
     l_bound,
     u_bound,
     l_bound_m_x,
@@ -106,7 +117,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀBₖs is a quadratic appr
 
 For advanced usage, first define a solver "R2NSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-    solver = R2NSolver(reg_nlp; m_monotone = 1)
+    solver = R2NSolver(reg_nlp; m_monotone = 1, store_h = false)
     solve!(solver, reg_nlp)
 
     stats = RegularizedExecutionStats(reg_nlp)
@@ -131,6 +142,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
+- `store_h::Bool = false`: whether the solver stores the Hessian or quasi-Newton approximation in sparse format or not. For quasi-Newton models, this should always be false. 
 - `sub_kwargs::Dict{Symbol}`: a dictionary containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
@@ -287,11 +299,15 @@ function SolverCore.solve!(
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
   λmax::T = T(1)
-  solver.subpb.model.B = hess_op(nlp, xk)
-
-  λmax, found_λ = opnorm(solver.subpb.model.B)
-  found_λ || error("operator norm computation failed")
-
+  if !solver.store_h 
+    solver.subpb.model.B = hess_op(nlp, xk)
+    λmax, found_λ = opnorm(solver.subpb.model.B)
+    found_λ || error("operator norm computation failed")
+  else
+    hess_coord!(nlp, xk, solver.subpb.model.B.vals)
+    λmax = opnorm(solver.subpb.model.B)
+  end
+  
   ν₁ = θ / (λmax + σk)
 
   sqrt_ξ1_νInv = one(T)
@@ -417,11 +433,15 @@ function SolverCore.solve!(
         @. ∇fk⁻ = ∇fk - ∇fk⁻
         push!(nlp, s, ∇fk⁻)
       end
-      solver.subpb.model.B = hess_op(nlp, xk)
-
-      λmax, found_λ = opnorm(solver.subpb.model.B)
-      found_λ || error("operator norm computation failed")
-
+      if !solver.store_h 
+        solver.subpb.model.B = hess_op(nlp, xk)
+        λmax, found_λ = opnorm(solver.subpb.model.B)
+        found_λ || error("operator norm computation failed")
+      else
+        hess_coord!(nlp, xk, solver.subpb.model.B.vals)
+        λmax = opnorm(solver.subpb.model.B)
+      end
+      
       ∇fk⁻ .= ∇fk
     end
 

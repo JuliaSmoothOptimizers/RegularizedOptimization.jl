@@ -14,7 +14,7 @@ this model represents the smooth R2N subproblem:
 where `B` is either an approximation of the Hessian of `f` or the Hessian itself and `∇f` represents the gradient of `f` at `x0`.
 `σ > 0` is a regularization parameter and `v` is a vector of the same size as `x0` used for intermediary computations.
 """
-mutable struct R2NModel{T <: Real, V <: AbstractVector{T}, G <: AbstractLinearOperator{T}} <:
+mutable struct R2NModel{T <: Real, V <: AbstractVector{T}, G <: Union{AbstractLinearOperator{T}, AbstractMatrix{T}}} <:
                AbstractNLPModel{T, V}
   B::G
   ∇f::V
@@ -34,18 +34,35 @@ function R2NModel(B::G, ∇f::V, σ::T, x0::V) where {T, V, G}
   return R2NModel(B::G, ∇f::V, v::V, σ::T, meta, Counters())
 end
 
-function NLPModels.obj(nlp::R2NModel, x::AbstractVector)
+function NLPModels.obj(nlp::R2NModel{T, V, M}, x::V) where{T, V, M <: AbstractLinearOperator{T}}
   @lencheck nlp.meta.nvar x
   increment!(nlp, :neval_obj)
   mul!(nlp.v, nlp.B, x)
   return dot(nlp.v, x)/2 + dot(nlp.∇f, x) + nlp.σ * dot(x, x) / 2
 end
 
-function NLPModels.grad!(nlp::R2NModel, x::AbstractVector, g::AbstractVector)
+function NLPModels.obj(nlp::R2NModel{T, V, M}, x::V) where{T, V, M <: AbstractMatrix{T}}
+  @lencheck nlp.meta.nvar x
+  increment!(nlp, :neval_obj)
+  mul!(nlp.v, Symmetric(nlp.B,:L), x)
+  return dot(nlp.v, x)/2 + dot(nlp.∇f, x) + nlp.σ * dot(x, x) / 2
+end
+
+function NLPModels.grad!(nlp::R2NModel{T, V, M}, x::V, g::V) where{T, V, M <: AbstractLinearOperator{T}}
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_grad)
   mul!(g, nlp.B, x)
+  g .+= nlp.∇f
+  g .+= nlp.σ .* x
+  return g
+end
+
+function NLPModels.grad!(nlp::R2NModel{T, V, M}, x::V, g::V) where{T, V, M <: AbstractMatrix{T}}
+  @lencheck nlp.meta.nvar x
+  @lencheck nlp.meta.nvar g
+  increment!(nlp, :neval_grad)
+  mul!(g, Symmetric(nlp.B,:L), x)
   g .+= nlp.∇f
   g .+= nlp.σ .* x
   return g
