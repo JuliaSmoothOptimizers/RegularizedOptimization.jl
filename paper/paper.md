@@ -63,8 +63,8 @@ The package offers a consistent API to formulate optimization problems and apply
 It integrates seamlessly with the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) ecosystem, an academic organization for nonlinear optimization software development, testing, and benchmarking.
 Specifically, **RegularizedOptimization.jl** interoperates with:
 
-- **Definition of smooth problems $f$** via [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) @[orban-siqueira-nlpmodels-2020] which provides a standardized Julia API for representing nonlinear programming (NLP) problems.
-Large collections of such problems are available in [Cutest.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl) @[orban-siqueira-cutest-2020] and [OptimizationProblems.jl](https://github.com/JuliaSmoothOptimizers/OptimizationProblems.jl).
+- **Definition of smooth problems $f$** via [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) [@orban-siqueira-nlpmodels-2020] which provides a standardized Julia API for representing nonlinear programming (NLP) problems.
+Large collections of such problems are available in [Cutest.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl) [@orban-siqueira-cutest-2020] and [OptimizationProblems.jl](https://github.com/JuliaSmoothOptimizers/OptimizationProblems.jl) [@migot-orban-siqueira-optimizationproblems-2023].
 Another option is to use [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl), which provides instances commonly used in the nonsmooth optimization literature.
 - **Hessian approximations (quasi-Newton, diagonal approximations)** via [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl), which represents Hessians as linear operators and implements efficient Hessian–vector products.
 - **Definition of nonsmooth terms $h$** via [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl), which offers a large collection of nonsmooth functions, and [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl), which provides shifted proximal mappings for nonsmooth functions.
@@ -91,7 +91,7 @@ Even in low-dimensional settings, Julia may exhibit significantly slower perform
 
 # Examples
 
-A simple example is the solution of a regularized quadratic problem with an $\ell_1$ penalty, as described in @[aravkin-baraldi-orban-2022].
+A simple example is the solution of a regularized quadratic problem with an $\ell_1$ penalty, as described in [@aravkin-baraldi-orban-2022].
 Such problems are common in statistical learning and compressed sensing applications.The formulation is
 $$
   \min_{x \in \mathbb{R}^n} \ \tfrac{1}{2}\|Ax-b\|_2^2+\lambda\|x\|_0,
@@ -129,7 +129,7 @@ solve!(solver_r2dh, reg_nlp, stats, x = f.meta.x0, σk = 1.0, atol = 1e-8, rtol 
 
 ```
 
-Another example is the FitzHugh-Nagumo inverse problem with an $\ell_1$ penalty, as described in @[aravkin-baraldi-orban-2022] and @[aravkin-baraldi-orban-2024].
+Another example is the FitzHugh-Nagumo inverse problem with an $\ell_1$ penalty, as described in [@aravkin-baraldi-orban-2022] and [@aravkin-baraldi-orban-2024].
 
 ```julia
 using LinearAlgebra
