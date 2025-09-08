@@ -61,14 +61,8 @@ function LMSolver(reg_nls::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solv
     has_bnds ? shifted(reg_nls.h, xk, l_bound_m_x, u_bound_m_x, reg_nls.selected) :
     shifted(reg_nls.h, xk)
 
-  jprod! = let nls = reg_nls.model
-    (x, v, Jv) -> jprod_residual!(nls, x, v, Jv)
-  end
-  jt_prod! = let nls = reg_nls.model
-    (x, v, Jtv) -> jtprod_residual!(nls, x, v, Jtv)
-  end
-
-  sub_nlp = LMModel(jprod!, jt_prod!, Fk, T(1), xk)
+  Jk = jac_op_residual(reg_nls.model, xk)
+  sub_nlp = LMModel(Jk, Fk, T(1), xk)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -283,7 +277,7 @@ function SolverCore.solve!(
   jtprod_residual!(nls, xk, Fk, ∇fk)
   fk = dot(Fk, Fk) / 2
 
-  σmax, found_σ = opnorm(jac_op_residual!(nls, xk, Jv, Jtv))
+  σmax, found_σ = opnorm(solver.subpb.model.J)
   found_σ || error("operator norm computation failed")
   ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
   sqrt_ξ1_νInv = one(T)
@@ -407,7 +401,7 @@ function SolverCore.solve!(
 
       # update opnorm if not linear least squares
       if nonlinear == true
-        σmax, found_σ = opnorm(jac_op_residual!(nls, xk, Jv, Jtv))
+        σmax, found_σ = opnorm(solver.subpb.model.J)
         found_σ || error("operator norm computation failed")
       end
     end
