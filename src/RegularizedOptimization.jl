@@ -8,7 +8,7 @@ using Arpack, ProximalOperators
 
 # dependencies from us
 using LinearOperators,
-  NLPModels, NLPModelsModifiers, RegularizedProblems, ShiftedProximalOperators, SolverCore
+  ManualNLPModels, NLPModels, NLPModelsModifiers, RegularizedProblems, ShiftedProximalOperators, SolverCore
 using Percival: AugLagModel, update_y!, update_μ!
 
 const callback_docstring = "
