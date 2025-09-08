@@ -87,7 +87,7 @@ In contrast, many problems admit efficient implementations of Hessian–vector o
 
 ## In-place methods
 
-All solvers in **RegularizedOptimization.jl** are implemented in an in-place fashion, minimizing memory allocations and improving performance.
+All solvers in **RegularizedOptimization.jl** are implemented in an in-place fashion, minimizing memory allocations during the resolution process.
 
 # Examples
 
@@ -103,14 +103,20 @@ where $\lambda = 10^{-1}$ and $A \in \mathbb{R}^{m \times n}$, with $n = 784$ re
 ```julia
 using LinearAlgebra, Random
 using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, SolverCore
+using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
 using MLDatasets
 
 random_seed = 1234
 Random.seed!(random_seed)
 
-# Load the MNIST dataset
-model, _, _  = RegularizedProblems.svm_train_model()
+# Load MNIST from MLDatasets
+imgs, labels = MLDatasets.MNIST.traindata()
+
+# Use RegularizedProblems' preprocessing
+A, b = RegularizedProblems.generate_data(imgs, labels, (1, 7), false)
+
+# Build the models
+model, _, _ = RegularizedProblems.svm_model(A, b)
 
 # Define the Hessian approximation
 f = LBFGSModel(model)
@@ -135,12 +141,12 @@ Another example is the FitzHugh-Nagumo inverse problem with an $\ell_1$ penalty,
 
 ```julia
 using LinearAlgebra
-using DifferentialEquations, ProximalOperators
-using ADNLPModels, NLPModels, NLPModelsModifiers, RegularizedOptimization, RegularizedProblems
+using ProximalOperators
+using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
+using DifferentialEquations, ADNLPModels
 
-# Define the Fitzagerald Higgs problem
-data, _, _, _, _ = RegularizedProblems.FH_smooth_term()
-fh_model = ADNLPModel(misfit, ones(5))
+# Define the Fitzhugh-Nagumo problem
+model, _, _ = RegularizedProblems.fh_model()
 
 # Define the Hessian approximation
 f = LBFGSModel(fh_model)
