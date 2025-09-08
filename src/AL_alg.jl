@@ -299,7 +299,7 @@ function SolverCore.solve!(
     )
     solver.x .= subout.solution
     solver.cx .= solver.sub_model.cx
-    subiters += subout.iter
+    subiters = subout.iter
 
     # objective
     fx = obj(nlp, solver.x)
