@@ -53,13 +53,14 @@ Moreover, they can handle cases where Hessian approximations are unbounded[@diou
 
 ## Model-based framework for nonsmooth methods
 
-There exists a way to solve \eqref{eq:nlp} in Julia using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements first-order line search–based methods for composite optimization.
-These methods are generally splitting schemes that alternate between gradient steps on the smooth part $f$, or directions derived from it, and proximal steps on the nonsmooth part $h$.
+There exists a way to solve \eqref{eq:nlp} in Julia using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements in-place first-order line search–based methods for composite optimization.
+Most of these methods are generally splitting schemes that alternate between taking steps along the gradient of the smooth part $f$ (or quasi-Newton directions) and applying proximal steps on the nonsmooth part $h$.
+Currently, **ProximalAlgorithms.jl** provides only L-BFGS as a quasi-Newton option.
 By contrast, **RegularizedOptimization.jl** focuses on model-based approaches such as trust-region and regularization algorithms.
 As shown in [@aravkin-baraldi-orban-2022], model-based methods typically require fewer evaluations of the objective and its gradient than first-order line search methods, at the expense of solving more involved subproblems.
 Although these subproblems may require many proximal iterations, each proximal computation is inexpensive, making the overall approach efficient for large-scale problems.
 
-Building on this perspective, **RegularizedOptimization.jl** implements a broad class of regularization-based algorithms for solving problems of the form $f(x) + h(x)$, where $f$ is smooth and $h$ is nonsmooth.
+Building on this perspective, **RegularizedOptimization.jl** implements state-of-the-art regularization-based algorithms for solving problems of the form $f(x) + h(x)$, where $f$ is smooth and $h$ is nonsmooth.
 The package provides a consistent API to formulate optimization problems and apply different regularization methods.
 It integrates seamlessly with the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) ecosystem, an academic organization for nonlinear optimization software development, testing, and benchmarking.
 
