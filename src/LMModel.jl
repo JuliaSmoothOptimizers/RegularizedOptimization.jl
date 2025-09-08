@@ -16,10 +16,9 @@ where `J` is the Jacobian of `F` at `xk`, represented via matrix-free operations
 
 `σ > 0` is a regularization parameter and `v` is a vector of the same size as `F(xk)` used for intermediary computations.
 """
-mutable struct LMModel{T <: Real, V <: AbstractVector{T}, J <: Function, Jt <: Function} <:
+mutable struct LMModel{T <: Real, V <: AbstractVector{T}, Jac <: Union{AbstractMatrix, AbstractLinearOperator}} <:
                AbstractNLPModel{T, V}
-  j_prod!::J
-  jt_prod!::Jt
+  J::Jac
   F::V
   v::V
   xk::V
@@ -28,19 +27,19 @@ mutable struct LMModel{T <: Real, V <: AbstractVector{T}, J <: Function, Jt <: F
   counters::Counters
 end
 
-function LMModel(j_prod!::J, jt_prod!::Jt, F::V, σ::T, xk::V) where {T, V, J, Jt}
+function LMModel(J::Jac, F::V, σ::T, xk::V) where {T, V, Jac}
   meta = NLPModelMeta(
     length(xk),
     x0 = xk, # Perhaps we should add lvar and uvar as well here.
   )
   v = similar(F)
-  return LMModel(j_prod!, jt_prod!, F, v, xk, σ, meta, Counters())
+  return LMModel(J, F, v, xk, σ, meta, Counters())
 end
 
 function NLPModels.obj(nlp::LMModel, x::AbstractVector{T}) where {T}
   @lencheck nlp.meta.nvar x
   increment!(nlp, :neval_obj)
-  nlp.j_prod!(nlp.xk, x, nlp.v) # v = J(xk)x
+  mul!(nlp.v, nlp.J, x)
   nlp.v .+= nlp.F
   return (dot(nlp.v, nlp.v) + nlp.σ * dot(x, x)) / 2
 end
@@ -49,9 +48,9 @@ function NLPModels.grad!(nlp::LMModel, x::AbstractVector{T}, g::AbstractVector{T
   @lencheck nlp.meta.nvar x
   @lencheck nlp.meta.nvar g
   increment!(nlp, :neval_grad)
-  nlp.j_prod!(nlp.xk, x, nlp.v) # v = J(xk)x + F
+  mul!(nlp.v, nlp.J, x)
   nlp.v .+= nlp.F
-  nlp.jt_prod!(nlp.xk, nlp.v, g) # g = J^T(xk) v
+  mul!(g, nlp.J', nlp.v)
   @. g += nlp.σ .* x
   return g
 end
