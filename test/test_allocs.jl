@@ -65,5 +65,12 @@ end
         @test stats.status == :first_order
       end
     end
+    @testset "Augmented Lagrangian" begin
+      reg_nlp = RegularizedNLPModel(CUTEstModel("HS8"), h)
+      solver = ALSolver(reg_nlp)
+      stats = RegularizedExecutionStats(reg_nlp)
+      @test @wrappedallocs(solve!(solver, reg_nlp, stats, atol = 1e-3)) == 0
+      @test stats.status == :first_order
+    end
   end
 end
