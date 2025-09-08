@@ -67,14 +67,8 @@ function LMTRSolver(
     has_bnds ? shifted(reg_nls.h, xk, max.(-one(T), l_bound_m_x), min.(one(T), u_bound_m_x), reg_nls.selected) :
     shifted(reg_nls.h, xk, one(T), χ)
   
-  jprod! = let nls = reg_nls.model
-    (x, v, Jv) -> jprod_residual!(nls, x, v, Jv)
-  end
-  jt_prod! = let nls = reg_nls.model
-    (x, v, Jtv) -> jtprod_residual!(nls, x, v, Jtv)
-  end
-
-  sub_nlp = LMModel(jprod!, jt_prod!, Fk, T(0), xk)
+  Jk = jac_op_residual(reg_nls.model, xk)
+  sub_nlp = LMModel(Jk, Fk, T(0), xk)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -300,7 +294,7 @@ function SolverCore.solve!(
   jtprod_residual!(nls, xk, Fk, ∇fk)
   fk = dot(Fk, Fk) / 2
 
-  σmax, found_σ = opnorm(jac_op_residual!(nls, xk, Jv, Jtv))
+  σmax, found_σ = opnorm(solver.subpb.model.J)
   found_σ || error("operator norm computation failed")
   ν = α * Δk / (1 + σmax^2 * (α * Δk + 1))
   @. mν∇fk = -∇fk * ν
@@ -447,7 +441,7 @@ function SolverCore.solve!(
       shift!(ψ, xk)
       jtprod_residual!(nls, xk, Fk, ∇fk)
       
-      σmax, found_σ = opnorm(jac_op_residual!(nls, xk, Jv, Jtv))
+      σmax, found_σ = opnorm(solver.subpb.model.J)
       found_σ || error("operator norm computation failed")
     end
 
