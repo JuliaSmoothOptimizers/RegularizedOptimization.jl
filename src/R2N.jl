@@ -17,6 +17,7 @@ mutable struct R2NSolver{
   xkn::V
   s::V
   s1::V
+  v0::V
   has_bnds::Bool
   l_bound::V
   u_bound::V
@@ -44,6 +45,10 @@ function R2NSolver(
   xkn = similar(x0)
   s = similar(x0)
   s1 = similar(x0)
+
+  v0 = [(-1.0)^i for i in 0:(reg_nlp.model.meta.nvar-1)]
+  v0 ./= sqrt(reg_nlp.model.meta.nvar)
+
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
   if has_bnds
     l_bound_m_x = similar(xk)
@@ -75,6 +80,7 @@ function R2NSolver(
     xkn,
     s,
     s1,
+    v0,
     has_bnds,
     l_bound,
     u_bound,
@@ -130,8 +136,8 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
+- `compute_opnorm::Bool = false`: whether the operator norm of Bₖ should be computed at each iteration. If false, a Rayleigh quotient is computed instead. The first option causes the solver to converge in fewer iterations but the computational cost per iteration is larger;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
-- `sub_kwargs::Dict{Symbol}`: a dictionary containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
@@ -165,7 +171,6 @@ function R2N(
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
-  sub_kwargs = pop!(kwargs_dict, :sub_kwargs, Dict{Symbol, Any}())
   return R2N(
     reg_nlp,
     x = x0,
@@ -179,8 +184,7 @@ function R2N(
     σk = options.σk,
     η1 = options.η1,
     η2 = options.η2,
-    γ = options.γ,
-    sub_kwargs = sub_kwargs;
+    γ = options.γ;
     kwargs_dict...,
   )
 end
@@ -215,7 +219,7 @@ function SolverCore.solve!(
   γ::T = T(3),
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
-  sub_kwargs::Dict{Symbol} = Dict(),
+  compute_opnorm::Bool = false,
 ) where {T, V, G}
   reset!(stats)
 
@@ -287,9 +291,15 @@ function SolverCore.solve!(
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
   λmax::T = T(1)
+  found_λ = true
   solver.subpb.model.B = hess_op(nlp, xk)
 
-  λmax, found_λ = opnorm(solver.subpb.model.B)
+  if !compute_opnorm
+    mul!(solver.subpb.model.v, solver.subpb.model.B, solver.v0)
+    λmax = dot(solver.v0, solver.subpb.model.v)
+  else
+    λmax, found_λ = opnorm(solver.subpb.model.B)
+  end
   found_λ || error("operator norm computation failed")
 
   ν₁ = θ / (λmax + σk)
@@ -352,11 +362,11 @@ function SolverCore.solve!(
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     if isa(solver.subsolver, R2Solver) #FIXME
-      sub_kwargs[:ν] = ν₁
+      solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, atol = sub_atol, ν = ν₁)
     else
-      sub_kwargs[:σk] = σk
+      solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, atol = sub_atol, σk = σk)
     end
-    solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, atol = sub_atol, sub_kwargs...)
+    
 
     s .= solver.substats.solution
 
@@ -419,7 +429,13 @@ function SolverCore.solve!(
       end
       solver.subpb.model.B = hess_op(nlp, xk)
 
-      λmax, found_λ = opnorm(solver.subpb.model.B)
+      if !compute_opnorm
+        mul!(solver.subpb.model.v, solver.subpb.model.B, solver.v0)
+        λmax = dot(solver.v0, solver.subpb.model.v)
+      else
+        λmax, found_λ = opnorm(solver.subpb.model.B)
+      end
+      
       found_λ || error("operator norm computation failed")
 
       ∇fk⁻ .= ∇fk
