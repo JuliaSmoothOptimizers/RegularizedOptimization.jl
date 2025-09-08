@@ -301,7 +301,6 @@ function SolverCore.solve!(
   end
 
   prox!(s, ψ, mν∇fk, ν₁)
-  #println(solver.subpb.model.B*ones(length(xk)))
   ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
   ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
