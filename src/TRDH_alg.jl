@@ -190,7 +190,7 @@ function TRDH(
   selected::AbstractVector{<:Integer} = 1:length(x0),
   kwargs...,
 ) where {R <: Real, F, G, H, DQN <: AbstractDiagonalQuasiNewtonOperator, X}
-  nlp = FirstOrderModel(f, ∇f!, x0)
+  nlp = NLPModel(x0, f, grad=∇f!)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
   stats = TRDH(
     reg_nlp;
