@@ -2,9 +2,6 @@ export LM, LMSolver, solve!
 
 import SolverCore.solve!
 
-mutable struct TRDHSolver # FIXME
-end
-
 mutable struct LMSolver{
   T <: Real,
   G <: ShiftedProximableFunction,
