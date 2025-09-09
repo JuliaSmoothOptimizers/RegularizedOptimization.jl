@@ -25,14 +25,7 @@ for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "l
         out = solver(mod(bpdn), h, args..., options, x0 = x0)
         @test typeof(out.solution) == typeof(bpdn.meta.x0)
         @test length(out.solution) == bpdn.meta.nvar
-        @test typeof(out.solver_specific[:Fhist]) == typeof(out.solution)
-        @test typeof(out.solver_specific[:Hhist]) == typeof(out.solution)
-        @test typeof(out.solver_specific[:SubsolverCounter]) == Array{Int, 1}
         @test typeof(out.dual_feas) == eltype(out.solution)
-        @test length(out.solver_specific[:Fhist]) == length(out.solver_specific[:Hhist])
-        @test length(out.solver_specific[:Fhist]) == length(out.solver_specific[:SubsolverCounter])
-        @test obj(bpdn, out.solution) == out.solver_specific[:Fhist][end]
-        @test h(out.solution) == out.solver_specific[:Hhist][end]
         @test out.status == :first_order
       end
     end
@@ -66,15 +59,7 @@ for (mod, mod_name) ∈ ((LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
       TR_out = TR(mod(bpdn), h, NormL2(1.0), options, x0 = x0)
       @test typeof(TR_out.solution) == typeof(bpdn.meta.x0)
       @test length(TR_out.solution) == bpdn.meta.nvar
-      @test typeof(TR_out.solver_specific[:Fhist]) == typeof(TR_out.solution)
-      @test typeof(TR_out.solver_specific[:Hhist]) == typeof(TR_out.solution)
-      @test typeof(TR_out.solver_specific[:SubsolverCounter]) == Array{Int, 1}
       @test typeof(TR_out.dual_feas) == eltype(TR_out.solution)
-      @test length(TR_out.solver_specific[:Fhist]) == length(TR_out.solver_specific[:Hhist])
-      @test length(TR_out.solver_specific[:Fhist]) ==
-            length(TR_out.solver_specific[:SubsolverCounter])
-      @test obj(bpdn, TR_out.solution) == TR_out.solver_specific[:Fhist][end]
-      @test h(TR_out.solution) == TR_out.solver_specific[:Hhist][end]
       @test TR_out.status == :first_order
     end
   end

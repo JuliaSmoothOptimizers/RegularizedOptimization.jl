@@ -304,6 +304,8 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :sigma, σk)
+  set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
   φ1 = let ∇fk = ∇fk
@@ -439,6 +441,8 @@ function SolverCore.solve!(
     set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)
     set_solver_specific!(stats, :nonsmooth_obj, hk)
+    set_solver_specific!(stats, :sigma, σk)
+    set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
 
