@@ -511,10 +511,18 @@ function SolverCore.solve!(
   return stats
 end
 
-function _qn_grad_update_y!(nlp::AbstractNLPModel{T, V}, solver::R2NSolver{T, G, V}, stats::GenericExecutionStats) where{T, V, G}
-  @. solver.y = solver.∇fk - solver.∇fk⁻ 
+function _qn_grad_update_y!(
+  nlp::AbstractNLPModel{T, V},
+  solver::R2NSolver{T, G, V},
+  stats::GenericExecutionStats,
+) where {T, V, G}
+  @. solver.y = solver.∇fk - solver.∇fk⁻
 end
 
-function _qn_grad_copy!(nlp::AbstractNLPModel{T, V}, solver::R2NSolver{T, G, V}, stats::GenericExecutionStats) where{T, V,  G}
+function _qn_grad_copy!(
+  nlp::AbstractNLPModel{T, V},
+  solver::R2NSolver{T, G, V},
+  stats::GenericExecutionStats,
+) where {T, V, G}
   solver.∇fk⁻ .= solver.∇fk
 end
