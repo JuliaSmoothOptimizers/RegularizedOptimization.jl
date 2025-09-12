@@ -1,4 +1,8 @@
-using Documenter, RegularizedOptimization
+using Documenter, DocumenterCitations 
+
+using RegularizedOptimization
+
+bib = CitationBibliography(joinpath(@__DIR__, "references.bib"))
 
 makedocs(
   modules = [RegularizedOptimization],
@@ -21,8 +25,10 @@ makedocs(
       joinpath("examples", "bpdn.md")
       joinpath("examples", "fh.md")
     ], 
-    "Reference" => "reference.md"
+    "Reference" => "reference.md",
+    "Bibliography" => "bibliography.md"
     ],
+    plugins = [bib],
 )
 
 deploydocs(
