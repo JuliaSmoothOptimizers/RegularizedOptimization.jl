@@ -10,7 +10,19 @@ makedocs(
     prettyurls = get(ENV, "CI", nothing) == "true",
   ),
   sitename = "RegularizedOptimization.jl",
-  pages = Any["Home" => "index.md", "Tutorial" => "tutorial.md", "Reference" => "reference.md"],
+  pages = [
+    "Home" => "index.md", 
+    "User guide" => [
+      joinpath("guide", "introduction.md"),
+      joinpath("guide", "algorithms.md"),
+      joinpath("guide", "custom.md")
+    ], 
+    "Examples" => [
+      joinpath("examples", "bpdn.md")
+      joinpath("examples", "fh.md")
+    ], 
+    "Reference" => "reference.md"
+    ],
 )
 
 deploydocs(
