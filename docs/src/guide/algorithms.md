@@ -69,5 +69,18 @@ Algorithm | Quadratic Regularization | Trust Region | Quadratic term for $\varph
 [`TRDH`](@ref TRDH) | No | Yes | Any Diagonal | [leconte-orban-2025; Algorithm 5.1](@cite)
 
 ## Nonlinear least-squares
+This package provides two algorithms, [`LM`](@ref LM) and [`LMTR`](@ref LMTR), specialized for regularized, nonlinear least-squares.
+That is, problems of the form
+```math
+\underset{x \in \mathbb{R}^n}{\text{minimize}} \quad \frac{1}{2} \frac{1}{2}\|F(x)\|_2^2 + h(x),
+```
+where $F : \mathbb{R}^n \mapsto \mathbb{R}^m$ is continuously differentiable and $h : \mathbb{R}^n \mapsto \mathbb{R} \cup \{\infty\}$ is lower semi-continuous.
+In that case, the model $\varphi$ is defined as 
+```math
+\varphi(s; x) = \frac{1}{2}\|F(x) + J(x)s\|_2^2,
+```
+where $J(x)$ is the Jacobian of $F$ at $x$.
+Similar to the algorithms in the previous section, we either add a quadratic regularization to the model ([`LM`](@ref LM)) or a trust-region ([`LMTR`](@ref LMTR)).
+These algorithms are described in [aravkin-baraldi-orban-2024](@cite).
 
 ## Constrained Optimization
