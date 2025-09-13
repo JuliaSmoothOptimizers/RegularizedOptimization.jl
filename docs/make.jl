@@ -8,7 +8,7 @@ makedocs(
   modules = [RegularizedOptimization],
   doctest = true,
   # linkcheck = true,
-  strict = true,
+  warnonly = [],
   format = Documenter.HTML(
     assets = ["assets/style.css"],
     prettyurls = get(ENV, "CI", nothing) == "true",
@@ -22,7 +22,7 @@ makedocs(
       joinpath("guide", "custom.md")
     ], 
     "Examples" => [
-      joinpath("examples", "bpdn.md")
+      joinpath("examples", "bpdn.md"),
       joinpath("examples", "fh.md")
     ], 
     "Reference" => "reference.md",
