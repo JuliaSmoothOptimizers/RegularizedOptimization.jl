@@ -8,7 +8,7 @@ makedocs(
   modules = [RegularizedOptimization],
   doctest = true,
   # linkcheck = true,
-  warnonly = [],
+  warnonly = false,
   format = Documenter.HTML(
     assets = ["assets/style.css"],
     prettyurls = get(ENV, "CI", nothing) == "true",
