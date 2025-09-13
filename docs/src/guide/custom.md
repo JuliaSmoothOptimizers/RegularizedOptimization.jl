@@ -1,1 +1,0 @@
-# [Custom Regularizers](@id custom_regularizers)
