@@ -1,22 +1,42 @@
 # RegularizedOptimization.jl
 
-This package implements a family of algorithms that aim to solve nonsmooth optimization problems of the form
+This package implements a family of algorithms to solve nonsmooth optimization problems of the form
+
 ```math
 \underset{x \in \mathbb{R}^n}{\text{minimize}} \quad f(x) + h(x),
 ```
-where $f : \mathbb{R}^n \mapsto \mathbb{R}$ is continuously differentiable and $h : \mathbb{R}^n \mapsto \mathbb{R} \cup \{\infty\}$ is lower semi-continuous.
-Both $f$ and $h$ can be nonconvex.
 
-All solvers implemented in this package are JuliaSmoothOptimizers-compliant. They take the smooth part `f` as an [`AbstractNLPModel`](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) and the regularizer `h` is based on the [`ShiftedProximableFunction`](https://github.com/MaxenceGollier/ShiftedProximalOperators.jl) API. 
-All solvers return a [`GenericExecutionStats`](https://github.com/JuliaSmoothOptimizers/SolverCore.jl/blob/16fc349908f46634f2c9acdddddb009b23634b71/src/stats.jl#L60).
-We refer to [jso.dev](https://jso.dev) for tutorials on the NLPModel API. This framework allows the usage of models from Ampl (using [AmplNLReader.jl](https://github.com/JuliaSmoothOptimizers/AmplNLReader.jl)), CUTEst (using [CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl)), JuMP (using [NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl)), PDE-constrained optimization problems (using [PDENLPModels.jl](https://github.com/JuliaSmoothOptimizers/PDENLPModels.jl)) and models defined with automatic differentiation (using [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl)).
+where $f : \mathbb{R}^n \to \mathbb{R}$ is continuously differentiable and $h : \mathbb{R}^n \to \mathbb{R} \cup \{\infty\}$ is lower semi-continuous and proper.
+Both $f$ and $h$ may be **nonconvex**.
+
+All solvers implemented in this package are **JuliaSmoothOptimizers-compliant**.  
+They take a [`RegularizedNLPModel`](https://jso.dev/RegularizedProblems.jl/dev/reference#RegularizedProblems.RegularizedNLPModel) as input and return a [`GenericExecutionStats`](https://jso.dev/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats).  
+
+A [`RegularizedNLPModel`](https://jso.dev/RegularizedProblems.jl/stable/reference#RegularizedProblems.RegularizedNLPModel) contains:  
+
+- a smooth component `f` represented as an [`AbstractNLPModel`](https://github.com/JuliaSmoothOptimizers/NLPModels.jl),  
+- a nonsmooth regularizer `h`.  
+
+We refer to [jso.dev](https://jso.dev) for tutorials on the `NLPModel` API. This framework allows the usage of models from  
+
+- AMPL ([AmplNLReader.jl](https://github.com/JuliaSmoothOptimizers/AmplNLReader.jl)),  
+- CUTEst ([CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl)),  
+- JuMP ([NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl)),  
+- PDE-constrained problems ([PDENLPModels.jl](https://github.com/JuliaSmoothOptimizers/PDENLPModels.jl)),  
+- models defined with automatic differentiation ([ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl)).
+
+We refer to [ManualNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ManualNLPModels.jl) for users interested in defining their own model.
+
+---
 
 ## Features
 
-All solvers in RegularizedOptimization.jl have in-place versions. 
-Users can preallocate a workspace for each solver and then use it to solve the problem without allocating memory.
-This is useful if a problem has to be solved multiple times.
-All solvers can work in any floating-point data type.
+- All solvers in RegularizedOptimization.jl have **in-place versions**.  
+  Users can preallocate a workspace and reuse it across solves to avoid memory allocations, which is useful in repetitive scenarios.  
+
+- Solvers work with any floating-point type.
+
+---
 
 ## How to Install
 
@@ -27,14 +47,12 @@ julia> ]
 pkg> add RegularizedOptimization
 ```
 
+---
+
 ## Bug reports and discussions
 
-If you think you found a bug, feel free to open an [issue](https://github.com/JuliaSmoothOptimizers/Krylov.jl/issues).
-Focused suggestions and requests can also be opened as issues. Before opening a pull request, start an issue or a discussion on the topic, please.
+If you think you found a bug, please open an [issue](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl/issues).  
+Focused suggestions and requests can also be opened as issues. Before opening a pull request, we recommend starting an issue or a discussion first.  
 
-If you want to ask a question not suited for a bug report, feel free to start a discussion [here](https://github.com/JuliaSmoothOptimizers/Organization/discussions). This forum is for general discussion about this repository and the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) organization, so questions about any of our packages are welcome.
-
-
-
-
-
+For general questions not suited for a bug report, feel free to start a discussion [here](https://github.com/JuliaSmoothOptimizers/Organization/discussions).  
+This forum is for questions and discussions about any of the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) packages.  
