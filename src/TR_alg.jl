@@ -59,7 +59,9 @@ function TRSolver(
     shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk, T(1), χ)
 
-  Bk = isa(reg_nlp.model, QuasiNewtonModel) ? hess_op(reg_nlp.model, xk) : hess_op!(reg_nlp.model, xk, similar(xk))
+  Bk =
+    isa(reg_nlp.model, QuasiNewtonModel) ? hess_op(reg_nlp.model, xk) :
+    hess_op!(reg_nlp.model, xk, similar(xk))
   sub_nlp = R2NModel(Bk, ∇fk, zero(T), x0) #FIXME 
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
@@ -341,7 +343,7 @@ function SolverCore.solve!(
       set_radius!(solver.subsolver.ψ, ∆_effective)
       set_radius!(ψ, ∆_effective)
     end
-    with_logger(subsolver_logger) do 
+    with_logger(subsolver_logger) do
       if isa(solver.subsolver, TRDHSolver) #FIXME
         solver.subsolver.D.d[1] = 1/ν₁
         solve!(
