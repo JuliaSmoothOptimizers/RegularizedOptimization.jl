@@ -58,7 +58,6 @@ end
 # LMTR with TRDH as subsolver
 for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
   @testset "bpdn-with-bounds-ls-LMTR-$(h_name)-TRDH" begin
-    continue # FIXME
     x0 = zeros(bpdn_nls2.meta.nvar)
     @test has_bounds(bpdn_nls2)
     LMTR_out = LMTR(
