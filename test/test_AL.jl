@@ -1,8 +1,7 @@
-problem_list = ["HS8",]
 
 @testset "Augmented Lagrangian" begin
-  for problem_name in problem_list
-    nlp = CUTEstModel(problem_name)
+  for problem in problem_list
+    nlp = eval(problem)(backend = :optimized)
     for h in (NormL1(1.0), NormL2(1.0))
       stats = AL(nlp, h, atol = 1e-3, verbose = 1)
       @test stats.status == :first_order
