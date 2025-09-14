@@ -4,7 +4,7 @@ problem_list = [:hs8]
 @testset "Augmented Lagrangian" begin
   for problem in problem_list
     nlp = eval(problem)(backend = :optimized)
-    for h in (NormL1(1.0))
+    for h in (NormL1(1.0),)
       stats = AL(nlp, h, atol = 1e-3, verbose = 1)
       @test stats.status == :first_order
       @test stats.primal_feas <= 1e-2
