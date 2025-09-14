@@ -66,7 +66,8 @@ end
       end
     end
     @testset "Augmented Lagrangian" begin
-      reg_nlp = RegularizedNLPModel(CUTEstModel("HS8"), h)
+      continue # FIXME : fails due to type instabilities in ADNLPModels...
+      reg_nlp = RegularizedNLPModel(hs8(backend = :generic), h)
       solver = ALSolver(reg_nlp)
       stats = RegularizedExecutionStats(reg_nlp)
       @test @wrappedallocs(solve!(solver, reg_nlp, stats, atol = 1e-3)) == 0

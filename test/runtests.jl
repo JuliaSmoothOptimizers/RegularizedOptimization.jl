@@ -1,7 +1,7 @@
 using LinearAlgebra: length
 using LinearAlgebra, Random, Test
 using ProximalOperators
-using CUTEst, NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, SolverCore
+using ADNLPModels, OptimizationProblems, OptimizationProblems.ADNLPProblems, NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, SolverCore
 
 const global compound = 1
 const global nz = 10 * compound
@@ -10,6 +10,7 @@ const global bpdn, bpdn_nls, sol = bpdn_model(compound)
 const global bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 
+include("test_allocs.jl")
 include("test_AL.jl")
 
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
