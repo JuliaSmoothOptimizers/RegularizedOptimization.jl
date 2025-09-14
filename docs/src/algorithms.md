@@ -60,3 +60,8 @@ Similar to the algorithms in the previous section, we either add a quadratic reg
 These algorithms are described in [aravkin-baraldi-orban-2024](@cite).
 
 ## Constrained Optimization
+For constrained, regularized optimization,
+```math
+\underset{x \in \mathbb{R}^n}{\text{minimize}} \quad f(x) + h(x) \quad \text{subject to} \ l \leq x \leq u \ \text{and} \ c(x) = 0,
+```
+an augmented Lagrangian method is provided, [`AL`](@ref AL).
