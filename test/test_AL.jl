@@ -1,4 +1,6 @@
 
+problem_list = [:hs8]
+
 @testset "Augmented Lagrangian" begin
   for problem in problem_list
     nlp = eval(problem)(backend = :optimized)
