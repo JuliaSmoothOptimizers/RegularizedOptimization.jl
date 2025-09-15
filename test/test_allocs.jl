@@ -59,7 +59,7 @@ end
         (solver_name == "R2DH" || solver_name == "R2N") && @test @wrappedallocs(
           solve!(solver, reg_nlp, stats, σk = 1.0, atol = 1e-6, rtol = 1e-6)
         ) == 0
-        solver_name == "TRDH" &&
+        (solver_name == "TRDH") &&
           @test @wrappedallocs(solve!(solver, reg_nlp, stats, atol = 1e-6, rtol = 1e-6)) == 0
         @test stats.status == :first_order
       end
