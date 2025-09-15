@@ -74,6 +74,48 @@ Finally, nonsmooth terms $h$ can be modeled using [ProximalOperators.jl](https:/
 
 This modularity makes it easy to benchmark existing solvers available in the repository [@diouane-habiboullah-orban-2024], [@aravkin-baraldi-orban-2022], [@aravkin-baraldi-orban-2024], and [@leconte-orban-2023-2].
 
+## Support for Hessians
+
+In contrast to first-order methods package like [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), **RegularizedOptimization.jl** enables the use of second-order information, which can significantly improve convergence rates, especially for ill-conditioned problems.
+A way to use Hessians is via automatic differentiation tools such as [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl).
+
+## Requirements of the ShiftedProximalOperators.jl package
+
+The nonsmooth part $h$ must have a computable proximal mapping, defined as
+$$\text{prox}_{h}(v) = \underset{x \in \mathbb{R}^n}{\arg\min} \left( h(x) + \frac{1}{2} \|x - v\|^2 \right).$$
+This requirement is satisfied by a wide range of nonsmooth functions commonly used in practice, such as the $\ell_1$ norm, the $\ell_0$ "norm", indicator functions of convex sets, and group sparsity-inducing norms.
+The package [ProximalOperators.jl](https://www.github.com/FirstOrder/ProximalOperators.jl) provides a comprehensive collection of such functions, along with their proximal mappings.
+The main difference between the proximal operators implemented in
+[ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl)
+is that those implemented here involve a translation of the nonsmooth term.
+Specifically, this package considers proximal operators defined as
+$$
+    argmin \, { \tfrac{1}{2} ‖t - q‖₂² + ν h(x + s + t) + χ(s + t; ΔB) | t ∈ ℝⁿ },
+$$
+where q is given, x and s are fixed shifts, h is the nonsmooth term with respect
+to which we are computing the proximal operator, and χ(.; ΔB) is the indicator of
+a ball of radius Δ defined by a certain norm.
+
+## Testing and documentation
+
+The package includes a comprehensive suite of unit tests that cover all functionalities, ensuring reliability and correctness.
+Extensive documentation is provided, including a user guide, API reference, and examples to help users get started quickly.
+Aqua.jl is used to test the package dependencies.
+Documentation is built using Documenter.jl.
+
+## Hyperparameter tuning
+
+The solvers in **RegularizedOptimization.jl** do not require extensive hyperparameter tuning.
+
+## Non-monotone strategies
+
+The solvers in **RegularizedOptimization.jl** implement non-monotone strategies to accept trial points, which can enhance convergence properties.
+
+## Application studies
+
+The package can be applied to the exact penality work by [@diouane-gollier-orban-2024] that addresses a problem where the model of the nonsmooth part is different from the function $h$.
+This is not covered in the current version of the competitive package [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl).
+
 ## Support for inexact subproblem solves
 
 Solvers in **RegularizedOptimization.jl** allow inexact resolution of trust-region and quadratic-regularized subproblems using first-order that are implemented in the package itself such as the quadratic regularization method R2[@aravkin-baraldi-orban-2022] and R2DH[@diouane-habiboullah-orban-2024] with trust-region variants TRDH[@leconte-orban-2023-2].
@@ -94,51 +136,7 @@ All solvers in **RegularizedOptimization.jl** are implemented in an in-place fas
 
 We consider two examples where the smooth part $f$ is nonconvex and the nonsmooth part $h$ is either the $\ell_0$ or $\ell_1$ norm.
 
-A first example addresses an image recognition task using a support vector machine (SVM) similar to those in [@aravkin-baraldi-orban-2022] and [@diouane-habiboullah-orban-2024].
-The formulation is
-$$
-\min_{x \in \mathbb{R}^n} \ \tfrac{1}{2} \|\mathbf{1} - \tanh(b \odot \langle A, x \rangle)\|^2 + \lambda \|x\|_0,
-$$  
-where $\lambda = 10^{-1}$ and $A \in \mathbb{R}^{m \times n}$, with $n = 784$ representing the vectorized size of each image and $m = 13{,}007$ is the number of images in the training dataset.
-
-```julia
-using LinearAlgebra, Random
-using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
-using MLDatasets
-
-random_seed = 1234
-Random.seed!(random_seed)
-
-# Load MNIST from MLDatasets
-imgs, labels = MLDatasets.MNIST.traindata()
-
-# Use RegularizedProblems' preprocessing
-A, b = RegularizedProblems.generate_data(imgs, labels, (1, 7), false)
-
-# Build the models
-model, _, _ = RegularizedProblems.svm_model(A, b)
-
-# Define the Hessian approximation
-f = LBFGSModel(model)
-
-# Define the nonsmooth regularizer (L0 norm)
-λ = 1.0e-1
-h = NormL0(λ)
-
-# Define the regularized NLP model
-reg_nlp = RegularizedNLPModel(f, h)
-
-# Choose a solver (R2DH) and execution statistics tracker
-solver_r2dh= R2DHSolver(reg_nlp)
-stats = RegularizedExecutionStats(reg_nlp)
-
-# Solve the problem 
-solve!(solver_r2dh, reg_nlp, stats, x = f.meta.x0, σk = 1e-6, atol = 2e-5, rtol = 2e-5, verbose = 1)
-
-```
-
-Another example is the FitzHugh-Nagumo inverse problem with an $\ell_1$ penalty, as described in [@aravkin-baraldi-orban-2022] and [@aravkin-baraldi-orban-2024].
+A first example is the FitzHugh-Nagumo inverse problem with an $\ell_1$ penalty, as described in [@aravkin-baraldi-orban-2022] and [@aravkin-baraldi-orban-2024].
 
 ```julia
 using LinearAlgebra
@@ -166,6 +164,22 @@ stats = RegularizedExecutionStats(reg_nlp)
 # Solve the problem
 solve!(solver_tr, reg_nlp, stats, x = f.meta.x0, atol = 1e-3, rtol = 1e-4, verbose = 10, ν = 1.0e+2)
 ```
+
+````
+=== Comparaison PANOC vs TR (FH_smooth_term) ===
+PANOC :
+  itérations         = 81
+  # f évaluations    = 188
+  # ∇f évaluations   = 188
+  # prox appels (g)  = 107
+  solution (≈)       = [-0.0, 0.19071674721048656, 1.037084478194805, -0.0, -0.0]
+
+TR :
+  statut             = first_order
+  # f évaluations    = 65
+  # ∇f évaluations   = 52
+  solution (≈)       = [0.0, 0.1910326406395867, 1.0357773976471938, 0.0, 0.0]
+  ````
 
 # Acknowledgements
 

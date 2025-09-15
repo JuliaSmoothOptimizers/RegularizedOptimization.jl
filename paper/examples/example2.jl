@@ -8,7 +8,7 @@ using ADNLPModels, NLPModels, NLPModelsModifiers, RegularizedOptimization, Regul
 model, _, _ = RegularizedProblems.fh_model()
 
 # Define the Hessian approximation
-f = LBFGSModel(fh_model)
+f = LBFGSModel(model)
 
 # Define the nonsmooth regularizer (L1 norm)
 λ = 0.1
