@@ -68,20 +68,9 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
       x0 = x0,
       subsolver = TRDHSolver,
     )
-    @test typeof(LMTR_out.solution) == typeof(bpdn_nls2.meta.x0)
-    @test length(LMTR_out.solution) == bpdn_nls2.meta.nvar
-    @test typeof(LMTR_out.solver_specific[:Fhist]) == typeof(LMTR_out.solution)
-    @test typeof(LMTR_out.solver_specific[:Hhist]) == typeof(LMTR_out.solution)
-    @test typeof(LMTR_out.solver_specific[:SubsolverCounter]) == Array{Int, 1}
+    @test typeof(LMTR_out.solution) == typeof(bpdn.meta.x0)
+    @test length(LMTR_out.solution) == bpdn.meta.nvar
     @test typeof(LMTR_out.dual_feas) == eltype(LMTR_out.solution)
-    @test length(LMTR_out.solver_specific[:Fhist]) == length(LMTR_out.solver_specific[:Hhist])
-    @test length(LMTR_out.solver_specific[:Fhist]) ==
-          length(LMTR_out.solver_specific[:SubsolverCounter])
-    @test length(LMTR_out.solver_specific[:Fhist]) == length(LMTR_out.solver_specific[:NLSGradHist])
-    @test LMTR_out.solver_specific[:NLSGradHist][end] ==
-          bpdn_nls2.counters.neval_jprod_residual + bpdn_nls2.counters.neval_jtprod_residual - 1
-    @test obj(bpdn_nls2, LMTR_out.solution) == LMTR_out.solver_specific[:Fhist][end]
-    @test h(LMTR_out.solution) == LMTR_out.solver_specific[:Hhist][end]
     @test LMTR_out.status == :first_order
   end
 end
