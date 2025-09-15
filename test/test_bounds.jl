@@ -66,8 +66,7 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
       NormLinf(1.0),
       options,
       x0 = x0,
-      subsolver = TRDH,
-      subsolver_options = subsolver_options,
+      subsolver = TRDHSolver,
     )
     @test typeof(LMTR_out.solution) == typeof(bpdn_nls2.meta.x0)
     @test length(LMTR_out.solution) == bpdn_nls2.meta.nvar

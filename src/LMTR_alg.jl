@@ -234,10 +234,11 @@ function SolverCore.solve!(
   s = solver.s
   has_bnds = solver.has_bnds
   if has_bnds
-    l_bound = solver.l_bound
-    u_bound = solver.u_bound
-    l_bound_m_x = solver.l_bound_m_x
-    u_bound_m_x = solver.u_bound_m_x
+    l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
+    l_bound, u_bound = solver.l_bound, solver.u_bound
+    update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
+    set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+    set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
   end
 
   # initialize parameters
@@ -309,7 +310,7 @@ function SolverCore.solve!(
   sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
   solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
   (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
-    error("LM: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    error("LMTR: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
   sub_atol += rtol * sqrt_ξ1_νInv
 
