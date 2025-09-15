@@ -1,7 +1,14 @@
 using LinearAlgebra: length
 using LinearAlgebra, Random, Test
 using ProximalOperators
-using ADNLPModels, OptimizationProblems, OptimizationProblems.ADNLPProblems, NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, SolverCore
+using ADNLPModels,
+  OptimizationProblems,
+  OptimizationProblems.ADNLPProblems,
+  NLPModels,
+  NLPModelsModifiers,
+  RegularizedProblems,
+  RegularizedOptimization,
+  SolverCore
 
 const global compound = 1
 const global nz = 10 * compound

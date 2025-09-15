@@ -156,12 +156,20 @@ function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {
   y = V(undef, ncon)
   has_bnds = has_bounds(nlp)
   sub_model = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
-  sub_problem = RegularizedNLPModel(sub_model, reg_nlp.h,reg_nlp.selected)
+  sub_problem = RegularizedNLPModel(sub_model, reg_nlp.h, reg_nlp.selected)
   sub_solver = R2Solver(reg_nlp; kwargs...)
   sub_stats = RegularizedExecutionStats(sub_problem)
   M = typeof(nlp)
   ST = typeof(sub_solver)
-  return ALSolver{T, V, M, typeof(sub_problem), ST}(x, cx, y, has_bnds, sub_problem, sub_solver, sub_stats)
+  return ALSolver{T, V, M, typeof(sub_problem), ST}(
+    x,
+    cx,
+    y,
+    has_bnds,
+    sub_problem,
+    sub_solver,
+    sub_stats,
+  )
 end
 
 @doc (@doc ALSolver) function AL(::Val{:equ}, reg_nlp::AbstractRegularizedNLPModel; kwargs...)
