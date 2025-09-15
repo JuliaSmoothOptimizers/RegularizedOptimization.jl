@@ -2,6 +2,19 @@ export RegularizedExecutionStats
 
 import SolverCore.GenericExecutionStats
 
+function power_method!(B::M, v₀::S, v₁::S, max_iter::Int = 1) where{M, S}
+  @assert max_iter >= 1 
+  mul!(v₁, B, v₀)
+  normalize!(v₁) # v1 = B*v0 / ‖B*v0‖
+  for i = 2:max_iter
+    v₀ .= v₁ # v0 = v1
+    mul!(v₁, B, v₀)
+    normalize!(v₁)
+  end
+  mul!(v₁, B, v₀)
+  return dot(v₀, v₁)
+end
+
 # use Arpack to obtain largest eigenvalue in magnitude with a minimum of robustness
 function LinearAlgebra.opnorm(B; kwargs...)
   m, n = size(B)

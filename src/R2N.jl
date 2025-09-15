@@ -139,7 +139,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
-- `compute_opnorm::Bool = false`: whether the operator norm of Bₖ should be computed at each iteration. If false, a Rayleigh quotient is computed instead. The first option causes the solver to converge in fewer iterations but the computational cost per iteration is larger;
+- `opnorm_maxiter::Int = 1`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
@@ -218,7 +218,7 @@ function SolverCore.solve!(
   γ::T = T(3),
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
-  compute_opnorm::Bool = false,
+  opnorm_maxiter::Int = 1,
   sub_kwargs::NamedTuple = NamedTuple(),
 ) where {T, V, G}
   reset!(stats)
@@ -295,12 +295,12 @@ function SolverCore.solve!(
   found_λ = true
   solver.subpb.model.B = hess_op(nlp, xk)
 
-  if !compute_opnorm
-    mul!(solver.subpb.model.v, solver.subpb.model.B, solver.v0)
-    λmax = dot(solver.v0, solver.subpb.model.v)
-  else
+  if opnorm_maxiter ≤ 0
     λmax, found_λ = opnorm(solver.subpb.model.B)
+  else
+    λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
   end
+  
   found_λ || error("operator norm computation failed")
 
   ν₁ = θ / (λmax + σk)
@@ -450,11 +450,10 @@ function SolverCore.solve!(
       end
       solver.subpb.model.B = hess_op(nlp, xk)
 
-      if !compute_opnorm
-        mul!(solver.subpb.model.v, solver.subpb.model.B, solver.v0)
-        λmax = dot(solver.v0, solver.subpb.model.v)
-      else
+      if opnorm_maxiter ≤ 0
         λmax, found_λ = opnorm(solver.subpb.model.B)
+      else
+        λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
       end
       
       found_λ || error("operator norm computation failed")
