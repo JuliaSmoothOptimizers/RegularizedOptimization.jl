@@ -487,4 +487,7 @@ function SolverCore.solve!(
     )
     @info "TR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
   end
+
+  set_solution!(stats, xk)
+  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
 end
