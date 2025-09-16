@@ -359,7 +359,7 @@ function SolverCore.solve!(
           norm(xk),
           norm(s),
           1 / ν,
-          (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
+          (η2 ≤ ρk < Inf) ? '↘' : (ρk < η1 ? '↗' : '='),
         ],
         colsep = 1,
       )
