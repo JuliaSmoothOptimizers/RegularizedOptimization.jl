@@ -134,7 +134,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
-- `sub_kwargs::Dict{Symbol}`: a dictionary containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver.
+- `sub_kwargs::NamedTuple`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
@@ -174,7 +174,7 @@ function R2N(
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
-  sub_kwargs = pop!(kwargs_dict, :sub_kwargs, Dict{Symbol, Any}())
+  sub_kwargs = pop!(kwargs_dict, :sub_kwargs, NamedTuple())
   return R2N(
     reg_nlp,
     x = x0,
@@ -226,7 +226,7 @@ function SolverCore.solve!(
   γ::T = T(3),
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
-  sub_kwargs::Dict{Symbol} = Dict(),
+  sub_kwargs::NamedTuple = NamedTuple(),
 ) where {T, V, G}
   reset!(stats)
 
@@ -365,11 +365,11 @@ function SolverCore.solve!(
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     if isa(solver.subsolver, R2Solver) #FIXME
-      sub_kwargs[:ν] = ν₁
+      solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, ν = ν₁, atol = sub_atol, sub_kwargs...)
     else
-      sub_kwargs[:σk] = σk
+      solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, σk = σk, atol = sub_atol, sub_kwargs...)
     end
-    solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, atol = sub_atol, sub_kwargs...)
+    
 
     s .= solver.substats.solution
 
