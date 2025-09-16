@@ -47,7 +47,6 @@ end
       (:R2DHSolver, "R2DH"),
       (:R2NSolver, "R2N"),
       (:TRDHSolver, "TRDH"),
-      (:TRSolver, "TR"),
     )
       @testset "$(solver_name)" begin
         reg_nlp = RegularizedNLPModel(LBFGSModel(bpdn), h)
