@@ -131,6 +131,7 @@ For advanced usage, first define a solver "TRSolver" to preallocate the memory u
 - `γ::T = T(3)`: trust-region radius parameter multiplier. Must satisfy `γ > 1`. The trust-region radius is updated as Δ := Δ*γ when the iteration is very successful and Δ := Δ/γ when the iteration is unsuccessful;
 - `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
 - `subsolver::S = R2Solver`: subsolver used to solve the subproblem that appears at each iteration.
+- `sub_kwargs::NamedTuple`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
@@ -199,6 +200,7 @@ function SolverCore.solve!(
   η1::T = √√eps(T),
   η2::T = T(0.9),
   γ::T = T(3),
+  sub_kwargs::NamedTuple = NamedTuple(),
 ) where {T, G, V}
   reset!(stats)
 
@@ -353,6 +355,7 @@ function SolverCore.solve!(
           x = s,
           atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
           Δk = ∆_effective / 10,
+          sub_kwargs...
         )
       else
         solve!(
@@ -362,6 +365,7 @@ function SolverCore.solve!(
           x = s,
           atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
           ν = ν₁,
+          sub_kwargs...
         )
       end
     end
