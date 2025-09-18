@@ -167,7 +167,6 @@ function R2N(
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
-  sub_kwargs = pop!(kwargs_dict, :sub_kwargs, NamedTuple())
   return R2N(
     reg_nlp,
     x = x0,
