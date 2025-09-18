@@ -365,11 +365,26 @@ function SolverCore.solve!(
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     if isa(solver.subsolver, R2Solver) #FIXME
-      solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, ν = ν₁, atol = sub_atol, sub_kwargs...)
+      solve!(
+        solver.subsolver,
+        solver.subpb,
+        solver.substats;
+        x = s1,
+        ν = ν₁,
+        atol = sub_atol,
+        sub_kwargs...,
+      )
     else
-      solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, σk = σk, atol = sub_atol, sub_kwargs...)
+      solve!(
+        solver.subsolver,
+        solver.subpb,
+        solver.substats;
+        x = s1,
+        σk = σk,
+        atol = sub_atol,
+        sub_kwargs...,
+      )
     end
-    
 
     s .= solver.substats.solution
 
