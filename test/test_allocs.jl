@@ -40,7 +40,7 @@ macro wrappedallocs(expr)
 end
 
 # Test non allocating solve!
-@testset "allocs" begin
+@testset "NLP allocs" begin
   for (h, h_name) ∈ ((NormL0(λ), "l0"),)
     for (solver, solver_name) ∈ (
       (:R2Solver, "R2"),
@@ -72,6 +72,21 @@ end
       stats = RegularizedExecutionStats(reg_nlp)
       @test @wrappedallocs(solve!(solver, reg_nlp, stats, atol = 1e-3)) == 0
       @test stats.status == :first_order
+    end
+  end
+end
+
+@testset "NLS allocs" begin
+  for (h, h_name) ∈ ((NormL0(λ), "l0"),)
+    for (solver, solver_name) ∈ ((:LMSolver, "LM"), )
+      @testset "$(solver_name)" begin
+        solver_name == "LM" && continue #FIXME
+        reg_nlp = RegularizedNLPModel(bpdn_nls, h)
+        solver = eval(solver)(reg_nlp)
+        stats = RegularizedExecutionStats(reg_nlp)
+        @test @wrappedallocs(solve!(solver, reg_nlp, stats, σk = 1.0, atol = 1e-6, rtol = 1e-6)) == 0
+        @test stats.status == :first_order
+      end
     end
   end
 end
