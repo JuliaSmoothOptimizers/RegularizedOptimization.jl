@@ -32,7 +32,7 @@ header-includes: |
 
 # Summary
 
-[RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) is a Julia [@bezanson-edelman-karpinski-shah-2017] package that implements a family of regularization and trust-region type algorithms for solving nonsmooth optimization problems of the form:
+[RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) is a Julia [@bezanson-edelman-karpinski-shah-2017] package that implements a family of quadratic regularization and trust-region type algorithms for solving nonsmooth optimization problems of the form:
 \begin{equation}\label{eq:nlp}
     \underset{x \in \mathbb{R}^n}{\text{minimize}} \quad f(x) + h(x),
 \end{equation}
@@ -43,11 +43,11 @@ The library provides a modular and extensible framework for experimenting some n
 
 - **Trust-region methods (TR, TRDH)** [@aravkin-baraldi-orban-2022] and [@leconte-orban-2023],
 - **Quadratic regularization methods (R2, R2N)** [@diouane-habiboullah-orban-2024] and [@aravkin-baraldi-orban-2022],
-- **Levenbergh-Marquardt methods (LM, LMTR)** [@aravkin-baraldi-orban-2024].
+- **Levenberg-Marquardt methods (LM, LMTR)** [@aravkin-baraldi-orban-2024].
 
 These methods rely solely on the gradient and Hessian(-vector) information of the smooth part $f$ and the proximal mapping of the nonsmooth part $h$ in order to compute steps.
 Then, the objective function $f + h$ is used only to accept or reject trial points.
-Moreover, they can handle cases where Hessian approximations are unbounded[@diouane-habiboullah-orban-2024] and [@leconte-orban-2023-2], making the package particularly suited for large-scale, ill-conditioned, and nonsmooth problems.
+Moreover, they can handle cases where Hessian approximations are unbounded [@diouane-habiboullah-orban-2024] and [@leconte-orban-2023-2], making the package particularly suited for large-scale, ill-conditioned, and nonsmooth problems.
 
 # Statement of need
 
@@ -113,7 +113,7 @@ The solvers in **RegularizedOptimization.jl** implement non-monotone strategies 
 
 ## Application studies
 
-The package can be applied to the exact penality work by [@diouane-gollier-orban-2024] that addresses a problem where the model of the nonsmooth part is different from the function $h$.
+The package is used in the exact penalty work of [@diouane-gollier-orban-2024] to solve a problem where the model of the nonsmooth part differs from the function $h$.
 This is not covered in the current version of the competitive package [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl).
 
 ## Support for inexact subproblem solves
@@ -183,7 +183,7 @@ TR :
 
 # Acknowledgements
 
-Mohamed Laghdaf Habiboullah is supported by an excellence FRQNT grant,
-and Youssef Diouane and Dominique Orban are partially supported by an NSERC Discovery Grant.
+Mohamed Laghdaf Habiboullah is supported by an excellence FRQNT grant.
+Youssef Diouane and Dominique Orban are partially supported by an NSERC Discovery Grant.
 
 # References
