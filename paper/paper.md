@@ -39,11 +39,14 @@ header-includes: |
 where $f: \mathbb{R}^n \to \mathbb{R}$ is continuously differentiable on $\mathbb{R}^n$, and $h: \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ is lower semi-continuous.
 Both $f$ and $h$ may be nonconvex.
 
-The library provides a modular and extensible framework for experimenting some nonsmooth nonconvex optimization algorithms, including:
+The library provides a modular and extensible framework for experimenting with nonsmooth and nonconvex optimization algorithms, including:
 
 - **Trust-region methods (TR, TRDH)** [@aravkin-baraldi-orban-2022] and [@leconte-orban-2023],
 - **Quadratic regularization methods (R2, R2N)** [@diouane-habiboullah-orban-2024] and [@aravkin-baraldi-orban-2022],
 - **Levenberg-Marquardt methods (LM, LMTR)** [@aravkin-baraldi-orban-2024].
+- **Trust-region methods (TR, TRDH)** [@aravkin-baraldi-orban-2022;@leconte-orban-2023],
+- **Quadratic regularization methods (R2, R2N)** [@diouane-habiboullah-orban-2024;@aravkin-baraldi-orban-2022],
+- **Levenbergh-Marquardt methods (LM, LMTR)** [@aravkin-baraldi-orban-2024].
 
 These methods rely solely on the gradient and Hessian(-vector) information of the smooth part $f$ and the proximal mapping of the nonsmooth part $h$ in order to compute steps.
 Then, the objective function $f + h$ is used only to accept or reject trial points.
@@ -53,7 +56,7 @@ Moreover, they can handle cases where Hessian approximations are unbounded [@dio
 
 ## Model-based framework for nonsmooth methods
 
-There exists a way to solve \eqref{eq:nlp} in Julia using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements in-place first-order line search–based methods for composite optimization.
+There exists a way to solve \eqref{eq:nlp} in Julia using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements in-place first-order line search–based methods for \eqref{eq:nlp}.
 Most of these methods are generally splitting schemes that alternate between taking steps along the gradient of the smooth part $f$ (or quasi-Newton directions) and applying proximal steps on the nonsmooth part $h$.
 Currently, **ProximalAlgorithms.jl** provides only L-BFGS as a quasi-Newton option.
 By contrast, **RegularizedOptimization.jl** focuses on model-based approaches such as trust-region and regularization algorithms.
@@ -72,7 +75,7 @@ On the other hand, Hessian approximations of these functions, including quasi-Ne
 
 Finally, nonsmooth terms $h$ can be modeled using [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl), which provides a broad collection of nonsmooth functions, together with [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl), which provides shifted proximal mappings for nonsmooth functions.
 
-This modularity makes it easy to benchmark existing solvers available in the repository [@diouane-habiboullah-orban-2024], [@aravkin-baraldi-orban-2022], [@aravkin-baraldi-orban-2024], and [@leconte-orban-2023-2].
+This modularity makes it easy to benchmark existing solvers available in the repository [@diouane-habiboullah-orban-2024;@aravkin-baraldi-orban-2022;@aravkin-baraldi-orban-2024;@leconte-orban-2023-2].
 
 ## Support for Hessians
 
@@ -83,7 +86,7 @@ A way to use Hessians is via automatic differentiation tools such as [ADNLPModel
 
 The nonsmooth part $h$ must have a computable proximal mapping, defined as
 $$\text{prox}_{h}(v) = \underset{x \in \mathbb{R}^n}{\arg\min} \left( h(x) + \frac{1}{2} \|x - v\|^2 \right).$$
-This requirement is satisfied by a wide range of nonsmooth functions commonly used in practice, such as the $\ell_1$ norm, the $\ell_0$ "norm", indicator functions of convex sets, and group sparsity-inducing norms.
+This requirement is satisfied by a wide range of nonsmooth functions commonly used in practice, such as $\ell_1$ norm, $\ell_0$ "norm", indicator functions of convex sets, and group sparsity-inducing norms.
 The package [ProximalOperators.jl](https://www.github.com/FirstOrder/ProximalOperators.jl) provides a comprehensive collection of such functions, along with their proximal mappings.
 The main difference between the proximal operators implemented in
 [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl)
@@ -95,6 +98,9 @@ $$
 where q is given, x and s are fixed shifts, h is the nonsmooth term with respect
 to which we are computing the proximal operator, and χ(.; ΔB) is the indicator of
 a ball of radius Δ defined by a certain norm.
+
+![Composition of JSO packages](jso-packages.pdf){ width=70% }
+
 
 ## Testing and documentation
 
@@ -134,7 +140,7 @@ All solvers in **RegularizedOptimization.jl** are implemented in an in-place fas
 
 # Examples
 
-We consider two examples where the smooth part $f$ is nonconvex and the nonsmooth part $h$ is either the $\ell_0$ or $\ell_1$ norm.
+We consider two examples where the smooth part $f$ is nonconvex and the nonsmooth part $h$ is either $\ell_0$ or $\ell_1$ norm.
 
 A first example is the FitzHugh-Nagumo inverse problem with an $\ell_1$ penalty, as described in [@aravkin-baraldi-orban-2022] and [@aravkin-baraldi-orban-2024].
 
@@ -162,7 +168,7 @@ solver_tr = TRSolver(reg_nlp)
 stats = RegularizedExecutionStats(reg_nlp)
 
 # Solve the problem
-solve!(solver_tr, reg_nlp, stats, x = f.meta.x0, atol = 1e-3, rtol = 1e-4, verbose = 10, ν = 1.0e+2)
+solve!(solver_tr, reg_nlp, stats, x = f.meta.x0, atol = 1e-3, rtol = 1e-4, verbose = 10)
 ```
 
 ````
