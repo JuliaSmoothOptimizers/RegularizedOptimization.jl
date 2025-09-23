@@ -12,7 +12,7 @@ function power_method!(B::M, v₀::S, v₁::S, max_iter::Int = 1) where{M, S}
     normalize!(v₁)
   end
   mul!(v₁, B, v₀)
-  return dot(v₀, v₁)
+  return abs(dot(v₀, v₁))
 end
 
 # use Arpack to obtain largest eigenvalue in magnitude with a minimum of robustness
