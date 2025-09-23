@@ -366,7 +366,7 @@ function SolverCore.solve!(
           x = s,
           atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
           Δk = ∆_effective / 10,
-          sub_kwargs...
+          sub_kwargs...,
         )
       else
         solve!(
@@ -376,7 +376,7 @@ function SolverCore.solve!(
           x = s,
           atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
           ν = ν₁,
-          sub_kwargs...
+          sub_kwargs...,
         )
       end
     end
