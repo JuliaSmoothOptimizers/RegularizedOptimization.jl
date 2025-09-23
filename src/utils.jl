@@ -3,7 +3,7 @@ export RegularizedExecutionStats
 import SolverCore.GenericExecutionStats
 
 function power_method!(B::M, v₀::S, v₁::S, max_iter::Int = 1) where{M, S}
-  @assert max_iter >= 1 
+  @assert max_iter >= 1 "max_iter must be at least 1."
   mul!(v₁, B, v₀)
   normalize!(v₁) # v1 = B*v0 / ‖B*v0‖
   for i = 2:max_iter
