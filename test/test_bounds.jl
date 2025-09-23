@@ -92,8 +92,7 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"),)
   @testset "bpdn-with-bounds-ls-LM-$(h_name)-R2DH" begin
     x0 = zeros(bpdn_nls2.meta.nvar)
     @test has_bounds(bpdn_nls2)
-    LM_out =
-      LM(bpdn_nls2, h, options, x0 = x0, subsolver = R2DHSolver)#, subsolver_options = subsolver_options)
+    LM_out = LM(bpdn_nls2, h, options, x0 = x0, subsolver = R2DHSolver)#, subsolver_options = subsolver_options)
     @test typeof(LM_out.solution) == typeof(bpdn.meta.x0)
     @test length(LM_out.solution) == bpdn.meta.nvar
     @test typeof(LM_out.dual_feas) == eltype(LM_out.solution)
