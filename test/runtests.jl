@@ -10,6 +10,7 @@ using ADNLPModels,
   RegularizedOptimization,
   SolverCore
 
+Random.seed!(0)
 const global compound = 1
 const global nz = 10 * compound
 const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10)
