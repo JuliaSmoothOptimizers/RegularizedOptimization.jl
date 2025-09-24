@@ -403,8 +403,8 @@ function SolverCore.solve!(
       if has_bnds
         @. l_bound_m_x = l_bound - xk
         @. u_bound_m_x = u_bound - xk
-        @. l_bound_m_x .= max.(l_bound_m_x, -∆_effective)
-        @. u_bound_m_x .= min.(u_bound_m_x, ∆_effective)
+        @. l_bound_m_x .= max.(l_bound_m_x, -Δk)
+        @. u_bound_m_x .= min.(u_bound_m_x, Δk)
         set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
         set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
       end
