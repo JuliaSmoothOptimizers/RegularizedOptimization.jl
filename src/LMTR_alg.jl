@@ -400,7 +400,7 @@ function SolverCore.solve!(
           χ(xk),
           sNorm,
           ν,
-          (η2 ≤ ρk < Inf) ? "↗" : (ρk < η1 ? "↘" : "="),
+          (η2 ≤ ρk < Inf) ? '↗' : (ρk < η1 ? '↘' : '='),
         ],
         colsep = 1,
       )
