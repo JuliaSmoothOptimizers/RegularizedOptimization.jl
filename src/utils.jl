@@ -114,6 +114,6 @@ function RegularizedExecutionStats(reg_nlp::AbstractRegularizedNLPModel{T, V}) w
   set_solver_specific!(stats, :sigma, T(Inf))
   set_solver_specific!(stats, :sigma_cauchy, T(Inf))
   set_solver_specific!(stats, :radius, T(Inf))
-  set_solver_specific!(stats, :prox_evals, T(Inf))
+  set_solver_specific!(stats, :prox_evals, Inf(Inf))
   return stats
 end
