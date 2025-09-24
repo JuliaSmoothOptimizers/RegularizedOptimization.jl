@@ -15,8 +15,6 @@ mutable struct LMTRSolver{
   mν∇fk::V
   Fk::V
   Fkn::V
-  Jv::V
-  Jtv::V
   ψ::G
   χ::N
   xkn::V
@@ -45,8 +43,6 @@ function LMTRSolver(
   mν∇fk = similar(x0)
   Fk = similar(x0, reg_nls.model.nls_meta.nequ)
   Fkn = similar(Fk)
-  Jv = similar(Fk)
-  Jtv = similar(x0)
   xkn = similar(x0)
   s = similar(x0)
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf)) || subsolver == TRDHSolver
@@ -76,8 +72,6 @@ function LMTRSolver(
     mν∇fk,
     Fk,
     Fkn,
-    Jv, 
-    Jtv,
     ψ,
     χ,
     xkn,
@@ -224,8 +218,6 @@ function SolverCore.solve!(
 
   Fk = solver.Fk
   Fkn = solver.Fkn
-  Jv = solver.Jv
-  Jtv = solver.Jtv
   ∇fk = solver.∇fk
   mν∇fk = solver.mν∇fk
   ψ = solver.ψ
