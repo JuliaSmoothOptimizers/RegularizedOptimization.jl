@@ -134,6 +134,7 @@ function LMTR(
   found_σ || error("operator norm computation failed")
   α⁻¹Δ⁻¹ = 1 / (α * Δk)
   ν = 1 / (α⁻¹Δ⁻¹ + σmax^2 * (α⁻¹Δ⁻¹ + 1)) # ‖J'J‖ = ‖J‖²
+  sqrt_ξ1_νInv = one(eltype(xk))
 
   mν∇fk = -∇fk * ν
 
@@ -178,14 +179,15 @@ function LMTR(
     prox!(s, ψ, mν∇fk, ν)
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
     ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
 
     if ξ1 ≥ 0 && k == 1
-      ϵ_increment = ϵr * sqrt(ξ1)
+      ϵ_increment = ϵr * sqrt_ξ1_νInv
       ϵ += ϵ_increment  # make stopping test absolute and relative
       ϵ_subsolver += ϵ_increment
     end
 
-    if sqrt(ξ1) < ϵ
+    if sqrt_ξ1_νInv < ϵ
       # the current xk is approximately first-order stationary
       optimal = true
       continue
@@ -276,7 +278,7 @@ function LMTR(
       #! format: off
       @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" Δk χ(xk) χ(s) ν
       #! format: on
-      @info "LMTR: terminating with √ξ1 = $(sqrt(ξ1))"
+      @info "LMTR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
     end
   end
 
