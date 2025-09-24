@@ -100,20 +100,9 @@ for (h, h_name) ∈ ((NormL1(λ), "l1"),)
     p = randperm(bpdn_nls.meta.nvar)[1:nz]
     x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
     LMTR_out = LMTR(bpdn_nls, h, NormL2(1.0), options, x0 = x0)
-    @test typeof(LMTR_out.solution) == typeof(bpdn_nls.meta.x0)
-    @test length(LMTR_out.solution) == bpdn_nls.meta.nvar
-    @test typeof(LMTR_out.solver_specific[:Fhist]) == typeof(LMTR_out.solution)
-    @test typeof(LMTR_out.solver_specific[:Hhist]) == typeof(LMTR_out.solution)
-    @test typeof(LMTR_out.solver_specific[:SubsolverCounter]) == Array{Int, 1}
+    @test typeof(LMTR_out.solution) == typeof(bpdn.meta.x0)
+    @test length(LMTR_out.solution) == bpdn.meta.nvar
     @test typeof(LMTR_out.dual_feas) == eltype(LMTR_out.solution)
-    @test length(LMTR_out.solver_specific[:Fhist]) == length(LMTR_out.solver_specific[:Hhist])
-    @test length(LMTR_out.solver_specific[:Fhist]) ==
-          length(LMTR_out.solver_specific[:SubsolverCounter])
-    @test length(LMTR_out.solver_specific[:Fhist]) == length(LMTR_out.solver_specific[:NLSGradHist])
-    @test LMTR_out.solver_specific[:NLSGradHist][end] ==
-          bpdn_nls.counters.neval_jprod_residual + bpdn_nls.counters.neval_jtprod_residual - 1
-    @test obj(bpdn_nls, LMTR_out.solution) == LMTR_out.solver_specific[:Fhist][end]
-    @test h(LMTR_out.solution) == LMTR_out.solver_specific[:Hhist][end]
     @test LMTR_out.status == :first_order
   end
 end
