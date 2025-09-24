@@ -278,7 +278,7 @@ function LMTR(
       #! format: off
       @info @sprintf "%6d %8d %8.1e %8.1e %7.1e %7.1e %8s %7.1e %7.1e %7.1e %7.1e" k 1 fk hk sqrt(ξ1) sqrt(ξ1) "" Δk χ(xk) χ(s) ν
       #! format: on
-      @info "LMTR: terminating with √ξ1 = $(sqrt(ξ1))"
+      @info "LMTR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
     end
   end
 
