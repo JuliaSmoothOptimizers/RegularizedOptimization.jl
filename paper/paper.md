@@ -41,16 +41,13 @@ Both $f$ and $h$ may be nonconvex.
 
 The library provides a modular and extensible framework for experimenting with nonsmooth and nonconvex optimization algorithms, including:
 
-- **Trust-region methods (TR, TRDH)** [@aravkin-baraldi-orban-2022] and [@leconte-orban-2023],
-- **Quadratic regularization methods (R2, R2N)** [@diouane-habiboullah-orban-2024] and [@aravkin-baraldi-orban-2022],
-- **Levenberg-Marquardt methods (LM, LMTR)** [@aravkin-baraldi-orban-2024].
 - **Trust-region methods (TR, TRDH)** [@aravkin-baraldi-orban-2022;@leconte-orban-2023],
 - **Quadratic regularization methods (R2, R2N)** [@diouane-habiboullah-orban-2024;@aravkin-baraldi-orban-2022],
 - **Levenbergh-Marquardt methods (LM, LMTR)** [@aravkin-baraldi-orban-2024].
 
 These methods rely solely on the gradient and Hessian(-vector) information of the smooth part $f$ and the proximal mapping of the nonsmooth part $h$ in order to compute steps.
 Then, the objective function $f + h$ is used only to accept or reject trial points.
-Moreover, they can handle cases where Hessian approximations are unbounded [@diouane-habiboullah-orban-2024] and [@leconte-orban-2023-2], making the package particularly suited for large-scale, ill-conditioned, and nonsmooth problems.
+Moreover, they can handle cases where Hessian approximations are unbounded [@diouane-habiboullah-orban-2024;@leconte-orban-2023-2], making the package particularly suited for large-scale, ill-conditioned, and nonsmooth problems.
 
 # Statement of need
 
@@ -58,12 +55,12 @@ Moreover, they can handle cases where Hessian approximations are unbounded [@dio
 
 There exists a way to solve \eqref{eq:nlp} in Julia using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements in-place first-order line search–based methods for \eqref{eq:nlp}.
 Most of these methods are generally splitting schemes that alternate between taking steps along the gradient of the smooth part $f$ (or quasi-Newton directions) and applying proximal steps on the nonsmooth part $h$.
-Currently, **ProximalAlgorithms.jl** provides only L-BFGS as a quasi-Newton option.
-By contrast, **RegularizedOptimization.jl** focuses on model-based approaches such as trust-region and regularization algorithms.
+Currently, [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl) provides only L-BFGS as a quasi-Newton option.
+By contrast, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) focuses on model-based approaches such as trust-region and regularization algorithms.
 As shown in [@aravkin-baraldi-orban-2022], model-based methods typically require fewer evaluations of the objective and its gradient than first-order line search methods, at the expense of solving more involved subproblems.
 Although these subproblems may require many proximal iterations, each proximal computation is inexpensive, making the overall approach efficient for large-scale problems.
 
-Building on this perspective, **RegularizedOptimization.jl** implements state-of-the-art regularization-based algorithms for solving problems of the form $f(x) + h(x)$, where $f$ is smooth and $h$ is nonsmooth.
+Building on this perspective, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) implements state-of-the-art regularization-based algorithms for solving problems of the form $f(x) + h(x)$, where $f$ is smooth and $h$ is nonsmooth.
 The package provides a consistent API to formulate optimization problems and apply different regularization methods.
 It integrates seamlessly with the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) ecosystem, an academic organization for nonlinear optimization software development, testing, and benchmarking.
 
@@ -79,8 +76,19 @@ This modularity makes it easy to benchmark existing solvers available in the rep
 
 ## Support for Hessians
 
-In contrast to first-order methods package like [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), **RegularizedOptimization.jl** enables the use of second-order information, which can significantly improve convergence rates, especially for ill-conditioned problems.
+In contrast to first-order methods package like [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) enables the use of second-order information, which can significantly improve convergence rates, especially for ill-conditioned problems.
 A way to use Hessians is via automatic differentiation tools such as [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl).
+
+## Requirements of the RegularizedProblems.jl package
+
+To model the problem \eqref{eq:nlp}, one defines the smooth part $f$ and the nonsmooth part $h$ as discussed above.
+The package [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl) provides a straightforward way to create such instances, called *Regularized Nonlinear Programming Models*:
+
+```julia
+reg_nlp = RegularizedNLPModel(f, h)
+```
+
+This design makes it a convenient source of reproducible problem instances for testing and benchmarking algorithms in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl).
 
 ## Requirements of the ShiftedProximalOperators.jl package
 
@@ -95,9 +103,9 @@ Specifically, this package considers proximal operators defined as
 $$
     argmin \, { \tfrac{1}{2} ‖t - q‖₂² + ν h(x + s + t) + χ(s + t; ΔB) | t ∈ ℝⁿ },
 $$
-where q is given, x and s are fixed shifts, h is the nonsmooth term with respect
-to which we are computing the proximal operator, and χ(.; ΔB) is the indicator of
-a ball of radius Δ defined by a certain norm.
+where $q$ is given, $x$ and $s$ are fixed shifts, $h$ is the nonsmooth term with respect
+to which we are computing the proximal operator, and $χ(.; \Delta B)$ is the indicator of
+a ball of radius $\Delta$ defined by a certain norm.
 
 ![Composition of JSO packages](jso-packages.pdf){ width=70% }
 
@@ -111,11 +119,11 @@ Documentation is built using Documenter.jl.
 
 ## Hyperparameter tuning
 
-The solvers in **RegularizedOptimization.jl** do not require extensive hyperparameter tuning.
+The solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) do not require extensive hyperparameter tuning.
 
 ## Non-monotone strategies
 
-The solvers in **RegularizedOptimization.jl** implement non-monotone strategies to accept trial points, which can enhance convergence properties.
+The solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) implement non-monotone strategies to accept trial points, which can enhance convergence properties.
 
 ## Application studies
 
@@ -124,19 +132,19 @@ This is not covered in the current version of the competitive package [ProximalA
 
 ## Support for inexact subproblem solves
 
-Solvers in **RegularizedOptimization.jl** allow inexact resolution of trust-region and quadratic-regularized subproblems using first-order that are implemented in the package itself such as the quadratic regularization method R2[@aravkin-baraldi-orban-2022] and R2DH[@diouane-habiboullah-orban-2024] with trust-region variants TRDH[@leconte-orban-2023-2].
+Solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) allow inexact resolution of trust-region and quadratic-regularized subproblems using first-order that are implemented in the package itself such as the quadratic regularization method R2 [@aravkin-baraldi-orban-2022] and R2DH [@diouane-habiboullah-orban-2024] with trust-region variants TRDH [@leconte-orban-2023-2].
 
 This is crucial for large-scale problems where exact subproblem solutions are prohibitive.
 
 ## Support for Hessians as Linear Operators
 
-The second-order methods in **RegularizedOptimization.jl** can use Hessian approximations represented as linear operators via [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
+The second-order methods in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) can use Hessian approximations represented as linear operators via [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
 Explicitly forming Hessians as dense or sparse matrices is often prohibitively expensive, both computationally and in terms of memory, especially in high-dimensional settings.
 In contrast, many problems admit efficient implementations of Hessian–vector or Jacobian–vector products, either through automatic differentiation tools or limited-memory quasi-Newton updates, making the linear-operator approach more scalable and practical.
 
 ## In-place methods
 
-All solvers in **RegularizedOptimization.jl** are implemented in an in-place fashion, minimizing memory allocations during the resolution process.
+All solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) are implemented in an in-place fashion, minimizing memory allocations during the resolution process.
 
 # Examples
 
@@ -152,13 +160,14 @@ using DifferentialEquations, ADNLPModels
 
 # Define the Fitzhugh-Nagumo problem
 model, _, _ = RegularizedProblems.fh_model()
+x0 = 0.1 * ones(model.meta.nvars) # initial guess
 
 # Define the Hessian approximation
 f = LBFGSModel(fh_model)
 
 # Define the nonsmooth regularizer (L1 norm)
 λ = 0.1
-h = NormL1(λ)
+h = NormL0(λ)
 
 # Define the regularized NLP model
 reg_nlp = RegularizedNLPModel(f, h)
@@ -171,20 +180,17 @@ stats = RegularizedExecutionStats(reg_nlp)
 solve!(solver_tr, reg_nlp, stats, x = f.meta.x0, atol = 1e-3, rtol = 1e-4, verbose = 10)
 ```
 
-````
-=== Comparaison PANOC vs TR (FH_smooth_term) ===
-PANOC :
-  itérations         = 81
-  # f évaluations    = 188
-  # ∇f évaluations   = 188
-  # prox appels (g)  = 107
-  solution (≈)       = [-0.0, 0.19071674721048656, 1.037084478194805, -0.0, -0.0]
+Compare the performance of different solvers on this problem:
 
-TR :
-  statut             = first_order
-  # f évaluations    = 65
-  # ∇f évaluations   = 52
-  solution (≈)       = [0.0, 0.1910326406395867, 1.0357773976471938, 0.0, 0.0]
+````
+
+┌──────────────────┬───────────────────┬────────────────────┬───────────┬────────────┬────────────────┐
+│ Method           │ Status            │ Time               │ #f        │ #∇f        │ #prox          │
+├──────────────────┼───────────────────┼────────────────────┼───────────┼────────────┼────────────────┤
+│ PANOC            │    first_order    │             1.2794 │       188 │        188 │            107 │
+│ TR(LBFGS)        │    first_order    │             3.0748 │       113 │         92 │        missing │
+│ R2N(LBFGS)       │    first_order    │             0.5582 │       112 │         65 │        missing │
+└──────────────────┴───────────────────┴────────────────────┴───────────┴────────────┴────────────────┘
   ````
 
 # Acknowledgements
