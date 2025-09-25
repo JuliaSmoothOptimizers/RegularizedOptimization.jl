@@ -117,13 +117,9 @@ Extensive documentation is provided, including a user guide, API reference, and 
 Aqua.jl is used to test the package dependencies.
 Documentation is built using Documenter.jl.
 
-## Hyperparameter tuning
-
-The solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) do not require extensive hyperparameter tuning.
-
 ## Non-monotone strategies
 
-The solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) implement non-monotone strategies to accept trial points, which can enhance convergence properties.
+The solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) implement non-monotone strategies to accept trial points, which can enhance algorithmic performance in practice [@leconte-orban-2023;@diouane-habiboullah-orban-2024].
 
 ## Application studies
 
