@@ -101,7 +101,7 @@ The main difference between the proximal operators implemented in
 is that those implemented here involve a translation of the nonsmooth term.
 Specifically, this package considers proximal operators defined as
 $$
-    argmin \, { \tfrac{1}{2} ‖t - q‖₂² + ν h(x + s + t) + χ(s + t; ΔB) | t ∈ ℝⁿ },
+    \underset{t \in \mathbb{R}^n}{\arg\min} \, { \tfrac{1}{2} ‖t - q‖₂² + ν h(x + s + t) + χ(s + t; ΔB) | t ∈ ℝⁿ },
 $$
 where $q$ is given, $x$ and $s$ are fixed shifts, $h$ is the nonsmooth term with respect
 to which we are computing the proximal operator, and $χ(.; \Delta B)$ is the indicator of
