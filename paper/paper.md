@@ -72,12 +72,11 @@ On the other hand, Hessian approximations of these functions, including quasi-Ne
 
 Finally, nonsmooth terms $h$ can be modeled using [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl), which provides a broad collection of nonsmooth functions, together with [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl), which provides shifted proximal mappings for nonsmooth functions.
 
-This modularity makes it easy to benchmark existing solvers available in the repository [@diouane-habiboullah-orban-2024;@aravkin-baraldi-orban-2022;@aravkin-baraldi-orban-2024;@leconte-orban-2023-2].
+## Support for Hessians of the smooth part $f$
 
-## Support for Hessians
-
-In contrast to first-order methods package like [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) enables the use of second-order information, which can significantly improve convergence rates, especially for ill-conditioned problems.
-A way to use Hessians is via automatic differentiation tools such as [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl).
+In contrast to [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) methods such as **R2N** and **TR** support Hessians of $f$, which can significantly improve convergence rates, especially for ill-conditioned problems.
+Hessians can be obtained via automatic differentiation through [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) or supplied directly as Hessian–vector products $v \mapsto Hv$.
+This enables algorithms to exploit second-order information without explicitly forming dense (or sparse) Hessians, which is often prohibitively expensive in both computation and memory, particularly in high-dimensional settings.
 
 ## Requirements of the RegularizedProblems.jl package
 
@@ -88,7 +87,7 @@ The package [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/Re
 reg_nlp = RegularizedNLPModel(f, h)
 ```
 
-This design makes it a convenient source of reproducible problem instances for testing and benchmarking algorithms in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl).
+This design makes it a convenient source of reproducible problem instances for testing and benchmarking algorithms in the repository [@diouane-habiboullah-orban-2024;@aravkin-baraldi-orban-2022;@aravkin-baraldi-orban-2024;@leconte-orban-2023-2].
 
 ## Requirements of the ShiftedProximalOperators.jl package
 
@@ -131,12 +130,6 @@ This is not covered in the current version of the competitive package [ProximalA
 Solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) allow inexact resolution of trust-region and quadratic-regularized subproblems using first-order that are implemented in the package itself such as the quadratic regularization method R2 [@aravkin-baraldi-orban-2022] and R2DH [@diouane-habiboullah-orban-2024] with trust-region variants TRDH [@leconte-orban-2023-2].
 
 This is crucial for large-scale problems where exact subproblem solutions are prohibitive.
-
-## Support for Hessians as Linear Operators
-
-The second-order methods in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) can use Hessian approximations represented as linear operators via [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
-Explicitly forming Hessians as dense or sparse matrices is often prohibitively expensive, both computationally and in terms of memory, especially in high-dimensional settings.
-In contrast, many problems admit efficient implementations of Hessian–vector or Jacobian–vector products, either through automatic differentiation tools or limited-memory quasi-Newton updates, making the linear-operator approach more scalable and practical.
 
 ## In-place methods
 
