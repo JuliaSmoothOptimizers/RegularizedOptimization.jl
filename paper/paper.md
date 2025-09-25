@@ -1,5 +1,5 @@
 ---
-title: 'RegularizedOptimization.jl: A Julia framework for regularization-based nonlinear optimization'
+title: 'RegularizedOptimization.jl: A Julia framework for regularized and nonsmooth optimization'
 tags:
   - Julia
   - nonsmooth optimization
@@ -29,5 +29,162 @@ header-includes: |
   \usepackage{fontspec}
   \setmonofont[Path = ./, Scale=0.68]{JuliaMono-Regular.ttf}
 ---
+
+# Summary
+
+[RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) is a Julia [@bezanson-edelman-karpinski-shah-2017] package that implements a family of quadratic regularization and trust-region type algorithms for solving nonsmooth optimization problems of the form:
+\begin{equation}\label{eq:nlp}
+    \underset{x \in \mathbb{R}^n}{\text{minimize}} \quad f(x) + h(x),
+\end{equation}
+where $f: \mathbb{R}^n \to \mathbb{R}$ is continuously differentiable on $\mathbb{R}^n$, and $h: \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ is lower semi-continuous.
+Both $f$ and $h$ may be nonconvex.
+
+The library provides a modular and extensible framework for experimenting with nonsmooth and nonconvex optimization algorithms, including:
+
+- **Trust-region methods (TR, TRDH)** [@aravkin-baraldi-orban-2022;@leconte-orban-2023],
+- **Quadratic regularization methods (R2, R2N)** [@diouane-habiboullah-orban-2024;@aravkin-baraldi-orban-2022],
+- **Levenbergh-Marquardt methods (LM, LMTR)** [@aravkin-baraldi-orban-2024].
+
+These methods rely solely on the gradient and Hessian(-vector) information of the smooth part $f$ and the proximal mapping of the nonsmooth part $h$ in order to compute steps.
+Then, the objective function $f + h$ is used only to accept or reject trial points.
+Moreover, they can handle cases where Hessian approximations are unbounded [@diouane-habiboullah-orban-2024;@leconte-orban-2023-2], making the package particularly suited for large-scale, ill-conditioned, and nonsmooth problems.
+
+# Statement of need
+
+## Model-based framework for nonsmooth methods
+
+There exists a way to solve \eqref{eq:nlp} in Julia using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements in-place first-order line search–based methods for \eqref{eq:nlp}.
+Most of these methods are generally splitting schemes that alternate between taking steps along the gradient of the smooth part $f$ (or quasi-Newton directions) and applying proximal steps on the nonsmooth part $h$.
+Currently, [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl) provides only L-BFGS as a quasi-Newton option.
+By contrast, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) focuses on model-based approaches such as trust-region and regularization algorithms.
+As shown in [@aravkin-baraldi-orban-2022], model-based methods typically require fewer evaluations of the objective and its gradient than first-order line search methods, at the expense of solving more involved subproblems.
+Although these subproblems may require many proximal iterations, each proximal computation is inexpensive, making the overall approach efficient for large-scale problems.
+
+Building on this perspective, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) implements state-of-the-art regularization-based algorithms for solving problems of the form $f(x) + h(x)$, where $f$ is smooth and $h$ is nonsmooth.
+The package provides a consistent API to formulate optimization problems and apply different regularization methods.
+It integrates seamlessly with the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) ecosystem, an academic organization for nonlinear optimization software development, testing, and benchmarking.
+
+On the one hand, smooth problems $f$ can be defined via [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) [@orban-siqueira-nlpmodels-2020], which provides a standardized Julia API for representing nonlinear programming (NLP) problems.
+Large collections of such problems are available in [Cutest.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl) [@orban-siqueira-cutest-2020] and [OptimizationProblems.jl](https://github.com/JuliaSmoothOptimizers/OptimizationProblems.jl) [@migot-orban-siqueira-optimizationproblems-2023].
+Another option is to use [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl), which provides problem instances commonly used in the nonsmooth optimization literature.
+
+On the other hand, Hessian approximations of these functions, including quasi-Newton and diagonal schemes, can be specified through [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl), which represents Hessians as linear operators and implements efficient Hessian–vector products.
+
+Finally, nonsmooth terms $h$ can be modeled using [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl), which provides a broad collection of nonsmooth functions, together with [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl), which provides shifted proximal mappings for nonsmooth functions.
+
+## Support for Hessians of the smooth part $f$
+
+In contrast to [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) methods such as **R2N** and **TR** support Hessians of $f$, which can significantly improve convergence rates, especially for ill-conditioned problems.
+Hessians can be obtained via automatic differentiation through [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) or supplied directly as Hessian–vector products $v \mapsto Hv$.
+This enables algorithms to exploit second-order information without explicitly forming dense (or sparse) Hessians, which is often prohibitively expensive in both computation and memory, particularly in high-dimensional settings.
+
+## Requirements of the RegularizedProblems.jl package
+
+To model the problem \eqref{eq:nlp}, one defines the smooth part $f$ and the nonsmooth part $h$ as discussed above.
+The package [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl) provides a straightforward way to create such instances, called *Regularized Nonlinear Programming Models*:
+
+```julia
+reg_nlp = RegularizedNLPModel(f, h)
+```
+
+This design makes it a convenient source of reproducible problem instances for testing and benchmarking algorithms in the repository [@diouane-habiboullah-orban-2024;@aravkin-baraldi-orban-2022;@aravkin-baraldi-orban-2024;@leconte-orban-2023-2].
+
+## Requirements of the ShiftedProximalOperators.jl package
+
+The nonsmooth part $h$ must have a computable proximal mapping, defined as
+$$\text{prox}_{h}(v) = \underset{x \in \mathbb{R}^n}{\arg\min} \left( h(x) + \frac{1}{2} \|x - v\|^2 \right).$$
+This requirement is satisfied by a wide range of nonsmooth functions commonly used in practice, such as $\ell_1$ norm, $\ell_0$ "norm", indicator functions of convex sets, and group sparsity-inducing norms.
+The package [ProximalOperators.jl](https://www.github.com/FirstOrder/ProximalOperators.jl) provides a comprehensive collection of such functions, along with their proximal mappings.
+The main difference between the proximal operators implemented in
+[ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl)
+is that those implemented here involve a translation of the nonsmooth term.
+Specifically, this package considers proximal operators defined as
+$$
+    \underset{t \in \mathbb{R}^n}{\arg\min} \, { \tfrac{1}{2} ‖t - q‖₂² + ν h(x + s + t) + χ(s + t; ΔB) | t ∈ ℝⁿ },
+$$
+where $q$ is given, $x$ and $s$ are fixed shifts, $h$ is the nonsmooth term with respect
+to which we are computing the proximal operator, and $χ(.; \Delta B)$ is the indicator of
+a ball of radius $\Delta$ defined by a certain norm.
+
+![Composition of JSO packages](jso-packages.pdf){ width=70% }
+
+
+## Testing and documentation
+
+The package includes a comprehensive suite of unit tests that cover all functionalities, ensuring reliability and correctness.
+Extensive documentation is provided, including a user guide, API reference, and examples to help users get started quickly.
+Aqua.jl is used to test the package dependencies.
+Documentation is built using Documenter.jl.
+
+## Non-monotone strategies
+
+The solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) implement non-monotone strategies to accept trial points, which can enhance algorithmic performance in practice [@leconte-orban-2023;@diouane-habiboullah-orban-2024].
+
+## Application studies
+
+The package is used in the exact penalty work of [@diouane-gollier-orban-2024] to solve a problem where the model of the nonsmooth part differs from the function $h$.
+This is not covered in the current version of the competitive package [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl).
+
+## Support for inexact subproblem solves
+
+Solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) allow inexact resolution of trust-region and quadratic-regularized subproblems using first-order that are implemented in the package itself such as the quadratic regularization method R2 [@aravkin-baraldi-orban-2022] and R2DH [@diouane-habiboullah-orban-2024] with trust-region variants TRDH [@leconte-orban-2023-2].
+
+This is crucial for large-scale problems where exact subproblem solutions are prohibitive.
+
+## In-place methods
+
+All solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) are implemented in an in-place fashion, minimizing memory allocations during the resolution process.
+
+# Examples
+
+We consider two examples where the smooth part $f$ is nonconvex and the nonsmooth part $h$ is either $\ell_0$ or $\ell_1$ norm.
+
+A first example is the FitzHugh-Nagumo inverse problem with an $\ell_1$ penalty, as described in [@aravkin-baraldi-orban-2022] and [@aravkin-baraldi-orban-2024].
+
+```julia
+using LinearAlgebra
+using ProximalOperators
+using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
+using DifferentialEquations, ADNLPModels
+
+# Define the Fitzhugh-Nagumo problem
+model, _, _ = RegularizedProblems.fh_model()
+x0 = 0.1 * ones(model.meta.nvars) # initial guess
+
+# Define the Hessian approximation
+f = LBFGSModel(fh_model)
+
+# Define the nonsmooth regularizer (L1 norm)
+λ = 0.1
+h = NormL0(λ)
+
+# Define the regularized NLP model
+reg_nlp = RegularizedNLPModel(f, h)
+
+# Choose a solver (TR) and execution statistics tracker
+solver_tr = TRSolver(reg_nlp)
+stats = RegularizedExecutionStats(reg_nlp)
+
+# Solve the problem
+solve!(solver_tr, reg_nlp, stats, x = f.meta.x0, atol = 1e-3, rtol = 1e-4, verbose = 10)
+```
+
+Compare the performance of different solvers on this problem:
+
+````
+
+┌──────────────────┬───────────────────┬────────────────────┬───────────┬────────────┬────────────────┐
+│ Method           │ Status            │ Time               │ #f        │ #∇f        │ #prox          │
+├──────────────────┼───────────────────┼────────────────────┼───────────┼────────────┼────────────────┤
+│ PANOC            │    first_order    │             1.2794 │       188 │        188 │            107 │
+│ TR(LBFGS)        │    first_order    │             3.0748 │       113 │         92 │        missing │
+│ R2N(LBFGS)       │    first_order    │             0.5582 │       112 │         65 │        missing │
+└──────────────────┴───────────────────┴────────────────────┴───────────┴────────────┴────────────────┘
+  ````
+
+# Acknowledgements
+
+Mohamed Laghdaf Habiboullah is supported by an excellence FRQNT grant.
+Youssef Diouane and Dominique Orban are partially supported by an NSERC Discovery Grant.
 
 # References
