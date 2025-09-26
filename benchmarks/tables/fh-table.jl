@@ -178,7 +178,7 @@ if display_sol
   data = zeros(length(subset) + 1, 5)
   data[1, :] .= x0
   for i = 1:length(subset)
-    data[i+1, :] .= stats[i].solution
+    data[i + 1, :] .= stats[i].solution
   end
   pretty_table(
     data;
