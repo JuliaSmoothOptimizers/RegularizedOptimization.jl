@@ -5,8 +5,8 @@ function plot_nnmf(outstruct, Avec, m, n, k, name = "tr-qr")
   objdec = outstruct.solver_specific[:Fhist] + outstruct.solver_specific[:Hhist]
   x = outstruct.solution
   A = reshape(Avec, m, n)
-  W = reshape(x[1:(m * k)], m, k)
-  H = reshape(x[(m * k + 1):end], k, n)
+  W = reshape(x[1:(m*k)], m, k)
+  H = reshape(x[(m*k+1):end], k, n)
   WH = W * H
 
   a = GroupPlot(2, 2, groupStyle = "horizontal sep = 2.5cm")
@@ -19,11 +19,17 @@ function plot_nnmf(outstruct, Avec, m, n, k, name = "tr-qr")
   )
   push!(
     a,
-    Axis(Plots.Image(WH, (1, m), (1, n), colormap = ColorMaps.Named("Jet")), xlabel = "WH matrix"),
+    Axis(
+      Plots.Image(WH, (1, m), (1, n), colormap = ColorMaps.Named("Jet")),
+      xlabel = "WH matrix",
+    ),
   )
   push!(
     a,
-    Axis(Plots.Image(H, (1, k), (1, n), colormap = ColorMaps.Named("Jet")), xlabel = "H matrix"),
+    Axis(
+      Plots.Image(H, (1, k), (1, n), colormap = ColorMaps.Named("Jet")),
+      xlabel = "H matrix",
+    ),
   )
   push!(
     a,

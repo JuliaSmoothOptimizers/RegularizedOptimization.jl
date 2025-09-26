@@ -3,11 +3,11 @@ export LM, LMSolver, solve!
 import SolverCore.solve!
 
 mutable struct LMSolver{
-  T <: Real,
-  G <: ShiftedProximableFunction,
-  V <: AbstractVector{T},
-  ST <: AbstractOptimizationSolver,
-  PB <: AbstractRegularizedNLPModel,
+  T<:Real,
+  G<:ShiftedProximableFunction,
+  V<:AbstractVector{T},
+  ST<:AbstractOptimizationSolver,
+  PB<:AbstractRegularizedNLPModel,
 } <: AbstractOptimizationSolver
   xk::V
   ∇fk::V
@@ -26,10 +26,13 @@ mutable struct LMSolver{
   u_bound_m_x::V
   subsolver::ST
   subpb::PB
-  substats::GenericExecutionStats{T, V, V, T}
+  substats::GenericExecutionStats{T,V,V,T}
 end
 
-function LMSolver(reg_nls::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solver) where {T, V}
+function LMSolver(
+  reg_nls::AbstractRegularizedNLPModel{T,V};
+  subsolver = R2Solver,
+) where {T,V}
   x0 = reg_nls.model.meta.x0
   l_bound = reg_nls.model.meta.lvar
   u_bound = reg_nls.model.meta.uvar
@@ -64,7 +67,7 @@ function LMSolver(reg_nls::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solv
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
 
-  return LMSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
+  return LMSolver{T,typeof(ψ),V,typeof(subsolver),typeof(subpb)}(
     xk,
     ∇fk,
     mν∇fk,
@@ -110,7 +113,7 @@ For advanced usage, first define a solver "LMSolver" to preallocate the memory u
 
     stats = RegularizedExecutionStats(reg_nls)
     solve!(solver, reg_nls, stats)
-  
+
 # Arguments
 * `reg_nls::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
@@ -173,9 +176,9 @@ function LM(reg_nls::AbstractRegularizedNLPModel; kwargs...)
 end
 
 function SolverCore.solve!(
-  solver::LMSolver{T, G, V},
-  reg_nls::AbstractRegularizedNLPModel{T, V},
-  stats::GenericExecutionStats{T, V};
+  solver::LMSolver{T,G,V},
+  reg_nls::AbstractRegularizedNLPModel{T,V},
+  stats::GenericExecutionStats{T,V};
   callback = (args...) -> nothing,
   x::V = reg_nls.model.meta.x0,
   nonlinear::Bool = true,
@@ -192,7 +195,7 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   γ::T = T(3),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
-) where {T, V, G}
+) where {T,V,G}
   reset!(stats)
 
   # Retrieve workspace
@@ -202,7 +205,7 @@ function SolverCore.solve!(
 
   xk = solver.xk .= x
 
-  # Make sure ψ has the correct shift 
+  # Make sure ψ has the correct shift
   shift!(solver.ψ, xk)
 
   Fk = solver.Fk
@@ -240,7 +243,7 @@ function SolverCore.solve!(
     @info log_header(
       [:outer, :inner, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :normJ, :arrow],
       [Int, Int, T, T, T, T, T, T, T, T, Char],
-      hdr_override = Dict{Symbol, String}(
+      hdr_override = Dict{Symbol,String}(
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ1/ν)",
@@ -361,7 +364,7 @@ function SolverCore.solve!(
           σk,
           norm(xk),
           norm(s),
-          1 / ν,
+          1/ν,
           (η2 ≤ ρk < Inf) ? '↘' : (ρk < η1 ? '↗' : '='),
         ],
         colsep = 1,
@@ -442,7 +445,7 @@ function SolverCore.solve!(
 
   if verbose > 0 && stats.status == :first_order
     @info log_row(
-      Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, ρk, σk, norm(xk), norm(s), 1 / ν, ""],
+      Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, ρk, σk, norm(xk), norm(s), 1/ν, ""],
       colsep = 1,
     )
     @info "LM: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"

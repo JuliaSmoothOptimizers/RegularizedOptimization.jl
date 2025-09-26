@@ -49,7 +49,7 @@ function LMTR(
   subsolver = R2,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(nls.meta.nvar),
-) where {H, X}
+) where {H,X}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
@@ -104,7 +104,8 @@ function LMTR(
   xkn = similar(xk)
   s = zero(xk)
   ψ =
-    treats_bounds ? shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
+    treats_bounds ?
+    shifted(h, xk, max.(-Δk, l_bound - xk), min.(Δk, u_bound - xk), selected) :
     shifted(h, xk, Δk, χ)
 
   Fobj_hist = zeros(maxIter)
@@ -177,7 +178,8 @@ function LMTR(
     # s1 minimizes φ1(d) + ‖d‖² / 2 / ν + ψ(d) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0))
     prox!(s, ψ, mν∇fk, ν)
     ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
-    ξ1 > 0 || error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    ξ1 > 0 ||
+      error("LMTR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
     if ξ1 ≥ 0 && k == 1
       ϵ_increment = ϵr * sqrt(ξ1)

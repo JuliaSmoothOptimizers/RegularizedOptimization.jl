@@ -30,7 +30,7 @@ macro wrappedallocs(expr)
   args = [a for a in expr.args if isa(a, Symbol)]
 
   argnames = [gensym() for a in args]
-  kwargs_dict = Dict{Symbol, Any}(a.args[1] => a.args[2] for a in kwargs if a.head == :kw)
+  kwargs_dict = Dict{Symbol,Any}(a.args[1] => a.args[2] for a in kwargs if a.head == :kw)
   quote
     function g($(argnames...); kwargs_dict...)
       @allocated $(Expr(expr.head, argnames..., kwargs...))
@@ -54,14 +54,15 @@ end
         reg_nlp = RegularizedNLPModel(LBFGSModel(bpdn), h)
         solver = eval(solver)(reg_nlp)
         stats = RegularizedExecutionStats(reg_nlp)
-        solver_name == "R2" &&
-          @test @wrappedallocs(solve!(solver, reg_nlp, stats, ν = 1.0, atol = 1e-6, rtol = 1e-6)) ==
-                0
+        solver_name == "R2" && @test @wrappedallocs(
+          solve!(solver, reg_nlp, stats, ν = 1.0, atol = 1e-6, rtol = 1e-6)
+        ) == 0
         solver_name == "R2DH" && @test @wrappedallocs(
           solve!(solver, reg_nlp, stats, σk = 1.0, atol = 1e-6, rtol = 1e-6)
         ) == 0
         solver_name == "TRDH" &&
-          @test @wrappedallocs(solve!(solver, reg_nlp, stats, atol = 1e-6, rtol = 1e-6)) == 0
+          @test @wrappedallocs(solve!(solver, reg_nlp, stats, atol = 1e-6, rtol = 1e-6)) ==
+                0
         @test stats.status == :first_order
       end
     end
@@ -84,8 +85,9 @@ end
         reg_nlp = RegularizedNLPModel(bpdn_nls, h)
         solver = eval(solver)(reg_nlp)
         stats = RegularizedExecutionStats(reg_nlp)
-        @test @wrappedallocs(solve!(solver, reg_nlp, stats, σk = 1.0, atol = 1e-6, rtol = 1e-6)) ==
-              0
+        @test @wrappedallocs(
+          solve!(solver, reg_nlp, stats, σk = 1.0, atol = 1e-6, rtol = 1e-6)
+        ) == 0
         @test stats.status == :first_order
       end
     end
