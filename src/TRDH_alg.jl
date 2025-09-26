@@ -3,10 +3,10 @@ export TRDH, TRDHSolver, solve!
 import SolverCore.solve!
 
 mutable struct TRDHSolver{
-  T<:Real,
-  G<:ShiftedProximableFunction,
-  V<:AbstractVector{T},
-  QN<:AbstractDiagonalQuasiNewtonOperator{T},
+  T <: Real,
+  G <: ShiftedProximableFunction,
+  V <: AbstractVector{T},
+  QN <: AbstractDiagonalQuasiNewtonOperator{T},
   N,
 } <: AbstractOptimizationSolver
   xk::V
@@ -27,10 +27,10 @@ mutable struct TRDHSolver{
 end
 
 function TRDHSolver(
-  reg_nlp::AbstractRegularizedNLPModel{T,V};
-  D::Union{Nothing,AbstractDiagonalQuasiNewtonOperator} = nothing,
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
+  D::Union{Nothing, AbstractDiagonalQuasiNewtonOperator} = nothing,
   χ = NormLinf(one(T)),
-) where {T,V}
+) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -148,12 +148,12 @@ The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
 $(callback_docstring)
 """
 function TRDH(
-  nlp::AbstractDiagonalQNModel{T,V},
+  nlp::AbstractDiagonalQNModel{T, V},
   h,
   χ,
   options::ROSolverOptions{T};
   kwargs...,
-) where {T,V}
+) where {T, V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
@@ -189,7 +189,7 @@ function TRDH(
   χ::X = NormLinf(one(R)),
   selected::AbstractVector{<:Integer} = 1:length(x0),
   kwargs...,
-) where {R<:Real,F,G,H,DQN<:AbstractDiagonalQuasiNewtonOperator,X}
+) where {R <: Real, F, G, H, DQN <: AbstractDiagonalQuasiNewtonOperator, X}
   nlp = NLPModel(x0, f, grad = ∇f!)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
   stats = TRDH(
@@ -213,7 +213,7 @@ function TRDH(
   return stats.solution, stats.iter, stats
 end
 
-function TRDH(reg_nlp::AbstractRegularizedNLPModel{T,V}; kwargs...) where {T,V}
+function TRDH(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
   kwargs_dict = Dict(kwargs...)
   D = pop!(kwargs_dict, :D, nothing)
   χ = pop!(kwargs_dict, :χ, NormLinf(one(T)))
@@ -224,9 +224,9 @@ function TRDH(reg_nlp::AbstractRegularizedNLPModel{T,V}; kwargs...) where {T,V}
 end
 
 function SolverCore.solve!(
-  solver::TRDHSolver{T,G,V},
-  reg_nlp::AbstractRegularizedNLPModel{T,V},
-  stats::GenericExecutionStats{T,V};
+  solver::TRDHSolver{T, G, V},
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
   atol::T = √eps(T),
@@ -241,7 +241,7 @@ function SolverCore.solve!(
   η1::T = √√eps(T),
   η2::T = T(0.9),
   γ::T = T(3),
-) where {T,G,V}
+) where {T, G, V}
   reset!(stats)
 
   # Retrieve workspace
@@ -297,7 +297,7 @@ function SolverCore.solve!(
     @info log_header(
       [:iter, :fx, :hx, :xi, :ρ, :Δ, :normx, :norms, :normD, :arrow],
       [Int, T, T, T, T, T, T, T, T, Char],
-      hdr_override = Dict{Symbol,String}(   # TODO: Add this as constant dict elsewhere
+      hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ/ν)",

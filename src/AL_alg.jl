@@ -140,17 +140,17 @@ Notably, you can access, and modify, the following:
   - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
   - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function.
 """
-mutable struct ALSolver{T,V,M,Pb,ST} <: AbstractOptimizationSolver
+mutable struct ALSolver{T, V, M, Pb, ST} <: AbstractOptimizationSolver
   x::V
   cx::V
   y::V
   has_bnds::Bool
   sub_problem::Pb
   sub_solver::ST
-  sub_stats::GenericExecutionStats{T,V,V,T}
+  sub_stats::GenericExecutionStats{T, V, V, T}
 end
 
-function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T,V}; kwargs...) where {T,V}
+function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
   nlp = reg_nlp.model
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
   x = V(undef, nvar)
@@ -163,7 +163,7 @@ function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T,V}; kwargs...) where {T
   sub_stats = RegularizedExecutionStats(sub_problem)
   M = typeof(nlp)
   ST = typeof(sub_solver)
-  return ALSolver{T,V,M,typeof(sub_problem),ST}(
+  return ALSolver{T, V, M, typeof(sub_problem), ST}(
     x,
     cx,
     y,
@@ -202,9 +202,9 @@ function SolverCore.solve!(
 end
 
 function SolverCore.solve!(
-  solver::ALSolver{T,V},
-  reg_nlp::AbstractRegularizedNLPModel{T,V},
-  stats::GenericExecutionStats{T,V};
+  solver::ALSolver{T, V},
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
   y::V = reg_nlp.model.meta.y0,
@@ -223,7 +223,7 @@ function SolverCore.solve!(
   factor_primal_linear_improvement::T = T(3 // 4),
   factor_decrease_subtol::T = T(1 // 4),
   dual_safeguard = project_y!,
-) where {T,V}
+) where {T, V}
   reset!(stats)
 
   # Retrieve workspace

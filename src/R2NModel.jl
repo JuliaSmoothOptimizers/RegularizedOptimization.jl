@@ -14,17 +14,20 @@ this model represents the smooth R2N subproblem:
 where `B` is either an approximation of the Hessian of `f` or the Hessian itself and `∇f` represents the gradient of `f` at `x0`.
 `σ > 0` is a regularization parameter and `v` is a vector of the same size as `x0` used for intermediary computations.
 """
-mutable struct R2NModel{T<:Real,V<:AbstractVector{T},G<:AbstractLinearOperator{T}} <:
-               AbstractNLPModel{T,V}
+mutable struct R2NModel{
+  T <: Real,
+  V <: AbstractVector{T},
+  G <: AbstractLinearOperator{T},
+} <: AbstractNLPModel{T, V}
   B::G
   ∇f::V
   v::V
   σ::T
-  meta::NLPModelMeta{T,V}
+  meta::NLPModelMeta{T, V}
   counters::Counters
 end
 
-function R2NModel(B::G, ∇f::V, σ::T, x0::V) where {T,V,G}
+function R2NModel(B::G, ∇f::V, σ::T, x0::V) where {T, V, G}
   @assert length(x0) == length(∇f)
   meta = NLPModelMeta(
     length(∇f),

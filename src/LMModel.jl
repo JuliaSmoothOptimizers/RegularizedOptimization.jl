@@ -17,20 +17,20 @@ where `J` is the Jacobian of `F` at `xk`, represented via matrix-free operations
 `σ > 0` is a regularization parameter and `v` is a vector of the same size as `F(xk)` used for intermediary computations.
 """
 mutable struct LMModel{
-  T<:Real,
-  V<:AbstractVector{T},
-  Jac<:Union{AbstractMatrix,AbstractLinearOperator},
-} <: AbstractNLPModel{T,V}
+  T <: Real,
+  V <: AbstractVector{T},
+  Jac <: Union{AbstractMatrix, AbstractLinearOperator},
+} <: AbstractNLPModel{T, V}
   J::Jac
   F::V
   v::V
   xk::V
   σ::T
-  meta::NLPModelMeta{T,V}
+  meta::NLPModelMeta{T, V}
   counters::Counters
 end
 
-function LMModel(J::Jac, F::V, σ::T, xk::V) where {T,V,Jac}
+function LMModel(J::Jac, F::V, σ::T, xk::V) where {T, V, Jac}
   meta = NLPModelMeta(
     length(xk),
     x0 = xk, # Perhaps we should add lvar and uvar as well here.

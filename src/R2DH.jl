@@ -3,10 +3,10 @@ export R2DH, R2DHSolver, solve!
 import SolverCore.solve!
 
 mutable struct R2DHSolver{
-  T<:Real,
-  G<:ShiftedProximableFunction,
-  V<:AbstractVector{T},
-  QN<:AbstractDiagonalQuasiNewtonOperator{T},
+  T <: Real,
+  G <: ShiftedProximableFunction,
+  V <: AbstractVector{T},
+  QN <: AbstractDiagonalQuasiNewtonOperator{T},
 } <: AbstractOptimizationSolver
   xk::V
   ∇fk::V
@@ -26,10 +26,10 @@ mutable struct R2DHSolver{
 end
 
 function R2DHSolver(
-  reg_nlp::AbstractRegularizedNLPModel{T,V};
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
   m_monotone::Int = 6,
-  D::Union{Nothing,AbstractDiagonalQuasiNewtonOperator} = nothing,
-) where {T,V}
+  D::Union{Nothing, AbstractDiagonalQuasiNewtonOperator} = nothing,
+) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -151,11 +151,11 @@ Notably, you can access, and modify, the following:
   - `stats.elapsed_time`: elapsed time in seconds.
 """
 function R2DH(
-  nlp::AbstractDiagonalQNModel{T,V},
+  nlp::AbstractDiagonalQNModel{T, V},
   h,
   options::ROSolverOptions{T};
   kwargs...,
-) where {T,V}
+) where {T, V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
@@ -188,7 +188,13 @@ function R2DH(
   x0::AbstractVector{R};
   selected::AbstractVector{<:Integer} = 1:length(x0),
   kwargs...,
-) where {F<:Function,G<:Function,H,R<:Real,DQN<:AbstractDiagonalQuasiNewtonOperator}
+) where {
+  F <: Function,
+  G <: Function,
+  H,
+  R <: Real,
+  DQN <: AbstractDiagonalQuasiNewtonOperator,
+}
   nlp = FirstOrderModel(f, ∇f!, x0)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
   stats = R2DH(
@@ -213,7 +219,7 @@ function R2DH(
   return stats.solution, stats.iter, nothing
 end
 
-function R2DH(reg_nlp::AbstractRegularizedNLPModel{T,V}; kwargs...) where {T,V}
+function R2DH(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
   kwargs_dict = Dict(kwargs...)
   m_monotone = pop!(kwargs_dict, :m_monotone, 6)
   D = pop!(kwargs_dict, :D, nothing)
@@ -225,8 +231,8 @@ end
 
 function SolverCore.solve!(
   solver::R2DHSolver{T},
-  reg_nlp::AbstractRegularizedNLPModel{T,V},
-  stats::GenericExecutionStats{T,V};
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
   atol::T = √eps(T),
@@ -242,7 +248,7 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   γ::T = T(3),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
-) where {T,V}
+) where {T, V}
   reset!(stats)
 
   # Retrieve workspace
@@ -292,7 +298,7 @@ function SolverCore.solve!(
     @info log_header(
       [:iter, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :arrow],
       [Int, T, T, T, T, T, T, T, Char],
-      hdr_override = Dict{Symbol,String}(   # TODO: Add this as constant dict elsewhere
+      hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ/ν)",
@@ -328,7 +334,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :nonsmooth_obj, hk)
   set_solver_specific!(stats, :sigma, σk)
   set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
-  m_monotone > 1 && (m_fh_hist[(stats.iter)%(m_monotone-1)+1] = fk + hk)
+  m_monotone > 1 && (m_fh_hist[(stats.iter) % (m_monotone - 1) + 1] = fk + hk)
 
   φ(d) = begin
     result = zero(T)
@@ -437,7 +443,7 @@ function SolverCore.solve!(
     ν₁ = θ / (DNorm + σk)
 
     @. mν∇fk = -ν₁ * ∇fk
-    m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone-1)+1] = fk + hk)
+    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
     spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
     mks = mk(s)

@@ -3,12 +3,12 @@ export TR, TRSolver, solve!
 import SolverCore.solve!
 
 mutable struct TRSolver{
-  T<:Real,
-  G<:ShiftedProximableFunction,
-  V<:AbstractVector{T},
+  T <: Real,
+  G <: ShiftedProximableFunction,
+  V <: AbstractVector{T},
   N,
-  ST<:AbstractOptimizationSolver,
-  PB<:AbstractRegularizedNLPModel,
+  ST <: AbstractOptimizationSolver,
+  PB <: AbstractRegularizedNLPModel,
 } <: AbstractOptimizationSolver
   xk::V
   ∇fk::V
@@ -25,14 +25,14 @@ mutable struct TRSolver{
   u_bound_m_x::V
   subsolver::ST
   subpb::PB
-  substats::GenericExecutionStats{T,V,V,T}
+  substats::GenericExecutionStats{T, V, V, T}
 end
 
 function TRSolver(
-  reg_nlp::AbstractRegularizedNLPModel{T,V};
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
   χ::X = NormLinf(one(T)),
   subsolver = R2Solver,
-) where {T,V,X}
+) where {T, V, X}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -150,7 +150,7 @@ function TR(
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(f.meta.nvar),
   kwargs...,
-) where {H,X,R}
+) where {H, X, R}
   reg_nlp = RegularizedNLPModel(f, h, selected)
   stats = TR(
     reg_nlp;
@@ -171,7 +171,7 @@ function TR(
   return stats
 end
 
-function TR(reg_nlp::AbstractRegularizedNLPModel{T,V}; kwargs...) where {T,V}
+function TR(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
   kwargs_dict = Dict(kwargs...)
   subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
   χ = pop!(kwargs_dict, :χ, NormLinf(one(T)))
@@ -182,9 +182,9 @@ function TR(reg_nlp::AbstractRegularizedNLPModel{T,V}; kwargs...) where {T,V}
 end
 
 function SolverCore.solve!(
-  solver::TRSolver{T,G,V},
-  reg_nlp::AbstractRegularizedNLPModel{T,V},
-  stats::GenericExecutionStats{T,V};
+  solver::TRSolver{T, G, V},
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
   atol::T = √eps(T),
@@ -201,7 +201,7 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   γ::T = T(3),
   sub_kwargs::NamedTuple = NamedTuple(),
-) where {T,G,V}
+) where {T, G, V}
   reset!(stats)
 
   # Retrieve workspace
@@ -251,7 +251,7 @@ function SolverCore.solve!(
     @info log_header(
       [:outer, :inner, :fx, :hx, :xi, :ρ, :Δ, :normx, :norms, :normB, :arrow],
       [Int, Int, T, T, T, T, T, T, T, T, Char],
-      hdr_override = Dict{Symbol,String}(   # TODO: Add this as constant dict elsewhere
+      hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ1/ν)",

@@ -30,7 +30,7 @@ macro wrappedallocs(expr)
   args = [a for a in expr.args if isa(a, Symbol)]
 
   argnames = [gensym() for a in args]
-  kwargs_dict = Dict{Symbol,Any}(a.args[1] => a.args[2] for a in kwargs if a.head == :kw)
+  kwargs_dict = Dict{Symbol, Any}(a.args[1] => a.args[2] for a in kwargs if a.head == :kw)
   quote
     function g($(argnames...); kwargs_dict...)
       @allocated $(Expr(expr.head, argnames..., kwargs...))

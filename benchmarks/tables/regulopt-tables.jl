@@ -62,8 +62,8 @@ function benchmark_table(
   pb_name::String,
   random_seed::Int;
   tex::Bool = false,
-  nls_train::Union{Nothing,AbstractNLSModel} = nothing, # for SVM
-  nls_test::Union{Nothing,AbstractNLSModel} = nothing, # for SVM
+  nls_train::Union{Nothing, AbstractNLSModel} = nothing, # for SVM
+  nls_test::Union{Nothing, AbstractNLSModel} = nothing, # for SVM
 )
   solver_names = [
     "$(solver)$(subsolvername(subsolver))$(options_str(opt, solver, subsolver_opt, subsolver))"

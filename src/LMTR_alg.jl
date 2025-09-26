@@ -49,7 +49,7 @@ function LMTR(
   subsolver = R2,
   subsolver_options = ROSolverOptions(ϵa = options.ϵa),
   selected::AbstractVector{<:Integer} = 1:(nls.meta.nvar),
-) where {H,X}
+) where {H, X}
   start_time = time()
   elapsed_time = 0.0
   # initialize passed options
