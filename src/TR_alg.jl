@@ -371,7 +371,7 @@ function SolverCore.solve!(
         )
       end
     end
-    
+
     prox_evals += solver.substats.iter
     s .= solver.substats.solution
 
