@@ -172,7 +172,7 @@ function LM(reg_nls::AbstractRegularizedNLPModel; kwargs...)
   kwargs_dict = Dict(kwargs...)
   subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
   m_monotone = pop!(kwargs_dict, :m_monotone, 1)
-  solver = LMSolver(reg_nlp, subsolver = subsolver, m_monotone = m_monotone)
+  solver = LMSolver(reg_nls, subsolver = subsolver, m_monotone = m_monotone)
   stats = RegularizedExecutionStats(reg_nls)
   solve!(solver, reg_nls, stats; kwargs_dict...)
   return stats
