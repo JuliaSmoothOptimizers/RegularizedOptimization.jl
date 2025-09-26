@@ -23,6 +23,7 @@ mutable struct TRSolver{
   u_bound::V
   l_bound_m_x::V
   u_bound_m_x::V
+  m_fh_hist::V
   subsolver::ST
   subpb::PB
   substats::GenericExecutionStats{T, V, V, T}
@@ -32,6 +33,7 @@ function TRSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
   χ::X = NormLinf(one(T)),
   subsolver = R2Solver,
+  m_monotone::Int = 1,
 ) where {T, V, X}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
@@ -53,6 +55,8 @@ function TRSolver(
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
+
+  m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
   ψ =
     has_bnds || subsolver == TRDHSolver ?
@@ -81,6 +85,7 @@ function TRSolver(
     u_bound,
     l_bound_m_x,
     u_bound_m_x,
+    m_fh_hist,
     subsolver,
     subpb,
     substats,
@@ -107,7 +112,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Bₖ s  is a quadratic a
 
 For advanced usage, first define a solver "TRSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-    solver = TR(reg_nlp; χ =  NormLinf(1), subsolver = R2Solver)
+    solver = TRSolver(reg_nlp; χ =  NormLinf(1), subsolver = R2Solver, m_monotone = 1)
     solve!(solver, reg_nlp)
 
     stats = RegularizedExecutionStats(reg_nlp)
@@ -129,6 +134,7 @@ For advanced usage, first define a solver "TRSolver" to preallocate the memory u
 - `η1::T = √√eps(T)`: successful iteration threshold;
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: trust-region radius parameter multiplier. Must satisfy `γ > 1`. The trust-region radius is updated as Δ := Δ*γ when the iteration is very successful and Δ := Δ/γ when the iteration is unsuccessful;
+- `m_monotone::Int = 1`: monotonicity parameter. By default, TR is monotone but the non-monotone variant will be used if `m_monotone > 1`;
 - `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
 - `subsolver::S = R2Solver`: subsolver used to solve the subproblem that appears at each iteration.
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
@@ -175,7 +181,8 @@ function TR(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
   kwargs_dict = Dict(kwargs...)
   subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
   χ = pop!(kwargs_dict, :χ, NormLinf(one(T)))
-  solver = TRSolver(reg_nlp, subsolver = subsolver, χ = χ)
+  m_monotone = pop!(kwargs_dict, :m_monotone, 1)
+  solver = TRSolver(reg_nlp, subsolver = subsolver, χ = χ, m_monotone = m_monotone)
   stats = RegularizedExecutionStats(reg_nlp)
   solve!(solver, reg_nlp, stats; kwargs_dict...)
   return stats
@@ -221,7 +228,10 @@ function SolverCore.solve!(
   xkn = solver.xkn
   s = solver.s
   χ = solver.χ
+  m_fh_hist = solver.m_fh_hist .= T(-Inf)
   has_bnds = solver.has_bnds
+
+  m_monotone = length(m_fh_hist) + 1
 
   if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
     l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
@@ -293,6 +303,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
+  m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
   # models
   φ1 = let ∇fk = ∇fk
@@ -380,7 +391,8 @@ function SolverCore.solve!(
     hkn = @views h(xkn[selected])
     sNorm = χ(s)
 
-    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+    fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
+    Δobj = fhmax - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
 
     if (ξ ≤ 0 || isnan(ξ))
@@ -451,6 +463,8 @@ function SolverCore.solve!(
         set_radius!(solver.subsolver.ψ, Δk)
       end
     end
+
+    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
     set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)

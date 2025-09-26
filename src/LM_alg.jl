@@ -22,6 +22,7 @@ mutable struct LMSolver{
   has_bnds::Bool
   l_bound::V
   u_bound::V
+  m_fh_hist::V
   l_bound_m_x::V
   u_bound_m_x::V
   subsolver::ST
@@ -29,7 +30,7 @@ mutable struct LMSolver{
   substats::GenericExecutionStats{T, V, V, T}
 end
 
-function LMSolver(reg_nls::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solver) where {T, V}
+function LMSolver(reg_nls::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solver, m_monotone::Int = 1) where {T, V}
   x0 = reg_nls.model.meta.x0
   l_bound = reg_nls.model.meta.lvar
   u_bound = reg_nls.model.meta.uvar
@@ -53,6 +54,8 @@ function LMSolver(reg_nls::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solv
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
+
+  m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
   ψ =
     has_bnds ? shifted(reg_nls.h, xk, l_bound_m_x, u_bound_m_x, reg_nls.selected) :
@@ -80,6 +83,7 @@ function LMSolver(reg_nls::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solv
     u_bound,
     l_bound_m_x,
     u_bound_m_x,
+    m_fh_hist,
     subsolver,
     subpb,
     substats,
@@ -105,7 +109,7 @@ where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; 
 
 For advanced usage, first define a solver "LMSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-    solver = LMSolver(reg_nls; subsolver = R2Solver)
+    solver = LMSolver(reg_nls; subsolver = R2Solver, m_monotone = 1)
     solve!(solver, reg_nls)
 
     stats = RegularizedExecutionStats(reg_nls)
@@ -130,6 +134,7 @@ For advanced usage, first define a solver "LMSolver" to preallocate the memory u
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
+- `m_monotone::Int = 1`: monotonicity parameter. By default, LM is monotone but the non-monotone variant will be used if `m_monotone > 1`;
 - `subsolver = R2Solver`: the solver used to solve the subproblems.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
@@ -166,7 +171,8 @@ end
 function LM(reg_nls::AbstractRegularizedNLPModel; kwargs...)
   kwargs_dict = Dict(kwargs...)
   subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
-  solver = LMSolver(reg_nls, subsolver = subsolver)
+  m_monotone = pop!(kwargs_dict, :m_monotone, 1)
+  solver = LMSolver(reg_nlp, subsolver = subsolver, m_monotone = m_monotone)
   stats = RegularizedExecutionStats(reg_nls)
   solve!(solver, reg_nls, stats; kwargs_dict...)
   return stats
@@ -214,7 +220,11 @@ function SolverCore.solve!(
   ψ = solver.ψ
   xkn = solver.xkn
   s = solver.s
+  m_fh_hist = solver.m_fh_hist .= T(-Inf)
   has_bnds = solver.has_bnds
+
+  m_monotone = length(m_fh_hist) + 1
+
   if has_bnds
     l_bound = solver.l_bound
     u_bound = solver.u_bound
@@ -275,6 +285,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
+  m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
   φ1 = let Fk = Fk, ∇fk = ∇fk
     d -> dot(Fk, Fk) / 2 + dot(∇fk, d) # ∇fk = Jk^T Fk
@@ -345,7 +356,8 @@ function SolverCore.solve!(
       error("LM: failed to compute a step: ξ = $ξ")
     end
 
-    Δobj = fk + hk - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
+    fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
+    Δobj = fhmax - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
     ρk = Δobj / ξ
 
     verbose > 0 &&
@@ -399,6 +411,8 @@ function SolverCore.solve!(
     if ρk < η1 || ρk == Inf
       σk = σk * γ
     end
+
+    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
     set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)
