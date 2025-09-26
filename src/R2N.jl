@@ -291,6 +291,7 @@ function SolverCore.solve!(
 
   local ξ1::T
   local ρk::T = zero(T)
+  local prox_evals::Int = 0
 
   fk = obj(nlp, xk)
   grad!(nlp, xk, ∇fk)
@@ -317,6 +318,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :nonsmooth_obj, hk)
   set_solver_specific!(stats, :sigma, σk)
   set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
+  set_solver_specific!(stats, :prox_evals, prox_evals + 1)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
   φ1 = let ∇fk = ∇fk
@@ -386,6 +388,7 @@ function SolverCore.solve!(
       )
     end
 
+    prox_evals += solver.substats.iter
     s .= solver.substats.solution
 
     if norm(s) > β * norm(s1)
@@ -470,6 +473,7 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
+    set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
     @. mν∇fk = - ν₁ * ∇fk
     prox!(s1, ψ, mν∇fk, ν₁)

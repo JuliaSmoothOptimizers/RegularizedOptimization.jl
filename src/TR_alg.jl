@@ -266,6 +266,7 @@ function SolverCore.solve!(
 
   local ξ1::T
   local ρk = zero(T)
+  local prox_evals::Int = 0
 
   α = 1 / eps(T)
   β = 1 / eps(T)
@@ -291,6 +292,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
   # models
   φ1 = let ∇fk = ∇fk
@@ -369,7 +371,8 @@ function SolverCore.solve!(
         )
       end
     end
-
+    
+    prox_evals += solver.substats.iter
     s .= solver.substats.solution
 
     xkn .= xk .+ s
@@ -454,6 +457,7 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :nonsmooth_obj, hk)
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
+    set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
     ν₁ = α * Δk / (1 + λmax * (α * Δk + 1))
     @. mν∇fk = -ν₁ * ∇fk

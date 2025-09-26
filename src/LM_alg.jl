@@ -255,6 +255,7 @@ function SolverCore.solve!(
 
   local ξ1::T
   local ρk::T = zero(T)
+  local prox_evals::Int = 0
 
   residual!(nls, xk, Fk)
   jtprod_residual!(nls, xk, Fk, ∇fk)
@@ -273,6 +274,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
   φ1 = let Fk = Fk, ∇fk = ∇fk
     d -> dot(Fk, Fk) / 2 + dot(∇fk, d) # ∇fk = Jk^T Fk
@@ -329,6 +331,7 @@ function SolverCore.solve!(
       )
     end
 
+    prox_evals += solver.substats.iter
     s .= solver.substats.solution
 
     xkn .= xk .+ s
@@ -402,6 +405,7 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :nonsmooth_obj, hk)
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
+    set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
     ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
 
