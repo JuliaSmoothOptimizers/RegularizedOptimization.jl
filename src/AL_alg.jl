@@ -42,7 +42,9 @@ function AL(
 ) where {V}
   nlp = reg_nlp.model
   if nlp.meta.ncon == 0 || equality_constrained(nlp)
-    error("AL(::Val{:ineq}, ...) should only be called for problems with inequalities. Use AL(...)")
+    error(
+      "AL(::Val{:ineq}, ...) should only be called for problems with inequalities. Use AL(...)",
+    )
   end
   snlp = nlp isa AbstractNLSModel ? SlackNLSModel(nlp) : SlackModel(nlp)
   reg_snlp = RegularizedNLPModel(snlp, reg_nlp.h, reg_nlp.selected)
@@ -74,7 +76,7 @@ At each iteration, an iterate x is computed as an approximate solution of the su
     minimize    L(x;y,μ) + h(x)
     subject to  lvar ≤ x ≤ uvar
 
-where y is an estimate of the Lagrange multiplier vector for the constraints lcon ≤ c(x) ≤ ucon, 
+where y is an estimate of the Lagrange multiplier vector for the constraints lcon ≤ c(x) ≤ ucon,
 μ is the penalty parameter and L(⋅;y,μ) is the augmented Lagrangian function defined by
 
     L(x;y,μ) := f(x) - yᵀc(x) + ½ μ ‖c(x)‖².
@@ -90,7 +92,7 @@ For advanced usage, first define a solver "ALSolver" to preallocate the memory u
 
 # Arguments
 
-- `reg_nlp::AbstractRegularizedNLPModel`: a regularized optimization problem, see `RegularizedProblems.jl`, 
+- `reg_nlp::AbstractRegularizedNLPModel`: a regularized optimization problem, see `RegularizedProblems.jl`,
   consisting of `model` representing a smooth optimization problem, see `NLPModels.jl`, and a regularizer `h` such
   as those defined in `ProximalOperators.jl`.
 
@@ -138,17 +140,17 @@ Notably, you can access, and modify, the following:
   - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
   - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function.
 """
-mutable struct ALSolver{T, V, M, Pb, ST} <: AbstractOptimizationSolver
+mutable struct ALSolver{T,V,M,Pb,ST} <: AbstractOptimizationSolver
   x::V
   cx::V
   y::V
   has_bnds::Bool
   sub_problem::Pb
   sub_solver::ST
-  sub_stats::GenericExecutionStats{T, V, V, T}
+  sub_stats::GenericExecutionStats{T,V,V,T}
 end
 
-function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
+function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T,V}; kwargs...) where {T,V}
   nlp = reg_nlp.model
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
   x = V(undef, nvar)
@@ -161,7 +163,7 @@ function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {
   sub_stats = RegularizedExecutionStats(sub_problem)
   M = typeof(nlp)
   ST = typeof(sub_solver)
-  return ALSolver{T, V, M, typeof(sub_problem), ST}(
+  return ALSolver{T,V,M,typeof(sub_problem),ST}(
     x,
     cx,
     y,
@@ -172,7 +174,11 @@ function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {
   )
 end
 
-@doc (@doc ALSolver) function AL(::Val{:equ}, reg_nlp::AbstractRegularizedNLPModel; kwargs...)
+@doc (@doc ALSolver) function AL(
+  ::Val{:equ},
+  reg_nlp::AbstractRegularizedNLPModel;
+  kwargs...,
+)
   nlp = reg_nlp.model
   if !(nlp.meta.minimize)
     error("AL only works for minimization problems")
@@ -196,9 +202,9 @@ function SolverCore.solve!(
 end
 
 function SolverCore.solve!(
-  solver::ALSolver{T, V},
-  reg_nlp::AbstractRegularizedNLPModel{T, V},
-  stats::GenericExecutionStats{T, V};
+  solver::ALSolver{T,V},
+  reg_nlp::AbstractRegularizedNLPModel{T,V},
+  stats::GenericExecutionStats{T,V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
   y::V = reg_nlp.model.meta.y0,
@@ -217,7 +223,7 @@ function SolverCore.solve!(
   factor_primal_linear_improvement::T = T(3 // 4),
   factor_decrease_subtol::T = T(1 // 4),
   dual_safeguard = project_y!,
-) where {T, V}
+) where {T,V}
   reset!(stats)
 
   # Retrieve workspace
@@ -363,7 +369,9 @@ function SolverCore.solve!(
     done = stats.status != :unknown
 
     if verbose > 0 && (mod(stats.iter, verbose) == 0 || done)
-      @info log_row(Any[iter, subiters, objx, cviol, mu, norm(solver.y), subtol, subout.status])
+      @info log_row(
+        Any[iter, subiters, objx, cviol, mu, norm(solver.y), subtol, subout.status],
+      )
     end
 
     if !done

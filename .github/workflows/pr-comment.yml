@@ -12,8 +12,8 @@ jobs:
       - name: add artifact links to pull request and related issues step
         uses: veitbjarsch/artifacts-url-comments@v1.1.0
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-            prefix: "Here are the"
-            format: "name"
-            addTo: "pull"
+          prefix: "Here are the"
+          format: "name"
+          addTo: "pull"

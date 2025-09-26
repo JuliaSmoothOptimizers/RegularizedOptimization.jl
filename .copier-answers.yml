@@ -1,0 +1,41 @@
+# Changes here will be overwritten by Copier
+AddAllcontributors: true
+AddCitationCFF: true
+AddCodeOfConduct: true
+AddCompatHelperCI: true
+AddContributionDocs: true
+AddCopierCI: false
+AddDependabot: true
+AddDocs: true
+AddDocsCI: true
+AddFormatterAndLinterConfigFiles: true
+AddGitHubPRTemplate: true
+AddGitHubTemplates: true
+AddLintCI: true
+AddLychee: true
+AddMacToCI: true
+AddPrecommit: true
+AddTagBotCI: true
+AddTestCI: true
+AddWinToCI: true
+Authors: Robert Baraldi <rbaraldi@uw.edu> and Dominique Orban <dominique.orban@gmail.com>
+AutoIncludeTests: true
+CheckExplicitImports: true
+CodeOfConductContact: dominique.orban@gmail.com
+ConfigIndentation: 2
+ExplicitImportsChecklist: exclude_all_qualified_accesses_are_public
+JuliaIndentation: 2
+JuliaMinCIVersion: lts
+JuliaMinVersion: lts
+License: MPL-2.0
+LicenseCopyrightHolders: Robert Baraldi <rbaraldi@uw.edu> and Dominique Orban
+MarkdownIndentation: 2
+PackageName: RegularizedOptimization
+PackageOwner: JuliaSmoothOptimizers
+PackageUUID: 196f2941-2d58-45ba-9f13-43a2532b2fa8
+RunJuliaNightlyOnCI: true
+StrategyConfirmIncluded: true
+StrategyLevel: 1
+StrategyReviewExcluded: true
+UseCirrusCI: true
+_src_path: C:\Users\mgoll\.julia\packages\BestieTemplate\jdG8v

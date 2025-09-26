@@ -58,7 +58,8 @@ function opnorm_svd(J; max_attempts::Int = 3)
     attempt += 1
     try
       # Estimate largest singular value
-      s, nconv, niter, nmult, resid = svds(J; nsv = nsv, ncv = ncv, ritzvec = false, check = 1)
+      s, nconv, niter, nmult, resid =
+        svds(J; nsv = nsv, ncv = ncv, ritzvec = false, check = 1)
 
       # Check if singular value has converged
       have_svd = nconv >= 1
@@ -102,13 +103,13 @@ LinearAlgebra.diag(op::SpectralGradient{T}) where {T} = zeros(T, op.nrow) .* op.
 """
     GenericExecutionStats(reg_nlp :: AbstractRegularizedNLPModel{T, V})
 
-Construct a GenericExecutionStats object from an AbstractRegularizedNLPModel. 
+Construct a GenericExecutionStats object from an AbstractRegularizedNLPModel.
 More specifically, construct a GenericExecutionStats on the NLPModel of reg_nlp and add three solver_specific entries namely :smooth_obj, :nonsmooth_obj and :xi.
 This is useful for reducing the number of allocations when calling solve!(..., reg_nlp, stats) and should be used by default.
-Warning: This should *not* be used when adding other solver_specific entries that do not have the current scalar type. 
+Warning: This should *not* be used when adding other solver_specific entries that do not have the current scalar type.
 """
-function RegularizedExecutionStats(reg_nlp::AbstractRegularizedNLPModel{T, V}) where {T, V}
-  stats = GenericExecutionStats(reg_nlp.model, solver_specific = Dict{Symbol, T}())
+function RegularizedExecutionStats(reg_nlp::AbstractRegularizedNLPModel{T,V}) where {T,V}
+  stats = GenericExecutionStats(reg_nlp.model, solver_specific = Dict{Symbol,T}())
   set_solver_specific!(stats, :smooth_obj, T(Inf))
   set_solver_specific!(stats, :nonsmooth_obj, T(Inf))
   set_solver_specific!(stats, :sigma, T(Inf))

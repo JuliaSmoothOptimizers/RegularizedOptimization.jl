@@ -3,9 +3,9 @@ export R2, R2Solver, solve!
 import SolverCore.solve!
 
 mutable struct R2Solver{
-  R <: Real,
-  G <: Union{ShiftedProximableFunction, Nothing},
-  S <: AbstractVector{R},
+  R<:Real,
+  G<:Union{ShiftedProximableFunction,Nothing},
+  S<:AbstractVector{R},
 } <: AbstractOptimizationSolver
   xk::S
   ∇fk::S
@@ -29,7 +29,7 @@ function R2Solver(
   l_bound::S,
   u_bound::S;
   ψ = nothing,
-) where {R <: Real, S <: AbstractVector{R}}
+) where {R<:Real,S<:AbstractVector{R}}
   maxIter = options.maxIter
   xk = similar(x0)
   ∇fk = similar(x0)
@@ -65,7 +65,10 @@ function R2Solver(
   )
 end
 
-function R2Solver(reg_nlp::AbstractRegularizedNLPModel{T, V}; max_iter::Int = 10000) where {T, V}
+function R2Solver(
+  reg_nlp::AbstractRegularizedNLPModel{T,V};
+  max_iter::Int = 10000,
+) where {T,V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -139,7 +142,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 # Arguments
 * `reg_nlp::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
-# Keyword arguments 
+# Keyword arguments
 - `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = √eps(T)`: absolute tolerance;
 - `rtol::T = √eps(T)`: relative tolerance;
@@ -177,11 +180,11 @@ Notably, you can access, and modify, the following:
   - `stats.elapsed_time`: elapsed time in seconds.
 """
 function R2(
-  nlp::AbstractNLPModel{R, V},
+  nlp::AbstractNLPModel{R,V},
   h,
   options::ROSolverOptions{R};
   kwargs...,
-) where {R <: Real, V}
+) where {R<:Real,V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
@@ -205,11 +208,11 @@ function R2(
 end
 
 function R2(
-  nlp::AbstractNLPModel{R, V},
+  nlp::AbstractNLPModel{R,V},
   h;
   selected::AbstractVector{<:Integer} = 1:(nlp.meta.nvar),
   kwargs...,
-) where {R, V}
+) where {R,V}
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
   return R2(reg_nlp; kwargs...)
 end
@@ -222,7 +225,7 @@ function R2(
   x0::AbstractVector{R};
   selected::AbstractVector{<:Integer} = 1:length(x0),
   kwargs...,
-) where {F <: Function, G <: Function, H, R <: Real}
+) where {F<:Function,G<:Function,H,R<:Real}
   nlp = FirstOrderModel(f, ∇f!, x0)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
   stats = R2(
@@ -265,7 +268,7 @@ function R2(
   u_bound::AbstractVector{R};
   selected::AbstractVector{<:Integer} = 1:length(x0),
   kwargs...,
-) where {F <: Function, G <: Function, H, R <: Real}
+) where {F<:Function,G<:Function,H,R<:Real}
   nlp = FirstOrderModel(f, ∇f!, x0, lcon = l_bound, ucon = u_bound)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
   stats = R2(
@@ -307,22 +310,22 @@ function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
     kwargs_dict,
     :callback,
     (nlp, solver, stats) -> begin
-      solver.Fobj_hist[stats.iter + 1] = stats.solver_specific[:smooth_obj]
-      solver.Hobj_hist[stats.iter + 1] = stats.solver_specific[:nonsmooth_obj]
-      solver.Complex_hist[stats.iter + 1] += 1
+      solver.Fobj_hist[stats.iter+1] = stats.solver_specific[:smooth_obj]
+      solver.Hobj_hist[stats.iter+1] = stats.solver_specific[:nonsmooth_obj]
+      solver.Complex_hist[stats.iter+1] += 1
     end,
   )
   solve!(solver, reg_nlp, stats; callback = cb, max_iter = max_iter, kwargs...)
-  set_solver_specific!(stats, :Fhist, solver.Fobj_hist[1:(stats.iter + 1)])
-  set_solver_specific!(stats, :Hhist, solver.Hobj_hist[1:(stats.iter + 1)])
-  set_solver_specific!(stats, :SubsolverCounter, solver.Complex_hist[1:(stats.iter + 1)])
+  set_solver_specific!(stats, :Fhist, solver.Fobj_hist[1:(stats.iter+1)])
+  set_solver_specific!(stats, :Hhist, solver.Hobj_hist[1:(stats.iter+1)])
+  set_solver_specific!(stats, :SubsolverCounter, solver.Complex_hist[1:(stats.iter+1)])
   return stats
 end
 
 function SolverCore.solve!(
   solver::R2Solver{T},
-  reg_nlp::AbstractRegularizedNLPModel{T, V},
-  stats::GenericExecutionStats{T, V};
+  reg_nlp::AbstractRegularizedNLPModel{T,V},
+  stats::GenericExecutionStats{T,V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
   atol::T = √eps(T),
@@ -337,7 +340,7 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
-) where {T, V}
+) where {T,V}
   reset!(stats)
 
   # Retrieve workspace
@@ -347,7 +350,7 @@ function SolverCore.solve!(
 
   xk = solver.xk .= x
 
-  # Make sure ψ has the correct shift 
+  # Make sure ψ has the correct shift
   shift!(solver.ψ, xk)
 
   ∇fk = solver.∇fk
@@ -379,7 +382,7 @@ function SolverCore.solve!(
     @info log_header(
       [:iter, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :arrow],
       [Int, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Char],
-      hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
+      hdr_override = Dict{Symbol,String}(   # TODO: Add this as constant dict elsewhere
         :iter => "iter",
         :fx => "f(x)",
         :hx => "h(x)",
@@ -563,7 +566,7 @@ function get_status(
   max_eval = Inf,
   max_time = Inf,
   max_iter = Inf,
-) where {M <: AbstractRegularizedNLPModel}
+) where {M<:AbstractRegularizedNLPModel}
   if optimal
     :first_order
   elseif improper

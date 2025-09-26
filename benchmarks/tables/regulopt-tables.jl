@@ -26,7 +26,8 @@ function options_str(
     out_str = !options.spectral ? (options.psb ? "-PSB" : "-Andrei") : "-Spec"
     out_str = (options.reduce_TR) ? out_str : string(out_str, "-noredTR")
   elseif solver == :TR && subsolver == :TRDH
-    out_str = !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") : "-Spec"
+    out_str =
+      !subsolver_options.spectral ? (subsolver_options.psb ? "-PSB" : "-Andrei") : "-Spec"
     out_str = (subsolver_options.reduce_TR) ? out_str : string(out_str, "-noredTR")
   else
     out_str = ""
@@ -61,8 +62,8 @@ function benchmark_table(
   pb_name::String,
   random_seed::Int;
   tex::Bool = false,
-  nls_train::Union{Nothing, AbstractNLSModel} = nothing, # for SVM
-  nls_test::Union{Nothing, AbstractNLSModel} = nothing, # for SVM
+  nls_train::Union{Nothing,AbstractNLSModel} = nothing, # for SVM
+  nls_test::Union{Nothing,AbstractNLSModel} = nothing, # for SVM
 )
   solver_names = [
     "$(solver)$(subsolvername(subsolver))$(options_str(opt, solver, subsolver_opt, subsolver))"
@@ -175,14 +176,19 @@ function benchmark_table(
 
   h_format = h isa NormL0 ? "%i" : "%7.1e"
   if length(sol) == 0
-    print_formats = ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
+    print_formats =
+      ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
   else
     if pb_name[1:3] == "SVM"
-      print_formats =
-        ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%7s", "%i", "%i", "%i", "%7.1e"], 1:nh)
+      print_formats = ft_printf(
+        ["%s", "%7.2e", h_format, "%7.1e", "%7s", "%i", "%i", "%i", "%7.1e"],
+        1:nh,
+      )
     else
-      print_formats =
-        ft_printf(["%s", "%7.2e", h_format, "%7.1e", "%7.1e", "%i", "%i", "%i", "%7.1e"], 1:nh)
+      print_formats = ft_printf(
+        ["%s", "%7.2e", h_format, "%7.1e", "%7.1e", "%i", "%i", "%i", "%7.1e"],
+        1:nh,
+      )
     end
   end
 

@@ -3,11 +3,11 @@ export R2N, R2NSolver, solve!
 import SolverCore.solve!
 
 mutable struct R2NSolver{
-  T <: Real,
-  G <: ShiftedProximableFunction,
-  V <: AbstractVector{T},
-  ST <: AbstractOptimizationSolver,
-  PB <: AbstractRegularizedNLPModel,
+  T<:Real,
+  G<:ShiftedProximableFunction,
+  V<:AbstractVector{T},
+  ST<:AbstractOptimizationSolver,
+  PB<:AbstractRegularizedNLPModel,
 } <: AbstractOptimizationSolver
   xk::V
   ∇fk::V
@@ -26,14 +26,14 @@ mutable struct R2NSolver{
   m_fh_hist::V
   subsolver::ST
   subpb::PB
-  substats::GenericExecutionStats{T, V, V, T}
+  substats::GenericExecutionStats{T,V,V,T}
 end
 
 function R2NSolver(
-  reg_nlp::AbstractRegularizedNLPModel{T, V};
+  reg_nlp::AbstractRegularizedNLPModel{T,V};
   subsolver = R2Solver,
   m_monotone::Int = 1,
-) where {T, V}
+) where {T,V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -68,7 +68,7 @@ function R2NSolver(
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
 
-  return R2NSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
+  return R2NSolver{T,typeof(ψ),V,typeof(subsolver),typeof(subpb)}(
     xk,
     ∇fk,
     ∇fk⁻,
@@ -114,11 +114,11 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 
     stats = RegularizedExecutionStats(reg_nlp)
     solve!(solver, reg_nlp, stats)
-  
+
 # Arguments
 * `reg_nlp::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
-# Keyword arguments 
+# Keyword arguments
 - `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = √eps(T)`: absolute tolerance;
 - `rtol::T = √eps(T)`: relative tolerance;
@@ -165,11 +165,11 @@ By default, only the gradient is copied: `∇fk⁻ .= ∇fk`.
 This might be useful when using R2N in a constrained optimization context, when the gradient of the Lagrangian function is pushed at each iteration rather than the gradient of the objective function.
 """
 function R2N(
-  nlp::AbstractNLPModel{T, V},
+  nlp::AbstractNLPModel{T,V},
   h,
   options::ROSolverOptions{T};
   kwargs...,
-) where {T <: Real, V}
+) where {T<:Real,V}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
@@ -205,9 +205,9 @@ function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
 end
 
 function SolverCore.solve!(
-  solver::R2NSolver{T, G, V},
-  reg_nlp::AbstractRegularizedNLPModel{T, V},
-  stats::GenericExecutionStats{T, V};
+  solver::R2NSolver{T,G,V},
+  reg_nlp::AbstractRegularizedNLPModel{T,V},
+  stats::GenericExecutionStats{T,V};
   callback = (args...) -> nothing,
   qn_update_y!::Function = _qn_grad_update_y!,
   qn_copy!::Function = _qn_grad_copy!,
@@ -227,7 +227,7 @@ function SolverCore.solve!(
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
   sub_kwargs::NamedTuple = NamedTuple(),
-) where {T, V, G}
+) where {T,V,G}
   reset!(stats)
 
   # Retrieve workspace
@@ -237,7 +237,7 @@ function SolverCore.solve!(
 
   xk = solver.xk .= x
 
-  # Make sure ψ has the correct shift 
+  # Make sure ψ has the correct shift
   shift!(solver.ψ, xk)
 
   ∇fk = solver.∇fk
@@ -276,7 +276,7 @@ function SolverCore.solve!(
     @info log_header(
       [:outer, :inner, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :normB, :arrow],
       [Int, Int, T, T, T, T, T, T, T, T, Char],
-      hdr_override = Dict{Symbol, String}(
+      hdr_override = Dict{Symbol,String}(
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ1/ν)",
@@ -319,7 +319,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :sigma, σk)
   set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
-  m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
+  m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone-1)+1] = fk + hk)
 
   φ1 = let ∇fk = ∇fk
     d -> dot(∇fk, d)
@@ -464,7 +464,7 @@ function SolverCore.solve!(
     end
 
     ν₁ = θ / (λmax + σk)
-    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
+    m_monotone > 1 && (m_fh_hist[stats.iter%(m_monotone-1)+1] = fk + hk)
 
     set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)
@@ -531,17 +531,17 @@ function SolverCore.solve!(
 end
 
 function _qn_grad_update_y!(
-  nlp::AbstractNLPModel{T, V},
-  solver::R2NSolver{T, G, V},
+  nlp::AbstractNLPModel{T,V},
+  solver::R2NSolver{T,G,V},
   stats::GenericExecutionStats,
-) where {T, V, G}
+) where {T,V,G}
   @. solver.y = solver.∇fk - solver.∇fk⁻
 end
 
 function _qn_grad_copy!(
-  nlp::AbstractNLPModel{T, V},
-  solver::R2NSolver{T, G, V},
+  nlp::AbstractNLPModel{T,V},
+  solver::R2NSolver{T,G,V},
   stats::GenericExecutionStats,
-) where {T, V, G}
+) where {T,V,G}
   solver.∇fk⁻ .= solver.∇fk
 end

@@ -37,7 +37,7 @@ mutable struct ROSolverOptions{R}
     θ::R = 1/(1+eps(R)^(1 / 5)),
     β::R = 1 / eps(R),
     reduce_TR::Bool = true,
-  ) where {R <: Real}
+  ) where {R<:Real}
     @assert ϵa ≥ 0
     @assert ϵr ≥ 0
     @assert neg_tol ≥ 0

@@ -1,19 +1,70 @@
 module RegularizedOptimization
 
-# base dependencies
-using LinearAlgebra, Logging, Printf
-
-# external dependencies
-using Arpack, ProximalOperators
-
-# dependencies from us
-using LinearOperators,
-  ManualNLPModels,
+using Arpack: Arpack, eigs, svds
+using LinearAlgebra: LinearAlgebra, /, dot, mul!, norm, opnorm
+using LinearOperators:
+  LinearOperators,
+  AbstractDiagonalQuasiNewtonOperator,
+  AbstractLinearOperator,
+  SpectralGradient
+using Logging: Logging, @debug, @info, @warn, with_logger
+using ManualNLPModels: ManualNLPModels, NLPModel
+using NLPModels:
   NLPModels,
-  NLPModelsModifiers,
-  RegularizedProblems,
+  @lencheck,
+  AbstractNLPModel,
+  AbstractNLSModel,
+  Counters,
+  NLPModelMeta,
+  bound_constrained,
+  equality_constrained,
+  grad!,
+  has_bounds,
+  hess_op,
+  hess_op!,
+  increment!,
+  jac_op_residual,
+  jprod_residual!,
+  jtprod_residual!,
+  neval_obj,
+  obj,
+  objcons!,
+  reset!,
+  residual,
+  residual!,
+  unconstrained
+using NLPModelsModifiers:
+  NLPModelsModifiers, AbstractDiagonalQNModel, QuasiNewtonModel, SlackModel, SlackNLSModel
+using Printf: Printf, @sprintf
+using ProximalOperators: ProximalOperators, NormLinf
+using RegularizedProblems:
+  RegularizedProblems, AbstractRegularizedNLPModel, FirstOrderModel, RegularizedNLPModel
+using ShiftedProximalOperators:
   ShiftedProximalOperators,
-  SolverCore
+  ShiftedProximableFunction,
+  iprox!,
+  prox!,
+  set_bounds!,
+  set_radius!,
+  shift!,
+  shifted
+using SolverCore:
+  SolverCore,
+  AbstractOptimizationSolver,
+  GenericExecutionStats,
+  log_header,
+  log_row,
+  set_constraint_multipliers!,
+  set_dual_residual!,
+  set_iter!,
+  set_objective!,
+  set_primal_residual!,
+  set_residuals!,
+  set_solution!,
+  set_solver_specific!,
+  set_status!,
+  set_time!,
+  solve!
 using Percival: AugLagModel, update_y!, update_μ!
 
 const callback_docstring = "
