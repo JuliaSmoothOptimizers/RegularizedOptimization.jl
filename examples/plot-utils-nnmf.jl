@@ -19,11 +19,17 @@ function plot_nnmf(outstruct, Avec, m, n, k, name = "tr-qr")
   )
   push!(
     a,
-    Axis(Plots.Image(WH, (1, m), (1, n), colormap = ColorMaps.Named("Jet")), xlabel = "WH matrix"),
+    Axis(
+      Plots.Image(WH, (1, m), (1, n), colormap = ColorMaps.Named("Jet")),
+      xlabel = "WH matrix",
+    ),
   )
   push!(
     a,
-    Axis(Plots.Image(H, (1, k), (1, n), colormap = ColorMaps.Named("Jet")), xlabel = "H matrix"),
+    Axis(
+      Plots.Image(H, (1, k), (1, n), colormap = ColorMaps.Named("Jet")),
+      xlabel = "H matrix",
+    ),
   )
   push!(
     a,

@@ -29,7 +29,10 @@ mutable struct LMSolver{
   substats::GenericExecutionStats{T, V, V, T}
 end
 
-function LMSolver(reg_nls::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solver) where {T, V}
+function LMSolver(
+  reg_nls::AbstractRegularizedNLPModel{T, V};
+  subsolver = R2Solver,
+) where {T, V}
   x0 = reg_nls.model.meta.x0
   l_bound = reg_nls.model.meta.lvar
   u_bound = reg_nls.model.meta.uvar
@@ -110,7 +113,7 @@ For advanced usage, first define a solver "LMSolver" to preallocate the memory u
 
     stats = RegularizedExecutionStats(reg_nls)
     solve!(solver, reg_nls, stats)
-  
+
 # Arguments
 * `reg_nls::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
@@ -202,7 +205,7 @@ function SolverCore.solve!(
 
   xk = solver.xk .= x
 
-  # Make sure ψ has the correct shift 
+  # Make sure ψ has the correct shift
   shift!(solver.ψ, xk)
 
   Fk = solver.Fk

@@ -11,7 +11,12 @@ problem_list = [:hs8]
       @test stats.dual_feas <= 1e-2
       @test length(stats.solution) == nlp.meta.nvar
       @test typeof(stats.solution) == typeof(nlp.meta.x0)
+
+      # Test allocations
+      reg_nlp = RegularizedNLPModel(hs8(backend = :generic), h)
+      solver = ALSolver(reg_nlp)
+      stats = RegularizedExecutionStats(reg_nlp)
+      #@test @wrappedallocs(solve!(solver, reg_nlp, stats, atol = 1e-3)) == 0 #FIXME
     end
-    finalize(nlp)
   end
 end

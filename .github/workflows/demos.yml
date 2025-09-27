@@ -38,16 +38,7 @@ jobs:
         uses: teatimeguest/setup-texlive-action@v3
         with:
           packages: >-
-            scheme-minimal
-            latex-bin
-            pgf
-            pgfplots
-            standalone
-            xkeyval
-            luatex85
-            infwarerr
-            ltxcmds
-            epstopdf-pkg
+            scheme-minimal latex-bin pgf pgfplots standalone xkeyval luatex85 infwarerr ltxcmds epstopdf-pkg
       # - name: Setup tmate session
       #   uses: mxschmitt/action-tmate@v3
       - name: Develop package

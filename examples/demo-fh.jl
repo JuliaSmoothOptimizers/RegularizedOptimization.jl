@@ -1,6 +1,7 @@
 using LinearAlgebra
 using DifferentialEquations, ProximalOperators
-using ADNLPModels, NLPModels, NLPModelsModifiers, RegularizedOptimization, RegularizedProblems
+using ADNLPModels,
+  NLPModels, NLPModelsModifiers, RegularizedOptimization, RegularizedProblems
 
 include("plot-utils-fh.jl")
 

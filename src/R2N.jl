@@ -114,11 +114,11 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 
     stats = RegularizedExecutionStats(reg_nlp)
     solve!(solver, reg_nlp, stats)
-  
+
 # Arguments
 * `reg_nlp::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
-# Keyword arguments 
+# Keyword arguments
 - `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = √eps(T)`: absolute tolerance;
 - `rtol::T = √eps(T)`: relative tolerance;
@@ -237,7 +237,7 @@ function SolverCore.solve!(
 
   xk = solver.xk .= x
 
-  # Make sure ψ has the correct shift 
+  # Make sure ψ has the correct shift
   shift!(solver.ψ, xk)
 
   ∇fk = solver.∇fk

@@ -62,7 +62,7 @@ function TRSolver(
   Bk =
     isa(reg_nlp.model, QuasiNewtonModel) ? hess_op(reg_nlp.model, xk) :
     hess_op!(reg_nlp.model, xk, similar(xk))
-  sub_nlp = R2NModel(Bk, ∇fk, zero(T), x0) #FIXME 
+  sub_nlp = R2NModel(Bk, ∇fk, zero(T), x0) #FIXME
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -211,7 +211,7 @@ function SolverCore.solve!(
 
   xk = solver.xk .= x
 
-  # Make sure ψ has the correct shift 
+  # Make sure ψ has the correct shift
   shift!(solver.ψ, xk)
 
   ∇fk = solver.∇fk
@@ -371,7 +371,7 @@ function SolverCore.solve!(
         )
       end
     end
-    
+
     prox_evals += solver.substats.iter
     s .= solver.substats.solution
 
@@ -490,7 +490,19 @@ function SolverCore.solve!(
   end
   if verbose > 0 && stats.status == :first_order
     @info log_row(
-      Any[stats.iter, solver.substats.iter, fk, hk, sqrt_ξ1_νInv, ρk, Δk, χ(xk), χ(s), λmax, ""],
+      Any[
+        stats.iter,
+        solver.substats.iter,
+        fk,
+        hk,
+        sqrt_ξ1_νInv,
+        ρk,
+        Δk,
+        χ(xk),
+        χ(s),
+        λmax,
+        "",
+      ],
       colsep = 1,
     )
     @info "TR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"

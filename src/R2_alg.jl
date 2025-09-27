@@ -65,7 +65,10 @@ function R2Solver(
   )
 end
 
-function R2Solver(reg_nlp::AbstractRegularizedNLPModel{T, V}; max_iter::Int = 10000) where {T, V}
+function R2Solver(
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
+  max_iter::Int = 10000,
+) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -139,7 +142,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 # Arguments
 * `reg_nlp::AbstractRegularizedNLPModel{T, V}`: the problem to solve, see `RegularizedProblems.jl`, `NLPModels.jl`.
 
-# Keyword arguments 
+# Keyword arguments
 - `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = √eps(T)`: absolute tolerance;
 - `rtol::T = √eps(T)`: relative tolerance;
@@ -347,7 +350,7 @@ function SolverCore.solve!(
 
   xk = solver.xk .= x
 
-  # Make sure ψ has the correct shift 
+  # Make sure ψ has the correct shift
   shift!(solver.ψ, xk)
 
   ∇fk = solver.∇fk

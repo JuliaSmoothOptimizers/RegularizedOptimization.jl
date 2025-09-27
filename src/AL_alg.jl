@@ -42,7 +42,9 @@ function AL(
 ) where {V}
   nlp = reg_nlp.model
   if nlp.meta.ncon == 0 || equality_constrained(nlp)
-    error("AL(::Val{:ineq}, ...) should only be called for problems with inequalities. Use AL(...)")
+    error(
+      "AL(::Val{:ineq}, ...) should only be called for problems with inequalities. Use AL(...)",
+    )
   end
   snlp = nlp isa AbstractNLSModel ? SlackNLSModel(nlp) : SlackModel(nlp)
   reg_snlp = RegularizedNLPModel(snlp, reg_nlp.h, reg_nlp.selected)
@@ -74,7 +76,7 @@ At each iteration, an iterate x is computed as an approximate solution of the su
     minimize    L(x;y,μ) + h(x)
     subject to  lvar ≤ x ≤ uvar
 
-where y is an estimate of the Lagrange multiplier vector for the constraints lcon ≤ c(x) ≤ ucon, 
+where y is an estimate of the Lagrange multiplier vector for the constraints lcon ≤ c(x) ≤ ucon,
 μ is the penalty parameter and L(⋅;y,μ) is the augmented Lagrangian function defined by
 
     L(x;y,μ) := f(x) - yᵀc(x) + ½ μ ‖c(x)‖².
@@ -90,7 +92,7 @@ For advanced usage, first define a solver "ALSolver" to preallocate the memory u
 
 # Arguments
 
-- `reg_nlp::AbstractRegularizedNLPModel`: a regularized optimization problem, see `RegularizedProblems.jl`, 
+- `reg_nlp::AbstractRegularizedNLPModel`: a regularized optimization problem, see `RegularizedProblems.jl`,
   consisting of `model` representing a smooth optimization problem, see `NLPModels.jl`, and a regularizer `h` such
   as those defined in `ProximalOperators.jl`.
 
@@ -172,7 +174,11 @@ function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {
   )
 end
 
-@doc (@doc ALSolver) function AL(::Val{:equ}, reg_nlp::AbstractRegularizedNLPModel; kwargs...)
+@doc (@doc ALSolver) function AL(
+  ::Val{:equ},
+  reg_nlp::AbstractRegularizedNLPModel;
+  kwargs...,
+)
   nlp = reg_nlp.model
   if !(nlp.meta.minimize)
     error("AL only works for minimization problems")
@@ -363,7 +369,9 @@ function SolverCore.solve!(
     done = stats.status != :unknown
 
     if verbose > 0 && (mod(stats.iter, verbose) == 0 || done)
-      @info log_row(Any[iter, subiters, objx, cviol, mu, norm(solver.y), subtol, subout.status])
+      @info log_row(
+        Any[iter, subiters, objx, cviol, mu, norm(solver.y), subtol, subout.status],
+      )
     end
 
     if !done

@@ -251,7 +251,7 @@ function SolverCore.solve!(
 
   xk = solver.xk .= x
 
-  # Make sure ψ has the correct shift 
+  # Make sure ψ has the correct shift
   shift!(solver.ψ, xk)
 
   ∇fk = solver.∇fk
@@ -373,7 +373,15 @@ function SolverCore.solve!(
 
   # update radius
   if has_bnds
-    update_bounds!(l_bound_m_x, u_bound_m_x, is_subsolver, l_bound, u_bound, xk, Δ_effective)
+    update_bounds!(
+      l_bound_m_x,
+      u_bound_m_x,
+      is_subsolver,
+      l_bound,
+      u_bound,
+      xk,
+      Δ_effective,
+    )
     set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
   else
     set_radius!(ψ, Δ_effective)
@@ -460,7 +468,15 @@ function SolverCore.solve!(
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
       if has_bnds
-        update_bounds!(l_bound_m_x, u_bound_m_x, is_subsolver, l_bound, u_bound, xk, Δ_effective)
+        update_bounds!(
+          l_bound_m_x,
+          u_bound_m_x,
+          is_subsolver,
+          l_bound,
+          u_bound,
+          xk,
+          Δ_effective,
+        )
         set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
       else
         set_radius!(ψ, Δk)
