@@ -22,9 +22,9 @@ mutable struct LMSolver{
   has_bnds::Bool
   l_bound::V
   u_bound::V
-  m_fh_hist::V
   l_bound_m_x::V
   u_bound_m_x::V
+  m_fh_hist::V
   subsolver::ST
   subpb::PB
   substats::GenericExecutionStats{T, V, V, T}
