@@ -553,28 +553,3 @@ function SolverCore.solve!(
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
   return stats
 end
-
-function get_status(
-  reg_nlp::M;
-  elapsed_time = 0.0,
-  iter = 0,
-  optimal = false,
-  improper = false,
-  max_eval = Inf,
-  max_time = Inf,
-  max_iter = Inf,
-) where {M <: AbstractRegularizedNLPModel}
-  if optimal
-    :first_order
-  elseif improper
-    :improper
-  elseif iter > max_iter
-    :max_iter
-  elseif elapsed_time > max_time
-    :max_time
-  elseif neval_obj(reg_nlp.model) > max_eval && max_eval > -1
-    :max_eval
-  else
-    :unknown
-  end
-end
