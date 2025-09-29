@@ -60,14 +60,7 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
   @testset "bpdn-with-bounds-ls-LMTR-$(h_name)-TRDH" begin
     x0 = zeros(bpdn_nls2.meta.nvar)
     @test has_bounds(bpdn_nls2)
-    LMTR_out = LMTR(
-      bpdn_nls2,
-      h,
-      NormLinf(1.0),
-      options,
-      x0 = x0,
-      subsolver = TRDHSolver,
-    )
+    LMTR_out = LMTR(bpdn_nls2, h, NormLinf(1.0), options, x0 = x0, subsolver = TRDHSolver)
     @test typeof(LMTR_out.solution) == typeof(bpdn.meta.x0)
     @test length(LMTR_out.solution) == bpdn.meta.nvar
     @test typeof(LMTR_out.dual_feas) == eltype(LMTR_out.solution)

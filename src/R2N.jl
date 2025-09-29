@@ -48,7 +48,7 @@ function R2NSolver(
   s = similar(x0)
   s1 = similar(x0)
 
-  v0 = [(-1.0)^i for i in 0:(reg_nlp.model.meta.nvar-1)]
+  v0 = [(-1.0)^i for i = 0:(reg_nlp.model.meta.nvar - 1)]
   v0 ./= sqrt(reg_nlp.model.meta.nvar)
 
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))

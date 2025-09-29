@@ -32,8 +32,8 @@ end
 function LMTRSolver(
   reg_nls::AbstractRegularizedNLPModel{T, V};
   subsolver = R2Solver,
-  χ = NormLinf(one(T))
-) where{T, V}
+  χ = NormLinf(one(T)),
+) where {T, V}
   x0 = reg_nls.model.meta.x0
   l_bound = reg_nls.model.meta.lvar
   u_bound = reg_nls.model.meta.uvar
@@ -57,9 +57,15 @@ function LMTRSolver(
   end
 
   ψ =
-    has_bnds ? shifted(reg_nls.h, xk, max.(-one(T), l_bound_m_x), min.(one(T), u_bound_m_x), reg_nls.selected) :
-    shifted(reg_nls.h, xk, one(T), χ)
-  
+    has_bnds ?
+    shifted(
+      reg_nls.h,
+      xk,
+      max.(-one(T), l_bound_m_x),
+      min.(one(T), u_bound_m_x),
+      reg_nls.selected,
+    ) : shifted(reg_nls.h, xk, one(T), χ)
+
   Jk = jac_op_residual(reg_nls.model, xk)
   sub_nlp = LMModel(Jk, Fk, T(0), xk)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
@@ -83,7 +89,7 @@ function LMTRSolver(
     u_bound_m_x,
     subsolver,
     subpb,
-    substats
+    substats,
   )
 end
 
@@ -143,13 +149,7 @@ The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
 # Callback
 $(callback_docstring)
 """
-function LMTR(
-  nls::AbstractNLSModel,
-  h::H,
-  χ::X,
-  options::ROSolverOptions;
-  kwargs...
-) where {H, X}
+function LMTR(nls::AbstractNLSModel, h::H, χ::X, options::ROSolverOptions; kwargs...) where {H, X}
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nls.meta.nvar))
   reg_nls = RegularizedNLPModel(nls, h, selected)
@@ -174,7 +174,7 @@ function LMTR(
   )
 end
 
-function LMTR(reg_nls::AbstractRegularizedNLPModel{T}; kwargs...) where{T}
+function LMTR(reg_nls::AbstractRegularizedNLPModel{T}; kwargs...) where {T}
   kwargs_dict = Dict(kwargs...)
   subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
   χ = pop!(kwargs_dict, :χ, NormLinf(one(T)))
@@ -202,7 +202,7 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   γ::T = T(3),
   α::T = 1 / eps(T),
-  β::T = 1 / eps(T)
+  β::T = 1 / eps(T),
 ) where {T, G, V}
   reset!(stats)
 
@@ -325,7 +325,6 @@ function SolverCore.solve!(
   done = stats.status != :unknown
 
   while !done
-
     ∆_effective = min(β * χ(s), Δk)
 
     if has_bnds
@@ -340,22 +339,22 @@ function SolverCore.solve!(
       set_radius!(ψ, ∆_effective)
     end
 
-    if isa(solver.subsolver, TRDHSolver) 
+    if isa(solver.subsolver, TRDHSolver)
       solver.subsolver.D.d[1] = 1/ν
       solve!(
         solver.subsolver,
         solver.subpb,
         solver.substats,
-        x = s, 
+        x = s,
         atol = stats.iter == 0 ? 1.0e-5 : max(sub_atol, min(1.0e-1, ξ1 / 10)),
-        Δk = ∆_effective / 10
+        Δk = ∆_effective / 10,
       )
     else
       solve!(
         solver.subsolver,
         solver.subpb,
         solver.substats,
-        x = s, 
+        x = s,
         atol = stats.iter == 0 ? 1.0e-5 : max(sub_atol, min(1.0e-1, ξ1 / 10)),
         ν = ν,
       )
@@ -396,9 +395,8 @@ function SolverCore.solve!(
         ],
         colsep = 1,
       )
-    
-    if η1 ≤ ρk < Inf
 
+    if η1 ≤ ρk < Inf
       xk .= xkn
       if has_bnds
         @. l_bound_m_x = l_bound - xk
@@ -416,14 +414,14 @@ function SolverCore.solve!(
 
       shift!(ψ, xk)
       jtprod_residual!(nls, xk, Fk, ∇fk)
-      
+
       σmax, found_σ = opnorm(solver.subpb.model.J)
       found_σ || error("operator norm computation failed")
     end
 
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
-      if !has_bnds 
+      if !has_bnds
         set_radius!(ψ, Δk)
         set_radius!(solver.subsolver.ψ, Δk)
       end
@@ -482,22 +480,7 @@ function SolverCore.solve!(
   end
 
   if verbose > 0 && stats.status == :first_order
-    @info log_row(
-      Any[
-        stats.iter,
-        0,
-        fk,
-        hk,
-        sqrt_ξ1_νInv,
-        ρk,
-        Δk,
-        χ(xk),
-        χ(s),
-        ν,
-        "",
-      ],
-      colsep = 1,
-    )
+    @info log_row(Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, ρk, Δk, χ(xk), χ(s), ν, ""], colsep = 1)
     @info "LMTR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
   end
 
