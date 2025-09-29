@@ -61,7 +61,7 @@ By contrast, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimize
 As shown in [@aravkin-baraldi-orban-2022], model-based methods typically require fewer evaluations of the objective and its gradient than first-order line search methods, at the expense of solving more involved subproblems.
 Although these subproblems may require many proximal iterations, each proximal computation is inexpensive, making the overall approach efficient for large-scale problems.
 
-Building on this perspective, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) implements state-of-the-art regularization-based algorithms for solving problems of the form $f(x) + h(x)$, where $f$ is smooth and $h$ is nonsmooth.
+Building on this perspective, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) implements state-of-the-art algorithms for solving problems of the form $f(x) + h(x)$, where $f$ is smooth and $h$ is nonsmooth.
 The package provides a consistent API to formulate optimization problems and apply different regularization methods.
 It integrates seamlessly with the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) ecosystem, an academic organization for nonlinear optimization software development, testing, and benchmarking.
 
