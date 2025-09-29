@@ -79,14 +79,14 @@ function ensure_qn(model, which::Symbol)
     error("QN inconnu: $which (attendu :LBFGS ou :LSR1)")
 end
 
-function run_tr!(model, x0; λ = 1.0, qn = :LSR1, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = (;), selected = selected)
+function run_tr!(model, x0; λ = 1.0, qn = :LSR1, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = (;), selected = selected, opnorm_maxiter = 20)
     qn_model = ensure_qn(model, qn)
     reset!(qn_model)  # reset des compteurs
     reg_nlp  = RegularizedNLPModel(qn_model, NormL0(λ), selected)
     solver   = TRSolver(reg_nlp)
     stats    = RegularizedExecutionStats(reg_nlp)
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
-                                                x = x0, atol = atol, rtol = rtol, verbose = verbose, opnorm_maxiter = 30, sub_kwargs = sub_kwargs)
+                                                x = x0, atol = atol, rtol = rtol, verbose = verbose, opnorm_maxiter = opnorm_maxiter, sub_kwargs = sub_kwargs)
     metrics = (
         name      = "TR($(String(qn)))",
         status    = string(stats.status),
@@ -103,7 +103,7 @@ end
 #############################
 # ======== R2N run ======== #
 #############################
-function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = (;), σk = 1e5)
+function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = (;), σk = 1e5, opnorm_maxiter = 20)
     qn_model = ensure_qn(model, qn)
     reset!(qn_model)
     reg_nlp  = RegularizedNLPModel(qn_model, NormL0(λ))
@@ -111,9 +111,9 @@ function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, ve
     stats    = RegularizedExecutionStats(reg_nlp)
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
                                                 x = x0, atol = atol, rtol = rtol, σk = σk,
-                                                verbose = verbose, sub_kwargs = sub_kwargs, opnorm_maxiter = 30)
+                                                verbose = verbose, sub_kwargs = sub_kwargs, opnorm_maxiter = opnorm_maxiter)
     metrics = (
-        name      = "R2N($(String(qn)))",
+        name      = "R2N($(String(qn))) Nonmonotone",
         status    = string(stats.status),
         time      = t,
         iters     = get(stats.solver_specific, :outer_iter, missing),
@@ -129,10 +129,10 @@ end
 # ======== LM run ======== #
 #############################
 function run_LM!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose = 0, σk = 1e0)
-    reg_nlp  = RegularizedNLSModel(nls_model, NormL0(λ))
-    solver   = LMSolver(reg_nlp)
-    stats    = RegularizedExecutionStats(reg_nlp)
-    t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
+    reg_nls  = RegularizedNLSModel(nls_model, NormL0(λ))
+    solver   = LMSolver(reg_nls)
+    stats    = RegularizedExecutionStats(reg_nls)
+    t = @elapsed RegularizedOptimization.solve!(solver, reg_nls, stats;
                                                 x = x0, atol = atol, rtol = rtol, σk = σk,
                                                 verbose = verbose)
     metrics = (
@@ -153,15 +153,12 @@ end
 #############################
 results = NamedTuple[]
 
-# if :PANOC in CFG3.RUN_SOLVERS
-#     push!(results, run_panoc!(model, x0; λ = CFG3.LAMBDA_L0, maxit = CFG3.MAXIT_PANOC, tol = CFG3.TOL, verbose = CFG3.VERBOSE_PANOC))
-# end
 if :TR in CFG3.RUN_SOLVERS
-    push!(results, run_tr!(model, x0; λ = CFG3.LAMBDA_L0, qn = CFG3.QN_FOR_TR, atol = CFG3.TOL, rtol = CFG3.RTOL, verbose = CFG3.VERBOSE_RO, sub_kwargs = CFG3.SUB_KWARGS_R2N,))
+    push!(results, run_tr!(model, x0; λ = CFG3.LAMBDA_L0, qn = CFG3.QN_FOR_TR, atol = CFG3.TOL, rtol = CFG3.RTOL, verbose = CFG3.VERBOSE_RO, sub_kwargs = CFG3.SUB_KWARGS_R2N, opnorm_maxiter = CFG3.OPNORM_MAXITER))
 end
 if :R2N in CFG3.RUN_SOLVERS
     push!(results, run_r2n!(model, x0; λ = CFG3.LAMBDA_L0, qn = CFG3.QN_FOR_R2N, atol = CFG3.TOL, rtol = CFG3.RTOL,
-                            verbose = CFG3.VERBOSE_RO, sub_kwargs = CFG3.SUB_KWARGS_R2N, σk = CFG3.SIGMAK_R2N))
+                            verbose = CFG3.VERBOSE_RO, sub_kwargs = CFG3.SUB_KWARGS_R2N, σk = CFG3.SIGMAK_R2N, opnorm_maxiter = CFG3.OPNORM_MAXITER))
 end
 if :LM in CFG3.RUN_SOLVERS
     push!(results, run_LM!(nls_model, x0; λ = CFG3.LAMBDA_L0, atol = CFG3.TOL, rtol = CFG3.RTOL,
@@ -217,7 +214,7 @@ if CFG3.PRINT_TABLE
        )
     
 
-    open("NNMF-comparison.txt", "w") do io
+    open("NNMF-comparison-f.txt", "w") do io
     write(io, table_str)
     end
 end

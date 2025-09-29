@@ -5,6 +5,7 @@
 using Random, LinearAlgebra
 using ProximalOperators, ProximalCore, ProximalAlgorithms
 using ADNLPModels, NLPModels, NLPModelsModifiers
+using ShiftedProximalOperators
 using RegularizedOptimization, RegularizedProblems
 using MLDatasets
 
@@ -30,6 +31,9 @@ function print_config(CFG2)
     println("  SIGMAK_R2N      = $(CFG2.SIGMAK_R2N)")
     println("  X0_SCALAR       = $(CFG2.X0_SCALAR)")
     println("  PRINT_TABLE     = $(CFG2.PRINT_TABLE)")   
+    println("  OPNORM_MAXITER  = $(CFG2.OPNORM_MAXITER)")
+    println("  HESSIAN_SCALE  = $(CFG2.HESSIAN_SCALE)")
+    println("  M_MONOTONE     = $(CFG2.M_MONOTONE)")
 end
 
 acc = vec -> length(findall(x -> x < 1, vec)) / length(vec) * 100 # for SVM
@@ -73,14 +77,14 @@ function ensure_qn(model, which::Symbol)
     error("QN inconnu: $which (attendu :LBFGS ou :LSR1)")
 end
 
-function run_tr!(model, x0; λ = 1.0, qn = :LSR1, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = (;))
+function run_tr!(model, x0; λ = 1.0, qn = :LSR1, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = (;), opnorm_maxiter = 20)
     qn_model = ensure_qn(model, qn)
     reset!(qn_model)  # reset des compteurs
     reg_nlp  = RegularizedNLPModel(qn_model, RootNormLhalf(λ))
     solver   = TRSolver(reg_nlp)
     stats    = RegularizedExecutionStats(reg_nlp)
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
-                                                x = x0, atol = atol, rtol = rtol, verbose = verbose, opnorm_maxiter = 20, sub_kwargs = sub_kwargs)#, max_iter = 400)
+                                                x = x0, atol = atol, rtol = rtol, verbose = verbose, opnorm_maxiter = opnorm_maxiter, sub_kwargs = sub_kwargs)
     metrics = (
         name      = "TR($(String(qn)))",
         status    = string(stats.status),
@@ -97,7 +101,7 @@ end
 #############################
 # ======== R2N run ======== #
 #############################
-function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = (;), σk = 1e5)
+function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = (;), σk = 1e5, opnorm_maxiter = 20)
     qn_model = ensure_qn(model, qn)
     reset!(qn_model)
     reg_nlp  = RegularizedNLPModel(qn_model, RootNormLhalf(λ))
@@ -105,7 +109,7 @@ function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, ve
     stats    = RegularizedExecutionStats(reg_nlp)
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
                                                 x = x0, atol = atol, rtol = rtol, σk = σk,
-                                                verbose = verbose, sub_kwargs = sub_kwargs, opnorm_maxiter = 20)
+                                                verbose = verbose, sub_kwargs = sub_kwargs, opnorm_maxiter = opnorm_maxiter)
     metrics = (
         name      = "R2N($(String(qn)))",
         status    = string(stats.status),
@@ -113,29 +117,6 @@ function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, ve
         iters     = get(stats.solver_specific, :outer_iter, missing),
         fevals    = neval_obj(qn_model),
         gevals    = neval_grad(qn_model),
-        proxcalls = stats.solver_specific[:prox_evals],
-        solution  = stats.solution,
-    )
-    return metrics
-end
-
-#############################
-# ======== LM run ======== #
-#############################
-function run_LM!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose = 0, σk = 1e0)
-    reg_nlp  = RegularizedNLSModel(nls_model, RootNormLhalf(λ))
-    solver   = LMSolver(reg_nlp)
-    stats    = RegularizedExecutionStats(reg_nlp)
-    t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
-                                                x = x0, atol = atol, rtol = rtol, σk = σk,
-                                                verbose = verbose)
-    metrics = (
-        name      = "LM",
-        status    = string(stats.status),
-        time      = t,
-        iters     = get(stats.solver_specific, :outer_iter, missing),
-        fevals    = neval_residual(nls_model),
-        gevals    = neval_jtprod_residual(nls_model) + neval_jprod_residual(nls_model),
         proxcalls = stats.solver_specific[:prox_evals],
         solution  = stats.solution,
     )
@@ -151,11 +132,11 @@ if :PANOC in CFG2.RUN_SOLVERS
     push!(results, run_panoc!(model, x0; λ = CFG2.LAMBDA_L0, maxit = CFG2.MAXIT_PANOC, tol = CFG2.TOL, verbose = CFG2.VERBOSE_PANOC))
 end
 if :TR in CFG2.RUN_SOLVERS
-    push!(results, run_tr!(model, x0; λ = CFG2.LAMBDA_L0, qn = CFG2.QN_FOR_TR, atol = CFG2.TOL, rtol = CFG2.RTOL, verbose = CFG2.VERBOSE_RO, sub_kwargs = CFG2.SUB_KWARGS_R2N,))
+    push!(results, run_tr!(model, x0; λ = CFG2.LAMBDA_L0, qn = CFG2.QN_FOR_TR, atol = CFG2.TOL, rtol = CFG2.RTOL, verbose = CFG2.VERBOSE_RO, sub_kwargs = CFG2.SUB_KWARGS_R2N, opnorm_maxiter = CFG2.OPNORM_MAXITER))
 end
 if :R2N in CFG2.RUN_SOLVERS
     push!(results, run_r2n!(model, x0; λ = CFG2.LAMBDA_L0, qn = CFG2.QN_FOR_R2N, atol = CFG2.TOL, rtol = CFG2.RTOL,
-                            verbose = CFG2.VERBOSE_RO, sub_kwargs = CFG2.SUB_KWARGS_R2N, σk = CFG2.SIGMAK_R2N))
+                            verbose = CFG2.VERBOSE_RO, sub_kwargs = CFG2.SUB_KWARGS_R2N, σk = CFG2.SIGMAK_R2N, opnorm_maxiter = CFG2.OPNORM_MAXITER))
 end
 
 
@@ -200,15 +181,14 @@ if CFG2.PRINT_TABLE
 ]
 
     # En-têtes
-    table_str = pretty_table(String,
-           data;
+    table_str = pretty_table(String, data;
            header = ["Method", "Status", "Time (s)", "#f", "#∇f", "#prox"],
            tf = tf_unicode,
            alignment = [:l, :c, :r, :r, :r, :r],
            crop = :none,
        )
 
-    open("SVM-comparison.txt", "w") do io
+    open("SVM-comparison-f.txt", "w") do io
         write(io, table_str)
     end
 

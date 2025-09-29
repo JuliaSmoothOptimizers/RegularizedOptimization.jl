@@ -4,6 +4,7 @@
 #############################
 using Random, LinearAlgebra
 using ProximalOperators, ProximalCore, ProximalAlgorithms
+using ShiftedProximalOperators
 using ADNLPModels, NLPModels, NLPModelsModifiers
 using RegularizedOptimization, RegularizedProblems
 using DifferentialEquations, SciMLSensitivity
@@ -117,7 +118,7 @@ function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, ve
                                                 x = x0, atol = atol, rtol = rtol, σk = σk,
                                                 verbose = verbose, sub_kwargs = sub_kwargs, opnorm_maxiter = opnorm_maxiter)
     metrics = (
-        name      = "R2N($(String(qn)))",
+        name      = "R2N($(String(qn))) Nonmonotone",
         status    = string(stats.status),
         time      = t,
         iters     = get(stats.solver_specific, :outer_iter, missing),
@@ -196,7 +197,7 @@ if CFG.PRINT_TABLE
            crop = :none,
        )
 
-    open("FH-comparison.txt", "w") do io
+    open("FH-comparison-f.txt", "w") do io
         write(io, table_str)
     end
 end
