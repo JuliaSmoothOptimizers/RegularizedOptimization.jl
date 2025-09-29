@@ -44,7 +44,7 @@ The library provides a modular and extensible framework for experimenting with n
 - **Trust-region methods (TR, TRDH)** [@aravkin-baraldi-orban-2022;@leconte-orban-2023],
 - **Quadratic regularization methods (R2, R2N)** [@diouane-habiboullah-orban-2024;@aravkin-baraldi-orban-2022],
 - **Levenbergh-Marquardt methods (LM, LMTR)** [@aravkin-baraldi-orban-2024].
-- **Augmented Lagrangian methods (ALTR)** (cite?).
+- **Augmented Lagrangian methods (AL)** [@demarchi-jia-kanzow-mehlitz-2023].
 
 These methods rely solely on the gradient and Hessian(-vector) information of the smooth part $f$ and the proximal mapping of the nonsmooth part $h$ in order to compute steps.
 Then, the objective function $f + h$ is used only to accept or reject trial points.
@@ -330,7 +330,7 @@ However, **LM** requires significantly fewer function evaluations, which is expe
 
 The experiments highlight the effectiveness of the solvers implemented in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) compared to **PANOC** from [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl).
 
-The performance can be summarized as follows:
+On these examples, the performance of the solvers can be summarized as follows:
 
 - **Function and gradient evaluations:** **TR** and **R2N** are the most efficient choices when aiming to minimize both.
 - **Function evaluations only:** **LM** is preferable when the problem is a nonlinear least squares problem, as it achieves the lowest number of function evaluations.
