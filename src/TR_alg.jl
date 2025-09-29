@@ -366,7 +366,7 @@ function SolverCore.solve!(
           solver.substats;
           x = s,
           atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
-          ν = ν₁,
+          σk = 1/ν₁,
           sub_kwargs...,
         )
       end

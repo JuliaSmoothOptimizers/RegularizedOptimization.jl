@@ -151,7 +151,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 - `σmin::T = eps(T)`: minimum value of the regularization parameter;
 - `η1::T = √√eps(T)`: very successful iteration threshold;
 - `η2::T = T(0.9)`: successful iteration threshold;
-- `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
+- `σk::T = eps(T)^(1 / 5)`: initial value of the regularization parameter;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
@@ -198,7 +198,7 @@ function R2(
     σmin = options.σmin,
     η1 = options.η1,
     η2 = options.η2,
-    ν = options.ν,
+    σk = options.σk,
     γ = options.γ;
     kwargs_dict...,
   )
@@ -237,7 +237,7 @@ function R2(
     σmin = options.σmin,
     η1 = options.η1,
     η2 = options.η2,
-    ν = options.ν,
+    σk = options.σk,
     γ = options.γ;
     kwargs...,
   )
@@ -280,7 +280,7 @@ function R2(
     σmin = options.σmin,
     η1 = options.η1,
     η2 = options.η2,
-    ν = options.ν,
+    σk = options.σk,
     γ = options.γ;
     kwargs...,
   )
@@ -335,7 +335,7 @@ function SolverCore.solve!(
   σmin::T = eps(T),
   η1::T = √√eps(T),
   η2::T = T(0.9),
-  ν::T = eps(T)^(1 / 5),
+  σk::T = eps(T)^(1 / 5),
   γ::T = T(3),
 ) where {T, V}
   reset!(stats)
@@ -396,7 +396,7 @@ function SolverCore.solve!(
 
   local ξ::T
   local ρk::T
-  σk = max(1 / ν, σmin)
+  σk = max(σk, σmin)
   ν = 1 / σk
   sqrt_ξ_νInv = one(T)
 
