@@ -30,7 +30,11 @@ mutable struct LMSolver{
   substats::GenericExecutionStats{T, V, V, T}
 end
 
-function LMSolver(reg_nls::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solver, m_monotone::Int = 1) where {T, V}
+function LMSolver(
+  reg_nls::AbstractRegularizedNLPModel{T, V};
+  subsolver = R2Solver,
+  m_monotone::Int = 1,
+) where {T, V}
   x0 = reg_nls.model.meta.x0
   l_bound = reg_nls.model.meta.lvar
   u_bound = reg_nls.model.meta.uvar

@@ -42,12 +42,8 @@ end
 # Test non allocating solve!
 @testset "NLP allocs" begin
   for (h, h_name) ∈ ((NormL0(λ), "l0"),)
-    for (solver, solver_name) ∈ (
-      (:R2Solver, "R2"),
-      (:R2DHSolver, "R2DH"),
-      (:R2NSolver, "R2N"),
-      (:TRDHSolver, "TRDH"),
-    )
+    for (solver, solver_name) ∈
+        ((:R2Solver, "R2"), (:R2DHSolver, "R2DH"), (:R2NSolver, "R2N"), (:TRDHSolver, "TRDH"))
       @testset "$(solver_name)" begin
         reg_nlp = RegularizedNLPModel(LBFGSModel(bpdn), h)
         solver = eval(solver)(reg_nlp)
@@ -92,13 +88,14 @@ end
 
 @testset "NLS allocs" begin
   for (h, h_name) ∈ ((NormL0(λ), "l0"),)
-    for (solver, solver_name) ∈ ((:LMTRSolver, "LMTR"), )
+    for (solver, solver_name) ∈ ((:LMTRSolver, "LMTR"),)
       @testset "$(solver_name)" begin
         solver_name == "LMTR" && continue #FIXME
         reg_nlp = RegularizedNLPModel(bpdn_nls, h)
         solver = eval(solver)(reg_nlp)
         stats = RegularizedExecutionStats(reg_nlp)
-        @test @wrappedallocs(solve!(solver, reg_nlp, stats, Δk = 1.0, atol = 1e-6, rtol = 1e-6)) == 0
+        @test @wrappedallocs(solve!(solver, reg_nlp, stats, Δk = 1.0, atol = 1e-6, rtol = 1e-6)) ==
+              0
         @test stats.status == :first_order
       end
     end
