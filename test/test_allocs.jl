@@ -54,10 +54,7 @@ end
         reg_nlp = RegularizedNLPModel(LBFGSModel(bpdn), h)
         solver = eval(solver)(reg_nlp)
         stats = RegularizedExecutionStats(reg_nlp)
-        solver_name == "R2" &&
-          @test @wrappedallocs(solve!(solver, reg_nlp, stats, ν = 1.0, atol = 1e-6, rtol = 1e-6)) ==
-                0
-        solver_name == "R2DH" && @test @wrappedallocs(
+        (solver_name == "R2DH" || solver_name == "R2") && @test @wrappedallocs(
           solve!(solver, reg_nlp, stats, σk = 1.0, atol = 1e-6, rtol = 1e-6)
         ) == 0
         solver_name == "TRDH" &&

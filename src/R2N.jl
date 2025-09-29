@@ -304,6 +304,7 @@ function SolverCore.solve!(
   λmax, found_λ = opnorm(solver.subpb.model.B)
   found_λ || error("operator norm computation failed")
 
+  σk = max(σk, σmin)
   ν₁ = θ / (λmax + σk)
 
   sqrt_ξ1_νInv = one(T)
@@ -366,27 +367,15 @@ function SolverCore.solve!(
 
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
-    if isa(solver.subsolver, R2Solver) #FIXME
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats;
-        x = s1,
-        ν = ν₁,
-        atol = sub_atol,
-        sub_kwargs...,
-      )
-    else
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats;
-        x = s1,
-        σk = σk,
-        atol = sub_atol,
-        sub_kwargs...,
-      )
-    end
+    solve!(
+      solver.subsolver,
+      solver.subpb,
+      solver.substats;
+      x = s1,
+      σk = σk,
+      atol = sub_atol,
+      sub_kwargs...,
+    )
 
     prox_evals += solver.substats.iter
     s .= solver.substats.solution

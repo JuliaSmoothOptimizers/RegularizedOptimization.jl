@@ -312,6 +312,7 @@ function SolverCore.solve!(
   ∇fk⁻ .= ∇fk
   spectral_test = isa(D, SpectralGradient)
 
+  σk = max(σk, σmin)
   @. dkσk = D.d .+ σk
   DNorm = norm(D.d, Inf)
 

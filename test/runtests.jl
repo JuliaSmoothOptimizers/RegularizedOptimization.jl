@@ -12,7 +12,7 @@ using ADNLPModels,
 
 const global compound = 1
 const global nz = 10 * compound
-const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10)
+const global options = ROSolverOptions(σk = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10)
 const global bpdn, bpdn_nls, sol = bpdn_model(compound)
 const global bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
