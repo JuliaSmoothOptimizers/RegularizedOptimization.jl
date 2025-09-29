@@ -18,6 +18,7 @@ mutable struct TRSolver{
   χ::N
   xkn::V
   s::V
+  v0::V
   has_bnds::Bool
   l_bound::V
   u_bound::V
@@ -58,6 +59,9 @@ function TRSolver(
 
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
+  v0 = [(-1.0)^i for i in 0:(reg_nlp.model.meta.nvar-1)]
+  v0 ./= sqrt(reg_nlp.model.meta.nvar)
+
   ψ =
     has_bnds || subsolver == TRDHSolver ?
     shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
@@ -80,6 +84,7 @@ function TRSolver(
     χ,
     xkn,
     s,
+    v0,
     has_bnds,
     l_bound,
     u_bound,
@@ -135,6 +140,7 @@ For advanced usage, first define a solver "TRSolver" to preallocate the memory u
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: trust-region radius parameter multiplier. Must satisfy `γ > 1`. The trust-region radius is updated as Δ := Δ*γ when the iteration is very successful and Δ := Δ/γ when the iteration is unsuccessful;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, TR is monotone but the non-monotone variant will be used if `m_monotone > 1`;
+- `opnorm_maxiter::Int = 5`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
 - `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
 - `subsolver::S = R2Solver`: subsolver used to solve the subproblem that appears at each iteration.
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
@@ -208,6 +214,7 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   γ::T = T(3),
   sub_kwargs::NamedTuple = NamedTuple(),
+  opnorm_maxiter::Int = 5,
 ) where {T, G, V}
   reset!(stats)
 
@@ -286,9 +293,14 @@ function SolverCore.solve!(
   ∇fk⁻ .= ∇fk
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
-  λmax = T(1)
+  λmax::T = T(1)
+  found_λ = true
 
-  λmax, found_λ = opnorm(solver.subpb.model.B)
+  if opnorm_maxiter ≤ 0
+    λmax, found_λ = opnorm(solver.subpb.model.B)
+  else
+    λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+  end
   found_λ || error("operator norm computation failed")
 
   ν₁ = α * Δk / (1 + λmax * (α * Δk + 1))
@@ -345,7 +357,6 @@ function SolverCore.solve!(
   callback(nlp, solver, stats)
 
   done = stats.status != :unknown
-
   while !done
     sub_atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv))
     ∆_effective = min(β * χ(s), Δk)
@@ -446,7 +457,11 @@ function SolverCore.solve!(
         push!(nlp, s, ∇fk⁻) # update QN operator
       end
 
-      λmax, found_λ = opnorm(solver.subpb.model.B)
+      if opnorm_maxiter ≤ 0
+        λmax, found_λ = opnorm(solver.subpb.model.B)
+      else
+        λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+      end
       found_λ || error("operator norm computation failed")
 
       ∇fk⁻ .= ∇fk

@@ -2,6 +2,19 @@ export RegularizedExecutionStats
 
 import SolverCore.GenericExecutionStats
 
+function power_method!(B::M, v₀::S, v₁::S, max_iter::Int = 1) where{M, S}
+  @assert max_iter >= 1 "max_iter must be at least 1."
+  mul!(v₁, B, v₀)
+  normalize!(v₁) # v1 = B*v0 / ‖B*v0‖
+  for i = 2:max_iter
+    v₀ .= v₁ # v0 = v1
+    mul!(v₁, B, v₀)
+    normalize!(v₁)
+  end
+  mul!(v₁, B, v₀)
+  return abs(dot(v₀, v₁))
+end
+
 # use Arpack to obtain largest eigenvalue in magnitude with a minimum of robustness
 function LinearAlgebra.opnorm(B; kwargs...)
   m, n = size(B)
@@ -116,4 +129,29 @@ function RegularizedExecutionStats(reg_nlp::AbstractRegularizedNLPModel{T, V}) w
   set_solver_specific!(stats, :radius, T(Inf))
   set_solver_specific!(stats, :prox_evals, T(Inf))
   return stats
+end
+
+function get_status(
+  reg_nlp::M;
+  elapsed_time = 0.0,
+  iter = 0,
+  optimal = false,
+  improper = false,
+  max_eval = Inf,
+  max_time = Inf,
+  max_iter = Inf,
+) where {M <: AbstractRegularizedNLPModel}
+  if optimal
+    :first_order
+  elseif improper
+    :improper
+  elseif iter >= max_iter
+    :max_iter
+  elseif elapsed_time >= max_time
+    :max_time
+  elseif neval_obj(reg_nlp.model) >= max_eval && max_eval >= 0
+    :max_eval
+  else
+    :unknown
+  end
 end

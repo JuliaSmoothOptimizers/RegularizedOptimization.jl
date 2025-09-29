@@ -18,6 +18,7 @@ mutable struct R2NSolver{
   xkn::V
   s::V
   s1::V
+  v0::V
   has_bnds::Bool
   l_bound::V
   u_bound::V
@@ -46,6 +47,10 @@ function R2NSolver(
   xkn = similar(x0)
   s = similar(x0)
   s1 = similar(x0)
+
+  v0 = [(-1.0)^i for i in 0:(reg_nlp.model.meta.nvar-1)]
+  v0 ./= sqrt(reg_nlp.model.meta.nvar)
+
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
   if has_bnds
     l_bound_m_x = similar(xk)
@@ -78,6 +83,7 @@ function R2NSolver(
     xkn,
     s,
     s1,
+    v0,
     has_bnds,
     l_bound,
     u_bound,
@@ -133,6 +139,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
+- `opnorm_maxiter::Int = 5`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
@@ -160,7 +167,6 @@ function R2N(
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
-  sub_kwargs = pop!(kwargs_dict, :sub_kwargs, NamedTuple())
   return R2N(
     reg_nlp,
     x = x0,
@@ -174,8 +180,7 @@ function R2N(
     σk = options.σk,
     η1 = options.η1,
     η2 = options.η2,
-    γ = options.γ,
-    sub_kwargs = sub_kwargs;
+    γ = options.γ;
     kwargs_dict...,
   )
 end
@@ -212,6 +217,7 @@ function SolverCore.solve!(
   γ::T = T(3),
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
+  opnorm_maxiter::Int = 5,
   sub_kwargs::NamedTuple = NamedTuple(),
 ) where {T, V, G}
   reset!(stats)
@@ -285,9 +291,14 @@ function SolverCore.solve!(
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
   λmax::T = T(1)
+  found_λ = true
   solver.subpb.model.B = hess_op(nlp, xk)
 
-  λmax, found_λ = opnorm(solver.subpb.model.B)
+  if opnorm_maxiter ≤ 0
+    λmax, found_λ = opnorm(solver.subpb.model.B)
+  else
+    λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+  end
   found_λ || error("operator norm computation failed")
 
   ν₁ = θ / (λmax + σk)
@@ -437,7 +448,11 @@ function SolverCore.solve!(
       end
       solver.subpb.model.B = hess_op(nlp, xk)
 
-      λmax, found_λ = opnorm(solver.subpb.model.B)
+      if opnorm_maxiter ≤ 0
+        λmax, found_λ = opnorm(solver.subpb.model.B)
+      else
+        λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+      end
       found_λ || error("operator norm computation failed")
     end
 
