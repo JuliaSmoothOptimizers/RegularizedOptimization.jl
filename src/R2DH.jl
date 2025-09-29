@@ -218,7 +218,7 @@ function R2DH(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V
   m_monotone = pop!(kwargs_dict, :m_monotone, 6)
   D = pop!(kwargs_dict, :D, nothing)
   solver = R2DHSolver(reg_nlp, m_monotone = m_monotone, D = D)
-  stats = GenericExecutionStats(reg_nlp.model)
+  stats = RegularizedExecutionStats(reg_nlp)
   solve!(solver, reg_nlp, stats; kwargs_dict...)
   return stats
 end
