@@ -518,20 +518,7 @@ function SolverCore.solve!(
   end
 
   if verbose > 0 && stats.status == :first_order
-    @info log_row(
-      Any[
-        stats.iter,
-        fk,
-        hk,
-        sqrt_ξ_νInv,
-        ρk,
-        σk,
-        norm(xk),
-        norm(s),
-        "",
-      ],
-      colsep = 1,
-    )
+    @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), ""], colsep = 1)
     @info "R2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
   end
 
