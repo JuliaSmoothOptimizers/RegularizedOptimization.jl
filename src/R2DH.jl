@@ -134,21 +134,7 @@ The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀)
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
 
 # Callback
-The callback is called at each iteration.
-The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
-Changing any of the input arguments will affect the subsequent iterations.
-In particular, setting `stats.status = :user` will stop the algorithm.
-All relevant information should be available in `nlp` and `solver`.
-Notably, you can access, and modify, the following:
-- `solver.xk`: current iterate;
-- `solver.∇fk`: current gradient;
-- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
-  - `stats.iter`: current iteration counter;
-  - `stats.objective`: current objective function value;
-  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
-  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function;
-  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything will stop the algorithm, but you should use `:user` to properly indicate the intention;
-  - `stats.elapsed_time`: elapsed time in seconds.
+$(callback_docstring)
 """
 function R2DH(
   nlp::AbstractDiagonalQNModel{T, V},
@@ -218,7 +204,7 @@ function R2DH(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V
   m_monotone = pop!(kwargs_dict, :m_monotone, 6)
   D = pop!(kwargs_dict, :D, nothing)
   solver = R2DHSolver(reg_nlp, m_monotone = m_monotone, D = D)
-  stats = GenericExecutionStats(reg_nlp.model)
+  stats = RegularizedExecutionStats(reg_nlp)
   solve!(solver, reg_nlp, stats; kwargs_dict...)
   return stats
 end
@@ -394,7 +380,7 @@ function SolverCore.solve!(
           σk,
           norm(xk),
           norm(s),
-          (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
+          (η2 ≤ ρk < Inf) ? '↘' : (ρk < η1 ? '↗' : '='),
         ],
         colsep = 1,
       )
@@ -468,20 +454,7 @@ function SolverCore.solve!(
   end
 
   if verbose > 0 && stats.status == :first_order
-    @info log_row(
-      Any[
-        stats.iter,
-        fk,
-        hk,
-        sqrt_ξ_νInv,
-        ρk,
-        σk,
-        norm(xk),
-        norm(s),
-        (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
-      ],
-      colsep = 1,
-    )
+    @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), ""], colsep = 1)
     @info "R2DH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
   end
 

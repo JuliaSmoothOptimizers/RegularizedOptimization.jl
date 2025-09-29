@@ -138,14 +138,14 @@ Notably, you can access, and modify, the following:
   - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
   - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function.
 """
-mutable struct ALSolver{T, V, M, ST} <: AbstractOptimizationSolver
+mutable struct ALSolver{T, V, M, Pb, ST} <: AbstractOptimizationSolver
   x::V
   cx::V
   y::V
   has_bnds::Bool
-  sub_model::AugLagModel{M, T, V}
+  sub_problem::Pb
   sub_solver::ST
-  sub_stats::GenericExecutionStats{T, V, V, Any}
+  sub_stats::GenericExecutionStats{T, V, V, T}
 end
 
 function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
@@ -155,12 +155,21 @@ function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {
   cx = V(undef, ncon)
   y = V(undef, ncon)
   has_bnds = has_bounds(nlp)
-  sub_model = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), V(undef, ncon))
+  sub_model = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), cx)
+  sub_problem = RegularizedNLPModel(sub_model, reg_nlp.h, reg_nlp.selected)
   sub_solver = R2Solver(reg_nlp; kwargs...)
-  sub_stats = GenericExecutionStats(sub_model)
+  sub_stats = RegularizedExecutionStats(sub_problem)
   M = typeof(nlp)
   ST = typeof(sub_solver)
-  return ALSolver{T, V, M, ST}(x, cx, y, has_bnds, sub_model, sub_solver, sub_stats)
+  return ALSolver{T, V, M, typeof(sub_problem), ST}(
+    x,
+    cx,
+    y,
+    has_bnds,
+    sub_problem,
+    sub_solver,
+    sub_stats,
+  )
 end
 
 @doc (@doc ALSolver) function AL(::Val{:equ}, reg_nlp::AbstractRegularizedNLPModel; kwargs...)
@@ -182,7 +191,7 @@ function SolverCore.solve!(
   model::AbstractRegularizedNLPModel;
   kwargs...,
 )
-  stats = GenericExecutionStats(model.model)
+  stats = RegularizedExecutionStats(model)
   solve!(solver, model, stats; kwargs...)
 end
 
@@ -209,6 +218,7 @@ function SolverCore.solve!(
   factor_decrease_subtol::T = T(1 // 4),
   dual_safeguard = project_y!,
 ) where {T, V}
+  reset!(stats)
 
   # Retrieve workspace
   nlp = reg_nlp.model
@@ -254,8 +264,8 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :nonsmooth_obj, hx)
 
   mu = init_penalty
-  solver.sub_model.y .= solver.y
-  update_μ!(solver.sub_model, mu)
+  solver.sub_problem.model.y .= solver.y
+  update_μ!(solver.sub_problem.model, mu)
 
   cviol = norm(solver.cx, Inf)
   cviol_old = Inf
@@ -279,15 +289,13 @@ function SolverCore.solve!(
     iter += 1
 
     # dual safeguard
-    dual_safeguard(solver.sub_model)
+    dual_safeguard(solver.sub_problem.model)
 
-    # AL subproblem
-    sub_reg_nlp = RegularizedNLPModel(solver.sub_model, h, selected)
     subtol = max(subtol, atol)
     reset!(subout)
     solve!(
       solver.sub_solver,
-      sub_reg_nlp,
+      solver.sub_problem,
       subout,
       x = solver.x,
       atol = subtol,
@@ -298,8 +306,8 @@ function SolverCore.solve!(
       verbose = subsolver_verbose,
     )
     solver.x .= subout.solution
-    solver.cx .= solver.sub_model.cx
-    subiters += subout.iter
+    solver.cx .= solver.sub_problem.model.cx
+    subiters = subout.iter
 
     # objective
     fx = obj(nlp, solver.x)
@@ -310,8 +318,8 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :nonsmooth_obj, hx)
 
     # dual estimate
-    update_y!(solver.sub_model)
-    solver.y .= solver.sub_model.y
+    update_y!(solver.sub_problem.model)
+    solver.y .= solver.sub_problem.model.y
     set_constraint_multipliers!(stats, solver.y)
 
     # stationarity measure
@@ -362,7 +370,7 @@ function SolverCore.solve!(
       if cviol > max(ctol, factor_primal_linear_improvement * cviol_old)
         mu *= factor_penalty_up
       end
-      update_μ!(solver.sub_model, mu)
+      update_μ!(solver.sub_problem.model, mu)
       cviol_old = cviol
       subtol *= factor_decrease_subtol
       rem_eval = max_eval < 0 ? max_eval : max_eval - neval_obj(nlp)

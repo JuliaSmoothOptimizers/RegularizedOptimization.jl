@@ -134,7 +134,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
-- `sub_kwargs::Dict{Symbol}`: a dictionary containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver.
+- `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
@@ -142,21 +142,7 @@ The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀)
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
 
 # Callback
-The callback is called at each iteration.
-The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
-Changing any of the input arguments will affect the subsequent iterations.
-In particular, setting `stats.status = :user` will stop the algorithm.
-All relevant information should be available in `nlp` and `solver`.
-Notably, you can access, and modify, the following:
-- `solver.xk`: current iterate;
-- `solver.∇fk`: current gradient;
-- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
-  - `stats.iter`: current iteration counter;
-  - `stats.objective`: current objective function value;
-  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
-  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function;
-  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention;
-  - `stats.elapsed_time`: elapsed time in seconds.
+$(callback_docstring)
 Similarly to the callback, when using a quasi-Newton approximation, two functions, `qn_update_y!(nlp, solver, stats)` and `qn_copy!(nlp, solver, stats)` are called at each update of the approximation.
 Namely, the former computes the `y` vector for which the pair `(s, y)` is pushed into the approximation.
 By default, `y := ∇fk⁻ - ∇fk`.
@@ -174,7 +160,7 @@ function R2N(
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
-  sub_kwargs = pop!(kwargs_dict, :sub_kwargs, Dict{Symbol, Any}())
+  sub_kwargs = pop!(kwargs_dict, :sub_kwargs, NamedTuple())
   return R2N(
     reg_nlp,
     x = x0,
@@ -226,7 +212,7 @@ function SolverCore.solve!(
   γ::T = T(3),
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
-  sub_kwargs::Dict{Symbol} = Dict(),
+  sub_kwargs::NamedTuple = NamedTuple(),
 ) where {T, V, G}
   reset!(stats)
 
@@ -291,6 +277,7 @@ function SolverCore.solve!(
 
   local ξ1::T
   local ρk::T = zero(T)
+  local prox_evals::Int = 0
 
   fk = obj(nlp, xk)
   grad!(nlp, xk, ∇fk)
@@ -317,6 +304,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :nonsmooth_obj, hk)
   set_solver_specific!(stats, :sigma, σk)
   set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
+  set_solver_specific!(stats, :prox_evals, prox_evals + 1)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
   φ1 = let ∇fk = ∇fk
@@ -365,12 +353,28 @@ function SolverCore.solve!(
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     if isa(solver.subsolver, R2Solver) #FIXME
-      sub_kwargs[:ν] = ν₁
+      solve!(
+        solver.subsolver,
+        solver.subpb,
+        solver.substats;
+        x = s1,
+        ν = ν₁,
+        atol = sub_atol,
+        sub_kwargs...,
+      )
     else
-      sub_kwargs[:σk] = σk
+      solve!(
+        solver.subsolver,
+        solver.subpb,
+        solver.substats;
+        x = s1,
+        σk = σk,
+        atol = sub_atol,
+        sub_kwargs...,
+      )
     end
-    solve!(solver.subsolver, solver.subpb, solver.substats; x = s1, atol = sub_atol, sub_kwargs...)
 
+    prox_evals += solver.substats.iter
     s .= solver.substats.solution
 
     if norm(s) > β * norm(s1)
@@ -407,7 +411,7 @@ function SolverCore.solve!(
           norm(xk),
           norm(s),
           λmax,
-          (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
+          (η2 ≤ ρk < Inf) ? '↘' : (ρk < η1 ? '↗' : '='),
         ],
         colsep = 1,
       )
@@ -455,6 +459,7 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
+    set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
     @. mν∇fk = - ν₁ * ∇fk
     prox!(s1, ψ, mν∇fk, ν₁)
@@ -488,19 +493,7 @@ function SolverCore.solve!(
 
   if verbose > 0 && stats.status == :first_order
     @info log_row(
-      Any[
-        stats.iter,
-        0,
-        fk,
-        hk,
-        sqrt_ξ1_νInv,
-        ρk,
-        σk,
-        norm(xk),
-        norm(s),
-        λmax,
-        (η2 ≤ ρk < Inf) ? "↘" : (ρk < η1 ? "↗" : "="),
-      ],
+      Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, ρk, σk, norm(xk), norm(s), λmax, ""],
       colsep = 1,
     )
     @info "R2N: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
