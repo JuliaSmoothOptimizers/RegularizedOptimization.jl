@@ -1,5 +1,4 @@
-using LinearAlgebra: length
-using LinearAlgebra, Random, Test
+using JET, LinearAlgebra, Random, Test
 using ProximalOperators
 using ADNLPModels,
   OptimizationProblems,
@@ -12,6 +11,7 @@ using ADNLPModels,
 
 Random.seed!(0)
 include("utils.jl")
+include("callbacks.jl")
 
 include("test-AL.jl")
 

@@ -1,130 +1,116 @@
 compound = 1
 nz = 10 * compound
-options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e-6, verbose = 10)
 bpdn, bpdn_nls, sol = bpdn_model(compound)
-bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
+bpdn_bounded, bpdn_nls_bounded, sol_bounded = bpdn_model(compound, bounds = true)
 λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
+x0 = 10*randn(bpdn.meta.nvar)
 
-for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
-  for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * compound), "B0"))
-    for solver_sym ∈ (:R2, :TR)
-      solver_sym == :TR && mod_name == "exact" && continue
-      solver_sym == :TR && h_name == "B0" && continue  # FIXME
-      solver_name = string(solver_sym)
-      solver = eval(solver_sym)
-      @testset "bpdn-$(mod_name)-$(solver_name)-$(h_name)" begin
-        x0 = zeros(bpdn.meta.nvar)
-        p = randperm(bpdn.meta.nvar)[1:nz]
-        x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
-        args = solver_sym == :R2 ? () : (NormLinf(1.0),)
-        out = solver(mod(bpdn), h, args..., options, x0 = x0)
-        @test typeof(out.solution) == typeof(bpdn.meta.x0)
-        @test length(out.solution) == bpdn.meta.nvar
-        @test typeof(out.dual_feas) == eltype(out.solution)
-        @test out.status == :first_order
+hessian_modifiers = [LSR1Model, LBFGSModel, SpectralGradientModel, DiagonalPSBModel] # TODO: should add exact hessians once we implement hess_op for bpdn
+regularizers = [NormL0(λ), NormL1(λ), NormL2(λ), IndBallL0(10 * compound)]
+bounded_regularizers = [NormL0(λ), NormL1(λ)]
+
+@testset "BPDN" verbose=true begin
+  @testset "NLP" begin
+    @testset "R2" begin
+      # Test on unbounded problem
+      constructor_parameters_set = [NamedTuple(), NamedTuple(), NamedTuple(), NamedTuple(), NamedTuple()]
+      solve_parameters_set = [(ν = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10),
+                              (ν = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, max_iter = 1,),
+                              (ν = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, max_time = -1.0,),
+                              (ν = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, max_eval = 2,),
+                              (ν = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, callback = basic_callback,)]
+      expected_output = [:first_order, :max_iter, :max_time, :max_eval, :user]
+      for h in regularizers
+        reg_nlp = RegularizedNLPModel(bpdn, h)
+        @testset "R2-unbounded-$(typeof(h))" begin
+          for (solver_kwargs, constructor_kwargs, expected_output) in zip(solve_parameters_set, constructor_parameters_set, expected_output)
+            test_solver_basic(reg_nlp, :R2; expected_output = expected_output, constructor_kwargs = constructor_kwargs, solver_kwargs = solver_kwargs)
+          end
+        end
+      end
+
+      # Test on bounded problem
+      for h in bounded_regularizers
+        reg_nlp = RegularizedNLPModel(bpdn_bounded, h)
+        @testset "R2-bounded-$(typeof(h))" begin
+          for (solver_kwargs, constructor_kwargs, expected_output) in zip(solve_parameters_set, constructor_parameters_set, expected_output)
+            test_solver_basic(reg_nlp, :R2; expected_output = expected_output, constructor_kwargs = constructor_kwargs, solver_kwargs = solver_kwargs)
+          end
+        end
       end
     end
-  end
-end
 
-for (mod, mod_name) ∈ ((SpectralGradientModel, "spg"),)
-  # ((DiagonalPSBModel, "psb"),(DiagonalAndreiModel, "andrei"))   work but do not always terminate
-  for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))  #, (IndBallL0(10 * compound), "B0"))
-    @testset "bpdn-$(mod_name)-TRDH-$(h_name)" begin
-      x0 = zeros(bpdn.meta.nvar)
-      p = randperm(bpdn.meta.nvar)[1:nz]
-      # x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
-      χ = NormLinf(1.0)
-      out = TRDH(mod(bpdn), h, χ, options, x0 = x0)
-      @test typeof(out.solution) == typeof(bpdn.meta.x0)
-      @test length(out.solution) == bpdn.meta.nvar
-      @test typeof(out.dual_feas) == eltype(out.solution)
-      @test out.status == :first_order
+    @testset "R2N" begin
+      # Test on unbounded problem
+      constructor_parameters_set = [NamedTuple(), (subsolver = R2DHSolver,)]
+      solve_parameters_set = [(σk = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10),
+                              (σk = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, max_iter = 1,),
+                              (σk = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, max_time = -1.0,),
+                              (σk = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, max_eval = 2,),
+                              (σk = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, callback = basic_callback,)]
+      expected_output = [:first_order, :max_iter, :max_time, :max_eval, :user]
+      for modifier in hessian_modifiers
+        for h in regularizers
+          reg_nlp = RegularizedNLPModel(modifier(bpdn), h)
+          @testset "R2N-unbounded-$modifier-$(typeof(h))" begin
+            for constructor_kwargs in constructor_parameters_set
+              for (solver_kwargs, expected_output) in zip(solve_parameters_set, expected_output)
+                test_solver_basic(reg_nlp, :R2N; expected_output = expected_output, constructor_kwargs = constructor_kwargs, solver_kwargs = solver_kwargs)
+              end
+            end
+          end
+        end
+      end
+
+      # Test on bounded problem
+      for modifier in hessian_modifiers
+        for h in bounded_regularizers
+          reg_nlp = RegularizedNLPModel(bpdn_bounded, h)
+          @testset "R2N-bounded-$modifier-$(typeof(h))" begin
+            for constructor_kwargs in constructor_parameters_set
+              for (solver_kwargs, expected_output) in zip(solve_parameters_set, expected_output)
+                test_solver_basic(reg_nlp, :R2N; expected_output = expected_output, constructor_kwargs = constructor_kwargs, solver_kwargs = solver_kwargs)
+              end
+            end
+          end
+        end
+      end
     end
-  end
-end
 
-# TR with h = L1 and χ = L2 is a special case
-for (mod, mod_name) ∈ ((LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
-  for (h, h_name) ∈ ((NormL1(λ), "l1"),)
-    @testset "bpdn-$(mod_name)-TR-$(h_name)" begin
-      x0 = zeros(bpdn.meta.nvar)
-      p = randperm(bpdn.meta.nvar)[1:nz]
-      x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
-      TR_out = TR(mod(bpdn), h, NormL2(1.0), options, x0 = x0)
-      @test typeof(TR_out.solution) == typeof(bpdn.meta.x0)
-      @test length(TR_out.solution) == bpdn.meta.nvar
-      @test typeof(TR_out.dual_feas) == eltype(TR_out.solution)
-      @test TR_out.status == :first_order
-    end
-  end
-end
+    @testset "TR" begin
+      # Test on unbounded problem
+      constructor_parameters_set = [NamedTuple(), (subsolver = TRDHSolver,)]
+      solve_parameters_set = [(Δk = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10),
+                              (Δk = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, max_iter = 1,),
+                              (Δk = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, max_time = -1.0,),
+                              (Δk = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, max_eval = 2,),
+                              (Δk = 1.0, atol = 1e-6, rtol = 1e-6, x = x0, verbose = 10, callback = basic_callback,)]
+      expected_output = [:first_order, :max_iter, :max_time, :max_eval, :user]
+      for modifier in hessian_modifiers
+        for h in regularizers
+          reg_nlp = RegularizedNLPModel(modifier(bpdn), h)
+          @testset "TR-unbounded-$modifier-$(typeof(h))" begin
+            for constructor_kwargs in constructor_parameters_set
+              for (solver_kwargs, expected_output) in zip(solve_parameters_set, expected_output)
+                test_solver_basic(reg_nlp, :TR; expected_output = expected_output, constructor_kwargs = constructor_kwargs, solver_kwargs = solver_kwargs)
+              end
+            end
+          end
+        end
+      end
 
-for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * compound), "B0"))
-  for solver_sym ∈ (:LM, :LMTR)
-    solver_name = string(solver_sym)
-    solver = eval(solver_sym)
-    solver_sym == :LMTR && h_name == "B0" && continue  # FIXME
-    @testset "bpdn-ls-$(solver_name)-$(h_name)" begin
-      x0 = zeros(bpdn_nls.meta.nvar)
-      p = randperm(bpdn_nls.meta.nvar)[1:nz]
-      x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
-      args = solver_sym == :LM ? () : (NormLinf(1.0),)
-      out = solver(bpdn_nls, h, args..., options, x0 = x0)
-      @test typeof(out.solution) == typeof(bpdn.meta.x0)
-      @test length(out.solution) == bpdn.meta.nvar
-      @test typeof(out.dual_feas) == eltype(out.solution)
-      @test out.status == :first_order
-    end
-  end
-end
-
-# LMTR with h = L1 and χ = L2 is a special case
-for (h, h_name) ∈ ((NormL1(λ), "l1"),)
-  @testset "bpdn-ls-LMTR-$(h_name)" begin
-    x0 = zeros(bpdn_nls.meta.nvar)
-    p = randperm(bpdn_nls.meta.nvar)[1:nz]
-    x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
-    LMTR_out = LMTR(bpdn_nls, h, NormL2(1.0), options, x0 = x0)
-    @test typeof(LMTR_out.solution) == typeof(bpdn_nls.meta.x0)
-    @test length(LMTR_out.solution) == bpdn_nls.meta.nvar
-    @test typeof(LMTR_out.solver_specific[:Fhist]) == typeof(LMTR_out.solution)
-    @test typeof(LMTR_out.solver_specific[:Hhist]) == typeof(LMTR_out.solution)
-    @test typeof(LMTR_out.solver_specific[:SubsolverCounter]) == Array{Int, 1}
-    @test typeof(LMTR_out.dual_feas) == eltype(LMTR_out.solution)
-    @test length(LMTR_out.solver_specific[:Fhist]) == length(LMTR_out.solver_specific[:Hhist])
-    @test length(LMTR_out.solver_specific[:Fhist]) ==
-          length(LMTR_out.solver_specific[:SubsolverCounter])
-    @test length(LMTR_out.solver_specific[:Fhist]) == length(LMTR_out.solver_specific[:NLSGradHist])
-    @test LMTR_out.solver_specific[:NLSGradHist][end] ==
-          bpdn_nls.counters.neval_jprod_residual + bpdn_nls.counters.neval_jtprod_residual - 1
-    @test obj(bpdn_nls, LMTR_out.solution) == LMTR_out.solver_specific[:Fhist][end]
-    @test h(LMTR_out.solution) == LMTR_out.solver_specific[:Hhist][end]
-    @test LMTR_out.status == :first_order
-  end
-end
-
-R2N_R2DH(args...; kwargs...) = R2N(args...; subsolver = R2DHSolver, kwargs...)
-for (mod, mod_name) ∈ (
-  (SpectralGradientModel, "spg"),
-  (DiagonalPSBModel, "psb"),
-  (LSR1Model, "lsr1"),
-  (LBFGSModel, "lbfgs"),
-)
-  for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
-    for solver_sym ∈ (:R2DH, :R2N, :R2N_R2DH)
-      solver_sym ∈ (:R2N, :R2N_R2DH) && mod_name ∈ ("spg", "psb") && continue
-      solver_sym == :R2DH && mod_name != "spg" && continue
-      solver_sym == :R2N_R2DH && h_name == "l1" && continue # this test seems to fail because s seems to be equal to zeros within the subsolver
-      solver_name = string(solver_sym)
-      solver = eval(solver_sym)
-      @testset "bpdn-$(mod_name)-$(solver_name)-$(h_name)" begin
-        x0 = zeros(bpdn.meta.nvar)
-        out = solver(mod(bpdn), h, options, x0 = x0)
-        @test typeof(out.solution) == typeof(bpdn.meta.x0)
-        @test length(out.solution) == bpdn.meta.nvar
-        @test typeof(out.dual_feas) == eltype(out.solution)
-        @test out.status == :first_order
+      # Test on bounded problem
+      for modifier in hessian_modifiers
+        for h in bounded_regularizers
+          reg_nlp = RegularizedNLPModel(bpdn_bounded, h)
+          @testset "R2N-bounded-$modifier-$(typeof(h))" begin
+            for constructor_kwargs in constructor_parameters_set
+              for (solver_kwargs, expected_output) in zip(solve_parameters_set, expected_output)
+                test_solver_basic(reg_nlp, :TR; expected_output = expected_output, constructor_kwargs = constructor_kwargs, solver_kwargs = solver_kwargs)
+              end
+            end
+          end
+        end
       end
     end
   end
