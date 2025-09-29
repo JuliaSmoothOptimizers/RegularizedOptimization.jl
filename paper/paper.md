@@ -198,14 +198,14 @@ solve!(solver_r2n, reg_nlp, stats, x = f.meta.x0, atol = 1e-4, rtol = 1e-4, verb
 ┌───────────┬─────────────┬──────────┬──────┬──────┬───────┐
 │ Method    │   Status    │ Time (s) │   #f │  #∇f │ #prox │
 ├───────────┼─────────────┼──────────┼──────┼──────┼───────┤
-│ PANOC     │ first_order │  18.5413 │ 1434 │ 1434 │   934 │
-│ TR(LSR1)  │ first_order │   5.8974 │  385 │  333 │ 11113 │
-│ R2N(LSR1) │ first_order │   2.1251 │  175 │   95 │ 56971 │
+│ PANOC     │ first_order │  51.1714 │ 3713 │ 3713 │  2269 │
+│ TR(LSR1)  │ first_order │   6.8107 │  385 │  333 │ 11113 │
+│ R2N(LSR1) │ first_order │   2.4201 │  175 │   95 │ 56971 │
 └───────────┴─────────────┴──────────┴──────┴──────┴───────┘
 ````
 
 We observe that both **TR** and **R2N** outperform **PANOC** in terms of the number of function and gradient evaluations and computational time, although they require more proximal iterations.
-But since each proximal iteration is inexpensive, the overall performance is better.
+But since each proximal iteration is inexpensive, the overall performance is better. In this instance, PANOC exhibits markedly slower convergence.
 
 ## Problem of FitzHugh-Nagumo inverse with $\ell_0$ penalty
 
@@ -248,13 +248,14 @@ solve!(solver_tr, reg_nlp, stats, x = f.meta.x0, atol = 1e-3, rtol = 1e-3, verbo
 ```
 
 ````
-┌────────────┬─────────────┬──────────┬─────┬─────┬───────┐
-│ Method     │   Status    │ Time (s) │  #f │ #∇f │ #prox │
-├────────────┼─────────────┼──────────┼─────┼─────┼───────┤
-│ PANOC      │ first_order │   1.3279 │ 188 │ 188 │   107 │
-│ TR(LBFGS)  │ first_order │   0.4075 │  83 │  60 │ 20983 │
-│ R2N(LBFGS) │ first_order │   0.4001 │  63 │  62 │ 17061 │
-└────────────┴─────────────┴──────────┴─────┴─────┴───────┘
+┌────────────────────────┬─────────────┬──────────┬─────┬─────┬───────┐
+│ Method                 │   Status    │ Time (s) │  #f │ #∇f │ #prox │
+├────────────────────────┼─────────────┼──────────┼─────┼─────┼───────┤
+│ PANOC                  │ first_order │   2.0095 │ 188 │ 188 │   107 │
+│ TR(LBFGS)              │ first_order │   0.4377 │  75 │  63 │ 21915 │
+│ R2N(LBFGS) Nonmonotone │ first_order │    0.491 │  99 │  54 │ 28173 │
+└────────────────────────┴─────────────┴──────────┴─────┴─────┴───────┘
+
   ````
 
 Same observation as in the previous example: **TR** and **R2N** with LBFGS approximation of the Hessian of $f$ outperform **PANOC** in terms of the number of function and gradient evaluations and computational time, although they require more proximal iterations.
@@ -311,13 +312,14 @@ solve!(solver_lm, reg_nlp, stats, x = f.meta.x0, atol = 1e-4, rtol = 1e-4, verbo
 ```
 
 ```
-┌────────────┬─────────────┬──────────┬────┬──────┬───────┐
-│ Method     │   Status    │ Time (s) │ #f │  #∇f │ #prox │
-├────────────┼─────────────┼──────────┼────┼──────┼───────┤
-│ TR(LBFGS)  │ first_order │   0.1727 │ 78 │   73 │ 10231 │
-│ R2N(LBFGS) │ first_order │   0.1244 │ 62 │   62 │  5763 │
-│ LM         │ first_order │   1.2796 │ 11 │ 2035 │   481 │
-└────────────┴─────────────┴──────────┴────┴──────┴───────┘
+┌────────────────────────┬─────────────┬──────────┬────┬──────┬───────┐
+│ Method                 │   Status    │ Time (s) │ #f │  #∇f │ #prox │
+├────────────────────────┼─────────────┼──────────┼────┼──────┼───────┤
+│ TR(LBFGS)              │ first_order │   1.0527 │ 73 │   68 │ 10005 │
+│ R2N(LBFGS) Nonmonotone │ first_order │   0.7296 │ 68 │   68 │  7825 │
+│ LM                     │ first_order │   1.2668 │ 11 │ 2035 │   481 │
+└────────────────────────┴─────────────┴──────────┴────┴──────┴───────┘
+
 ```
 
 We observe that **R2N** and **TR** achieve similar performance, with **R2N** being slightly better.
