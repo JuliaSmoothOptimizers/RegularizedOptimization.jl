@@ -139,7 +139,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
-- `opnorm_maxiter::Int = 1`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
+- `opnorm_maxiter::Int = 5`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
@@ -217,7 +217,7 @@ function SolverCore.solve!(
   γ::T = T(3),
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
-  opnorm_maxiter::Int = 1,
+  opnorm_maxiter::Int = 5,
   sub_kwargs::NamedTuple = NamedTuple(),
 ) where {T, V, G}
   reset!(stats)
