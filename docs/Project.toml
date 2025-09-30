@@ -4,6 +4,7 @@ Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DocumenterCitations = "daee34ce-89f3-4625-b898-19384cb65244"
 NLPModelsModifiers = "e01155f1-5c6f-4375-a9d8-616dd036575f"
 ProximalOperators = "a725b495-10eb-56fe-b38b-717eba820537"
+RegularizedProblems = "ea076b23-609f-44d2-bb12-a4ae45328278"
 
 [compat]
 Documenter = "1"
