@@ -2,21 +2,15 @@ module BenchUtils
 
 using ProximalAlgorithms
 using ProximalCore
-using ADNLPModels, NLPModels
+using NLPModels
 
 export Counting, reset_counters!, make_adnlp_compatible!
-
-(f::ADNLPModel)(x) = obj(f, x)
-function ProximalAlgorithms.value_and_gradient(f::ADNLPModel, x)
-    return obj(f, x), grad(f, x)
-end
 
 (f::AbstractNLPModel)(x) = obj(f,x)
 
 function ProximalAlgorithms.value_and_gradient(f::AbstractNLPModel, x)
     return obj(f,x), grad(f, x)
 end
-
 
 "Wrapper compteur pour f ou g (compte #obj, #∇f, #prox)."
 mutable struct Counting{T}
