@@ -230,10 +230,10 @@ function SolverCore.solve!(
   m_monotone = length(m_fh_hist) + 1
 
   if has_bnds
-    l_bound = solver.l_bound
-    u_bound = solver.u_bound
-    l_bound_m_x = solver.l_bound_m_x
-    u_bound_m_x = solver.u_bound_m_x
+    l_bound, u_bound = solver.l_bound, solver.u_bound
+    l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
+    update_bounds!(l_bound_m_x, u_bound_m_x, l_bound, u_bound, xk)
+    set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
   end
 
   # initialize parameters
@@ -387,8 +387,7 @@ function SolverCore.solve!(
       xk .= xkn
 
       if has_bnds
-        @. l_bound_m_x = l_bound - xk
-        @. u_bound_m_x = u_bound - xk
+        update_bounds!(l_bound_m_x, u_bound_m_x, l_bound, u_bound, xk)
         set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
       end
 
