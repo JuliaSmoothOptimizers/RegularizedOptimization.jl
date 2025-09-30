@@ -68,7 +68,7 @@ function R2NSolver(
     shifted(reg_nlp.h, xk)
 
   Bk = hess_op(reg_nlp.model, x0)
-  sub_nlp = R2NModel(Bk, ∇fk, T(1), x0)
+  sub_nlp = R2NModel(Bk, ∇fk, T(0), x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -327,7 +327,7 @@ function SolverCore.solve!(
   end
 
   mk = let ψ = ψ, solver = solver
-    d -> obj(solver.subpb.model, d) - 1/2 * solver.subpb.model.σ * dot(d, d) + ψ(d)::T
+    d -> obj(solver.subpb.model, d) - solver.subpb.model.σ * dot(d, d) / 2 + ψ(d)::T
   end
 
   prox!(s1, ψ, mν∇fk, ν₁)

@@ -66,7 +66,7 @@ function LMSolver(
     shifted(reg_nls.h, xk)
 
   Jk = jac_op_residual(reg_nls.model, xk)
-  sub_nlp = LMModel(Jk, Fk, T(1), xk)
+  sub_nlp = LMModel(Jk, Fk, T(0), xk)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -300,7 +300,7 @@ function SolverCore.solve!(
   end
 
   mk = let ψ = ψ, solver = solver
-    d -> obj(solver.subpb.model, d) - 1/2 * solver.subpb.model.σ * dot(d, d) + ψ(d)
+    d -> obj(solver.subpb.model, d) - solver.subpb.model.σ * dot(d, d) / 2 + ψ(d)
   end
 
   prox!(s, ψ, mν∇fk, ν)
