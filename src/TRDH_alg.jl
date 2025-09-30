@@ -265,11 +265,17 @@ function SolverCore.solve!(
   χ = solver.χ
   has_bnds = solver.has_bnds
 
+  is_subsolver = h isa ShiftedProximableFunction # case TRDH is used as a subsolver
+
   if has_bnds
-    l_bound_m_x = solver.l_bound_m_x
-    u_bound_m_x = solver.u_bound_m_x
-    l_bound = solver.l_bound
-    u_bound = solver.u_bound
+    l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
+    l_bound, u_bound = solver.l_bound, solver.u_bound
+    if is_subsolver
+      l_bound .= ψ.l
+      u_bound .= ψ.u
+    end
+    update_bounds!(l_bound_m_x, u_bound_m_x, is_subsolver, l_bound, u_bound, xk, Δk)
+    set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
   end
 
   # initialize parameters
@@ -285,13 +291,6 @@ function SolverCore.solve!(
   improper = (hk == -Inf)
   improper == true && @warn "TRDH: Improper term detected"
   improper == true && return stats
-
-  is_subsolver = h isa ShiftedProximableFunction # case TRDH is used as a subsolver
-
-  if is_subsolver
-    l_bound .= ψ.l
-    u_bound .= ψ.u
-  end
 
   if verbose > 0
     @info log_header(
@@ -439,7 +438,7 @@ function SolverCore.solve!(
       xk .= xkn
       if has_bnds
         update_bounds!(l_bound_m_x, u_bound_m_x, is_subsolver, l_bound, u_bound, xk, Δk)
-        has_bnds && set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
       end
       fk = fkn
       hk = hkn

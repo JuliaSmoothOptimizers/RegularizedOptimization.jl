@@ -34,17 +34,6 @@ Notably, you can access, and modify, the following:
   - `stats.elapsed_time`: elapsed time in seconds.
 "
 
-# update l_bound_k and u_bound_k
-function update_bounds!(l_bound_k, u_bound_k, is_subsolver, l_bound, u_bound, xk, Δ)
-  if is_subsolver
-    @. l_bound_k = max(xk - Δ, l_bound)
-    @. u_bound_k = min(xk + Δ, u_bound)
-  else
-    @. l_bound_k = max(-Δ, l_bound - xk)
-    @. u_bound_k = min(Δ, u_bound - xk)
-  end
-end
-
 include("utils.jl")
 include("input_struct.jl")
 include("TR_alg.jl")
