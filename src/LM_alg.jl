@@ -300,7 +300,7 @@ function SolverCore.solve!(
   end
 
   mk = let ψ = ψ, solver = solver
-    d -> obj(solver.subpb.model, d) - 1/2 * σk * dot(d, d) + ψ(d)
+    d -> obj(solver.subpb.model, d) - 1/2 * solver.subpb.model.σ * dot(d, d) + ψ(d)
   end
 
   prox!(s, ψ, mν∇fk, ν)
