@@ -46,7 +46,7 @@ The library provides a modular and extensible framework for experimenting with n
 - **Levenbergh-Marquardt methods (LM, LMTR)** [@aravkin-baraldi-orban-2024].
 - **Augmented Lagrangian methods (AL)** [@demarchi-jia-kanzow-mehlitz-2023].
 
-These methods rely solely on the gradient and Hessian(-vector) information of the smooth part $f$ and the proximal mapping of the nonsmooth part $h$ in order to compute steps.
+These methods rely on the gradient and optionnally on the Hessian(-vector) information of the smooth part $f$ and the proximal mapping of the nonsmooth part $h$ in order to compute steps.
 Then, the objective function $f + h$ is used only to accept or reject trial points.
 Moreover, they can handle cases where Hessian approximations are unbounded [@diouane-habiboullah-orban-2024;@leconte-orban-2023-2], making the package particularly suited for large-scale, ill-conditioned, and nonsmooth problems.
 
@@ -54,12 +54,12 @@ Moreover, they can handle cases where Hessian approximations are unbounded [@dio
 
 ## Model-based framework for nonsmooth methods
 
-There exists a way to solve \eqref{eq:nlp} in Julia using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements in-place first-order line search–based methods for \eqref{eq:nlp}.
+In Julia, \eqref{eq:nlp} can be solved using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements in-place, first-order, line-search–based methods[@stella-themelis-sopasakis-patrinos-2017;@themelis-stella-patrinos-2017].
 Most of these methods are generally splitting schemes that alternate between taking steps along the gradient of the smooth part $f$ (or quasi-Newton directions) and applying proximal steps on the nonsmooth part $h$.
 Currently, [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl) provides only L-BFGS as a quasi-Newton option.
 By contrast, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) focuses on model-based approaches such as trust-region and quadratic regularization algorithms.
 As shown in [@aravkin-baraldi-orban-2022], model-based methods typically require fewer evaluations of the objective and its gradient than first-order line search methods, at the expense of solving more involved subproblems.
-Although these subproblems may require many proximal iterations, each proximal computation is inexpensive, making the overall approach efficient for large-scale problems.
+Although these subproblems may require many proximal iterations, each proximal computation is inexpensive for several commonly used nonsmooth functions, such as separable penalties and bound constraints (see examples below), making the overall approach efficient for large-scale problems.
 
 Building on this perspective, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) implements state-of-the-art algorithms for solving problems of the form $f(x) + h(x)$, where $f$ is smooth and $h$ is nonsmooth.
 The package provides a consistent API to formulate optimization problems and apply different regularization methods.
@@ -164,7 +164,7 @@ stats  = RegularizedExecutionStats(reg_nlp)
 solve!(solver, reg_nlp, stats; x=f.meta.x0, atol=1e-4, rtol=1e-4, verbose=0, sub_kwargs=(max_iter=200,))
 solve!(solver, reg_nlp, stats; x=f.meta.x0, atol=1e-5, rtol=1e-5, verbose=0, sub_kwargs=(max_iter=200,))
 ```
-The NNMF problem can be set up in a similar way, replacing the model by nnmf_model(...) and $h$ by an $\ell_0$ norm and we set LBFGS as Hessian approximation.
+The NNMF problem can be set up in a similar way, replacing the model by nnmf_model(...) with bound constraints, $h$ by an $\ell_0$ norm and use an L-BFGS Hessian approximation.
 
 ### Numerical results
 
