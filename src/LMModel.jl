@@ -39,11 +39,12 @@ function LMModel(J::Jac, F::V, σ::T, xk::V) where {T, V, Jac}
   return LMModel(J, F, v, xk, σ, meta, Counters())
 end
 
-function NLPModels.obj(nlp::LMModel, x::AbstractVector{T}) where {T}
+function NLPModels.obj(nlp::LMModel, x::AbstractVector{T}; skip_sigma = false) where {T}
   @lencheck nlp.meta.nvar x
   increment!(nlp, :neval_obj)
   mul!(nlp.v, nlp.J, x)
   nlp.v .+= nlp.F
+  skip_sigma && return dot(nlp.v, nlp.v)/2
   return (dot(nlp.v, nlp.v) + nlp.σ * dot(x, x)) / 2
 end
 

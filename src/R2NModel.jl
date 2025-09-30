@@ -34,10 +34,11 @@ function R2NModel(B::G, ∇f::V, σ::T, x0::V) where {T, V, G}
   return R2NModel(B::G, ∇f::V, v::V, σ::T, meta, Counters())
 end
 
-function NLPModels.obj(nlp::R2NModel, x::AbstractVector)
+function NLPModels.obj(nlp::R2NModel, x::AbstractVector; skip_sigma = false)
   @lencheck nlp.meta.nvar x
   increment!(nlp, :neval_obj)
   mul!(nlp.v, nlp.B, x)
+  skip_sigma && return dot(nlp.v, x)/2 + dot(nlp.∇f, x)
   return dot(nlp.v, x)/2 + dot(nlp.∇f, x) + nlp.σ * dot(x, x) / 2
 end
 
