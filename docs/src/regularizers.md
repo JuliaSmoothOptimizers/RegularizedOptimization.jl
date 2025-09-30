@@ -34,11 +34,16 @@ The proximal mapping is defined as
 !!! warning 
     The shifted model being proximable means that our solvers will not be able to automagically solve with any nonsmooth function that is given to it. Rather, the user is expected to provide an efficient solver for the proximal mapping.
 
-The following table shows which regularizers are readily available and which dependency is required to use the regularizer (the shifted model is always in `ShiftedProximalOperators.jl`).
+The following table shows some of which regularizers are readily available and which dependency is required to use the regularizer (the shifted model is always in `ShiftedProximalOperators.jl`).
+The user should refer to [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl) for a complete overview of available regularizers.
+
 
 Regularizer | Shifted Model | Julia | Dependency
 ------------|---------------|-------|-----------
 $\lambda ∥x∥_0$ | $\lambda ∥x + s∥_0$ | [`NormL0(λ)`](https://juliafirstorder.github.io/ProximalOperators.jl/stable/functions/#ProximalOperators.NormL0) | [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl)
 $\lambda ∥x∥_1$ | $\lambda ∥x + s∥_1$ | [`NormL1(λ)`](https://juliafirstorder.github.io/ProximalOperators.jl/stable/functions/#ProximalOperators.NormL1) | [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl)
 $\lambda ∥x∥_2$ | $\lambda ∥x + s∥_2$ | [`NormL2(λ)`](https://juliafirstorder.github.io/ProximalOperators.jl/stable/functions/#ProximalOperators.NormL2) | [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl)
+$\lambda ∥x∥_{1/2}^{1/2}$ | $\lambda ∥x + s∥_{1/2}^{1/2}$ | [`RootNormLhalf(λ)`](https://jso.dev/ShiftedProximalOperators.jl/dev/reference/#ShiftedProximalOperators.RootNormLhalf) | [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl)
+$\lambda \text{rank}(X)$ | $\lambda \text{rank}(X + S)$ | [`Rank(λ)`](https://jso.dev/ShiftedProximalOperators.jl/dev/reference/#ShiftedProximalOperators.Rank) | [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl)
+$\lambda ∥X∥_*$ | $\lambda ∥X + S∥_*$ | [`Nuclearnorm(λ)`](https://jso.dev/ShiftedProximalOperators.jl/dev/reference/#ShiftedProximalOperators.Nuclearnorm) | [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl)
 $\lambda ∥c(x)∥_2$ | $\lambda ∥c(x) + J(x)s∥_2$ | [`CompositeNormL2(λ)`](https://jso.dev/ShiftedProximalOperators.jl/dev/reference/#ShiftedProximalOperators.CompositeNormL2) | [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl)
