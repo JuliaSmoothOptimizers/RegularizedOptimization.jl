@@ -33,9 +33,8 @@ function print_config(CFG3)
     println("  PRINT_TABLE     = $(CFG3.PRINT_TABLE)")   
     println("  OPNORM_MAXITER  = $(CFG3.OPNORM_MAXITER)")
     println("  HESSIAN_SCALE  = $(CFG3.HESSIAN_SCALE)")
+    println("  M_MONOTONE     = $(CFG3.M_MONOTONE)")
 end
-
-acc = vec -> length(findall(x -> x < 1, vec)) / length(vec) * 100 # for SVM
 
 #############################
 # ===== PROBLÈME (NNMF) ===== #
@@ -46,6 +45,14 @@ m, n, k = 100, 50, 5
 model, nls_model, A, selected = nnmf_model(m, n, k)
 
 x0 = rand(model.meta.nvar)
+#println("Initial objective value: ", obj(model, x0))
+
+## project this point on the positive orthant
+for i in 1:length(x0)
+    x0[i] < 0.0 && (x0[i] = 0.0)
+end
+
+#println("Initial objective value (after projection): ", obj(model, x0))
 
 CFG3.LAMBDA_L0 = norm(grad(model, rand(model.meta.nvar)), Inf) / 200
 #############################
@@ -66,6 +73,7 @@ function run_panoc!(model, x0; λ = 1.0, maxit = 500, tol = 1e-3, verbose = fals
         gevals    = f.gradient_count,
         proxcalls = g.prox_count,
         solution  = x̂,
+        final_obj = obj(model, x̂)
     )
     return metrics
 end
@@ -88,7 +96,7 @@ function run_tr!(model, x0; λ = 1.0, qn = :LSR1, atol = 1e-3, rtol = 1e-3, verb
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
                                                 x = x0, atol = atol, rtol = rtol, verbose = verbose, opnorm_maxiter = opnorm_maxiter, sub_kwargs = sub_kwargs)
     metrics = (
-        name      = "TR($(String(qn)))",
+        name      = "TR ($(String(qn)), NNMF)",
         status    = string(stats.status),
         time      = t,
         iters     = get(stats.solver_specific, :outer_iter, missing),
@@ -96,6 +104,7 @@ function run_tr!(model, x0; λ = 1.0, qn = :LSR1, atol = 1e-3, rtol = 1e-3, verb
         gevals    = neval_grad(qn_model),
         proxcalls = stats.solver_specific[:prox_evals],
         solution  = stats.solution,
+        final_obj = obj(model, stats.solution)
     )
     return metrics
 end
@@ -113,7 +122,7 @@ function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, ve
                                                 x = x0, atol = atol, rtol = rtol, σk = σk,
                                                 verbose = verbose, sub_kwargs = sub_kwargs, opnorm_maxiter = opnorm_maxiter)
     metrics = (
-        name      = "R2N($(String(qn))) Nonmonotone",
+        name      = "R2N ($(String(qn)), NNMF)",
         status    = string(stats.status),
         time      = t,
         iters     = get(stats.solver_specific, :outer_iter, missing),
@@ -121,6 +130,7 @@ function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, ve
         gevals    = neval_grad(qn_model),
         proxcalls = stats.solver_specific[:prox_evals],
         solution  = stats.solution,
+        final_obj = obj(model, stats.solution)
     )
     return metrics
 end
@@ -136,7 +146,7 @@ function run_LM!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose = 0,
                                                 x = x0, atol = atol, rtol = rtol, σk = σk,
                                                 verbose = verbose)
     metrics = (
-        name      = "LM",
+        name      = "LM (NNMF)",
         status    = string(stats.status),
         time      = t,
         iters     = get(stats.solver_specific, :outer_iter, missing),
@@ -144,6 +154,7 @@ function run_LM!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose = 0,
         gevals    = neval_jtprod_residual(nls_model) + neval_jprod_residual(nls_model),
         proxcalls = stats.solver_specific[:prox_evals],
         solution  = stats.solution,
+        final_obj = obj(nls_model, stats.solution)
     )
     return metrics
 end
@@ -191,30 +202,30 @@ end
 println("\n")
 print_config(CFG3)
 
-if CFG3.PRINT_TABLE
-    println("\nSummary :")
-    # Construire les données pour la table
-    data = [
-    (; name=m.name,
-       status=string(m.status),
-       time=round(m.time, digits=4),
-       fe=m.fevals,
-       ge=m.gevals,
-       prox = m.proxcalls === missing ? missing : Int(m.proxcalls))
-    for m in results
+
+println("\nSummary :")
+# Construire les données pour la table
+data_nnmf = [
+(; name=m.name,
+    status=string(m.status),
+    time=round(m.time, digits=4),
+    fe=m.fevals,
+    ge=m.gevals,
+    prox = m.proxcalls === missing ? missing : Int(m.proxcalls),
+    obj = round(m.final_obj, digits=4))
+for m in results
 ]
 
-    # En-têtes
-    table_str = pretty_table(String,
-           data;
-           header = ["Method", "Status", "Time (s)", "#f", "#∇f", "#prox"],
-           tf = tf_unicode,
-           alignment = [:l, :c, :r, :r, :r, :r],
-           crop = :none,
-       )
-    
+# En-têtes
+table_str = pretty_table(String,
+        data_nnmf;
+        header = ["Method", "Status", "Time (s)", "#f", "#∇f", "#prox", "#obj"],
+        tf = tf_unicode,
+        alignment = [:l, :c, :r, :r, :r, :r, :r],
+        crop = :none,
+    )
 
-    open("NNMF-comparison-f.txt", "w") do io
-    write(io, table_str)
-    end
+
+open("Benchmarks/NNMF-comparison-f.txt", "w") do io
+write(io, table_str)
 end
