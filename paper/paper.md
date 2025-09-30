@@ -32,7 +32,7 @@ header-includes: |
 
 # Summary
 
-[RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) is a Julia [@bezanson-edelman-karpinski-shah-2017] package that implements a family of quadratic regularization and trust-region type algorithms for solving nonsmooth optimization problems of the form:
+[RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) is a Julia package that implements a family of quadratic regularization and trust-region type algorithms for solving nonsmooth optimization problems of the form:
 \begin{equation}\label{eq:nlp}
     \underset{x \in \mathbb{R}^n}{\text{minimize}} \quad f(x) + h(x),
 \end{equation}
@@ -79,7 +79,7 @@ In contrast to [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/Proxim
 Hessians can be obtained via automatic differentiation through [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) or supplied directly as Hessian–vector products $v \mapsto Hv$.
 This enables algorithms to exploit second-order information without explicitly forming dense (or sparse) Hessians, which is often prohibitively expensive in both computation and memory, particularly in high-dimensional settings.
 
-## Requirements of the RegularizedProblems.jl package
+## Requirements of the RegularizedProblems.jl
 
 To model the problem \eqref{eq:nlp}, one defines the smooth part $f$ and the nonsmooth part $h$ as discussed above.
 The package [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl) provides a straightforward way to create such instances, called *Regularized Nonlinear Programming Models*:
@@ -90,7 +90,7 @@ reg_nlp = RegularizedNLPModel(f, h)
 
 This design makes it a convenient source of reproducible problem instances for testing and benchmarking algorithms in the repository [@diouane-habiboullah-orban-2024;@aravkin-baraldi-orban-2022;@aravkin-baraldi-orban-2024;@leconte-orban-2023-2].
 
-## Requirements of the ShiftedProximalOperators.jl package
+## Requirements of the ShiftedProximalOperators.jl
 
 The nonsmooth part $h$ must have a computable proximal mapping, defined as
 $$\text{prox}_{h}(v) = \underset{x \in \mathbb{R}^n}{\arg\min} \left( h(x) + \frac{1}{2} \|x - v\|^2 \right).$$
@@ -101,14 +101,12 @@ The main difference between the proximal operators implemented in
 is that those implemented here involve a translation of the nonsmooth term.
 Specifically, this package considers proximal operators defined as
 $$
-    \underset{t \in \mathbb{R}^n}{\arg\min} \, { \tfrac{1}{2} ‖t - q‖₂² + ν h(x + s + t) + χ(s + t; ΔB) | t ∈ ℝⁿ },
+    \underset{t \in \mathbb{R}^n}{\arg\min} \, { \tfrac{1}{2} ‖t - q‖₂² + ν h(x + s + t) + χ(s + t|ΔB)}
 $$
 where $q$ is given, $x$ and $s$ are fixed shifts, $h$ is the nonsmooth term with respect
 to which we are computing the proximal operator, and $χ(.; \Delta B)$ is the indicator of
 a ball of radius $\Delta$ defined by a certain norm.
-
-![Composition of JSO packages](jso-packages.pdf){ width=70% }
-
+This package enables to encode this shifted proximal operator through without adding allocations and allowing to solve problem \eqref{eq:nlp} with bound constraints.
 
 ## Testing and documentation
 
@@ -117,9 +115,10 @@ Extensive documentation is provided, including a user guide, API reference, and 
 Aqua.jl is used to test the package dependencies.
 Documentation is built using Documenter.jl.
 
-## Non-monotone strategies
+## Solvers caracteristics
 
-The solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) implement non-monotone strategies to accept trial points, which can enhance algorithmic performance in practice [@leconte-orban-2023;@diouane-habiboullah-orban-2024].
+All solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) are implemented in an in-place fashion, minimizing memory allocations during the resolution process.
+Moreover, they implement non-monotone strategies to accept trial points, which can enhance algorithmic performance in practice [@leconte-orban-2023;@diouane-habiboullah-orban-2024].
 
 ## Application studies
 
@@ -134,197 +133,63 @@ This is crucial for large-scale problems where exact subproblem solutions are pr
 Moreover, one way to outperform line-search–based methods is to solve the subproblems more accurately by performing many proximal iterations, which are inexpensive to compute, rather than relying on numerous function and gradient evaluations.
 We will illustrate this in the examples below.
 
-## In-place methods
-
-All solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) are implemented in an in-place fashion, minimizing memory allocations during the resolution process.
 
 # Examples
 
 
-We consider three examples where the smooth part $f$ is nonconvex and the nonsmooth part $h$ is either $\ell^{1/2}$ or $\ell_0$ norm with or without constraints.
+We consider two examples where the smooth part $f$ is nonconvex and the nonsmooth part $h$ is either $\ell^{1/2}$ or $\ell_0$ norm with constraints.
 
 We compare the performance of our solvers with (**PANOC**) solver [@stella-themelis-sopasakis-patrinos-2017] implemented in [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl).
 
-## Problem of support vector machine with $\ell^{1/2}$ penalty
+We illustrate the capabilities of [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) on two nonsmooth and nonconvex problems:
 
+- **Support Vector Machine (SVM) with $\ell^{1/2}$ penalty** for image classification [@aravkin-baraldi-orban-2024].  
+- **Nonnegative Matrix Factorization (NNMF) with $\ell_0$ penalty and constraints** [@kim-park-2008].
 
-A first example addresses an image recognition task using a support vector machine (SVM) similar to those in [@aravkin-baraldi-orban-2024].
-The formulation is
-$$
-\min_{x \in \mathbb{R}^n} \ \tfrac{1}{2} \|\mathbf{1} - \tanh(b \odot \langle A, x \rangle)\|^2 + \|x\|_{1/2}^{1/2},
-$$  
-where $A \in \mathbb{R}^{m \times n}$, with $n = 784$ representing the vectorized size of each image and $m = 13{,}007$ is the number of images in the training dataset.
-
-```julia
-using LinearAlgebra, Random
-using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
-using MLDatasets
-
-random_seed = 1234
-Random.seed!(random_seed)
-
-# Build the models
-model, nls_train, _ = RegularizedProblems.svm_train_model()
-
-# Define the Hessian approximation
-f = LSR1Model(model)
-
-# Define the nonsmooth regularizer (L0 norm)
-λ = 1.0
-h = RootNormLhalf(λ)
-
-# Define the regularized NLP model
-reg_nlp = RegularizedNLPModel(f, h)
-
-# Choose a solver (R2DH) and execution statistics tracker
-solver_r2n = R2NSolver(reg_nlp)
-stats = RegularizedExecutionStats(reg_nlp)
-
-# Max number of proximal iterations for subproblem solver
-sub_kwargs = (max_iter=200,)
-
-# Solve the problem 
-solve!(solver_r2n, reg_nlp, stats, x = f.meta.x0, atol = 1e-4, rtol = 1e-4, verbose = 0, sub_kwargs = sub_kwargs)
-
-
-
-
-
-
-```
-
-````
-┌───────────┬─────────────┬──────────┬──────┬──────┬───────┐
-│ Method    │   Status    │ Time (s) │   #f │  #∇f │ #prox │
-├───────────┼─────────────┼──────────┼──────┼──────┼───────┤
-│ PANOC     │ first_order │  51.1714 │ 3713 │ 3713 │  2269 │
-│ TR(LSR1)  │ first_order │   6.8107 │  385 │  333 │ 11113 │
-│ R2N(LSR1) │ first_order │   2.4201 │  175 │   95 │ 56971 │
-└───────────┴─────────────┴──────────┴──────┴──────┴───────┘
-````
-
-We observe that both **TR** and **R2N** outperform **PANOC** in terms of the number of function and gradient evaluations and computational time, although they require more proximal iterations.
-But since each proximal iteration is inexpensive, the overall performance is better. In this instance, PANOC exhibits markedly slower convergence.
-
-## Problem of FitzHugh-Nagumo inverse with $\ell_0$ penalty
-
-A second example is the FitzHugh-Nagumo inverse problem with an $\ell_0$ penalty, as described in [@aravkin-baraldi-orban-2022] and [@aravkin-baraldi-orban-2024].
-This problem consists of recovering the parameters of a system of ordinary differential equations (ODEs) with sparsity constraints.
-In general, the evaluation of the objective function and its gradient are costly because they require solving the ODEs compared to the proximal operator of the $\ell_0$ norm, which is inexpensive.
+Both problems are of the form $\min f(x) + h(x)$ with $f$ nonconvex and $h$ nonsmooth.  
+The NNMF problem can be set up in a similar way to the SVM case, with $h$ given by an $\ell_0$ norm and additional nonnegativity constraints.
+Below is a condensed example showing how to define and solve such problems:
 
 ```julia
-using LinearAlgebra
-using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
-using DifferentialEquations, ADNLPModels
+using LinearAlgebra, Random, ProximalOperators
+using NLPModels, RegularizedProblems, RegularizedOptimization
 
-# Define the Fitzhugh-Nagumo problem
-model, _, _ = RegularizedProblems.fh_model()
-x0 = 0.1 * ones(model.meta.nvars) # initial guess
-
-# Define the Hessian approximation
-f = LBFGSModel(fh_model)
-
-# Initialize the starting Hessian approximation scaling factor
-f.op.data.scaling_factor = 1e4
-
-# Define the nonsmooth regularizer (L1 norm)
-λ = 1.0
-h = NormL0(λ)
-
-# Define the regularized NLP model
-reg_nlp = RegularizedNLPModel(f, h)
-
-# Choose a solver (TR) and execution statistics tracker
-solver_tr = TRSolver(reg_nlp)
-stats = RegularizedExecutionStats(reg_nlp)
-
-# Max number of proximal iterations for subproblem solver
-sub_kwargs = (max_iter=200,)
-
-# Solve the problem
-solve!(solver_tr, reg_nlp, stats, x = f.meta.x0, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = sub_kwargs)
+Random.seed!(1234)
+model, nls, _ = RegularizedProblems.svm_train_model()       # Build SVM model
+f = LSR1Model(model)                                        # Hessian approximation
+h = RootNormLhalf(1.0)                                      # Nonsmooth term
+reg_nlp = RegularizedNLPModel(f, h)                        # Regularized problem
+solver = R2NSolver(reg_nlp)                                 # Choose solver
+stats  = RegularizedExecutionStats(reg_nlp)
+solve!(solver, reg_nlp, stats; x=f.meta.x0, atol=1e-4, rtol=1e-4, verbose=0, sub_kwargs=(max_iter=200,))
+solve!(solver, reg_nlp, stats; x=f.meta.x0, atol=1e-5, rtol=1e-5, verbose=0, sub_kwargs=(max_iter=200,))
 ```
+The NNMF problem can be set up in a similar way, replacing the model by nnmf_model(...) and $h$ by an $\ell_0$ norm.
 
-````
-┌────────────────────────┬─────────────┬──────────┬─────┬─────┬───────┐
-│ Method                 │   Status    │ Time (s) │  #f │ #∇f │ #prox │
-├────────────────────────┼─────────────┼──────────┼─────┼─────┼───────┤
-│ PANOC                  │ first_order │   2.0095 │ 188 │ 188 │   107 │
-│ TR(LBFGS)              │ first_order │   0.4377 │  75 │  63 │ 21915 │
-│ R2N(LBFGS) Nonmonotone │ first_order │    0.491 │  99 │  54 │ 28173 │
-└────────────────────────┴─────────────┴──────────┴─────┴─────┴───────┘
+### Numerical results
 
-  ````
-
-Same observation as in the previous example: **TR** and **R2N** with LBFGS approximation of the Hessian of $f$ outperform **PANOC** in terms of the number of function and gradient evaluations and computational time, although they require more proximal iterations.
-
-## Problem of Nonnegative least squares with $\ell_0$ penalty and constraints
-
-The third experiment considers the sparse nonnegative matrix factorization (NNMF) problem introduced by [@kim-park-2008].
-Let $A \in \mathbb{R}^{m \times n}$ be a nonnegative matrix whose columns correspond to observations drawn from a Gaussian mixture, with negative entries truncated to zero.
-
-The goal is to obtain a factorization $A \approx WH$, where $W \in \mathbb{R}^{m \times k}$, $H \in \mathbb{R}^{k \times n}$, $k < \min(m,n)$, such that both factors are nonnegative and $H$ is sparse.
-
-This leads to the optimization problem  
-
-$$
-\min_{W, H \geq 0} \; \tfrac{1}{2} \| A - WH \|_F^2 + \lambda \| \operatorname{vec}(H) \|_0,
-$$  
-
-where $\operatorname{vec}(H)$ denotes the column-stacked version of $H$.
-
-Compared to the previous examples, we now consider a constrained problem with a nonsmooth and nonconvex term.
-
-The library [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl) provides solvers that can handle constraints by separating the objective into three parts: a smooth term, a nonsmooth term, and the indicator function of the constraints. However, this approach assumes that the nonsmooth part is convex, which is not the case here.
-
-Another approach is to merge the nonsmooth term with the indicator function of the constraints into a single nonsmooth function, and then apply **PANOC**, which is the strategy adopted here. However, the current library of proximal operators, [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl), on which [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl) relies, does not provide the proximal mapping of the sum of the $\ell_0$ norm and the indicator function of the nonnegative orthant. In contrast, [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl) does implement this operator.  
-
-Therefore, to apply **PANOC** in this setting, one would first need to implement this combined proximal operator in [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl). For this reason, we do not include **PANOC** in this example.
-
-Instead, we compare the performance of **TR** and **R2N** with that of **LM**.
-
-```julia
-using LinearAlgebra
-using ProximalOperators
-using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
-using DifferentialEquations, ADNLPModels
-
-# Build the models
-m, n, k = 100, 50, 5
-model, nls_model, A, selected = nnmf_model(m, n, k)
-
-# Define the nonsmooth regularizer (L1 norm)
-λ = norm(grad(model, rand(model.meta.nvar)), Inf) / 200
-h = NormL0(λ)
-
-# Define the regularized NLS model
-reg_nlp = RegularizedNLSModel(nls_model, h)
-
-# Choose a solver (TR) and execution statistics tracker
-solver_lm = LMSolver(reg_nlp)
-stats = RegularizedExecutionStats(reg_nlp)
-
-
-# Solve the problem
-solve!(solver_lm, reg_nlp, stats, x = f.meta.x0, atol = 1e-4, rtol = 1e-4, verbose = 0)
-```
+We compare **PANOC** (from [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)) with **TR**, **R2N**, and **LM** from our library.  
+The results are summarized in the combined table below:
 
 ```
-┌────────────────────────┬─────────────┬──────────┬────┬──────┬───────┐
-│ Method                 │   Status    │ Time (s) │ #f │  #∇f │ #prox │
-├────────────────────────┼─────────────┼──────────┼────┼──────┼───────┤
-│ TR(LBFGS)              │ first_order │   1.0527 │ 73 │   68 │ 10005 │
-│ R2N(LBFGS) Nonmonotone │ first_order │   0.7296 │ 68 │   68 │  7825 │
-│ LM                     │ first_order │   1.2668 │ 11 │ 2035 │   481 │
-└────────────────────────┴─────────────┴──────────┴────┴──────┴───────┘
-
+┌────────────────────────┬─────────────┬──────────┬──────┬──────┬───────┐
+│ Method                 │ Status      │ Time (s) │ #f   │ #∇f  │ #prox │
+├────────────────────────┼─────────────┼──────────┼──────┼──────┼───────┤
+│ PANOC (SVM)            │ first_order │ 51.17    │ 3713 │ 3713 │ 2269  │
+│ TR(LSR1, SVM)          │ first_order │ 6.81     │ 385  │ 333  │ 11113 │
+│ R2N(LSR1, SVM)         │ first_order │ 2.42     │ 175  │ 95   │ 56971 │
+│ TR(LBFGS, NNMF)        │ first_order │ 1.05     │ 73   │ 68   │ 10005 │
+│ R2N(LBFGS, NNMF)       │ first_order │ 0.73     │ 68   │ 68   │ 7825  │
+│ LM (NNMF)              │ first_order │ 1.27     │ 11   │ 2035 │ 481   │
+└────────────────────────┴─────────────┴──────────┴──────┴──────┴───────┘
 ```
 
-We observe that **R2N** and **TR** achieve similar performance, with **R2N** being slightly better.
-Both methods outperform **LM** in terms of computational time and the number of gradient evaluations.
-However, **LM** requires significantly fewer function evaluations, which is expected since it is specifically designed for nonlinear least squares problems and can exploit the structure of the objective function more effectively.
+### Discussion
+
+- **SVM with $\ell^{1/2}$ penalty:** TR and R2N require far fewer function and gradient evaluations than PANOC, at the expense of more proximal iterations. Since each proximal step is inexpensive, TR and R2N are much faster overall.  
+- **NNMF with constrained $\ell_0$ penalty:** R2N slightly outperforms TR, while LM is competitive in terms of function calls but incurs many gradient evaluations.  
+
+Additional tests (e.g., other regularizers, constraint types, and scaling dimensions) have also been conducted, and a full benchmarking campaign is currently underway.
 
 ## Conclusion
 
