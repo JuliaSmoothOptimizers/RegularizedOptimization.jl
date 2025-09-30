@@ -327,7 +327,7 @@ function SolverCore.solve!(
   end
 
   mk = let ψ = ψ, solver = solver
-    d -> obj(solver.subpb.model, d) + ψ(d)::T
+    d -> obj(solver.subpb.model, d) - 1/2 * σk * dot(d, d) + ψ(d)::T
   end
 
   prox!(s1, ψ, mν∇fk, ν₁)
