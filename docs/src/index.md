@@ -17,15 +17,15 @@ A [`RegularizedNLPModel`](https://jso.dev/RegularizedProblems.jl/stable/referenc
 - a smooth component `f` represented as an [`AbstractNLPModel`](https://github.com/JuliaSmoothOptimizers/NLPModels.jl),  
 - a nonsmooth regularizer `h`.  
 
-We refer to [jso.dev](https://jso.dev) for tutorials on the `NLPModel` API. This framework allows the usage of models from  
-
+For the smooth component `f`, we refer to [jso.dev](https://jso.dev) for tutorials on the `NLPModel` API. This framework allows the usage of models from  
 - AMPL ([AmplNLReader.jl](https://github.com/JuliaSmoothOptimizers/AmplNLReader.jl)),  
 - CUTEst ([CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl)),  
 - JuMP ([NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl)),  
 - PDE-constrained problems ([PDENLPModels.jl](https://github.com/JuliaSmoothOptimizers/PDENLPModels.jl)),  
 - models defined with automatic differentiation ([ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl)).
-
 We refer to [ManualNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ManualNLPModels.jl) for users interested in defining their own model.
+
+For the regularizer, we refer to [this section](@ref regularizers).
 
 ---
 
