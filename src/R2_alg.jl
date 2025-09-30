@@ -354,7 +354,7 @@ function SolverCore.solve!(
   hk = @views h(xk[selected])
   if hk == Inf
     verbose > 0 && @info "R2: finding initial guess where nonsmooth term is finite"
-    prox!(xk, h, xk, one(eltype(x0)))
+    prox!(xk, h, xk, one(eltype(xk)))
     hk = @views h(xk[selected])
     hk < Inf || error("prox computation must be erroneous")
     verbose > 0 && @debug "R2: found point where h has value" hk
