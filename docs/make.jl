@@ -16,10 +16,12 @@ makedocs(
   sitename = "RegularizedOptimization.jl",
   pages = [
     "Home" => "index.md", 
-    "Algorithms" => "algorithms.md", 
+    "Algorithms" => "algorithms.md",
+    "Regularizers" => "regularizers.md", 
     "Examples" => [
-      joinpath("examples", "bpdn.md"),
-      joinpath("examples", "fh.md")
+      joinpath("examples", "basic.md"),
+      joinpath("examples", "ls.md"),
+      joinpath("examples", "custom_regularizer.md")
     ], 
     "Reference" => "reference.md",
     "Bibliography" => "bibliography.md"
