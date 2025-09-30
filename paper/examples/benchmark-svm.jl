@@ -56,7 +56,7 @@ function run_panoc!(model, x0; λ = 1.0, maxit = 500, tol = 1e-3, verbose = fals
     algo = ProximalAlgorithms.PANOC(maxit = maxit, tol = tol, verbose = verbose)
     t = @elapsed x̂, it = algo(x0 = x0, f = f, g = g)
     metrics = (
-        name      = "PANOC",
+        name      = "PANOC (SVM)",
         status    = "first_order",
         time      = t,
         iters     = it,
@@ -64,6 +64,7 @@ function run_panoc!(model, x0; λ = 1.0, maxit = 500, tol = 1e-3, verbose = fals
         gevals    = f.gradient_count,
         proxcalls = g.prox_count,
         solution  = x̂,
+        final_obj = obj(model, x̂)
     )
     return metrics
 end
@@ -86,7 +87,7 @@ function run_tr!(model, x0; λ = 1.0, qn = :LSR1, atol = 1e-3, rtol = 1e-3, verb
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
                                                 x = x0, atol = atol, rtol = rtol, verbose = verbose, opnorm_maxiter = opnorm_maxiter, sub_kwargs = sub_kwargs)
     metrics = (
-        name      = "TR($(String(qn)))",
+        name      = "TR ($(String(qn)), SVM)",
         status    = string(stats.status),
         time      = t,
         iters     = get(stats.solver_specific, :outer_iter, missing),
@@ -94,6 +95,7 @@ function run_tr!(model, x0; λ = 1.0, qn = :LSR1, atol = 1e-3, rtol = 1e-3, verb
         gevals    = neval_grad(qn_model),
         proxcalls = stats.solver_specific[:prox_evals],
         solution  = stats.solution,
+        final_obj = obj(model, stats.solution)
     )
     return metrics
 end
@@ -111,7 +113,7 @@ function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, ve
                                                 x = x0, atol = atol, rtol = rtol, σk = σk,
                                                 verbose = verbose, sub_kwargs = sub_kwargs, opnorm_maxiter = opnorm_maxiter)
     metrics = (
-        name      = "R2N($(String(qn)))",
+        name      = "R2N ($(String(qn)), SVM)",
         status    = string(stats.status),
         time      = t,
         iters     = get(stats.solver_specific, :outer_iter, missing),
@@ -119,6 +121,7 @@ function run_r2n!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3, ve
         gevals    = neval_grad(qn_model),
         proxcalls = stats.solver_specific[:prox_evals],
         solution  = stats.solution,
+        final_obj = obj(model, stats.solution)
     )
     return metrics
 end
@@ -167,29 +170,27 @@ end
 println("\n")
 print_config(CFG2)
 
-if CFG2.PRINT_TABLE
-    println("\nSummary :")
-    # Construire les données pour la table
-    data = [
-    (; name=m.name,
-       status=string(m.status),
-       time=round(m.time, digits=4),
-       fe=m.fevals,
-       ge=m.gevals,
-       prox = m.proxcalls === missing ? missing : Int(m.proxcalls))
-    for m in results
+println("\nSummary :")
+# Construire les données pour la table
+data_svm = [
+(; name=m.name,
+    status=string(m.status),
+    time=round(m.time, digits=4),
+    fe=m.fevals,
+    ge=m.gevals,
+    prox = m.proxcalls === missing ? missing : Int(m.proxcalls),
+    obj = round(obj(model, m.solution), digits=4))
+for m in results
 ]
 
-    # En-têtes
-    table_str = pretty_table(String, data;
-           header = ["Method", "Status", "Time (s)", "#f", "#∇f", "#prox"],
-           tf = tf_unicode,
-           alignment = [:l, :c, :r, :r, :r, :r],
-           crop = :none,
-       )
+# En-têtes
+table_str = pretty_table(String, data_svm;
+        header = ["Method", "Status", "Time (s)", "#f", "#∇f", "#prox", "#obj"],
+        tf = tf_unicode,
+        alignment = [:l, :c, :r, :r, :r, :r, :r],
+        crop = :none,
+    )
 
-    open("SVM-comparison-f.txt", "w") do io
-        write(io, table_str)
-    end
-
+open("Benchmarks/SVM-comparison-f.txt", "w") do io
+    write(io, table_str)
 end
