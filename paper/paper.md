@@ -65,11 +65,8 @@ While [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperator
 ## Model-based framework for nonsmooth methods
 
 In Julia, \eqref{eq:nlp} can be solved using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements in-place, first-order, line-search–based methods [@stella-themelis-sopasakis-patrinos-2017;@themelis-stella-patrinos-2017].
-Most of these methods are generally splitting schemes that alternate between taking steps along some direction $d$ that depends on the gradient of $f$ and applying proximal steps on the nonsmooth part $h$ followed for some of them such as **PANOC** solver by a line-search mechanism along $d$.
-```
-(Maybe remove the former sentence if it means that we should detail each algorithms ?)
-```
-Currently, [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl) provides only L-BFGS as a quasi-Newton option.
+Most of these methods are splitting schemes that either alternate between the proximal operators of $f$ and $h$, as in the **Douglas–Rachford** solver [@eckstein1992douglas], or take a step along a direction $d$, which depends on the gradient of $f$, possibly modified by a Quasi-Newton approximation (e.g., L-BFGS)—followed by proximal steps on the nonsmooth part $h$. In some cases, such as with the **PANOC** [@stella-themelis-sopasakis-patrinos-2017] solver, this process is augmented with a line-search mechanism along $d$.
+
 By contrast, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) focuses on model-based approaches such as trust-region and quadratic regularization algorithms.
 As shown in [@aravkin-baraldi-orban-2022], model-based methods typically require fewer evaluations of the objective and its gradient than first-order line search methods, at the expense of requiring a lot of proximal iterations to solve the subproblems.
 Although these subproblems may require many proximal iterations, each proximal computation is inexpensive for nuumerous commonly used nonsmooth functions, such as separable penalties and bound constraints (see examples below), making the overall approach efficient for large-scale problems.
