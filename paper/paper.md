@@ -56,7 +56,7 @@ Moreover, they implement non-monotone strategies to accept trial points, which c
 ## Requirements of the ShiftedProximalOperators.jl
 
 The nonsmooth part $h$ must have a computable proximal mapping, defined as
-$$\text{prox}_{\nu h}(v) = \underset{x \in \mathbb{R}^n}{\arg\min} \frac{1}{2} \|t - v\|^2 + \nu h(t).$$
+$$\text{prox}_{\nu h}(v) = \underset{x \in \mathbb{R}^n}{\arg\min} \frac{1}{2} \|x - v\|^2 + \nu h(x).$$
 
 While [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl) provides many standard proximal mappings, [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl) also supplies **shifted** variants of these mappings which is not supported by [ProximalOperators.jl](https://www.github.com/JuliaFirstOrder/ProximalOperators.jl).
 
@@ -65,7 +65,7 @@ While [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperator
 ## Model-based framework for nonsmooth methods
 
 In Julia, \eqref{eq:nlp} can be solved using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements in-place, first-order, line-search–based methods [@stella-themelis-sopasakis-patrinos-2017;@themelis-stella-patrinos-2017].
-Most of these methods are splitting schemes that either alternate between the proximal operators of $f$ and $h$, as in the **Douglas–Rachford** solver [@eckstein1992douglas], or take a step along a direction $d$, which depends on the gradient of $f$, possibly modified by a Quasi-Newton approximation (e.g., L-BFGS)—followed by proximal steps on the nonsmooth part $h$. In some cases, such as with the **PANOC** [@stella-themelis-sopasakis-patrinos-2017] solver, this process is augmented with a line-search mechanism along $d$.
+Most of these methods are splitting schemes that either alternate between the proximal operators of $f$ and $h$, as in the **Douglas–Rachford** solver [@eckstein1992douglas], or take a step along a direction $d$, which depends on the gradient of $f$, possibly modified by a L-BFGS Quasi-Newton approximation followed by proximal steps on the nonsmooth part $h$. In some cases, such as with the **PANOC** [@stella-themelis-sopasakis-patrinos-2017] solver, this process is augmented with a line-search mechanism along $d$.
 
 By contrast, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) focuses on model-based approaches such as trust-region and quadratic regularization algorithms.
 As shown in [@aravkin-baraldi-orban-2022], model-based methods typically require fewer evaluations of the objective and its gradient than first-order line search methods, at the expense of requiring a lot of proximal iterations to solve the subproblems.
@@ -119,7 +119,6 @@ This design makes for a convenient source of reproducible problem instances for 
 
 The package includes a comprehensive suite of unit tests that cover all functionalities, ensuring reliability and correctness.
 Extensive documentation is provided, including a user guide, API reference, and examples to help users get started quickly.
-Aqua.jl is used to test the package dependencies.
 Documentation is built using Documenter.jl.
 
 ## Application studies
@@ -168,7 +167,7 @@ solver = LMSolver(reg_nls)                                   # Choose solver
 
 ## Numerical results
 
-We compare **PANOC** [@stella-themelis-sopasakis-patrinos-2017](from [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)) against **TR**, **R2N**, and **LM** from our library.
+We compare **PANOC** [@stella-themelis-sopasakis-patrinos-2017] (from [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)) against **TR**, **R2N**, and **LM** from our library.
 In order to do so, we implemented a wrapper for **PANOC** to make it compatible with our problem definition.
 The results are summarized in the combined table below:
 
