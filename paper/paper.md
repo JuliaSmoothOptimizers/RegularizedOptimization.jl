@@ -164,7 +164,7 @@ stats  = RegularizedExecutionStats(reg_nlp)
 solve!(solver, reg_nlp, stats; x=f.meta.x0, atol=1e-4, rtol=1e-4, verbose=0, sub_kwargs=(max_iter=200,))
 solve!(solver, reg_nlp, stats; x=f.meta.x0, atol=1e-5, rtol=1e-5, verbose=0, sub_kwargs=(max_iter=200,))
 ```
-The NNMF problem can be set up in a similar way, replacing the model by nnmf_model(...) and $h$ by an $\ell_0$ norm.
+The NNMF problem can be set up in a similar way, replacing the model by nnmf_model(...) and $h$ by an $\ell_0$ norm and we set LBFGS as Hessian approximation.
 
 ### Numerical results
 
@@ -172,16 +172,16 @@ We compare **PANOC** (from [ProximalAlgorithms.jl](https://github.com/JuliaFirst
 The results are summarized in the combined table below:
 
 ```
-┌────────────────────────┬─────────────┬──────────┬──────┬──────┬───────┐
-│ Method                 │ Status      │ Time (s) │ #f   │ #∇f  │ #prox │
-├────────────────────────┼─────────────┼──────────┼──────┼──────┼───────┤
-│ PANOC (SVM)            │ first_order │ 51.17    │ 3713 │ 3713 │ 2269  │
-│ TR(LSR1, SVM)          │ first_order │ 6.81     │ 385  │ 333  │ 11113 │
-│ R2N(LSR1, SVM)         │ first_order │ 2.42     │ 175  │ 95   │ 56971 │
-│ TR(LBFGS, NNMF)        │ first_order │ 1.05     │ 73   │ 68   │ 10005 │
-│ R2N(LBFGS, NNMF)       │ first_order │ 0.73     │ 68   │ 68   │ 7825  │
-│ LM (NNMF)              │ first_order │ 1.27     │ 11   │ 2035 │ 481   │
-└────────────────────────┴─────────────┴──────────┴──────┴──────┴───────┘
+┌───────────────────┬─────────────┬──────────┬──────┬──────┬───────┐
+│ Method            │   Status    │ Time (s) │   #f │  #∇f │ #prox │
+├───────────────────┼─────────────┼──────────┼──────┼──────┼───────┤
+│ PANOC (SVM)       │ first_order │   38.226 │ 3713 │ 3713 │  2269 │
+│ TR (LSR1, SVM)    │ first_order │    5.912 │  347 │  291 │  4037 │
+│ R2N (LSR1, SVM)   │ first_order │   1.2944 │   86 │   76 │  8586 │
+│ TR (LBFGS, NNMF)  │ first_order │   0.0857 │   42 │   40 │  3160 │
+│ R2N (LBFGS, NNMF) │ first_order │   0.2116 │   79 │   76 │  6273 │
+│ LM (NNMF)         │ first_order │   0.1363 │    8 │ 7540 │  2981 │
+└───────────────────┴─────────────┴──────────┴──────┴──────┴───────┘
 ```
 
 ### Discussion
