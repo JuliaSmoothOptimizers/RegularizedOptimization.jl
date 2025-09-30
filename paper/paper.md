@@ -171,7 +171,7 @@ We compare **PANOC** [@stella-themelis-sopasakis-patrinos-2017] (from [ProximalA
 In order to do so, we implemented a wrapper for **PANOC** to make it compatible with our problem definition.
 The results are summarized in the combined table below:
 
-\input{Benchmark.tex}
+\input{examples/Benchmark.tex}
 
 ## Discussion
 
