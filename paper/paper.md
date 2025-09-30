@@ -46,7 +46,7 @@ The library provides a modular and extensible framework for experimenting with n
 - **Levenbergh-Marquardt methods (LM, LMTR)** [@aravkin-baraldi-orban-2024].
 - **Augmented Lagrangian methods (AL)** [@demarchi-jia-kanzow-mehlitz-2023].
 
-These methods rely on the gradient and optionnally on the Hessian(-vector) information of the smooth part $f$ and the proximal mapping of the nonsmooth part $h$ in order to compute steps.
+These methods rely on the gradient and optionally on the Hessian(-vector) information of the smooth part $f$ and the proximal mapping of the nonsmooth part $h$ in order to compute steps.
 Then, the objective function $f + h$ is used only to accept or reject trial points.
 Moreover, they can handle cases where Hessian approximations are unbounded [@diouane-habiboullah-orban-2024;@leconte-orban-2023-2], making the package particularly suited for large-scale, ill-conditioned, and nonsmooth problems.
 
@@ -54,7 +54,7 @@ Moreover, they can handle cases where Hessian approximations are unbounded [@dio
 
 ## Model-based framework for nonsmooth methods
 
-In Julia, \eqref{eq:nlp} can be solved using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements in-place, first-order, line-search–based methods[@stella-themelis-sopasakis-patrinos-2017;@themelis-stella-patrinos-2017].
+In Julia, \eqref{eq:nlp} can be solved using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements in-place, first-order, line-search–based methods [@stella-themelis-sopasakis-patrinos-2017;@themelis-stella-patrinos-2017].
 Most of these methods are generally splitting schemes that alternate between taking steps along the gradient of the smooth part $f$ (or quasi-Newton directions) and applying proximal steps on the nonsmooth part $h$.
 Currently, [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl) provides only L-BFGS as a quasi-Newton option.
 By contrast, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) focuses on model-based approaches such as trust-region and quadratic regularization algorithms.
@@ -69,15 +69,17 @@ On the one hand, smooth problems $f$ can be defined via [NLPModels.jl](https://g
 Large collections of such problems are available in [Cutest.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl) [@orban-siqueira-cutest-2020] and [OptimizationProblems.jl](https://github.com/JuliaSmoothOptimizers/OptimizationProblems.jl) [@migot-orban-siqueira-optimizationproblems-2023].
 Another option is to use [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl), which provides problem instances commonly used in the nonsmooth optimization literature.
 
-On the other hand, Hessian approximations of these functions, including quasi-Newton and diagonal schemes, can be specified through [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl), which represents Hessians as linear operators and implements efficient Hessian–vector products.
+On the other hand, nonsmooth terms $h$ can be modeled using [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl), which provides a broad collection of nonsmooth functions, together with [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl), which provides shifted proximal mappings for nonsmooth functions.
 
-Finally, nonsmooth terms $h$ can be modeled using [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl), which provides a broad collection of nonsmooth functions, together with [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl), which provides shifted proximal mappings for nonsmooth functions.
+## Support for Hessians and Hessian approximations of the smooth part $f$
 
-## Support for Hessians of the smooth part $f$
+In contrast to [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) methods such as **R2N** and **TR** methods support exact Hessians as well as several Hessian approximations of $f$, which can significantly improve convergence rates—especially for ill-conditioned problems.
 
-In contrast to [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) methods such as **R2N** and **TR** support Hessians of $f$, which can significantly improve convergence rates, especially for ill-conditioned problems.
-Hessians can be obtained via automatic differentiation through [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) or supplied directly as Hessian–vector products $v \mapsto Hv$.
-This enables algorithms to exploit second-order information without explicitly forming dense (or sparse) Hessians, which is often prohibitively expensive in both computation and memory, particularly in high-dimensional settings.
+Exact Hessians can be obtained via automatic differentiation through [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) or supplied directly as Hessian–vector products $v \mapsto Hv$.
+
+Hessian approximations (e.g., quasi-Newton and diagonal schemes) can be specified via [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl), which represents Hessians as linear operators and provides efficient implementations of Hessian–vector products.
+
+This design allows algorithms to exploit second-order information **without** explicitly forming dense (or even sparse) Hessian matrices, which is often prohibitively expensive in time and memory, particularly at large scale.
 
 ## Requirements of the RegularizedProblems.jl
 
@@ -115,7 +117,7 @@ Extensive documentation is provided, including a user guide, API reference, and 
 Aqua.jl is used to test the package dependencies.
 Documentation is built using Documenter.jl.
 
-## Solvers caracteristics
+## Solvers characteristics
 
 All solvers in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) are implemented in an in-place fashion, minimizing memory allocations during the resolution process.
 Moreover, they implement non-monotone strategies to accept trial points, which can enhance algorithmic performance in practice [@leconte-orban-2023;@diouane-habiboullah-orban-2024].
@@ -144,10 +146,8 @@ We compare the performance of our solvers with (**PANOC**) solver [@stella-theme
 We illustrate the capabilities of [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) on two nonsmooth and nonconvex problems:
 
 - **Support Vector Machine (SVM) with $\ell^{1/2}$ penalty** for image classification [@aravkin-baraldi-orban-2024].  
-- **Nonnegative Matrix Factorization (NNMF) with $\ell_0$ penalty and constraints** [@kim-park-2008].
+- **Nonnegative Matrix Factorization (NNMF) with $\ell_0$ penalty and bound constraints** [@kim-park-2008].
 
-Both problems are of the form $\min f(x) + h(x)$ with $f$ nonconvex and $h$ nonsmooth.  
-The NNMF problem can be set up in a similar way to the SVM case, with $h$ given by an $\ell_0$ norm and additional nonnegativity constraints.
 Below is a condensed example showing how to define and solve such problems:
 
 ```julia
@@ -164,7 +164,7 @@ stats  = RegularizedExecutionStats(reg_nlp)
 solve!(solver, reg_nlp, stats; x=f.meta.x0, atol=1e-4, rtol=1e-4, verbose=0, sub_kwargs=(max_iter=200,))
 solve!(solver, reg_nlp, stats; x=f.meta.x0, atol=1e-5, rtol=1e-5, verbose=0, sub_kwargs=(max_iter=200,))
 ```
-The NNMF problem can be set up in a similar way, replacing the model by nnmf_model(...) with bound constraints, $h$ by an $\ell_0$ norm and use an L-BFGS Hessian approximation.
+The NNMF problem can be set up in a similar way, replacing the model by nnmf_model(...), $h$ by an $\ell_0$ norm and use an L-BFGS Hessian approximation.
 
 ### Numerical results
 
@@ -186,8 +186,8 @@ The results are summarized in the combined table below:
 
 ### Discussion
 
-- **SVM with $\ell^{1/2}$ penalty:** TR and R2N require far fewer function and gradient evaluations than PANOC, at the expense of more proximal iterations. Since each proximal step is inexpensive, TR and R2N are much faster overall.  
-- **NNMF with constrained $\ell_0$ penalty:** R2N slightly outperforms TR, while LM is competitive in terms of function calls but incurs many gradient evaluations.  
+- **SVM with $\ell^{1/2}$ penalty:** **TR** and **R2N** require far fewer function and gradient evaluations than **PANOC**, at the expense of more proximal iterations. Since each proximal step is inexpensive, **TR** and **R2N** are much faster overall.  
+- **NNMF with constrained $\ell_0$ penalty:** **TR** outperforms **R2N**, while **LM** is competitive in terms of function calls but incurs many gradient evaluations.  
 
 Additional tests (e.g., other regularizers, constraint types, and scaling dimensions) have also been conducted, and a full benchmarking campaign is currently underway.
 
