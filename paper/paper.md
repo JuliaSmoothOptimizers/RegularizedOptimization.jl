@@ -138,11 +138,6 @@ We will illustrate this in the examples below.
 
 # Examples
 
-
-We consider two examples where the smooth part $f$ is nonconvex and the nonsmooth part $h$ is either $\ell^{1/2}$ or $\ell_0$ norm with constraints.
-
-We compare the performance of our solvers with (**PANOC**) solver [@stella-themelis-sopasakis-patrinos-2017] implemented in [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl).
-
 We illustrate the capabilities of [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) on two nonsmooth and nonconvex problems:
 
 - **Support Vector Machine (SVM) with $\ell^{1/2}$ penalty** for image classification [@aravkin-baraldi-orban-2024].  
@@ -166,9 +161,9 @@ solve!(solver, reg_nlp, stats; x=f.meta.x0, atol=1e-5, rtol=1e-5, verbose=0, sub
 ```
 The NNMF problem can be set up in a similar way, replacing the model by nnmf_model(...), $h$ by an $\ell_0$ norm and use an L-BFGS Hessian approximation.
 
-### Numerical results
+## Numerical results
 
-We compare **PANOC** (from [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)) with **TR**, **R2N**, and **LM** from our library.  
+We compare **PANOC** [@stella-themelis-sopasakis-patrinos-2017](from [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)) with **TR**, **R2N**, and **LM** from our library.  
 The results are summarized in the combined table below:
 
 ```
@@ -184,14 +179,14 @@ The results are summarized in the combined table below:
 └───────────────────┴─────────────┴──────────┴──────┴──────┴───────┘
 ```
 
-### Discussion
+## Discussion
 
 - **SVM with $\ell^{1/2}$ penalty:** **TR** and **R2N** require far fewer function and gradient evaluations than **PANOC**, at the expense of more proximal iterations. Since each proximal step is inexpensive, **TR** and **R2N** are much faster overall.  
 - **NNMF with constrained $\ell_0$ penalty:** **TR** outperforms **R2N**, while **LM** is competitive in terms of function calls but incurs many gradient evaluations.  
 
 Additional tests (e.g., other regularizers, constraint types, and scaling dimensions) have also been conducted, and a full benchmarking campaign is currently underway.
 
-## Conclusion
+# Conclusion
 
 The experiments highlight the effectiveness of the solvers implemented in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) compared to **PANOC** from [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl).
 
