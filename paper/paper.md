@@ -95,20 +95,19 @@ This design makes it a convenient source of reproducible problem instances for t
 ## Requirements of the ShiftedProximalOperators.jl
 
 The nonsmooth part $h$ must have a computable proximal mapping, defined as
-$$\text{prox}_{h}(v) = \underset{x \in \mathbb{R}^n}{\arg\min} \left( h(x) + \frac{1}{2} \|x - v\|^2 \right).$$
-This requirement is satisfied by a wide range of nonsmooth functions commonly used in practice, such as $\ell_1$ norm, $\ell_0$ "norm", indicator functions of convex sets, and group sparsity-inducing norms.
-The package [ProximalOperators.jl](https://www.github.com/FirstOrder/ProximalOperators.jl) provides a comprehensive collection of such functions, along with their proximal mappings.
-The main difference between the proximal operators implemented in
-[ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl)
-is that those implemented here involve a translation of the nonsmooth term.
-Specifically, this package considers proximal operators defined as
+$$\text{prox}_{\nu h}(v) = \underset{x \in \mathbb{R}^n}{\arg\min} \frac{1}{2} \|t - v\|^2 + \nu h(t).$$
+
+This computation is performed efficiently in [ShiftedProximalOperators.jl](https://www.github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl).
+While [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl) provides many standard proximal mappings, [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl) also supplies **shifted** variants of these mappings.
+Specifically, the package supports shifted proximal operators of the form
 $$
-    \underset{t \in \mathbb{R}^n}{\arg\min} \, { \tfrac{1}{2} ‖t - q‖₂² + ν h(x + s + t) + χ(s + t|ΔB)}
+    \underset{t \in \mathbb{R}^n}{\arg\min} \, { \tfrac{1}{2} ‖t - q‖₂² + ν h(t + x + s) + χ(s + t|ΔB)}
 $$
 where $q$ is given, $x$ and $s$ are fixed shifts, $h$ is the nonsmooth term with respect
-to which we are computing the proximal operator, and $χ(.; \Delta B)$ is the indicator of
+to which we are computing the proximal operator, and $χ(.| \Delta B)$ is the indicator of
 a ball of radius $\Delta$ defined by a certain norm.
-This package enables to encode this shifted proximal operator through without adding allocations and allowing to solve problem \eqref{eq:nlp} with bound constraints.
+
+These shifted operators allow us to (i) incorporate bound or trust-region constraints via the indicator term which is required for **TR** algorithm and (ii) evaluate the prox **in place**, without additional allocations, which integrates efficiently with our subproblem solvers and enables solving \eqref{eq:nlp} with bound constraints.
 
 ## Testing and documentation
 
