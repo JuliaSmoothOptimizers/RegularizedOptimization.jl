@@ -61,7 +61,8 @@ regularized_pb = RegularizedNLPModel(f_model, h)
 
 using RegularizedOptimization
 
-# Suppose for example that we don't want to use a quasi-Newton approach and/or that we don't have access to the Hessian of f.
+# Suppose for example that we don't want to use a quasi-Newton approach
+# and that we don't have access to the Hessian of f, or that we don't want to incur the cost of computing it
 # In this case, the most appropriate solver would be R2.
 # For this example, we also choose a relatively small tolerance by specifying the keyword argument atol across all solvers.
 out = R2(regularized_pb, verbose = 10, atol = 1e-3)
@@ -76,7 +77,7 @@ println("-----------------------------------------------------------------------
 
 # Suppose for some reason we can not compute the Hessian. 
 # In this case, we can try to switch to a quasi-Newton approximation, this can be done with NLPModelsModifiers.jl
-# We could choose to TR again but for the sake of this tutorial we are going to try to run it with R2N
+# We could choose to use TR again but for the sake of this tutorial we run it with R2N
 
 using NLPModelsModifiers
 
@@ -89,8 +90,8 @@ out = R2N(regularized_pb_lsr1, verbose = 10, atol = 1e-3)
 println("R2N converged after $(out.iter) iterations to the solution x = $(out.solution)")
 println("--------------------------------------------------------------------------------------")
 
-# Finally, in the case where the quasi-Newton approximation is diagonal, TRDH and R2DH are specialized solvers to this case
-# and should be used in favour of TR and R2N respectively.
+# Finally, TRDH and R2DH are specialized for diagonal quasi-Newton approximations,
+# and should be used instead of TR and R2N, respectively.
 f_model_sg = SpectralGradientModel(f_model)
 regularized_pb_sg = RegularizedNLPModel(f_model_sg, h)
 
