@@ -3,11 +3,12 @@
 This package implements a family of algorithms to solve nonsmooth optimization problems of the form
 
 ```math
-\underset{x \in \mathbb{R}^n}{\text{minimize}} \quad f(x) + h(x),
+\underset{x \in \mathbb{R}^n}{\text{minimize}} \quad f(x) + h(x), \quad \text{subject to} \ c(x) = 0.
 ```
 
-where $f : \mathbb{R}^n \to \mathbb{R}$ is continuously differentiable and $h : \mathbb{R}^n \to \mathbb{R} \cup \{\infty\}$ is lower semi-continuous and proper.
-Both $f$ and $h$ may be nonconvex.
+where $f: \mathbb{R}^n \to \mathbb{R}$ and $c: \mathbb{R}^n \to \mathbb{R}^m$ are continuously differentiable, and $h: \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ is lower semi-continuous.
+The nonsmooth objective $h$ can be a *regularizer* such as a sparsity-inducing penalty, model simple constraints such as $x$ belonging to a simple convex set, or be a combination of both.
+All $f$, $h$ and $c$ can be nonconvex.
 
 All solvers implemented in this package are JuliaSmoothOptimizers-compliant.  
 They take a [`RegularizedNLPModel`](https://jso.dev/RegularizedProblems.jl/dev/reference#RegularizedProblems.RegularizedNLPModel) as input and return a [`GenericExecutionStats`](https://jso.dev/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats).  
