@@ -169,11 +169,12 @@ solver = LMSolver(reg_nls)                                   # Choose solver
 
 We compare **PANOC** [@stella-themelis-sopasakis-patrinos-2017] (from [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)) against **TR**, **R2N**, and **LM** from our library.
 In order to do so, we implemented a wrapper for **PANOC** to make it compatible with our problem definition.
-The results are summarized in the combined table below:
+
+We report the following solver statistics in table: the final value of \(f\) at convergence; the status of convergence of each solver (**Status**); the number of evaluations of the smooth objective ($\# f$); the number of evaluations of the gradient ($\# \nabla f$); the number of proximal operator evaluations ($\# \text{prox}$); the elapsed time $t$ in seconds and the final objective value $(f + h)(x^*)$ (**Objective**).
 
 \input{examples/Benchmark.tex}
 
-* For the LM solver, gradient evaluations count equals the number of Jacobian–vector and adjoint-Jacobian–vector products.
+* For the LM solver, gradient evaluations count $\#\nabla f$ equals the number of Jacobian–vector and adjoint-Jacobian–vector products.
 
 ## Discussion
 
