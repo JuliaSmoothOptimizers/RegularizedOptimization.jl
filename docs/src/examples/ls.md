@@ -2,18 +2,18 @@
 
 In this tutorial, we will show how to model and solve the nonconvex nonsmooth least-square problem
 ```math
-  \min_{x \in \mathbb{R}^n} \frac{1}{2} \|Ax - b\|_2^2 + \lambda \|x\|_0.
+  \min_{x \in \mathbb{R}^n} \tfrac{1}{2} \|Ax - b\|_2^2 + \lambda \|x\|_0.
 ```
 
 ## Modelling the problem
 We first formulate the objective function as the sum of a smooth function $f$ and a nonsmooth regularizer $h$:
 ```math
-  \frac{1}{2} \|Ax - b\|_2^2 + \lambda \|x\|_0 = f(x) + h(x),
+  \tfrac{1}{2} \|Ax - b\|_2^2 + \lambda \|x\|_0 = f(x) + h(x),
 ```
 where 
 ```math
 \begin{align*}
-f(x) &:= \frac{1}{2} \|Ax - b\|_2^2,\\
+f(x) &:= \tfrac{1}{2} \|Ax - b\|_2^2,\\
 h(x) &:= \lambda\|x\|_0.
 \end{align*}
 ```
