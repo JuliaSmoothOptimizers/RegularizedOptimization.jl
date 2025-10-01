@@ -74,7 +74,7 @@ Although these subproblems may require many proximal iterations, each proximal c
 The package provides a consistent API to formulate optimization problems and apply different solvers.
 It integrates seamlessly with the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers)  [@jso] ecosystem, an academic organization for nonlinear optimization software development, testing, and benchmarking.
 
-On the one hand, the smooth probobjectivelems $f$ can be defined via [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) [@orban-siqueira-nlpmodels-2020], which provides a standardized Julia API for representing nonlinear programming (NLP) problems.
+On the one hand, the smooth objective $f$ can be defined via [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) [@orban-siqueira-nlpmodels-2020], which provides a standardized Julia API for representing nonlinear programming (NLP) problems.
 Large collections of such problems are available in [CUTE.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl) [@orban-siqueira-cutest-2020] and [OptimizationProblems.jl](https://github.com/JuliaSmoothOptimizers/OptimizationProblems.jl) [@migot-orban-siqueira-optimizationproblems-2023].
 Another option is to use [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl), which provides problem instances commonly used in the nonsmooth optimization literature, where $f$ can be paired with various nonsmooth terms $h$.
 
@@ -172,6 +172,8 @@ In order to do so, we implemented a wrapper for **PANOC** to make it compatible 
 The results are summarized in the combined table below:
 
 \input{examples/Benchmark.tex}
+
+* For the LM solver, gradient evaluations count equals the number of Jacobian–vector and adjoint-Jacobian–vector products.
 
 ## Discussion
 
