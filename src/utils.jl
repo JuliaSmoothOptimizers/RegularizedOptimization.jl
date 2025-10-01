@@ -156,12 +156,26 @@ function get_status(
   end
 end
 
-function update_bounds!(l_bound_m_x::V, u_bound_m_x::V, l_bound::V, u_bound::V,  xk::V,) where {V <: AbstractVector}
+function update_bounds!(
+  l_bound_m_x::V,
+  u_bound_m_x::V,
+  l_bound::V,
+  u_bound::V,
+  xk::V,
+) where {V <: AbstractVector}
   @. l_bound_m_x = l_bound - xk
   @. u_bound_m_x = u_bound - xk
 end
 
-function update_bounds!(l_bound_m_x::V, u_bound_m_x::V, is_subsolver::Bool, l_bound::V, u_bound::V, xk::V, Δ::T) where {T <: Real, V <: AbstractVector{T}}
+function update_bounds!(
+  l_bound_m_x::V,
+  u_bound_m_x::V,
+  is_subsolver::Bool,
+  l_bound::V,
+  u_bound::V,
+  xk::V,
+  Δ::T,
+) where {T <: Real, V <: AbstractVector{T}}
   if is_subsolver
     @. l_bound_m_x = max(xk - Δ, l_bound)
     @. u_bound_m_x = min(xk + Δ, u_bound)
