@@ -50,7 +50,7 @@ regularized_pb = RegularizedNLPModel(f_model, h)
 ```
 
 ## Solving the problem
-We can now choose one of the algorithms presented [here](@ref algorithms) to solve the problem we defined above.
+We can now choose one of the solvers presented [here](@ref algorithms) to solve the problem we defined above.
 In the case of least-squares, it is usually more appropriate to choose LM or LMTR.
 ```@example
 using LLSModels
