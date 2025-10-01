@@ -43,7 +43,7 @@ regularized_pb = RegularizedNLPModel(f_model, h)
 ```
 
 ## Solving the problem
-We can now choose one of the algorithms presented [here](@ref algorithms) to solve the problem we defined above.
+We can now choose one of the solvers presented [here](@ref algorithms) to solve the problem we defined above.
 Please refer to other sections of this documentation to make the wisest choice for your particular problem.
 Depending on the problem structure and on requirements from the user, some solvers are more appropriate than others.
 The following tries to give a quick overview of what choices one can make.
@@ -70,7 +70,7 @@ println("R2 converged after $(out.iter) iterations to the solution x = $(out.sol
 println("--------------------------------------------------------------------------------------")
 
 # Now, on this example, we can actually use second information on f. 
-# To do so, we are going to use TR, a trust-region algorithm that can exploit second order information.
+# To do so, we are going to use TR, a trust-region solver that can exploit second order information.
 out = TR(regularized_pb, verbose = 10, atol = 1e-3)
 println("TR converged after $(out.iter) iterations to the solution x = $(out.solution)")
 println("--------------------------------------------------------------------------------------")
