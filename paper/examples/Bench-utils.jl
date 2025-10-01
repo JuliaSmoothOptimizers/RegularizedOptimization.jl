@@ -1,10 +1,11 @@
 module BenchUtils
 
 using ProximalAlgorithms
+using ShiftedProximalOperators
 using ProximalCore
 using NLPModels
 
-export Counting, reset_counters!, make_adnlp_compatible!
+export Counting, reset_counters!, MyShiftedl0Box
 
 (f::AbstractNLPModel)(x) = obj(f,x)
 
@@ -39,5 +40,19 @@ end
 
 "Réinitialise les compteurs d’un Counting."
 reset_counters!(c::Counting) = (c.eval_count = 0; c.gradient_count = 0; c.prox_count = 0; nothing)
+
+# Add a wrapper for ShiftedNormL0Box to be used in PANOC
+
+struct MyShiftedl0Box{T}
+    g::T
+end
+MyShiftedl0Box(g) = MyShiftedl0Box{typeof(g)}(g)
+
+(mg::MyShiftedl0Box)(y) = mg.g(y)
+
+function ProximalCore.prox!(y, mg::MyShiftedl0Box, x, gamma)
+    ShiftedProximalOperators.prox!(y, mg.g, x, gamma)
+    return mg.g(y)
+end
 
 end # module
