@@ -7,9 +7,9 @@ This package implements a family of algorithms to solve nonsmooth optimization p
 ```
 
 where $f : \mathbb{R}^n \to \mathbb{R}$ is continuously differentiable and $h : \mathbb{R}^n \to \mathbb{R} \cup \{\infty\}$ is lower semi-continuous and proper.
-Both $f$ and $h$ may be **nonconvex**.
+Both $f$ and $h$ may be nonconvex.
 
-All solvers implemented in this package are **JuliaSmoothOptimizers-compliant**.  
+All solvers implemented in this package are JuliaSmoothOptimizers-compliant.  
 They take a [`RegularizedNLPModel`](https://jso.dev/RegularizedProblems.jl/dev/reference#RegularizedProblems.RegularizedNLPModel) as input and return a [`GenericExecutionStats`](https://jso.dev/SolverCore.jl/stable/reference/#SolverCore.GenericExecutionStats).  
 
 A [`RegularizedNLPModel`](https://jso.dev/RegularizedProblems.jl/stable/reference#RegularizedProblems.RegularizedNLPModel) contains:  
@@ -37,7 +37,7 @@ A presentation of each algorithm is given [here](@ref algorithms).
 
 ## Preallocating
 
-All solvers in RegularizedOptimization.jl have **in-place versions**.  
+All solvers in RegularizedOptimization.jl have in-place versions.  
 Users can preallocate a workspace and reuse it across solves to avoid memory allocations, which is useful in repetitive scenarios.  
 
 ---
