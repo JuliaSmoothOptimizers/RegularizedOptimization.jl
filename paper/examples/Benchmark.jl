@@ -167,7 +167,7 @@ function run_panoc_nnmf!(model, x0; λ = 1.0, maxit = 500, tol = 1e-3, verbose =
     l = zeros(dim)
     u = fill(Inf, dim)
     h = ShiftedNormL0Box(NormL0(λ), zeros(dim), zeros(dim), l, u, false, selected)
-    h_panoc = MyShiftedl0Box(h)
+    h_panoc = BenchUtils.MyShiftedl0Box(h)
     g = BenchUtils.Counting(h_panoc)
     algo = ProximalAlgorithms.PANOC(maxit = maxit, tol = tol, verbose = verbose)
     t = @elapsed x̂, it = algo(x0 = x0, f = f, g = g)
@@ -296,7 +296,7 @@ end
 # #############################
 
 function main()
-   data_svm  = bench_svm!(CFG)
+    data_svm  = bench_svm!(CFG)
     data_nnmf = bench_nnmf!(CFG2)
 
     # concat both datasets
