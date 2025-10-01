@@ -25,21 +25,6 @@ For the smooth component `f`, we refer to [jso.dev](https://jso.dev) for tutoria
 - models defined with automatic differentiation ([ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl)).
 We refer to [ManualNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ManualNLPModels.jl) for users interested in defining their own model.
 
-For the regularizer, we refer to [this section](@ref regularizers).
-
----
-
-## Algorithms
-
-A presentation of each algorithm is given [here](@ref algorithms).
-
----
-
-## Preallocating
-
-All solvers in RegularizedOptimization.jl have in-place versions.  
-Users can preallocate a workspace and reuse it across solves to avoid memory allocations, which is useful in repetitive scenarios.  
-
 ---
 
 ## How to Install
