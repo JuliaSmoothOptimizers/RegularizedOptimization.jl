@@ -50,7 +50,7 @@ end
 f_model = ADNLSModel(F, x0, m, name = "nonlinear LS model of f")
 
 # Get the regularizer from ProximalOperators
-λ  = 1.0   
+λ  = 0.01
 h = NormL0(λ)
 
 # Wrap into a RegularizedNLPModel
@@ -69,9 +69,41 @@ out = LM(regularized_pb, verbose = 1, atol = 1e-4)
 println("LM converged after $(out.iter) iterations.")
 ```
 
+We can visualize the solution with plots,
+```@example ls
+using Plots
+
+# Extract estimated parameters
+a_est, b_est = out.solution
+
+# True curve
+y_true = [a_true * exp(b_true * ti) for ti in t]
+
+# Estimated curve
+y_est = [a_est * exp(b_est * ti) for ti in t]
+
+# Plot
+scatter(t, y, label="Noisy data", legend=:bottomleft)
+plot!(t, y_true, label="True model", lw=2)
+plot!(t, y_est, label="Fitted model", lw=2, ls=:dash) 
+```
+
 ```@example ls
 #We can choose LMTR instead which is a trust-region method
 out = LMTR(regularized_pb, verbose = 1, atol = 1e-4)
 println("LMTR converged after $(out.iter) iterations.")
+```
+
+```@example ls
+# Extract estimated parameters
+a_est, b_est = out.solution
+
+# Estimated curve
+y_est = [a_est * exp(b_est * ti) for ti in t]
+
+# Plot
+scatter(t, y, label="Noisy data", legend=:bottomleft)
+plot!(t, y_true, label="True model", lw=2)
+plot!(t, y_est, label="Fitted model", lw=2, ls=:dash) 
 
 ```
