@@ -26,6 +26,9 @@ For the smooth component `f`, we refer to [jso.dev](https://jso.dev) for tutoria
 We refer to [ManualNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ManualNLPModels.jl) for users interested in defining their own model.
 
 For the nonsmooth component `h` we refer to [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl).
+Regularizers are available in 
+- [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl)
+- [ShiftedProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ShiftedProximalOperators.jl)
 
 ---
 
