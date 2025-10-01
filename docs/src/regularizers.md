@@ -24,7 +24,7 @@ Next, we expect the shifted model `ψ::ShiftedFoo` to
 
 The proximal mapping is defined as 
 ```math
-\text{prox}(\psi, q, \sigma) := \argmin_y \ \psi(y) + \frac{\sigma}{2} \|y - q\|_2^2.
+\text{prox}(\psi, q, \sigma) := \argmin_y \ \psi(y) + \tfrac{\sigma}{2} \|y - q\|_2^2.
 ```
 
 !!! note
