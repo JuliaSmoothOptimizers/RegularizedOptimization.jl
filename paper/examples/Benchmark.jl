@@ -160,6 +160,29 @@ end
 # ======= NNMF bench ====== #
 #############################
 
+function run_panoc_nnmf!(model, x0; λ = 1.0, maxit = 500, tol = 1e-3, verbose = false, selected = nothing)
+    f = BenchUtils.Counting(model)
+    # Define the nonsmooth term for panoc
+    dim = model.meta.nvar
+    l = zeros(dim)
+    u = fill(Inf, dim)
+    h = ShiftedNormL0Box(NormL0(λ), zeros(dim), zeros(dim), l, u, false, selected)
+    h_panoc = MyShiftedl0Box(h)
+    g = BenchUtils.Counting(h_panoc)
+    algo = ProximalAlgorithms.PANOC(maxit = maxit, tol = tol, verbose = verbose)
+    t = @elapsed x̂, it = algo(x0 = x0, f = f, g = g)
+    return (
+        name      = "PANOC (NNMF)",
+        status    = "first_order",
+        time      = t,
+        iters     = it,
+        fevals    = f.eval_count,
+        gevals    = f.gradient_count,
+        proxcalls = g.prox_count,
+        solution  = x̂,
+        final_obj = obj(model, x̂)
+    )
+end
 
 function run_tr_nnmf!(model, x0; λ = 1.0, qn = :LSR1, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = (;), selected = nothing)
     qn_model = ensure_qn(model, qn)
@@ -235,6 +258,7 @@ function bench_nnmf!(cfg = CFG2; m = 100, n = 50, k = 5)
     cfg.LAMBDA_L0 = norm(grad(model, rand(model.meta.nvar)), Inf) / 200
 
     results = NamedTuple[]
+    (:PANOC in cfg.RUN_SOLVERS) && push!(results, run_panoc_nnmf!(model, x0; λ = cfg.LAMBDA_L0, maxit = cfg.MAXIT_PANOC, tol = cfg.TOL, verbose = cfg.VERBOSE_PANOC, selected = selected))
     (:TR  in cfg.RUN_SOLVERS) && push!(results, run_tr_nnmf!(model, x0; λ = cfg.LAMBDA_L0, qn = cfg.QN_FOR_TR, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, sub_kwargs = cfg.SUB_KWARGS_R2N, selected = selected))
     (:R2N in cfg.RUN_SOLVERS) && push!(results, run_r2n_nnmf!(model, x0; λ = cfg.LAMBDA_L0, qn = cfg.QN_FOR_R2N, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, sub_kwargs = cfg.SUB_KWARGS_R2N, selected = selected))
     (:LM  in cfg.RUN_SOLVERS) && push!(results, run_LM_nnmf!(nls_model, x0; λ = cfg.LAMBDA_L0, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, selected = selected))
@@ -272,7 +296,7 @@ end
 # #############################
 
 function main()
-    data_svm  = bench_svm!(CFG)
+   data_svm  = bench_svm!(CFG)
     data_nnmf = bench_nnmf!(CFG2)
 
     # concat both datasets

@@ -148,8 +148,8 @@ h = RootNormLhalf(1.0)                                       # Nonsmooth term
 reg_nlp = RegularizedNLPModel(f, h)                          # Regularized problem
 solver = R2NSolver(reg_nlp)                                  # Choose solver
 stats  = RegularizedExecutionStats(reg_nlp)
-solve!(solver, reg_nlp, stats; atol=1e-4, rtol=1e-4, verbose=0, sub_kwargs=(max_iter=200,))
-solve!(solver, reg_nlp, stats; atol=1e-5, rtol=1e-5, verbose=0, sub_kwargs=(max_iter=200,))
+solve!(solver, reg_nlp, stats; atol=1e-4, rtol=1e-4, verbose=1, sub_kwargs=(max_iter=200,))
+solve!(solver, reg_nlp, stats; atol=1e-5, rtol=1e-5, verbose=1, sub_kwargs=(max_iter=200,))
 ```
 
 The NNMF problem can be set up in a similar fashion:
@@ -182,7 +182,7 @@ All methods successfully reduced the optimality measure below the specified tole
 However, the final objective values differ due to the nonconvexity of the problems.
 
 - **SVM with $\ell^{1/2}$ penalty:** **TR** and **R2N** require far fewer function and gradient evaluations than **PANOC**, at the expense of more proximal iterations. Since each proximal step is inexpensive, **TR** and **R2N** are much faster overall.  
-- **NNMF with constrained $\ell_0$ penalty:** **TR** outperforms **R2N**, while **LM** is competitive in terms of function calls but incurs many Jacobian-vector products.
+- **NNMF with constrained $\ell_0$ penalty:** **PANOC** is the fastest, even though it requires a larger number of function and gradient evaluations than **TR** and **R2N**. **LM** is competitive in terms of function calls but incurs many Jacobian–vector products; it nevertheless achieves the lowest objective value.
 
 Additional tests (e.g., other regularizers, constraint types, and scaling dimensions) have also been conducted, and a full benchmarking campaign is currently underway.
 
