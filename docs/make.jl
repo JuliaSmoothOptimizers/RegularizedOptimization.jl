@@ -1,4 +1,4 @@
-using Documenter, DocumenterCitations 
+using Documenter, DocumenterCitations
 
 using RegularizedOptimization
 
@@ -15,16 +15,13 @@ makedocs(
   ),
   sitename = "RegularizedOptimization.jl",
   pages = [
-    "Home" => "index.md", 
+    "Home" => "index.md",
     "Algorithms" => "algorithms.md",
-    "Examples" => [
-      joinpath("examples", "basic.md"),
-      joinpath("examples", "ls.md"),
-    ], 
+    "Examples" => [joinpath("examples", "basic.md"), joinpath("examples", "ls.md")],
     "Reference" => "reference.md",
-    "Bibliography" => "bibliography.md"
-    ],
-    plugins = [bib],
+    "Bibliography" => "bibliography.md",
+  ],
+  plugins = [bib],
 )
 
 deploydocs(
