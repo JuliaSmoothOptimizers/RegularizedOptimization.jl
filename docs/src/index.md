@@ -17,7 +17,7 @@ A [`RegularizedNLPModel`](https://jso.dev/RegularizedProblems.jl/stable/referenc
 - a smooth component `f` represented as an [`AbstractNLPModel`](https://github.com/JuliaSmoothOptimizers/NLPModels.jl),  
 - a nonsmooth regularizer `h`.  
 
-For the smooth component `f`, we refer to [jso.dev](https://jso.dev) for tutorials on the `NLPModel` API. This framework allows the usage of models from  
+For the smooth component `f`, we refer to [jso.dev](https://jso.dev) for tutorials on the `NLPModels` API. This framework allows the usage of models from  
 - AMPL ([AmplNLReader.jl](https://github.com/JuliaSmoothOptimizers/AmplNLReader.jl)),  
 - CUTEst ([CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl)),  
 - JuMP ([NLPModelsJuMP.jl](https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl)),  
