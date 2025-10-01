@@ -27,7 +27,7 @@ h(x_1, x_2) &:= \|x\|_1.
 \end{align*}
 ``` 
 To model $f$, we are going to use [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl).
-For the nonsmooth regularizer, we observe that $h$ is actually readily available in [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl), you can refer to [this section](@ref regularizers) for a list of readily available regularizers.
+For the nonsmooth regularizer, we use [ProximalOperators.jl](https://github.com/JuliaFirstOrder/ProximalOperators.jl). 
 We then wrap the smooth function and the regularizer in a `RegularizedNLPModel`
 
 ```@example basic
