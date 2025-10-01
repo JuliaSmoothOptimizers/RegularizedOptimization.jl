@@ -28,7 +28,7 @@ end
 f_model = ADNLSModel(F, x0, m, name = &quot;nonlinear LS model of f&quot;)
 
 # Get the regularizer from ProximalOperators
-λ  = 1.0
+λ  = 0.01
 h = NormL0(λ)
 
 # Wrap into a RegularizedNLPModel
@@ -69,23 +69,49 @@ regularized_pb = RegularizedNLPModel(f_model, h)</code></pre><pre class="documen
     jac_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0       jprod_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0      jtprod_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
    hess_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0       jhess_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0       hprod_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
 
-Regularizer: ProximalOperators.NormL0{Float64}(1.0)
+Regularizer: ProximalOperators.NormL0{Float64}(0.01)
 
 Selected variables: 1:2</code></pre><h2 id="Solving-the-problem"><a class="docs-heading-anchor" href="#Solving-the-problem">Solving the problem</a><a id="Solving-the-problem-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-the-problem" title="Permalink"></a></h2><p>We can now choose one of the solvers presented <a href="../../algorithms/#algorithms">here</a> to solve the problem we defined above. In the case of least-squares, it is usually more appropriate to choose LM or LMTR.</p><pre><code class="language-julia hljs">using RegularizedOptimization
 
 # LM is a quadratic regularization method.
 out = LM(regularized_pb, verbose = 1, atol = 1e-4)
 println(&quot;LM converged after $(out.iter) iterations.&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">[ Info: </span></span> outer  inner     f(x)     h(x)  √(ξ1/ν)        ρ        σ      ‖x‖      ‖s‖     ‖J‖² LM
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0      6  1.0e+01  1.0e+00  2.6e+01  1.0e+00  7.4e-04  1.0e+00  2.6e-01  1.3e+02 ↘
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     1     42  6.9e+00  1.0e+00  6.9e-04  9.8e-01  2.5e-04  1.3e+00  1.2e+00  1.4e+02 ↘
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     2     15  5.8e-01  2.0e+00  5.1e+00  1.0e+00  8.2e-05  2.1e+00  1.1e-01  6.6e+01 ↘
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     3      9  3.6e-01  2.0e+00  3.6e-02  1.0e+00  2.7e-05  2.2e+00  5.5e-04  6.8e+01 ↘
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     4      0  3.6e-01  2.0e+00  3.5e-05  1.0e+00  9.1e-06  2.2e+00  5.2e-07  6.8e+01
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>LM: terminating with √(ξ1/ν) = 3.5211212071487106e-5
-LM converged after 4 iterations.</code></pre><pre><code class="language-julia hljs">#We can choose LMTR instead which is a trust-region method
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0     25  1.0e+01  1.0e-02  2.6e+01  8.4e-01  7.4e-04  1.0e+00  1.5e+00  1.3e+02 =
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     1     14  2.0e+00  2.0e-02  1.3e+01  9.9e-01  7.4e-04  2.2e+00  3.0e-01  5.2e+01 ↘
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     2     15  3.8e-01  2.0e-02  1.5e+00  1.0e+00  2.5e-04  2.2e+00  3.9e-02  7.1e+01 ↘
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     3     17  3.6e-01  2.0e-02  1.7e-02  1.0e+00  8.2e-05  2.2e+00  7.9e-04  6.8e+01 ↘
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     4      0  3.6e-01  2.0e-02  2.5e-05  1.0e+00  2.7e-05  2.2e+00  3.7e-07  6.8e+01
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>LM: terminating with √(ξ1/ν) = 2.5352037067312497e-5
+LM converged after 4 iterations.</code></pre><p>We can visualize the solution with plots,</p><pre><code class="language-julia hljs">using Plots
+
+# Extract estimated parameters
+a_est, b_est = out.solution
+
+# True curve
+y_true = [a_true * exp(b_true * ti) for ti in t]
+
+# Estimated curve
+y_est = [a_est * exp(b_est * ti) for ti in t]
+
+# Plot
+scatter(t, y, label=&quot;Noisy data&quot;, legend=:bottomleft)
+plot!(t, y_true, label=&quot;True model&quot;, lw=2)
+plot!(t, y_est, label=&quot;Fitted model&quot;, lw=2, ls=:dash)</code></pre><img src="dd98db2c.svg" alt="Example block output"/><pre><code class="language-julia hljs">#We can choose LMTR instead which is a trust-region method
 out = LMTR(regularized_pb, verbose = 1, atol = 1e-4)
 println(&quot;LMTR converged after $(out.iter) iterations.&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">[ Info: </span></span> outer  inner     f(x)     h(x)  √(ξ1/ν)        ρ        Δ      ‖x‖      ‖s‖        ν LMTR
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0      9  1.0e+01  1.0e+00  2.6e+01  1.0e+00  1.0e+00  1.0e+00  2.6e-01  7.9e-03 ↗
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     1      0  6.9e+00  1.0e+00  4.7e-06  1.0e+00  1.0e+00  1.3e+00  3.2e-08  6.9e-03
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>LMTR: terminating with √(ξ1/ν) = 4.681718673274401e-6
-LMTR converged after 1 iterations.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../basic/">« A regularized optimization problem</a><a class="docs-footer-nextpage" href="../../reference/">Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Wednesday 1 October 2025 15:20">Wednesday 1 October 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0     16  1.0e+01  1.0e-02  2.6e+01  9.1e-01  1.0e+00  1.0e+00  1.0e+00  7.9e-03 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     1      6  1.5e+00  2.0e-02  1.2e+01  1.0e+00  3.0e+00  1.8e+00  2.2e-01  1.6e-02 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     2     18  3.6e-01  2.0e-02  1.7e-01  1.0e+00  3.0e+00  2.0e+00  1.3e-02  1.5e-02 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     3      4  3.6e-01  2.0e-02  3.9e-04  1.0e+00  3.0e+00  2.0e+00  2.9e-05  1.5e-02 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     4      0  3.6e-01  2.0e-02  8.6e-05  1.0e+00  3.0e+00  2.0e+00  9.8e-07  1.5e-02
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>LMTR: terminating with √(ξ1/ν) = 8.638767447185872e-5
+LMTR converged after 4 iterations.</code></pre><pre><code class="language-julia hljs"># Extract estimated parameters
+a_est, b_est = out.solution
+
+# Estimated curve
+y_est = [a_est * exp(b_est * ti) for ti in t]
+
+# Plot
+scatter(t, y, label=&quot;Noisy data&quot;, legend=:bottomleft)
+plot!(t, y_true, label=&quot;True model&quot;, lw=2)
+plot!(t, y_est, label=&quot;Fitted model&quot;, lw=2, ls=:dash)</code></pre><img src="c562434b.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../basic/">« A regularized optimization problem</a><a class="docs-footer-nextpage" href="../../reference/">Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Wednesday 1 October 2025 16:12">Wednesday 1 October 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
