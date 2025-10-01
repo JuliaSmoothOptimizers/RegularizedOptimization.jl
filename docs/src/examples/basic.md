@@ -59,12 +59,12 @@ The following tries to give a quick overview of what choices one can make.
 
 Suppose for example that we don't want to use a quasi-Newton approach and that we don't have access to the Hessian of f, or that we don't want to incur the cost of computing it. 
 In this case, the most appropriate solver would be R2.
-For this example, we also choose a relatively small tolerance by specifying the keyword arguments `atol` and `rtol` across all solvers.
+For this example, we also choose a tolerance by specifying the keyword arguments `atol` and `rtol` across all solvers.
 
 ```@example basic
 using RegularizedOptimization
  
-out = R2(regularized_pb, verbose = 10, atol = 1e-3, rtol = 1e-3)
+out = R2(regularized_pb, verbose = 100, atol = 1e-6, rtol = 1e-6)
 println("R2 converged after $(out.iter) iterations to the solution x = $(out.solution)")
 ``` 
 
@@ -72,7 +72,7 @@ Now, we can actually use second information on f.
 To do so, we are going to use TR, a trust-region solver that can exploit second order information.
 ```@example basic
 
-out = TR(regularized_pb, verbose = 10, atol = 1e-3, rtol = 1e-3)
+out = TR(regularized_pb, verbose = 100, atol = 1e-6, rtol = 1e-6)
 println("TR converged after $(out.iter) iterations to the solution x = $(out.solution)")
 ```
 
@@ -87,7 +87,7 @@ f_model_lsr1 = LSR1Model(f_model)
 regularized_pb_lsr1 = RegularizedNLPModel(f_model_lsr1, h)
 
 # Solve with R2N
-out = R2N(regularized_pb_lsr1, verbose = 10, atol = 1e-3, rtol = 1e-3)
+out = R2N(regularized_pb_lsr1, verbose = 100, atol = 1e-6, rtol = 1e-6)
 println("R2N converged after $(out.iter) iterations to the solution x = $(out.solution)")
 ```
 
@@ -98,6 +98,6 @@ f_model_sg = SpectralGradientModel(f_model)
 regularized_pb_sg = RegularizedNLPModel(f_model_sg, h)
 
 # Solve with R2DH
-out = R2DH(regularized_pb_sg, verbose = 10, atol = 1e-3, rtol = 1e-3)
+out = R2DH(regularized_pb_sg, verbose = 100, atol = 1e-6, rtol = 1e-6)
 println("R2DH converged after $(out.iter) iterations to the solution x = $(out.solution)")
 ```
