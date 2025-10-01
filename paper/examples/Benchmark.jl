@@ -60,6 +60,9 @@ function run_panoc_svm!(model, x0; λ = 1.0, maxit = 500, tol = 1e-3, verbose = 
     f = BenchUtils.Counting(model)
     g = BenchUtils.Counting(RootNormLhalf(λ))
     algo = ProximalAlgorithms.PANOC(maxit = maxit, tol = tol, verbose = verbose)
+    x̂, it = algo(x0 = x0, f = f, g = g)
+    BenchUtils.reset_counters!(f)
+    BenchUtils.reset_counters!(g)
     t = @elapsed x̂, it = algo(x0 = x0, f = f, g = g)
     return (
         name      = "PANOC (SVM)",
@@ -80,6 +83,11 @@ function run_tr_svm!(model, x0; λ = 1.0, qn = :LSR1, atol = 1e-3, rtol = 1e-3, 
     reg_nlp  = RegularizedNLPModel(qn_model, RootNormLhalf(λ))
     solver   = TRSolver(reg_nlp)
     stats    = RegularizedExecutionStats(reg_nlp)
+    RegularizedOptimization.solve!(solver, reg_nlp, stats;
+        x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
+    reset!(qn_model)  # Reset counters before timing
+    reg_nlp  = RegularizedNLPModel(qn_model, RootNormLhalf(λ))
+    solver   = TRSolver(reg_nlp)
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
         x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
     return (
@@ -101,8 +109,13 @@ function run_r2n_svm!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3
     reg_nlp  = RegularizedNLPModel(qn_model, RootNormLhalf(λ))
     solver   = R2NSolver(reg_nlp)
     stats    = RegularizedExecutionStats(reg_nlp)
-    t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
+    RegularizedOptimization.solve!(solver, reg_nlp, stats;
         x = x0, atol = atol, rtol = rtol,verbose = verbose, sub_kwargs = sub_kwargs)
+    reset!(qn_model)  # Reset counters before timing
+    reg_nlp = RegularizedNLPModel(qn_model, RootNormLhalf(λ)) # Re-create to reset prox eval count
+    solver   = R2NSolver(reg_nlp)
+    t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
+        x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
     return (
         name      = "R2N ($(String(qn)), SVM)",
         status    = string(stats.status),
@@ -170,6 +183,9 @@ function run_panoc_nnmf!(model, x0; λ = 1.0, maxit = 500, tol = 1e-3, verbose =
     h_panoc = BenchUtils.MyShiftedl0Box(h)
     g = BenchUtils.Counting(h_panoc)
     algo = ProximalAlgorithms.PANOC(maxit = maxit, tol = tol, verbose = verbose)
+    x̂, it = algo(x0 = x0, f = f, g = g)
+    BenchUtils.reset_counters!(f)
+    BenchUtils.reset_counters!(g)
     t = @elapsed x̂, it = algo(x0 = x0, f = f, g = g)
     return (
         name      = "PANOC (NNMF)",
@@ -190,6 +206,11 @@ function run_tr_nnmf!(model, x0; λ = 1.0, qn = :LSR1, atol = 1e-3, rtol = 1e-3,
     reg_nlp  = RegularizedNLPModel(qn_model, NormL0(λ), selected)
     solver   = TRSolver(reg_nlp)
     stats    = RegularizedExecutionStats(reg_nlp)
+    RegularizedOptimization.solve!(solver, reg_nlp, stats;
+        x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
+    reset!(qn_model)  # Reset counters before timing
+    reg_nlp  = RegularizedNLPModel(qn_model, NormL0(λ), selected) # Re-create to reset prox eval count
+    solver   = TRSolver(reg_nlp)
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
         x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
     return (
@@ -211,6 +232,13 @@ function run_r2n_nnmf!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-
     reg_nlp  = RegularizedNLPModel(qn_model, NormL0(λ), selected)
     solver   = R2NSolver(reg_nlp)
     stats    = RegularizedExecutionStats(reg_nlp)
+    RegularizedOptimization.solve!(solver, reg_nlp, stats;
+        x = x0, atol = atol, rtol = rtol, verbose = verbose,
+        sub_kwargs = sub_kwargs)
+
+    reset!(qn_model)  # Reset counters before timing
+    reg_nlp  = RegularizedNLPModel(qn_model, NormL0(λ), selected) # Re-create to reset prox eval count
+    solver   = R2NSolver(reg_nlp)
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nlp, stats;
         x = x0, atol = atol, rtol = rtol, verbose = verbose,
         sub_kwargs = sub_kwargs)
@@ -231,6 +259,11 @@ function run_LM_nnmf!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose
     reg_nls  = RegularizedNLSModel(nls_model, NormL0(λ), selected)
     solver   = LMSolver(reg_nls)
     stats    = RegularizedExecutionStats(reg_nls)
+    RegularizedOptimization.solve!(solver, reg_nls, stats;
+        x = x0, atol = atol, rtol = rtol, verbose = verbose)
+    reset!(nls_model)  # Reset counters before timing
+    reg_nls  = RegularizedNLSModel(nls_model, NormL0(λ), selected)
+    solver   = LMSolver(reg_nls)
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nls, stats;
         x = x0, atol = atol, rtol = rtol, verbose = verbose)
     return (
@@ -295,21 +328,31 @@ end
 # # ========= Main ========== #
 # #############################
 
-function main()
+function main(latex_out = false)
     data_svm  = bench_svm!(CFG)
     data_nnmf = bench_nnmf!(CFG2)
 
-    # concat both datasets
     all_data = vcat(data_svm, data_nnmf)
 
-    table_str = pretty_table(String, all_data;
-            header = ["Method", "Status", L"$t$($s$)", L"$\#f$", L"$\#\nabla f$", L"$\#prox$", "Objective"],
-            backend = Val(:latex),
-            alignment = [:l, :c, :r, :r, :r, :r, :r],
-        )
-
-    open("Benchmark.tex", "w") do io
-        write(io, table_str)
+    println("\n=== Full Benchmark Table ===")
+    # what is inside the table
+    for row in all_data
+        println(row)
     end
+
+    # save as latex format
+    if latex_out
+
+        table_str = pretty_table(String, all_data;
+                header = ["Method", "Status", L"$t$($s$)", L"$\#f$", L"$\#\nabla f$", L"$\#prox$", "Objective"],
+                backend = Val(:latex),
+                alignment = [:l, :c, :r, :r, :r, :r, :r],
+            )
+
+        open("Benchmark.tex", "w") do io
+            write(io, table_str)
+        end
+    end
+    return nothing
 end
 
