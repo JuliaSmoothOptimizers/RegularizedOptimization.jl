@@ -64,7 +64,8 @@ regularized_pb = RegularizedNLPModel(f_model, h)
 
 using RegularizedOptimization
 
-# Suppose for example that we don&#39;t want to use a quasi-Newton approach and/or that we don&#39;t have access to the Hessian of f.
+# Suppose for example that we don&#39;t want to use a quasi-Newton approach
+# and that we don&#39;t have access to the Hessian of f, or that we don&#39;t want to incur the cost of computing it
 # In this case, the most appropriate solver would be R2.
 # For this example, we also choose a relatively small tolerance by specifying the keyword argument atol across all solvers.
 out = R2(regularized_pb, verbose = 10, atol = 1e-3)
@@ -79,7 +80,7 @@ println(&quot;------------------------------------------------------------------
 
 # Suppose for some reason we can not compute the Hessian.
 # In this case, we can try to switch to a quasi-Newton approximation, this can be done with NLPModelsModifiers.jl
-# We could choose to TR again but for the sake of this tutorial we are going to try to run it with R2N
+# We could choose to use TR again but for the sake of this tutorial we run it with R2N
 
 using NLPModelsModifiers
 
@@ -92,8 +93,8 @@ out = R2N(regularized_pb_lsr1, verbose = 10, atol = 1e-3)
 println(&quot;R2N converged after $(out.iter) iterations to the solution x = $(out.solution)&quot;)
 println(&quot;--------------------------------------------------------------------------------------&quot;)
 
-# Finally, in the case where the quasi-Newton approximation is diagonal, TRDH and R2DH are specialized solvers to this case
-# and should be used in favour of TR and R2N respectively.
+# Finally, TRDH and R2DH are specialized for diagonal quasi-Newton approximations,
+# and should be used instead of TR and R2N, respectively.
 f_model_sg = SpectralGradientModel(f_model)
 regularized_pb_sg = RegularizedNLPModel(f_model_sg, h)
 
@@ -152,4 +153,4 @@ R2N converged after 36 iterations to the solution x = [0.0, 0.0]
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>    75  0.0e+00  0.0e+00  1.1e-07  1.3e+00  4.9e+00  0.0e+00  0.0e+00
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>R2DH: terminating with √(ξ/ν) = 1.0936156464612998e-7
 R2DH converged after 75 iterations to the solution x = [0.0, 0.0]
---------------------------------------------------------------------------------------</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../regularizers/">« Regularizers</a><a class="docs-footer-nextpage" href="../ls/">A regularized least-square problem »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Tuesday 30 September 2025 06:16">Tuesday 30 September 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+--------------------------------------------------------------------------------------</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../regularizers/">« Regularizers</a><a class="docs-footer-nextpage" href="../ls/">A regularized least-square problem »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Wednesday 1 October 2025 13:02">Wednesday 1 October 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
