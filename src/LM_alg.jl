@@ -336,7 +336,15 @@ function SolverCore.solve!(
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
     if isa(solver.subsolver, R2Solver) #FIXME
-      solve!(solver.subsolver, solver.subpb, solver.substats; x = s, atol = sub_atol, ν = ν, sub_kwargs...)
+      solve!(
+        solver.subsolver,
+        solver.subpb,
+        solver.substats;
+        x = s,
+        atol = sub_atol,
+        ν = ν,
+        sub_kwargs...,
+      )
     else
       solve!(
         solver.subsolver,
