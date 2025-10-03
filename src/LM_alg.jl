@@ -16,6 +16,7 @@ mutable struct LMSolver{
   Fkn::V
   Jv::V
   Jtv::V
+  JtF::V  # Add JtF to store the gradient J'F
   ψ::G
   xkn::V
   s::V
@@ -66,7 +67,16 @@ function LMSolver(
     shifted(reg_nls.h, xk)
 
   Jk = jac_op_residual(reg_nls.model, xk)
-  sub_nlp = LMModel(Jk, Fk, T(1), xk)
+  # Compute initial residual
+  residual!(reg_nls.model, xk, Fk)
+  # Create LM subproblem using QuadraticModel: min s^T J^T F + 1/2 s^T (J^T J + σI) s
+  JtF = similar(xk)
+  mul!(JtF, Jk', Fk)
+  n = length(xk)
+  Id = opEye(T, n)  # Identity operator
+  JtJ_plus_sigma = Jk' * Jk + T(1) * Id
+  c0_val = dot(Fk, Fk) / 2  # Initial constant term = 1/2||F||²
+  sub_nlp = QuadraticModel(JtF, JtJ_plus_sigma, c0 = c0_val, x0 = zeros(T, n), name = "LM-subproblem")
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -79,6 +89,7 @@ function LMSolver(
     Fkn,
     Jv,
     Jtv,
+    JtF,  # Add JtF to constructor
     ψ,
     xkn,
     s,
@@ -275,7 +286,9 @@ function SolverCore.solve!(
   jtprod_residual!(nls, xk, Fk, ∇fk)
   fk = dot(Fk, Fk) / 2
 
-  σmax, found_σ = opnorm(solver.subpb.model.J)
+  # Compute Jacobian norm for normalization
+  Jk = jac_op_residual(nls, xk)
+  σmax, found_σ = opnorm(Jk)
   found_σ || error("operator norm computation failed")
   ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
   sqrt_ξ1_νInv = one(T)
@@ -300,7 +313,7 @@ function SolverCore.solve!(
   end
 
   mk = let ψ = ψ, solver = solver
-    d -> obj(solver.subpb.model, d, skip_sigma = true) + ψ(d)
+    d -> obj(solver.subpb.model, d) + ψ(d)
   end
 
   prox!(s, ψ, mν∇fk, ν)
@@ -331,7 +344,18 @@ function SolverCore.solve!(
 
   while !done
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
-    solver.subpb.model.σ = σk
+    
+    # Update the QuadraticModel with new σ value by recreating the Hessian
+    Jk = jac_op_residual(nls, xk)
+    mul!(solver.JtF, Jk', Fk)  # Update gradient J'F using solver field
+    Id = opEye(T, length(xk))  # Identity operator
+    JtJ_plus_sigma = Jk' * Jk + σk * Id  # Updated Hessian with new σ
+    # Create new model with updated σ
+    # LM model: mk(s) = 1/2||F||² + (J'F)'s + 1/2 s'(J'J + σI)s
+    c0_val = dot(Fk, Fk) / 2  # Constant term = 1/2||F||²
+    new_model = QuadraticModel(solver.JtF, JtJ_plus_sigma, c0 = c0_val, x0 = zeros(T, length(xk)), name = "LM-subproblem")
+    solver.subpb = RegularizedNLPModel(new_model, solver.ψ)
+    
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
     if isa(solver.subsolver, R2Solver) #FIXME
       solve!(solver.subsolver, solver.subpb, solver.substats, x = s, atol = sub_atol, ν = ν)
@@ -402,7 +426,8 @@ function SolverCore.solve!(
 
       # update opnorm if not linear least squares
       if nonlinear == true
-        σmax, found_σ = opnorm(solver.subpb.model.J)
+        Jk = jac_op_residual(nls, xk)
+        σmax, found_σ = opnorm(Jk)
         found_σ || error("operator norm computation failed")
       end
     end

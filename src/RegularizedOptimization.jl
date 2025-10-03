@@ -8,9 +8,11 @@ using Arpack, ProximalOperators
 
 # dependencies from us
 using LinearOperators,
+  LLSModels,
   ManualNLPModels,
   NLPModels,
   NLPModelsModifiers,
+  QuadraticModels,
   RegularizedProblems,
   ShiftedProximalOperators,
   SolverCore
@@ -39,11 +41,9 @@ include("input_struct.jl")
 include("TR_alg.jl")
 include("TRDH_alg.jl")
 include("R2_alg.jl")
-include("LMModel.jl")
 include("LM_alg.jl")
 include("LMTR_alg.jl")
 include("R2DH.jl")
-include("R2NModel.jl")
 include("R2N.jl")
 include("AL_alg.jl")
 
