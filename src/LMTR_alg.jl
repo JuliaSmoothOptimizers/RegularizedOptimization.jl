@@ -140,6 +140,7 @@ For advanced usage, first define a solver "LMSolver" to preallocate the memory u
 - `β::T = 1/eps(T)`: TODO
 - `χ =  NormLinf(1)`: norm used to define the trust-region;`
 - `subsolver::S = R2Solver`: subsolver used to solve the subproblem that appears at each iteration.
+- `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
@@ -203,6 +204,7 @@ function SolverCore.solve!(
   γ::T = T(3),
   α::T = 1 / eps(T),
   β::T = 1 / eps(T),
+  sub_kwargs::NamedTuple = NamedTuple(),
 ) where {T, G, V}
   reset!(stats)
 
@@ -265,6 +267,7 @@ function SolverCore.solve!(
 
   local ξ1::T
   local ρk::T = zero(T)
+  local prox_evals::Int = 0
 
   residual!(nls, xk, Fk)
   jtprod_residual!(nls, xk, Fk, ∇fk)
@@ -282,6 +285,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
   φ1 = let Fk = Fk, ∇fk = ∇fk
     d -> dot(Fk, Fk) / 2 + dot(∇fk, d) # ∇fk = Jk^T Fk
@@ -341,22 +345,25 @@ function SolverCore.solve!(
       solve!(
         solver.subsolver,
         solver.subpb,
-        solver.substats,
+        solver.substats;
         x = s,
         atol = stats.iter == 0 ? 1.0e-5 : max(sub_atol, min(1.0e-1, ξ1 / 10)),
         Δk = ∆_effective / 10,
+        sub_kwargs...,
       )
     else
       solve!(
         solver.subsolver,
         solver.subpb,
-        solver.substats,
+        solver.substats;
         x = s,
         atol = stats.iter == 0 ? 1.0e-5 : max(sub_atol, min(1.0e-1, ξ1 / 10)),
         ν = ν,
+        sub_kwargs...,
       )
     end
 
+    prox_evals += solver.substats.iter
     s .= solver.substats.solution
 
     sNorm = χ(s)
@@ -438,6 +445,7 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :nonsmooth_obj, hk)
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
+    set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
     ν = α * Δk / (1 + σmax^2 * (α * Δk + 1))
     @. mν∇fk = -∇fk * ν
