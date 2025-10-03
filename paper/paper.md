@@ -81,7 +81,7 @@ $$
 where $q$ is given, $x$ and $s$ are fixed shifts, $\chi(\cdot \mid \Delta \mathbb{B})$ is the indicator of a ball of radius $\Delta > 0$ defined by a certain norm, and $\psi(\cdot; x)$ is a model of $h$ about $x$.
 It is common to set $\psi(t + s; x) = h(x + s + t)$.
 
-These shifted operators allow us to (i) incorporate bound or trust-region constraints via the indicator, which is required for the **TR** and **TRDH** solvers, and (ii) evaluate the above **in place**, without additional allocations, which is currently not possible with ProximalOperators.jl.
+These shifted operators allow to (i) incorporate bound or trust-region constraints via the indicator, which is required for the **TR** and **TRDH** solvers, and (ii) evaluate the above in place, without additional allocations, which is currently not possible with ProximalOperators.jl.
 
 RegularizedOptimization.jl provides a consistent API to formulate optimization problems and apply different solvers.
 It integrates seamlessly with the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers)  [@jso] ecosystem, an academic organization for nonlinear optimization software development, testing, and benchmarking.
@@ -106,7 +106,7 @@ reg_nls = RegularizedNLSModel(f, h)
 RegularizedProblems.jl also provides a set of instances commonly used in data science and in the nonsmooth optimization literature, where several choices of $f$ can be paired with various nonsmooth terms $h$.
 This design makes for a convenient source of reproducible problem instances for testing and benchmarking the solvers in [RegularizedOptimization.jl](https://www.github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl).
 
-## Support for exact or approximate second derivatives
+## Support for both exact and approximate Hessian
 
 In contrast with [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl), methods such as **R2N** and **TR** methods support exact Hessians as well as several Hessian approximations of $f$.
 Hessian–vector products $v \mapsto Hv$ can be obtained via automatic differentiation through [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) or implemented manually.
@@ -175,13 +175,14 @@ The subproblem solver is **R2**.
 
 \input{examples/Benchmark.tex}
 
-- For the LM solver, gradient evaluations count $\#\nabla f$ equals the number of Jacobian–vector and adjoint-Jacobian–vector products.
+- Note that for the LM solver, gradient evaluations count $\#\nabla f$ equals the number of Jacobian–vector and adjoint-Jacobian–vector products.
 
 All methods successfully reduced the optimality measure below the specified tolerance of $10^{-4}$, and thus converged to an approximate first-order stationary point.
-However, the final objective values differ due to the nonconvexity of the problems.
+Note that, the final objective values differ due to the nonconvexity of the problems.
 
 - **SVM with $\ell^{1/2}$ penalty:** **R2N** is the fastest, requiring the fewest function and gradient evaluations compared to **TR**.
 However, it requires more proximal evaluations, but these are inexpensive.
+**LM** requires the fewest function evaluations, but many gradient evaluations, and is the slowest.
 - **NNMF with constrained $\ell_0$ penalty:** **TR** is the fastest, and requires a fewer number of function and gradient evaluations than **R2N**. **LM** is competitive in terms of function calls but incurs many Jacobian–vector products; it nevertheless achieves the lowest objective value.
 
 Additional tests (e.g., other regularizers, constraint types, and scaling dimensions) have also been conducted, and a full benchmarking campaign is currently underway.
@@ -202,6 +203,6 @@ In ongoing research, the package will be extended with algorithms that enable to
 
 The authors would like to thank Alberto Demarchi for his implementation of the Augmented Lagrangian solver.
 Mohamed Laghdaf Habiboullah is supported by an excellence FRQNT grant.
-Youssef Diouane and Dominique Orban are partially supported by an NSERC Discovery Grant.
+Youssef Diouane, Maxence Gollier and Dominique Orban are partially supported by an NSERC Discovery Grant.
 
 # References
