@@ -167,7 +167,7 @@ solver = LMSolver(reg_nls)                                   # Choose solver
 
 ## Numerical results
 
-We compare **TR**, **R2N**, and **LM** from our library.
+We compare **TR**, **R2N**, **LM** and **LMTR** from our library.
 
 We report the following solver statistics in the table: the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time in seconds and the final objective value.
 On the SVM and NNMF problems, we use limited-memory SR1 and BFGS Hessian approximations, respectively.
@@ -180,10 +180,12 @@ The subproblem solver is **R2**.
 All methods successfully reduced the optimality measure below the specified tolerance of $10^{-4}$, and thus converged to an approximate first-order stationary point.
 Note that, the final objective values differ due to the nonconvexity of the problems.
 
-- **SVM with $\ell^{1/2}$ penalty:** **R2N** is the fastest, requiring the fewest function and gradient evaluations compared to **TR**.
+- **SVM with $\ell^{1/2}$ penalty:** **R2N** is the fastest, requiring the fewest gradient evaluations compared to all the other solvers.
 However, it requires more proximal evaluations, but these are inexpensive.
-**LM** requires the fewest function evaluations, but many gradient evaluations, and is the slowest.
-- **NNMF with constrained $\ell_0$ penalty:** **TR** is the fastest, and requires a fewer number of function and gradient evaluations than **R2N**. **LM** is competitive in terms of function calls but incurs many Jacobian–vector products; it nevertheless achieves the lowest objective value.
+**LMTR** and **LM** require the fewest function evaluations, but incur many Jacobian–vector products, and are the slowest.
+Note that here, **LMTR** achieves the lowest objective value.
+- **NNMF with constrained $\ell_0$ penalty:** **LMTR** is the fastest, and requires a fewer number of function evaluations than all the other solvers. Followed by **TR** which is the second fastest and requires the fewest gradient evaluations, however it achieves the highest objective value.
+Note that both **LMTR** and **LM** achieve the lowest objective value.
 
 Additional tests (e.g., other regularizers, constraint types, and scaling dimensions) have also been conducted, and a full benchmarking campaign is currently underway.
 

@@ -8,7 +8,7 @@ Base.@kwdef mutable struct Config
     MAXIT_PANOC::Int          = 10000
     VERBOSE_PANOC::Bool       = false
     VERBOSE_RO::Int           = 0
-    RUN_SOLVERS::Vector{Symbol} = [:LM, :TR, :R2N]   # mutable
+    RUN_SOLVERS::Vector{Symbol} = [:LMTR, :LM, :TR, :R2N]   # mutable
     QN_FOR_TR::Symbol         = :LSR1
     QN_FOR_R2N::Symbol        = :LBFGS
     SUB_KWARGS_R2N::NamedTuple = (; max_iter = 200)
