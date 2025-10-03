@@ -424,7 +424,7 @@ function SolverCore.solve!(
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
       if has_bnds
-        update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, ∆k)
+        update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
         set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
         set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
       else
