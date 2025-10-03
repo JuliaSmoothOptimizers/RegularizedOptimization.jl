@@ -175,7 +175,7 @@ The subproblem solver is **R2**.
 
 \input{examples/Benchmark.tex}
 
-- Note that for the LM solver, gradient evaluations count $\#\nabla f$ equals the number of Jacobian–vector and adjoint-Jacobian–vector products.
+- Note that for the **LM** and **LMTR** solvers, gradient evaluations count $\#\nabla f$ equals the number of Jacobian–vector and adjoint-Jacobian–vector products.
 
 All methods successfully reduced the optimality measure below the specified tolerance of $10^{-4}$, and thus converged to an approximate first-order stationary point.
 Note that, the final objective values differ due to the nonconvexity of the problems.
