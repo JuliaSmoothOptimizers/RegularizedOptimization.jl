@@ -16,9 +16,6 @@ using LaTeXStrings
 include("comparison-config.jl")
 using .ComparisonConfig: CFG, CFG2
 
-include("Bench-utils.jl")
-using .BenchUtils
-
 #############################
 # ===== Helper utils ====== #
 #############################
@@ -39,14 +36,6 @@ function ensure_qn(model, which::Symbol)
     error("Unknown QN: $which (expected :LBFGS or :LSR1)")
 end
 
-# Close a PrettyTables Markdown string by adding a bottom rule
-function close_markdown_table(table_str::AbstractString)
-    lines = split(String(table_str), '\n')
-    isempty(lines) && return table_str
-    sep = length(lines) >= 2 ? lines[2] : repeat("-", 10)
-    push!(lines, sep)
-    return join(lines, '\n')
-end
 
 #############################
 # ======= SVM bench ======= #

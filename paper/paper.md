@@ -144,7 +144,7 @@ Random.seed!(1234)
 model, nls_model, _ = RegularizedProblems.svm_train_model()  # Build SVM model
 f = LSR1Model(model)                                         # L-SR1 Hessian approximation
 λ = 1.0                                                      # Regularization parameter
-h = RootNormLhalf(1.0)                                       # Nonsmooth term
+h = RootNormLhalf(λ)                                       # Nonsmooth term
 reg_nlp = RegularizedNLPModel(f, h)                          # Regularized problem
 solver = R2NSolver(reg_nlp)                                  # Choose solver
 stats  = RegularizedExecutionStats(reg_nlp)
