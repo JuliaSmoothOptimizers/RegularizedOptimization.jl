@@ -167,8 +167,7 @@ solver = LMSolver(reg_nls)                                   # Choose solver
 
 ## Numerical results
 
-We compare **PANOC** [@stella-themelis-sopasakis-patrinos-2017] (from [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl)) against **TR**, **R2N**, and **LM** from our library.
-In order to do so, we implemented a wrapper for **PANOC** to make it compatible with our problem definition.
+We compare **TR**, **R2N**, and **LM** from our library.
 
 We report the following solver statistics in the table: the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time in seconds and the final objective value.
 On the SVM and NNMF problems, we use limited-memory SR1 and BFGS Hessian approximations, respectively.
@@ -181,8 +180,9 @@ The subproblem solver is **R2**.
 All methods successfully reduced the optimality measure below the specified tolerance of $10^{-4}$, and thus converged to an approximate first-order stationary point.
 However, the final objective values differ due to the nonconvexity of the problems.
 
-- **SVM with $\ell^{1/2}$ penalty:** **TR** and **R2N** require far fewer function and gradient evaluations than **PANOC**, at the expense of more proximal iterations. Since each proximal step is inexpensive, **TR** and **R2N** are much faster overall.  
-- **NNMF with constrained $\ell_0$ penalty:** **PANOC** is the fastest, even though it requires a larger number of function and gradient evaluations than **TR** and **R2N**. **LM** is competitive in terms of function calls but incurs many Jacobian–vector products; it nevertheless achieves the lowest objective value.
+- **SVM with $\ell^{1/2}$ penalty:** **R2N** is the fastest, requiring the fewest function and gradient evaluations compared to **TR**.
+However, it requires more proximal evaluations, but these are inexpensive.
+- **NNMF with constrained $\ell_0$ penalty:** **TR** is the fastest, and requires a fewer number of function and gradient evaluations than **R2N**. **LM** is competitive in terms of function calls but incurs many Jacobian–vector products; it nevertheless achieves the lowest objective value.
 
 Additional tests (e.g., other regularizers, constraint types, and scaling dimensions) have also been conducted, and a full benchmarking campaign is currently underway.
 
