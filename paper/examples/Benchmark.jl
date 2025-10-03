@@ -131,6 +131,30 @@ function run_LM_svm!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose 
     )
 end
 
+function run_LMTR_svm!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = (;))
+    reg_nls  = RegularizedNLSModel(nls_model, RootNormLhalf(λ))
+    solver   = LMTRSolver(reg_nls)
+    stats    = RegularizedExecutionStats(reg_nls)
+    RegularizedOptimization.solve!(solver, reg_nls, stats;
+        x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
+    reset!(nls_model)  # Reset counters before timing
+    reg_nls  = RegularizedNLSModel(nls_model, RootNormLhalf(λ))
+    solver   = LMTRSolver(reg_nls)
+    t = @elapsed RegularizedOptimization.solve!(solver, reg_nls, stats;
+        x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
+    return (
+        name      = "LMTR (SVM)",
+        status    = string(stats.status),
+        time      = t,
+        iters     = get(stats.solver_specific, :outer_iter, missing),
+        fevals    = neval_residual(nls_model),
+        gevals    = neval_jtprod_residual(nls_model) + neval_jprod_residual(nls_model),
+        proxcalls = get(stats.solver_specific, :prox_evals, missing),
+        solution  = stats.solution,
+        final_obj = obj(nls_model, stats.solution)
+    )
+end
+
 function bench_svm!(cfg = CFG)
     Random.seed!(cfg.SEED)
     model, nls_train, _ = RegularizedProblems.svm_train_model()
@@ -140,6 +164,7 @@ function bench_svm!(cfg = CFG)
     (:TR    in cfg.RUN_SOLVERS) && push!(results, run_tr_svm!(model, x0; λ = cfg.LAMBDA_L0, qn = cfg.QN_FOR_TR, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, sub_kwargs = cfg.SUB_KWARGS_R2N))
     (:R2N   in cfg.RUN_SOLVERS) && push!(results, run_r2n_svm!(model, x0; λ = cfg.LAMBDA_L0, qn = cfg.QN_FOR_R2N, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, sub_kwargs = cfg.SUB_KWARGS_R2N))
     (:LM    in cfg.RUN_SOLVERS) && push!(results, run_LM_svm!(nls_train, x0; λ = cfg.LAMBDA_L0, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, sub_kwargs = cfg.SUB_KWARGS_R2N))
+    (:LMTR  in cfg.RUN_SOLVERS) && push!(results, run_LMTR_svm!(nls_train, x0; λ = cfg.LAMBDA_L0, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, sub_kwargs = cfg.SUB_KWARGS_R2N))
 
     # Print quick summary
     println("\n=== SVM: solver comparison ===")
@@ -230,19 +255,43 @@ function run_r2n_nnmf!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-
     )
 end
 
-function run_LM_nnmf!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose = 0, selected = nothing)
+function run_LM_nnmf!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose = 0, selected = nothing, sub_kwargs = (;))
     reg_nls  = RegularizedNLSModel(nls_model, NormL0(λ), selected)
     solver   = LMSolver(reg_nls)
     stats    = RegularizedExecutionStats(reg_nls)
     RegularizedOptimization.solve!(solver, reg_nls, stats;
-        x = x0, atol = atol, rtol = rtol, verbose = verbose)
+        x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
     reset!(nls_model)  # Reset counters before timing
     reg_nls  = RegularizedNLSModel(nls_model, NormL0(λ), selected)
     solver   = LMSolver(reg_nls)
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nls, stats;
-        x = x0, atol = atol, rtol = rtol, verbose = verbose)
+        x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
     return (
         name      = "LM (NNMF)",
+        status    = string(stats.status),
+        time      = t,
+        iters     = get(stats.solver_specific, :outer_iter, missing),
+        fevals    = neval_residual(nls_model),
+        gevals    = neval_jtprod_residual(nls_model) + neval_jprod_residual(nls_model),
+        proxcalls = get(stats.solver_specific, :prox_evals, missing),
+        solution  = stats.solution,
+        final_obj = obj(nls_model, stats.solution)
+    )
+end
+
+function run_LMTR_nnmf!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose = 0, selected = nothing, sub_kwargs = (;))
+    reg_nls  = RegularizedNLSModel(nls_model, NormL0(λ), selected)
+    solver   = LMTRSolver(reg_nls)
+    stats    = RegularizedExecutionStats(reg_nls)
+    RegularizedOptimization.solve!(solver, reg_nls, stats;
+        x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
+    reset!(nls_model)  # Reset counters before timing
+    reg_nls  = RegularizedNLSModel(nls_model, NormL0(λ), selected)
+    solver   = LMTRSolver(reg_nls)
+    t = @elapsed RegularizedOptimization.solve!(solver, reg_nls, stats;
+        x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
+    return (
+        name      = "LMTR (NNMF)",
         status    = string(stats.status),
         time      = t,
         iters     = get(stats.solver_specific, :outer_iter, missing),
@@ -268,7 +317,8 @@ function bench_nnmf!(cfg = CFG2; m = 100, n = 50, k = 5)
     results = NamedTuple[]
     (:TR  in cfg.RUN_SOLVERS) && push!(results, run_tr_nnmf!(model, x0; λ = cfg.LAMBDA_L0, qn = cfg.QN_FOR_TR, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, sub_kwargs = cfg.SUB_KWARGS_R2N, selected = selected))
     (:R2N in cfg.RUN_SOLVERS) && push!(results, run_r2n_nnmf!(model, x0; λ = cfg.LAMBDA_L0, qn = cfg.QN_FOR_R2N, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, sub_kwargs = cfg.SUB_KWARGS_R2N, selected = selected))
-    (:LM  in cfg.RUN_SOLVERS) && push!(results, run_LM_nnmf!(nls_model, x0; λ = cfg.LAMBDA_L0, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, selected = selected))
+    (:LM  in cfg.RUN_SOLVERS) && push!(results, run_LM_nnmf!(nls_model, x0; λ = cfg.LAMBDA_L0, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, selected = selected, sub_kwargs = cfg.SUB_KWARGS_R2N))
+    (:LMTR in cfg.RUN_SOLVERS) && push!(results, run_LMTR_nnmf!(nls_model, x0; λ = cfg.LAMBDA_L0, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, selected = selected, sub_kwargs = cfg.SUB_KWARGS_R2N))
 
     println("\n=== NNMF: solver comparison ===")
     for m in results
