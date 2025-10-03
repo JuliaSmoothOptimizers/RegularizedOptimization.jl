@@ -107,17 +107,17 @@ function run_r2n_svm!(model, x0; λ = 1.0, qn = :LBFGS, atol = 1e-3, rtol = 1e-3
     )
 end
 
-function run_LM_svm!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose = 0)
+function run_LM_svm!(nls_model, x0; λ = 1.0, atol = 1e-3, rtol = 1e-3, verbose = 0, sub_kwargs = (;))
     reg_nls  = RegularizedNLSModel(nls_model, RootNormLhalf(λ))
     solver   = LMSolver(reg_nls)
     stats    = RegularizedExecutionStats(reg_nls)
     RegularizedOptimization.solve!(solver, reg_nls, stats;
-        x = x0, atol = atol, rtol = rtol, verbose = verbose)
+        x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
     reset!(nls_model)  # Reset counters before timing
     reg_nls  = RegularizedNLSModel(nls_model, RootNormLhalf(λ))
     solver   = LMSolver(reg_nls)
     t = @elapsed RegularizedOptimization.solve!(solver, reg_nls, stats;
-        x = x0, atol = atol, rtol = rtol, verbose = verbose)
+        x = x0, atol = atol, rtol = rtol, verbose = verbose, sub_kwargs = sub_kwargs)
     return (
         name      = "LM (SVM)",
         status    = string(stats.status),
@@ -139,7 +139,7 @@ function bench_svm!(cfg = CFG)
     results = NamedTuple[]
     (:TR    in cfg.RUN_SOLVERS) && push!(results, run_tr_svm!(model, x0; λ = cfg.LAMBDA_L0, qn = cfg.QN_FOR_TR, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, sub_kwargs = cfg.SUB_KWARGS_R2N))
     (:R2N   in cfg.RUN_SOLVERS) && push!(results, run_r2n_svm!(model, x0; λ = cfg.LAMBDA_L0, qn = cfg.QN_FOR_R2N, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, sub_kwargs = cfg.SUB_KWARGS_R2N))
-    (:LM    in cfg.RUN_SOLVERS) && push!(results, run_LM_svm!(nls_train, x0; λ = cfg.LAMBDA_L0, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO))
+    (:LM    in cfg.RUN_SOLVERS) && push!(results, run_LM_svm!(nls_train, x0; λ = cfg.LAMBDA_L0, atol = cfg.TOL, rtol = cfg.RTOL, verbose = cfg.VERBOSE_RO, sub_kwargs = cfg.SUB_KWARGS_R2N))
 
     # Print quick summary
     println("\n=== SVM: solver comparison ===")
