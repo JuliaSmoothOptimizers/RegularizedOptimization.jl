@@ -28,6 +28,10 @@ mutable struct R2NSolver{
   subsolver::ST
   subpb::PB
   substats::GenericExecutionStats{T, V, V, T}
+  # Pre-allocated components for QuadraticModel recreation
+  Id::LinearOperator  # Identity operator
+  x0_quad::V         # Zero vector for QuadraticModel x0
+  reg_hess::LinearOperator  # Pre-allocated regularized Hessian operator
 end
 
 function R2NSolver(
@@ -68,7 +72,15 @@ function R2NSolver(
     shifted(reg_nlp.h, xk)
 
   Bk = hess_op(reg_nlp.model, x0)
-  sub_nlp = R2NModel(Bk, ∇fk, T(1), x0)
+  # Create quadratic model: min ∇f^T s + 1/2 s^T B s + σ/2 ||s||^2
+  # QuadraticModel represents: min c^T x + 1/2 x^T H x + c0
+  # So we need c = ∇fk, H = Bk + σI, c0 = 0
+  σ = T(1)
+  n = length(∇fk)
+  Id = opEye(T, n)  # Identity operator
+  x0_quad = zeros(T, n)  # Pre-allocate x0 for QuadraticModel
+  reg_hess = Bk + σ * Id  # Pre-allocate regularized Hessian
+  sub_nlp = QuadraticModel(∇fk, reg_hess, c0 = zero(T), x0 = x0_quad, name = "R2N-subproblem")
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -93,6 +105,9 @@ function R2NSolver(
     subsolver,
     subpb,
     substats,
+    Id,
+    x0_quad,
+    reg_hess,
   )
 end
 
@@ -195,6 +210,17 @@ function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
   return stats
 end
 
+# Helper function to update QuadraticModel in-place to avoid allocations
+function update_quadratic_model!(qm::QuadraticModel, c::AbstractVector, H::LinearOperator)
+  # Update gradient
+  copyto!(qm.data.c, c)
+  # Unfortunately we still need to create a new LinearOperator for H
+  # But we avoid creating the QuadraticModel itself
+  qm.data.H = H
+  # Reset counters to be safe
+  qm.counters.neval_hess = 0
+end
+
 function SolverCore.solve!(
   solver::R2NSolver{T, G, V},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
@@ -292,12 +318,15 @@ function SolverCore.solve!(
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
   λmax::T = T(1)
   found_λ = true
-  solver.subpb.model.B = hess_op(nlp, xk)
+  # Update the Hessian and update the QuadraticModel in-place
+  Bk_new = hess_op(nlp, xk)
+  σ = T(1)
+  update_quadratic_model!(solver.subpb.model, solver.∇fk, Bk_new + σ * solver.Id)
 
   if opnorm_maxiter ≤ 0
-    λmax, found_λ = opnorm(solver.subpb.model.B)
+    λmax, found_λ = opnorm(Bk_new)
   else
-    λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+    λmax = power_method!(Bk_new, solver.v0, solver.subpb.model.data.v, opnorm_maxiter)
   end
   found_λ || error("operator norm computation failed")
 
@@ -327,7 +356,7 @@ function SolverCore.solve!(
   end
 
   mk = let ψ = ψ, solver = solver
-    d -> obj(solver.subpb.model, d, skip_sigma = true) + ψ(d)::T
+    d -> obj(solver.subpb.model, d) + ψ(d)::T
   end
 
   prox!(s1, ψ, mν∇fk, ν₁)
@@ -361,7 +390,9 @@ function SolverCore.solve!(
   while !done
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
 
-    solver.subpb.model.σ = σk
+    # Update QuadraticModel with updated regularization parameter
+    Bk_current = hess_op(nlp, xk)
+    update_quadratic_model!(solver.subpb.model, solver.∇fk, Bk_current + σk * solver.Id)
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     if isa(solver.subsolver, R2Solver) #FIXME
       solve!(
@@ -445,12 +476,15 @@ function SolverCore.solve!(
         push!(nlp, s, solver.y)
         qn_copy!(nlp, solver, stats)
       end
-      solver.subpb.model.B = hess_op(nlp, xk)
+      # Update the Hessian and update the QuadraticModel in-place
+      Bk_new = hess_op(nlp, xk)
+      σ = T(1)
+      update_quadratic_model!(solver.subpb.model, solver.∇fk, Bk_new + σ * solver.Id)
 
       if opnorm_maxiter ≤ 0
-        λmax, found_λ = opnorm(solver.subpb.model.B)
+        λmax, found_λ = opnorm(Bk_new)
       else
-        λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+        λmax = power_method!(Bk_new, solver.v0, solver.subpb.model.data.v, opnorm_maxiter)
       end
       found_λ || error("operator norm computation failed")
     end
