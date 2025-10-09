@@ -31,7 +31,7 @@ mutable struct R2NSolver{
   # Pre-allocated components for QuadraticModel recreation
   Id::LinearOperator  # Identity operator
   x0_quad::V         # Zero vector for QuadraticModel x0
-  reg_hess::LinearOperator  # Pre-allocated regularized Hessian operator
+  reg_hess::LinearOperator  # regularized Hessian operator
 end
 
 function R2NSolver(
@@ -79,7 +79,8 @@ function R2NSolver(
   n = length(∇fk)
   Id = opEye(T, n)  # Identity operator
   x0_quad = zeros(T, n)  # Pre-allocate x0 for QuadraticModel
-  reg_hess = Bk + σ * Id  # Pre-allocate regularized Hessian
+  # Create QuadraticModel with H = Bk + σ*Id
+  reg_hess = Bk + σ * Id
   sub_nlp = QuadraticModel(∇fk, reg_hess, c0 = zero(T), x0 = x0_quad, name = "R2N-subproblem")
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
@@ -214,8 +215,7 @@ end
 function update_quadratic_model!(qm::QuadraticModel, c::AbstractVector, H::LinearOperator)
   # Update gradient
   copyto!(qm.data.c, c)
-  # Unfortunately we still need to create a new LinearOperator for H
-  # But we avoid creating the QuadraticModel itself
+  # Replace the operator (may allocate)
   qm.data.H = H
   # Reset counters to be safe
   qm.counters.neval_hess = 0
@@ -318,7 +318,7 @@ function SolverCore.solve!(
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
   λmax::T = T(1)
   found_λ = true
-  # Update the Hessian and update the QuadraticModel in-place
+  # Update the Hessian and update the QuadraticModel
   Bk_new = hess_op(nlp, xk)
   σ = T(1)
   update_quadratic_model!(solver.subpb.model, solver.∇fk, Bk_new + σ * solver.Id)
@@ -476,7 +476,7 @@ function SolverCore.solve!(
         push!(nlp, s, solver.y)
         qn_copy!(nlp, solver, stats)
       end
-      # Update the Hessian and update the QuadraticModel in-place
+      # Update the Hessian and update the QuadraticModel
       Bk_new = hess_op(nlp, xk)
       σ = T(1)
       update_quadratic_model!(solver.subpb.model, solver.∇fk, Bk_new + σ * solver.Id)
