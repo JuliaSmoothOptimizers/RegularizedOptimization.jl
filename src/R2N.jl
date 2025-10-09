@@ -1,6 +1,42 @@
 export R2N, R2NSolver, solve!
 
 import SolverCore.solve!
+using LinearAlgebra
+using LinearOperators
+
+# A small mutable wrapper that represents B + sigma*I without allocating a new
+# LinearOperator every time sigma or B changes. It provides mul! methods so it
+# can be used where a LinearOperator is expected.
+mutable struct ShiftedHessian{T}
+  B::Any
+  sigma::T
+end
+
+Base.size(op::ShiftedHessian) = size(op.B)
+Base.eltype(op::ShiftedHessian) = eltype(op.B)
+
+import LinearAlgebra: adjoint
+function adjoint(op::ShiftedHessian{T}) where T
+  return LinearAlgebra.Adjoint(op)
+end
+
+function LinearAlgebra.mul!(y::AbstractVector{T}, op::ShiftedHessian{T}, x::AbstractVector{T}) where T
+  mul!(y, op.B, x)
+  @inbounds for i in eachindex(y)
+    y[i] += op.sigma * x[i]
+  end
+  return y
+end
+
+function LinearAlgebra.mul!(y::AbstractVector{T}, opAd::Adjoint{<:Any,ShiftedHessian{T}}, x::AbstractVector{T}) where T
+  # Use the adjoint of the underlying operator and add sigma*x
+  mul!(y, adjoint(opAd.parent.B), x)
+  @inbounds for i in eachindex(y)
+    y[i] += opAd.parent.sigma * x[i]
+  end
+  return y
+end
+
 
 mutable struct R2NSolver{
   T <: Real,
@@ -32,6 +68,8 @@ mutable struct R2NSolver{
   Id::LinearOperator  # Identity operator
   x0_quad::V         # Zero vector for QuadraticModel x0
   reg_hess::LinearOperator  # regularized Hessian operator
+  reg_hess_wrapper::ShiftedHessian{T}  # mutable wrapper (B, sigma)
+  reg_hess_op::LinearOperator  # LinearOperator that captures the wrapper
 end
 
 function R2NSolver(
@@ -77,11 +115,20 @@ function R2NSolver(
   # So we need c = ∇fk, H = Bk + σI, c0 = 0
   σ = T(1)
   n = length(∇fk)
-  Id = opEye(T, n)  # Identity operator
-  x0_quad = zeros(T, n)  # Pre-allocate x0 for QuadraticModel
-  # Create QuadraticModel with H = Bk + σ*Id
-  reg_hess = Bk + σ * Id
-  sub_nlp = QuadraticModel(∇fk, reg_hess, c0 = zero(T), x0 = x0_quad, name = "R2N-subproblem")
+    Id = opEye(T, n)  # Identity operator
+    x0_quad = zeros(T, n)  # Pre-allocate x0 for QuadraticModel
+    # Create a mutable wrapper around the Hessian so we can update sigma/B without
+    # allocating a new operator every iteration.
+    reg_hess_wrapper = ShiftedHessian{T}(Bk, T(1))
+    # Create a LinearOperator that calls mul! on the wrapper. This operator is
+    # allocated once and keeps a reference to the mutable wrapper, so future
+    # updates can mutate the wrapper without reallocating the operator.
+  reg_hess_op = LinearOperator{T}(n, n, false, false,
+    (y, x) -> mul!(y, reg_hess_wrapper, x),
+    (y, x) -> mul!(y, adjoint(reg_hess_wrapper), x),
+    (y, x) -> mul!(y, adjoint(reg_hess_wrapper), x),
+  )
+    sub_nlp = QuadraticModel(∇fk, reg_hess_op, c0 = zero(T), x0 = x0_quad, name = "R2N-subproblem")
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -108,7 +155,9 @@ function R2NSolver(
     substats,
     Id,
     x0_quad,
-    reg_hess,
+    reg_hess_op,
+    reg_hess_wrapper,
+    reg_hess_op,
   )
 end
 
@@ -212,13 +261,11 @@ function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
 end
 
 # Helper function to update QuadraticModel in-place to avoid allocations
-function update_quadratic_model!(qm::QuadraticModel, c::AbstractVector, H::LinearOperator)
-  # Update gradient
+function update_quadratic_model!(qm::QuadraticModel, c::AbstractVector, H=nothing)
+  # Update gradient only; Hessian wrapper should be mutated by the caller
   copyto!(qm.data.c, c)
-  # Replace the operator (may allocate)
-  qm.data.H = H
-  # Reset counters to be safe
   qm.counters.neval_hess = 0
+  return qm
 end
 
 function SolverCore.solve!(
@@ -321,7 +368,10 @@ function SolverCore.solve!(
   # Update the Hessian and update the QuadraticModel
   Bk_new = hess_op(nlp, xk)
   σ = T(1)
-  update_quadratic_model!(solver.subpb.model, solver.∇fk, Bk_new + σ * solver.Id)
+  # Update the existing ShiftedHessian wrapper in-place to avoid allocations
+  solver.reg_hess_wrapper.B = Bk_new
+  solver.reg_hess_wrapper.sigma = σ
+  update_quadratic_model!(solver.subpb.model, solver.∇fk)
 
   if opnorm_maxiter ≤ 0
     λmax, found_λ = opnorm(Bk_new)
@@ -391,8 +441,11 @@ function SolverCore.solve!(
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
 
     # Update QuadraticModel with updated regularization parameter
-    Bk_current = hess_op(nlp, xk)
-    update_quadratic_model!(solver.subpb.model, solver.∇fk, Bk_current + σk * solver.Id)
+  Bk_current = hess_op(nlp, xk)
+  # mutate wrapper in-place
+  solver.reg_hess_wrapper.B = Bk_current
+  solver.reg_hess_wrapper.sigma = σk
+  update_quadratic_model!(solver.subpb.model, solver.∇fk)
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     if isa(solver.subsolver, R2Solver) #FIXME
       solve!(
@@ -477,9 +530,11 @@ function SolverCore.solve!(
         qn_copy!(nlp, solver, stats)
       end
       # Update the Hessian and update the QuadraticModel
-      Bk_new = hess_op(nlp, xk)
-      σ = T(1)
-      update_quadratic_model!(solver.subpb.model, solver.∇fk, Bk_new + σ * solver.Id)
+    Bk_new = hess_op(nlp, xk)
+    σ = T(1)
+    solver.reg_hess_wrapper.B = Bk_new
+    solver.reg_hess_wrapper.sigma = σ
+    update_quadratic_model!(solver.subpb.model, solver.∇fk)
 
       if opnorm_maxiter ≤ 0
         λmax, found_λ = opnorm(Bk_new)
