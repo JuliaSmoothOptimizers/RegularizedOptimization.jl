@@ -289,7 +289,12 @@ function SolverCore.solve!(
   # Update the QuadraticModel with current Jacobian and gradient
   JtF = Jk' * Fk
   JtJ = Jk' * Jk  
-  solver.subpb.model = QuadraticModel(JtF, JtJ, c0 = zero(T), x0 = zeros(T, length(xk)), name = "LMTR-subproblem")
+  # In-place update of QuadraticModel fields to avoid allocation
+  solver.subpb.model.g = JtF
+  solver.subpb.model.H = JtJ
+  solver.subpb.model.c0 = zero(T)
+  solver.subpb.model.x0 .= 0
+  solver.subpb.model.name = "LMTR-subproblem"
   ν = α * Δk / (1 + σmax^2 * (α * Δk + 1))
   @. mν∇fk = -∇fk * ν
   sqrt_ξ1_νInv = one(T)
