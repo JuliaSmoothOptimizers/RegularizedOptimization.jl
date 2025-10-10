@@ -405,7 +405,7 @@ function SolverCore.solve!(
   end
 
   mk = let ψ = ψ, solver = solver
-    d -> obj(solver.subpb.model, d) + ψ(d)::T
+    d -> obj_skip_sigma(solver.subpb.model, d) + ψ(d)::T
   end
 
   prox!(s1, ψ, mν∇fk, ν₁)
