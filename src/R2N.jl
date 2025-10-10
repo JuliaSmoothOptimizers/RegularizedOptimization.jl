@@ -157,7 +157,6 @@ function R2NSolver(
     x0_quad,
     reg_hess_op,
     reg_hess_wrapper,
-    reg_hess_op,
   )
 end
 
