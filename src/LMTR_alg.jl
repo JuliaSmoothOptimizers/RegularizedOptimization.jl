@@ -435,7 +435,7 @@ function SolverCore.solve!(
       # Update the QuadraticModel with new Jacobian and gradient
       JtF = Jk_update' * Fk
       JtJ = Jk_update' * Jk_update  
-      solver.subpb.model = QuadraticModel(JtF, JtJ, c0 = zero(T), x0 = zeros(T, length(xk)), name = "LMTR-subproblem")
+      update_model!(solver.subpb.model, JtF, JtJ)
     end
 
     if η2 ≤ ρk < Inf
