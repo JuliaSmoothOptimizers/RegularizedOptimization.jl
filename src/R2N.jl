@@ -263,7 +263,7 @@ end
 function update_quadratic_model!(qm::QuadraticModel, c::AbstractVector, H=nothing)
   # Update gradient only; Hessian wrapper should be mutated by the caller
   copyto!(qm.data.c, c)
-  qm.counters.neval_hess = 0
+  reset_counters!(qm)
   return qm
 end
 
