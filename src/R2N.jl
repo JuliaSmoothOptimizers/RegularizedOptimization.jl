@@ -499,7 +499,7 @@ function SolverCore.solve!(
     σ = T(1)
     solver.reg_hess_wrapper.B = Bk_new
     solver.reg_hess_wrapper.sigma = σ
-    update_quadratic_model!(solver.subpb.model, solver.∇fk)
+      update_quadratic_model!(solver.subpb.model, solver.∇fk)
 
       if opnorm_maxiter ≤ 0
         λmax, found_λ = opnorm(Bk_new)
