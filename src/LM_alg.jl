@@ -405,7 +405,6 @@ function SolverCore.solve!(
   # Update QuadraticModel's gradient/counters in-place
   c0_val = dot(Fk, Fk) / 2  # Constant term = 1/2||F||²
   update_quadratic_model!(solver.subpb.model, solver.JtF)
-    
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
     if isa(solver.subsolver, R2Solver) #FIXME
       solve!(solver.subsolver, solver.subpb, solver.substats, x = s, atol = sub_atol, ν = ν)
