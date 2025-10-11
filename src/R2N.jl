@@ -371,7 +371,14 @@ function SolverCore.solve!(
   end
 
   mk = let ψ = ψ, solver = solver
-    d -> (0.5 * dot(d, solver.subpb.model.B * d) + dot(solver.subpb.model.g, d)) + ψ(d)::T
+    d -> begin
+      # Avoid allocating a temporary from `B * d` — use the preallocated
+      # scratch vector stored in the QuadraticModel and perform `mul!` on
+      # the underlying Hessian operator `data.H`.
+      tmp = solver.subpb.model.data.v
+      mul!(tmp, solver.subpb.model.data.H, d)
+      (0.5 * dot(d, tmp) + dot(solver.subpb.model.g, d)) + ψ(d)::T
+    end
   end
 
   prox!(s1, ψ, mν∇fk, ν₁)
