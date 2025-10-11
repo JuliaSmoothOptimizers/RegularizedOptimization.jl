@@ -411,8 +411,8 @@ function SolverCore.solve!(
   solver.reg_hess_wrapper.B = Bk_current
   solver.reg_hess_wrapper.sigma = σk
   update_quadratic_model!(solver.subpb.model, solver.∇fk)
-    isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
-    if isa(solver.subsolver, R2Solver) #FIXME
+  isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
+  if isa(solver.subsolver, R2Solver) #FIXME
       solve!(
         solver.subsolver,
         solver.subpb,
