@@ -70,7 +70,10 @@ function TRSolver(
   Bk =
     isa(reg_nlp.model, QuasiNewtonModel) ? hess_op(reg_nlp.model, xk) :
     hess_op!(reg_nlp.model, xk, similar(xk))
-  sub_nlp = R2NModel(Bk, ∇fk, zero(T), x0) #FIXME 
+  # Create quadratic model: min ∇f^T s + 1/2 s^T B s
+  # QuadraticModel represents: min c^T x + 1/2 x^T H x + c0
+  # So we need c = ∇fk, H = Bk, c0 = 0 (no regularization σ = 0)
+  sub_nlp = QuadraticModel(∇fk, Bk, c0 = zero(T), x0 = zeros(T, length(∇fk)), name = "TR-subproblem") 
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -297,9 +300,9 @@ function SolverCore.solve!(
   found_λ = true
 
   if opnorm_maxiter ≤ 0
-    λmax, found_λ = opnorm(solver.subpb.model.B)
+    λmax, found_λ = opnorm(solver.subpb.model.data.H)
   else
-    λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+    λmax = power_method!(solver.subpb.model.data.H, solver.v0, solver.subpb.model.data.v, opnorm_maxiter)
   end
   found_λ || error("operator norm computation failed")
 
@@ -458,9 +461,9 @@ function SolverCore.solve!(
       end
 
       if opnorm_maxiter ≤ 0
-        λmax, found_λ = opnorm(solver.subpb.model.B)
+        λmax, found_λ = opnorm(solver.subpb.model.data.H)
       else
-        λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+        λmax = power_method!(solver.subpb.model.data.H, solver.v0, solver.subpb.model.data.v, opnorm_maxiter)
       end
       found_λ || error("operator norm computation failed")
 

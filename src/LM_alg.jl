@@ -16,6 +16,7 @@ mutable struct LMSolver{
   Fkn::V
   Jv::V
   Jtv::V
+  JtF::V  # Add JtF to store the gradient J'F
   ψ::G
   xkn::V
   s::V
@@ -28,6 +29,12 @@ mutable struct LMSolver{
   subsolver::ST
   subpb::PB
   substats::GenericExecutionStats{T, V, V, T}
+  # Preallocated QuadraticModel components to avoid reallocations
+  x0_quad::V
+  reg_hess_wrapper::ShiftedHessian{T}
+  reg_hess_op::LinearOperator
+  v0::V  # workspace for power method
+  tmp_res::V # temporary residual storage for power method
 end
 
 function LMSolver(
@@ -42,9 +49,10 @@ function LMSolver(
   xk = similar(x0)
   ∇fk = similar(x0)
   mν∇fk = similar(x0)
-  Fk = similar(x0, reg_nls.model.nls_meta.nequ)
-  Fkn = similar(Fk)
-  Jv = similar(Fk)
+  # residuals will be allocated after creating Jacobian operator (size may vary)
+  Fk = similar(x0, 0)
+  Fkn = similar(x0, 0)
+  Jv = similar(x0, 0)
   Jtv = similar(x0)
   xkn = similar(x0)
   s = similar(x0)
@@ -65,11 +73,40 @@ function LMSolver(
     has_bnds ? shifted(reg_nls.h, xk, l_bound_m_x, u_bound_m_x, reg_nls.selected) :
     shifted(reg_nls.h, xk)
 
-  Jk = jac_op_residual(reg_nls.model, xk)
-  sub_nlp = LMModel(Jk, Fk, T(1), xk)
+  # Defer Jacobian/residual construction to solve!; preallocate JtF (length n)
+  JtF = similar(xk)
+  # residuals will be allocated in solve! when the Jacobian operator is available
+  Fk = similar(x0, 0)
+  Fkn = similar(x0, 0)
+  Jv = similar(x0, 0)
+  n = length(xk)
+  c0_val = dot(Fk, Fk) / 2  # Initial constant term = 1/2||F||²
+  x0_quad = zeros(T, n)  # Pre-allocated x0 for QuadraticModel
+  # Create mutable wrapper around Hessian; use JacobianGram to avoid forming J'J
+  gram = JacobianGram{T}(nothing, zeros(T, 0))
+  # Try to initialize JacobianGram.tmp with the row size of the Jacobian at x0
+  try
+    J_init = jac_op_residual(reg_nls.model, x0)
+    gram.J = J_init
+    gram.tmp = zeros(T, size(J_init, 1))
+  catch
+    # If jac_op_residual is not available for this model type, leave tmp empty
+    gram.J = nothing
+    gram.tmp = zeros(T, 0)
+  end
+  reg_hess_wrapper = ShiftedHessian{T}(gram, T(1))
+  reg_hess_op = LinearOperator{T}(n, n, false, false,
+    (y, x) -> mul!(y, reg_hess_wrapper, x),
+    (y, x) -> mul!(y, adjoint(reg_hess_wrapper), x),
+    (y, x) -> mul!(y, adjoint(reg_hess_wrapper), x),
+  )
+  sub_nlp = QuadraticModel(JtF, reg_hess_op, c0 = c0_val, x0 = x0_quad, name = "LM-subproblem")
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
+  v0 = [(-1.0)^i for i = 0:(n - 1)]
+  v0 ./= sqrt(n)
+  tmp_res = copy(gram.tmp)
 
   return LMSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
     xk,
@@ -79,6 +116,7 @@ function LMSolver(
     Fkn,
     Jv,
     Jtv,
+    JtF,  # Add JtF to constructor
     ψ,
     xkn,
     s,
@@ -91,6 +129,11 @@ function LMSolver(
     subsolver,
     subpb,
     substats,
+    x0_quad,
+    reg_hess_wrapper,
+    reg_hess_op,
+    v0,
+    tmp_res,
   )
 end
 
@@ -273,12 +316,28 @@ function SolverCore.solve!(
   local ρk::T = zero(T)
   local prox_evals::Int = 0
 
+  # Ensure residual vectors are sized to match the Jacobian rows
+  Jk = jac_op_residual(nls, xk)
+  m = size(Jk, 1)
+  if length(Fk) != m
+    solver.Fk = zeros(T, m)
+    solver.Fkn = similar(solver.Fk)
+    solver.Jv = similar(solver.Fk)
+    Fk = solver.Fk
+    Fkn = solver.Fkn
+    Jv = solver.Jv
+  end
   residual!(nls, xk, Fk)
   jtprod_residual!(nls, xk, Fk, ∇fk)
   fk = dot(Fk, Fk) / 2
 
-  σmax, found_σ = opnorm(solver.subpb.model.J)
-  found_σ || error("operator norm computation failed")
+  # Compute Jacobian norm for normalization
+  Jk = jac_op_residual(nls, xk)
+  # Estimate Jacobian operator norm (largest singular value) via power method to avoid heavy allocations
+  if length(solver.tmp_res) != size(Jk, 1)
+    solver.tmp_res = zeros(T, size(Jk, 1))
+  end
+  σmax = power_method_singular!(Jk, solver.v0, solver.subpb.model.data.v, solver.tmp_res, 5)
   ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
   sqrt_ξ1_νInv = one(T)
 
@@ -302,7 +361,7 @@ function SolverCore.solve!(
   end
 
   mk = let ψ = ψ, solver = solver
-    d -> obj(solver.subpb.model, d, skip_sigma = true) + ψ(d)
+    d -> obj(solver.subpb.model, d) + ψ(d)
   end
 
   prox!(s, ψ, mν∇fk, ν)
@@ -333,7 +392,21 @@ function SolverCore.solve!(
 
   while !done
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
-    solver.subpb.model.σ = σk
+    
+  # Update the QuadraticModel in-place: update J'F and mutate the Hessian wrapper
+  Jk = jac_op_residual(nls, xk)
+  mul!(solver.JtF, Jk', Fk)  # Update gradient J'F in-place
+  # Update underlying JacobianGram wrapper to reference the new J and resize tmp
+  solver.reg_hess_wrapper.B.J = Jk
+  if length(solver.tmp_res) != size(Jk, 1)
+    solver.reg_hess_wrapper.B.tmp = zeros(T, size(Jk, 1))
+  else
+    solver.reg_hess_wrapper.B.tmp .= 0
+  end
+  solver.reg_hess_wrapper.sigma = σk
+  # Update QuadraticModel's gradient/counters in-place
+  c0_val = dot(Fk, Fk) / 2  # Constant term = 1/2||F||²
+  update_quadratic_model!(solver.subpb.model, solver.JtF)
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
     if isa(solver.subsolver, R2Solver) #FIXME
       solve!(
@@ -413,7 +486,8 @@ function SolverCore.solve!(
 
       # update opnorm if not linear least squares
       if nonlinear == true
-        σmax, found_σ = opnorm(solver.subpb.model.J)
+        Jk = jac_op_residual(nls, xk)
+        σmax, found_σ = opnorm(Jk)
         found_σ || error("operator norm computation failed")
       end
     end

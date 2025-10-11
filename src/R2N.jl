@@ -1,6 +1,11 @@
 export R2N, R2NSolver, solve!
 
 import SolverCore.solve!
+using LinearAlgebra
+using LinearOperators
+
+ # ShiftedHessian moved to utils.jl
+
 
 mutable struct R2NSolver{
   T <: Real,
@@ -28,6 +33,11 @@ mutable struct R2NSolver{
   subsolver::ST
   subpb::PB
   substats::GenericExecutionStats{T, V, V, T}
+  # Pre-allocated components for QuadraticModel recreation
+  x0_quad::V         # Zero vector for QuadraticModel x0
+  reg_hess::LinearOperator  # regularized Hessian operator
+  reg_hess_wrapper::ShiftedHessian{T}  # mutable wrapper (B, sigma)
+  reg_hess_op::LinearOperator  # LinearOperator that captures the wrapper
 end
 
 function R2NSolver(
@@ -68,7 +78,24 @@ function R2NSolver(
     shifted(reg_nlp.h, xk)
 
   Bk = hess_op(reg_nlp.model, x0)
-  sub_nlp = R2NModel(Bk, ∇fk, T(1), x0)
+  # Create quadratic model: min ∇f^T s + 1/2 s^T B s + σ/2 ||s||^2
+  # QuadraticModel represents: min c^T x + 1/2 x^T H x + c0
+  # So we need c = ∇fk, H = Bk + σI, c0 = 0
+  σ = T(1)
+  n = length(∇fk)
+  x0_quad = zeros(T, n)  # Pre-allocate x0 for QuadraticModel
+  # Create a mutable wrapper around the Hessian so we can update sigma/B without
+  # allocating a new operator every iteration.
+  reg_hess_wrapper = ShiftedHessian{T}(Bk, T(1))
+  # Create a LinearOperator that calls mul! on the wrapper. This operator is
+  # allocated once and keeps a reference to the mutable wrapper, so future
+  # updates can mutate the wrapper without reallocating the operator.
+  reg_hess_op = LinearOperator{T}(n, n, false, false,
+    (y, x) -> mul!(y, reg_hess_wrapper, x),
+    (y, x) -> mul!(y, adjoint(reg_hess_wrapper), x),
+    (y, x) -> mul!(y, adjoint(reg_hess_wrapper), x),
+  )
+  sub_nlp = QuadraticModel(∇fk, reg_hess_op, c0 = zero(T), x0 = x0_quad, name = "R2N-subproblem")
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -93,6 +120,9 @@ function R2NSolver(
     subsolver,
     subpb,
     substats,
+    x0_quad,
+    reg_hess_op,
+    reg_hess_wrapper,
   )
 end
 
@@ -195,6 +225,14 @@ function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
   return stats
 end
 
+# Helper function to update QuadraticModel in-place to avoid allocations
+function update_quadratic_model!(qm::QuadraticModel, c::AbstractVector, H=nothing)
+  # Update gradient only; Hessian wrapper should be mutated by the caller
+  copyto!(qm.data.c, c)
+  reset_counters!(qm)
+  return qm
+end
+
 function SolverCore.solve!(
   solver::R2NSolver{T, G, V},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
@@ -292,12 +330,18 @@ function SolverCore.solve!(
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
   λmax::T = T(1)
   found_λ = true
-  solver.subpb.model.B = hess_op(nlp, xk)
+  # Update the Hessian and update the QuadraticModel
+  Bk_new = hess_op(nlp, xk)
+  σ = T(1)
+  # Update the existing ShiftedHessian wrapper in-place to avoid allocations
+  solver.reg_hess_wrapper.B = Bk_new
+  solver.reg_hess_wrapper.sigma = σ
+  update_quadratic_model!(solver.subpb.model, solver.∇fk)
 
   if opnorm_maxiter ≤ 0
-    λmax, found_λ = opnorm(solver.subpb.model.B)
+    λmax, found_λ = opnorm(Bk_new)
   else
-    λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+    λmax = power_method!(Bk_new, solver.v0, solver.subpb.model.data.v, opnorm_maxiter)
   end
   found_λ || error("operator norm computation failed")
 
@@ -327,7 +371,14 @@ function SolverCore.solve!(
   end
 
   mk = let ψ = ψ, solver = solver
-    d -> obj(solver.subpb.model, d, skip_sigma = true) + ψ(d)::T
+    d -> begin
+      # Avoid allocating a temporary from `B * d` — use the preallocated
+      # scratch vector stored in the QuadraticModel and perform `mul!` on
+      # the underlying Hessian operator `data.H`.
+      tmp = solver.subpb.model.data.v
+      mul!(tmp, solver.subpb.model.data.H, d)
+      (0.5 * dot(d, tmp) + dot(solver.subpb.model.g, d)) + ψ(d)::T
+    end
   end
 
   prox!(s1, ψ, mν∇fk, ν₁)
@@ -361,9 +412,14 @@ function SolverCore.solve!(
   while !done
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
 
-    solver.subpb.model.σ = σk
-    isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
-    if isa(solver.subsolver, R2Solver) #FIXME
+    # Update QuadraticModel with updated regularization parameter
+  Bk_current = hess_op(nlp, xk)
+  # mutate wrapper in-place
+  solver.reg_hess_wrapper.B = Bk_current
+  solver.reg_hess_wrapper.sigma = σk
+  update_quadratic_model!(solver.subpb.model, solver.∇fk)
+  isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
+  if isa(solver.subsolver, R2Solver) #FIXME
       solve!(
         solver.subsolver,
         solver.subpb,
@@ -445,12 +501,17 @@ function SolverCore.solve!(
         push!(nlp, s, solver.y)
         qn_copy!(nlp, solver, stats)
       end
-      solver.subpb.model.B = hess_op(nlp, xk)
+      # Update the Hessian and update the QuadraticModel
+    Bk_new = hess_op(nlp, xk)
+    σ = T(1)
+    solver.reg_hess_wrapper.B = Bk_new
+    solver.reg_hess_wrapper.sigma = σ
+      update_quadratic_model!(solver.subpb.model, solver.∇fk)
 
       if opnorm_maxiter ≤ 0
-        λmax, found_λ = opnorm(solver.subpb.model.B)
+        λmax, found_λ = opnorm(Bk_new)
       else
-        λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+        λmax = power_method!(Bk_new, solver.v0, solver.subpb.model.data.v, opnorm_maxiter)
       end
       found_λ || error("operator norm computation failed")
     end

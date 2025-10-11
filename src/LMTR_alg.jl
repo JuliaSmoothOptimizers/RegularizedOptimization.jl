@@ -41,8 +41,9 @@ function LMTRSolver(
   xk = similar(x0)
   ∇fk = similar(x0)
   mν∇fk = similar(x0)
-  Fk = similar(x0, reg_nls.model.nls_meta.nequ)
-  Fkn = similar(Fk)
+  # residuals will be allocated after creating Jacobian operator
+  Fk = similar(x0, 0)
+  Fkn = similar(x0, 0)
   xkn = similar(x0)
   s = similar(x0)
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf)) || subsolver == TRDHSolver
@@ -67,7 +68,18 @@ function LMTRSolver(
     ) : shifted(reg_nls.h, xk, one(T), χ)
 
   Jk = jac_op_residual(reg_nls.model, xk)
-  sub_nlp = LMModel(Jk, Fk, T(0), xk)
+  # Compute initial residual
+  residual!(reg_nls.model, xk, Fk)
+  # Create LM-TR subproblem: min 1/2 ||J(x)s + F(x)||^2 (no regularization σ=0)
+  # = min 1/2 (J*s + F)^T(J*s + F)
+  # = min s^T J^T F + 1/2 s^T J^T J s + const
+  # So c = J^T F, H = J^T J
+  JtF = similar(xk)
+  mul!(JtF, Jk', Fk)
+  JtJ = Jk' * Jk
+  # Don't include the constant term to avoid numerical overflow in obj evaluation
+  # The constant doesn't affect the optimization anyway
+  sub_nlp = QuadraticModel(JtF, JtJ, c0 = zero(T), x0 = zeros(T, length(xk)), name = "LMTR-subproblem")
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -273,8 +285,20 @@ function SolverCore.solve!(
   jtprod_residual!(nls, xk, Fk, ∇fk)
   fk = dot(Fk, Fk) / 2
 
-  σmax, found_σ = opnorm(solver.subpb.model.J)
+  # Get Jacobian operator from original NLS model since QuadraticModel doesn't store it
+  Jk = jac_op_residual(nls, xk)
+  σmax, found_σ = opnorm(Jk)
   found_σ || error("operator norm computation failed")
+  
+  # Update the QuadraticModel with current Jacobian and gradient
+  JtF = Jk' * Fk
+  JtJ = Jk' * Jk  
+  # In-place update of QuadraticModel fields to avoid allocation
+  solver.subpb.model.g = JtF
+  solver.subpb.model.H = JtJ
+  solver.subpb.model.c0 = zero(T)
+  solver.subpb.model.x0 .= 0
+  solver.subpb.model.name = "LMTR-subproblem"
   ν = α * Δk / (1 + σmax^2 * (α * Δk + 1))
   @. mν∇fk = -∇fk * ν
   sqrt_ξ1_νInv = one(T)
@@ -416,8 +440,15 @@ function SolverCore.solve!(
       shift!(ψ, xk)
       jtprod_residual!(nls, xk, Fk, ∇fk)
 
-      σmax, found_σ = opnorm(solver.subpb.model.J)
+      # Get Jacobian operator from original NLS model
+      Jk_update = jac_op_residual(nls, xk)
+      σmax, found_σ = opnorm(Jk_update)
       found_σ || error("operator norm computation failed")
+      
+      # Update the QuadraticModel with new Jacobian and gradient
+      JtF = Jk_update' * Fk
+      JtJ = Jk_update' * Jk_update  
+      update_quadratic_model!(solver.subpb.model, JtF, JtJ)
     end
 
     if η2 ≤ ρk < Inf
