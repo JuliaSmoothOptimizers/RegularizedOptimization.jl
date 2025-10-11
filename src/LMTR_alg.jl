@@ -41,8 +41,9 @@ function LMTRSolver(
   xk = similar(x0)
   ∇fk = similar(x0)
   mν∇fk = similar(x0)
-  Fk = similar(x0, reg_nls.model.nls_meta.nequ)
-  Fkn = similar(Fk)
+  # residuals will be allocated after creating Jacobian operator
+  Fk = similar(x0, 0)
+  Fkn = similar(x0, 0)
   xkn = similar(x0)
   s = similar(x0)
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf)) || subsolver == TRDHSolver

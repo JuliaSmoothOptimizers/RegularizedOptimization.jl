@@ -15,6 +15,62 @@ function power_method!(B::M, v₀::S, v₁::S, max_iter::Int = 1) where {M, S}
   return abs(dot(v₀, v₁))
 end
 
+# Power method to estimate largest singular value of J (operator) without forming J'J.
+# J: operator supporting mul!(y, J, x) as Jacobian (m×n)
+function power_method_singular!(J, v₀::AbstractVector, v₁::AbstractVector, tmp::AbstractVector, max_iter::Int = 5)
+  # v0 and v1 are length n, tmp is length m
+  @assert length(tmp) == size(J, 1)
+  @assert length(v₀) == size(J, 2)
+  @assert length(v₁) == size(J, 2)
+  # initialize
+  mul!(tmp, J, v₀)        # tmp = J * v0
+  mul!(v₁, adjoint(J), tmp) # v1 = J' * tmp
+  normalize!(v₁)
+  for i in 2:max_iter
+    v₀ .= v₁
+    mul!(tmp, J, v₀)
+    mul!(v₁, adjoint(J), tmp)
+    normalize!(v₁)
+  end
+  mul!(tmp, J, v₀)
+  mul!(v₁, adjoint(J), tmp)
+  λ = abs(dot(v₀, v₁))
+  return sqrt(λ)
+end
+
+# A small mutable wrapper that represents B + sigma*I without allocating a new
+# LinearOperator every time sigma or B changes. It provides mul! methods so it
+# can be used where a LinearOperator is expected.
+mutable struct ShiftedHessian{T}
+  B::Any
+  sigma::T
+end
+
+Base.size(op::ShiftedHessian) = size(op.B)
+Base.eltype(op::ShiftedHessian) = eltype(op.B)
+
+import LinearAlgebra: adjoint
+function adjoint(op::ShiftedHessian{T}) where T
+  return LinearAlgebra.Adjoint(op)
+end
+
+function LinearAlgebra.mul!(y::AbstractVector{T}, op::ShiftedHessian{T}, x::AbstractVector{T}) where T
+  mul!(y, op.B, x)
+  @inbounds for i in eachindex(y)
+    y[i] += op.sigma * x[i]
+  end
+  return y
+end
+
+function LinearAlgebra.mul!(y::AbstractVector{T}, opAd::Adjoint{<:Any,ShiftedHessian{T}}, x::AbstractVector{T}) where T
+  # Use the adjoint of the underlying operator and add sigma*x
+  mul!(y, adjoint(opAd.parent.B), x)
+  @inbounds for i in eachindex(y)
+    y[i] += opAd.parent.sigma * x[i]
+  end
+  return y
+end
+
 # use Arpack to obtain largest eigenvalue in magnitude with a minimum of robustness
 function LinearAlgebra.opnorm(B; kwargs...)
   m, n = size(B)
@@ -111,6 +167,36 @@ ShiftedProximalOperators.iprox!(
 
 LinearAlgebra.diag(op::AbstractDiagonalQuasiNewtonOperator) = copy(op.d)
 LinearAlgebra.diag(op::SpectralGradient{T}) where {T} = zeros(T, op.nrow) .* op.d[1]
+
+# A wrapper that represents the Gram operator J'J without forming it explicitly.
+# It stores a Jacobian operator `J` and a preallocated temporary `tmp` for J*x.
+
+mutable struct JacobianGram{T}
+  J::Any
+  tmp::Vector{T}
+end
+
+Base.size(g::JacobianGram) = g.J === nothing ? (0, 0) : (size(g.J, 2), size(g.J, 2))
+
+function LinearAlgebra.mul!(y::AbstractVector{T}, g::JacobianGram{T}, x::AbstractVector{T}) where T
+  @assert g.J !== nothing "JacobianGram: J not set"
+  # tmp = J * x
+  mul!(g.tmp, g.J, x)
+  # y = J' * tmp
+  mul!(y, adjoint(g.J), g.tmp)
+  return y
+end
+
+function LinearAlgebra.mul!(y::AbstractVector{T}, opAd::Adjoint{<:Any,JacobianGram{T}}, x::AbstractVector{T}) where T
+  # For adjoint(J'J) = J'J since symmetric; delegate to forward
+  mul!(y, opAd.parent, x)
+  return y
+end
+
+import LinearAlgebra: adjoint
+function adjoint(g::JacobianGram{T}) where T
+  return LinearAlgebra.Adjoint(g)
+end
 
 """
     GenericExecutionStats(reg_nlp :: AbstractRegularizedNLPModel{T, V})

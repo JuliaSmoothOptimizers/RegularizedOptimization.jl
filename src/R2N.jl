@@ -4,38 +4,7 @@ import SolverCore.solve!
 using LinearAlgebra
 using LinearOperators
 
-# A small mutable wrapper that represents B + sigma*I without allocating a new
-# LinearOperator every time sigma or B changes. It provides mul! methods so it
-# can be used where a LinearOperator is expected.
-mutable struct ShiftedHessian{T}
-  B::Any
-  sigma::T
-end
-
-Base.size(op::ShiftedHessian) = size(op.B)
-Base.eltype(op::ShiftedHessian) = eltype(op.B)
-
-import LinearAlgebra: adjoint
-function adjoint(op::ShiftedHessian{T}) where T
-  return LinearAlgebra.Adjoint(op)
-end
-
-function LinearAlgebra.mul!(y::AbstractVector{T}, op::ShiftedHessian{T}, x::AbstractVector{T}) where T
-  mul!(y, op.B, x)
-  @inbounds for i in eachindex(y)
-    y[i] += op.sigma * x[i]
-  end
-  return y
-end
-
-function LinearAlgebra.mul!(y::AbstractVector{T}, opAd::Adjoint{<:Any,ShiftedHessian{T}}, x::AbstractVector{T}) where T
-  # Use the adjoint of the underlying operator and add sigma*x
-  mul!(y, adjoint(opAd.parent.B), x)
-  @inbounds for i in eachindex(y)
-    y[i] += opAd.parent.sigma * x[i]
-  end
-  return y
-end
+ # ShiftedHessian moved to utils.jl
 
 
 mutable struct R2NSolver{
@@ -65,7 +34,6 @@ mutable struct R2NSolver{
   subpb::PB
   substats::GenericExecutionStats{T, V, V, T}
   # Pre-allocated components for QuadraticModel recreation
-  Id::LinearOperator  # Identity operator
   x0_quad::V         # Zero vector for QuadraticModel x0
   reg_hess::LinearOperator  # regularized Hessian operator
   reg_hess_wrapper::ShiftedHessian{T}  # mutable wrapper (B, sigma)
@@ -115,7 +83,6 @@ function R2NSolver(
   # So we need c = ∇fk, H = Bk + σI, c0 = 0
   σ = T(1)
   n = length(∇fk)
-    Id = opEye(T, n)  # Identity operator
     x0_quad = zeros(T, n)  # Pre-allocate x0 for QuadraticModel
     # Create a mutable wrapper around the Hessian so we can update sigma/B without
     # allocating a new operator every iteration.
@@ -153,7 +120,6 @@ function R2NSolver(
     subsolver,
     subpb,
     substats,
-    Id,
     x0_quad,
     reg_hess_op,
     reg_hess_wrapper,
