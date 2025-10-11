@@ -83,13 +83,13 @@ function R2NSolver(
   # So we need c = ∇fk, H = Bk + σI, c0 = 0
   σ = T(1)
   n = length(∇fk)
-    x0_quad = zeros(T, n)  # Pre-allocate x0 for QuadraticModel
-    # Create a mutable wrapper around the Hessian so we can update sigma/B without
-    # allocating a new operator every iteration.
-    reg_hess_wrapper = ShiftedHessian{T}(Bk, T(1))
-    # Create a LinearOperator that calls mul! on the wrapper. This operator is
-    # allocated once and keeps a reference to the mutable wrapper, so future
-    # updates can mutate the wrapper without reallocating the operator.
+  x0_quad = zeros(T, n)  # Pre-allocate x0 for QuadraticModel
+  # Create a mutable wrapper around the Hessian so we can update sigma/B without
+  # allocating a new operator every iteration.
+  reg_hess_wrapper = ShiftedHessian{T}(Bk, T(1))
+  # Create a LinearOperator that calls mul! on the wrapper. This operator is
+  # allocated once and keeps a reference to the mutable wrapper, so future
+  # updates can mutate the wrapper without reallocating the operator.
   reg_hess_op = LinearOperator{T}(n, n, false, false,
     (y, x) -> mul!(y, reg_hess_wrapper, x),
     (y, x) -> mul!(y, adjoint(reg_hess_wrapper), x),
