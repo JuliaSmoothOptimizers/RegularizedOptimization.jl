@@ -95,7 +95,7 @@ function R2NSolver(
     (y, x) -> mul!(y, adjoint(reg_hess_wrapper), x),
     (y, x) -> mul!(y, adjoint(reg_hess_wrapper), x),
   )
-    sub_nlp = QuadraticModel(∇fk, reg_hess_op, c0 = zero(T), x0 = x0_quad, name = "R2N-subproblem")
+  sub_nlp = QuadraticModel(∇fk, reg_hess_op, c0 = zero(T), x0 = x0_quad, name = "R2N-subproblem")
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
