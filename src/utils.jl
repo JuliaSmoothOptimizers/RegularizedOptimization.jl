@@ -193,7 +193,6 @@ function LinearAlgebra.mul!(y::AbstractVector{T}, opAd::Adjoint{<:Any,JacobianGr
   return y
 end
 
-import LinearAlgebra: adjoint
 function adjoint(g::JacobianGram{T}) where T
   return LinearAlgebra.Adjoint(g)
 end
