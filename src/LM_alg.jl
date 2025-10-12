@@ -422,6 +422,22 @@ function SolverCore.solve!(
     prox_evals += solver.substats.iter
     s .= solver.substats.solution
 
+    # Diagnostic: if the subsolver used a very large number of iterations, log state
+    if solver.substats.iter > 1000
+      @warn "LM: subsolver iter count high" iter=solver.substats.iter fk=fk hk=hk σk=σk ν=ν
+      @warn "QuadraticModel gradient (first 10)" grad=solver.subpb.model.data.c[1:min(10,end)]
+      @warn "QuadraticModel H type" H_type=typeof(solver.subpb.model.data.H)
+      try
+        @warn "H* s (first 10)" Hs=begin
+          tmp = similar(s)
+          mul!(tmp, solver.subpb.model.data.H, s)
+          tmp[1:min(10,end)]
+        end
+      catch e
+        @warn "Failed to mul! H* s" err=string(e)
+      end
+    end
+
     xkn .= xk .+ s
     residual!(nls, xkn, Fkn)
     fkn = dot(Fkn, Fkn) / 2
@@ -526,11 +542,15 @@ function SolverCore.solve!(
     prox!(s, ψ, mν∇fk, ν)
     mks = mk1(s)
 
-    ξ1 = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
 
-    sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
-    solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
+    ξ = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
 
+    if isnan(ξ)
+      @error "LM: NaN encountered in ξ computation" fk=fk hk=hk mks=mks s=s QuadraticModel_gradient=solver.subpb.model.data.c Hessian_op=solver.subpb.model.data.H
+      error("LM: failed to compute a step: ξ = NaN")
+    elseif ξ ≤ 0
+      error("LM: failed to compute a step: ξ = $ξ")
+    end
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
       error("LM: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
