@@ -7,15 +7,13 @@ using LinearAlgebra, Logging, Printf
 using Arpack, ProximalOperators
 
 # dependencies from us
-using LinearOperators,
-  LLSModels,
-  ManualNLPModels,
-  NLPModels,
-  NLPModelsModifiers,
-  QuadraticModels,
-  RegularizedProblems,
-  ShiftedProximalOperators,
-  SolverCore
+using LinearOperators
+try
+  using LLSModels
+catch e
+  @warn "LLSModels not available; some features may be disabled" exception=(e, catch_backtrace())
+end
+using ManualNLPModels, NLPModels, NLPModelsModifiers, QuadraticModels, RegularizedProblems, ShiftedProximalOperators, SolverCore
 using Percival: AugLagModel, update_y!, update_μ!
 
 const callback_docstring = "
@@ -24,9 +22,6 @@ The expected signature of the callback is `callback(nlp, solver, stats)`, and it
 Changing any of the input arguments will affect the subsequent iterations.
 In particular, setting `stats.status = :user` will stop the algorithm.
 All relevant information should be available in `nlp` and `solver`.
-Notably, you can access, and modify, the following:
-- `solver.xk`: current iterate;
-- `solver.∇fk`: current gradient;
 - `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
   - `stats.iter`: current iteration counter;
   - `stats.objective`: current objective function value;

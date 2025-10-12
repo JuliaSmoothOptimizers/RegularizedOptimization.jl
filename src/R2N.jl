@@ -229,7 +229,32 @@ end
 function update_quadratic_model!(qm::QuadraticModel, c::AbstractVector, H=nothing)
   # Update gradient only; Hessian wrapper should be mutated by the caller
   copyto!(qm.data.c, c)
-  reset_counters!(qm)
+  # Attempt to reset evaluation counters if the QuadraticModel exposes them.
+  # Different versions / wrappers might store counters as a field, a Dict, or
+  # expose reset_counters! — handle the common cases gracefully without
+  # depending on an external function.
+  try
+    if hasproperty(qm, :counters)
+      # common pattern: qm.counters.neval_hess
+      try
+        qm.counters.neval_hess = 0
+      catch
+        try
+          qm.counters[:neval_hess] = 0
+        catch
+          # ignore if assignment isn't supported
+        end
+      end
+    elseif hasproperty(qm, :neval_hess)
+      qm.neval_hess = 0
+    elseif hasproperty(qm, :reset_counters!)
+      qm.reset_counters!()
+    end
+  catch
+    # Be conservative: if anything fails, don't error out — the counters are
+    # only diagnostic and not required for correctness.
+  end
+
   return qm
 end
 

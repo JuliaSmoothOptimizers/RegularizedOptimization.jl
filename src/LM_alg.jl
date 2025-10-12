@@ -429,6 +429,28 @@ function SolverCore.solve!(
     mks = mk(s)
     ξ = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
 
+    # Diagnostic: if ξ is not finite, emit helpful warnings with nearby state
+    if !isfinite(ξ)
+      @warn "LM diagnostic: ξ not finite" ξ=ξ fk=fk hk=hk mks=mks
+      try
+        @warn "QuadraticModel data.c (first 8)" c_first = solver.subpb.model.data.c[1:min(end,8)]
+      catch
+      end
+      try
+        @warn "QuadraticModel c0" c0 = getfield(solver.subpb.model.data, :c0)
+      catch
+      end
+      try
+        @warn "JtF contains NaN?" any_nan = any(isnan, solver.JtF)
+      catch
+      end
+      try
+        Jk_dbg = jac_op_residual(nls, xk)
+        @warn "Jacobian operator size" m=size(Jk_dbg,1) n=size(Jk_dbg,2)
+      catch
+      end
+    end
+
     if (ξ ≤ 0 || isnan(ξ))
       error("LM: failed to compute a step: ξ = $ξ")
     end
