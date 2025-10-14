@@ -29,24 +29,3 @@ jobs:
           # PDF. Note, this should be the same directory as the input
           # paper.md
           path: paper/paper.pdf
-      - name: Create release
-        if: github.event_name == 'push'
-        uses: rymndhng/release-on-push-action@master
-        id: release
-        with:
-          bump_version_scheme: patch
-          tag_prefix: v
-          release_body: ""
-          use_github_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload PDF to release
-        if: github.event_name == 'push'
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: paper/paper.pdf
-          asset_name: joss-draft.pdf
-          tag: ${{ steps.release.outputs.tag_name }}
-          overwrite: true
-          body: ""
