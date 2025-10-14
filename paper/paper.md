@@ -203,7 +203,7 @@ In ongoing research, the package will be extended with algorithms that enable to
 
 # Acknowledgements
 
-The authors would like to thank Alberto Demarchi for his implementation of the Augmented Lagrangian solver.
+The authors would like to thank Alberto De Marchi for his implementation of the Augmented Lagrangian solver.
 Mohamed Laghdaf Habiboullah is supported by an excellence FRQNT grant.
 Youssef Diouane, Maxence Gollier and Dominique Orban are partially supported by an NSERC Discovery Grant.
 
