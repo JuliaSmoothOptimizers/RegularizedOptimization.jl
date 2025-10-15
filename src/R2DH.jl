@@ -328,6 +328,7 @@ function SolverCore.solve!(
   mk(d)::T = φ(d) + ψ(d)::T
 
   spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
+  set_solver_specific!(stats, :scp_norm, norm(s))
 
   mks = mk(s)
 
@@ -412,7 +413,6 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :smooth_obj, fk)
     set_solver_specific!(stats, :nonsmooth_obj, hk)
     set_solver_specific!(stats, :sigma, σk)
-    set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
 
@@ -420,11 +420,13 @@ function SolverCore.solve!(
     DNorm = norm(D.d, Inf)
 
     ν₁ = θ / (DNorm + σk)
+    set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
 
     @. mν∇fk = -ν₁ * ∇fk
     m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
     spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
+    set_solver_specific!(stats, :scp_norm, norm(s))
     mks = mk(s)
 
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
