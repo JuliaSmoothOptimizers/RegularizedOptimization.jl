@@ -199,7 +199,7 @@ function SolverCore.solve!(
   solver::R2NSolver{T, G, V},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
-  callback = (args...) -> nothing,
+  callback = (args...) -> false,
   qn_update_y!::Function = _qn_grad_update_y!,
   qn_copy!::Function = _qn_grad_copy!,
   x::V = reg_nlp.model.meta.x0,
@@ -340,12 +340,16 @@ function SolverCore.solve!(
     error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
 
+
+  user_requested_exit = callback(nlp, solver, stats) :: Bool
+
   set_status!(
     stats,
     get_status(
       reg_nlp,
       elapsed_time = stats.elapsed_time,
       iter = stats.iter,
+      user_requested_exit = user_requested_exit,
       optimal = solved,
       improper = improper,
       max_eval = max_eval,
@@ -353,8 +357,6 @@ function SolverCore.solve!(
       max_iter = max_iter,
     ),
   )
-
-  callback(nlp, solver, stats)
 
   done = stats.status != :unknown
 
@@ -486,12 +488,16 @@ function SolverCore.solve!(
 
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
       error("R2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    
+    user_requested_exit = callback(nlp, solver, stats) :: Bool
+
     set_status!(
       stats,
       get_status(
         reg_nlp,
         elapsed_time = stats.elapsed_time,
         iter = stats.iter,
+        user_requested_exit = user_requested_exit,
         optimal = solved,
         improper = improper,
         max_eval = max_eval,
@@ -499,8 +505,6 @@ function SolverCore.solve!(
         max_iter = max_iter,
       ),
     )
-
-    callback(nlp, solver, stats)
 
     done = stats.status != :unknown
   end

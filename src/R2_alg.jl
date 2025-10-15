@@ -296,6 +296,7 @@ function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
       solver.Fobj_hist[stats.iter + 1] = stats.solver_specific[:smooth_obj]
       solver.Hobj_hist[stats.iter + 1] = stats.solver_specific[:nonsmooth_obj]
       solver.Complex_hist[stats.iter + 1] += 1
+      return false
     end,
   )
   solve!(solver, reg_nlp, stats; callback = cb, max_iter = max_iter, kwargs...)
@@ -309,7 +310,7 @@ function SolverCore.solve!(
   solver::R2Solver{T},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
-  callback = (args...) -> nothing,
+  callback = (args...) -> false,
   x::V = reg_nlp.model.meta.x0,
   atol::T = √eps(T),
   rtol::T = √eps(T),
@@ -413,12 +414,15 @@ function SolverCore.solve!(
   (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
     error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
+  user_requested_exit = callback(nlp, solver, stats) :: Bool
+
   set_status!(
     stats,
     get_status(
       reg_nlp,
       elapsed_time = stats.elapsed_time,
       iter = stats.iter,
+      user_requested_exit = user_requested_exit,
       optimal = solved,
       improper = improper,
       max_eval = max_eval,
@@ -426,8 +430,6 @@ function SolverCore.solve!(
       max_iter = max_iter,
     ),
   )
-
-  callback(nlp, solver, stats)
 
   done = stats.status != :unknown
 
@@ -497,12 +499,15 @@ function SolverCore.solve!(
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
       error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
+    user_requested_exit = callback(nlp, solver, stats) :: Bool
+
     set_status!(
       stats,
       get_status(
         reg_nlp,
         elapsed_time = stats.elapsed_time,
         iter = stats.iter,
+        user_requested_exit = user_requested_exit,
         optimal = solved,
         improper = improper,
         max_eval = max_eval,
@@ -510,8 +515,6 @@ function SolverCore.solve!(
         max_iter = max_iter,
       ),
     )
-
-    callback(nlp, solver, stats)
 
     done = stats.status != :unknown
   end

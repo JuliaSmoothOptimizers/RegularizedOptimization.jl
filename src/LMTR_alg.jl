@@ -188,7 +188,7 @@ function SolverCore.solve!(
   solver::LMTRSolver{T, G, V},
   reg_nls::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
-  callback = (args...) -> nothing,
+  callback = (args...) -> false,
   x::V = reg_nls.model.meta.x0,
   atol::T = √eps(T),
   sub_atol::T = atol,
@@ -310,12 +310,15 @@ function SolverCore.solve!(
   atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
   sub_atol += rtol * sqrt_ξ1_νInv
 
+  user_requested_exit = callback(nls, solver, stats) :: Bool
+
   set_status!(
     stats,
     get_status(
       reg_nls,
       elapsed_time = stats.elapsed_time,
       iter = stats.iter,
+      user_requested_exit = user_requested_exit,
       optimal = solved,
       improper = improper,
       max_eval = max_eval,
@@ -323,8 +326,6 @@ function SolverCore.solve!(
       max_iter = max_iter,
     ),
   )
-
-  callback(nls, solver, stats)
 
   done = stats.status != :unknown
 
@@ -459,12 +460,15 @@ function SolverCore.solve!(
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
       error("LM: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
+    user_requested_exit = callback(nls, solver, stats) :: Bool
+
     set_status!(
       stats,
       get_status(
         reg_nls,
         elapsed_time = stats.elapsed_time,
         iter = stats.iter,
+        user_requested_exit = user_requested_exit,
         optimal = solved,
         improper = improper,
         max_eval = max_eval,
@@ -472,8 +476,6 @@ function SolverCore.solve!(
         max_iter = max_iter,
       ),
     )
-
-    callback(nls, solver, stats)
 
     done = stats.status != :unknown
   end

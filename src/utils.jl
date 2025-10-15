@@ -135,13 +135,14 @@ function get_status(
   reg_nlp::M;
   elapsed_time = 0.0,
   iter = 0,
+  user_requested_exit = false,
   optimal = false,
   improper = false,
   max_eval = Inf,
   max_time = Inf,
   max_iter = Inf,
 ) where {M <: AbstractRegularizedNLPModel}
-  if optimal
+  if optimal || user_requested_exit
     :first_order
   elseif improper
     :improper
