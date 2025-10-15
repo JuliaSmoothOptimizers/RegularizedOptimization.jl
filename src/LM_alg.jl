@@ -313,6 +313,9 @@ function SolverCore.solve!(
   local ξ1::T
   local ρk::T = zero(T)
   local prox_evals::Int = 0
+  # Track subsolver stalls and keep a backup step
+  stall_counter = 0
+  s_backup = similar(s)
 
   # Ensure residual vectors are sized to match the Jacobian rows
   Jk = jac_op_residual(nls, xk)
@@ -406,6 +409,8 @@ function SolverCore.solve!(
   c0_val = dot(Fk, Fk) / 2  # Constant term = 1/2||F||²
   update_quadratic_model!(solver.subpb.model, solver.JtF)
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
+    # Backup current candidate step before calling subsolver
+    copyto!(s_backup, s)
     if isa(solver.subsolver, R2Solver) #FIXME
       solve!(solver.subsolver, solver.subpb, solver.substats, x = s, atol = sub_atol, ν = ν)
     else
@@ -420,7 +425,33 @@ function SolverCore.solve!(
     end
 
     prox_evals += solver.substats.iter
-    s .= solver.substats.solution
+    # If the subsolver spent too many iterations (stalled), restore previous step
+    # and use a cheap proximal-gradient fallback to make progress instead of
+    # spinning on the inner solver. Also adjust σk to try a different
+    # regularization direction and cap its growth.
+    if solver.substats.iter > 1000
+      stall_counter += 1
+      @warn "LM: subsolver iter count high - restoring previous step" iter=solver.substats.iter stall=stall_counter
+      # restore previous candidate step
+      copyto!(s, s_backup)
+      # Fallback: take a single prox-gradient step (cheap) to make outer loop progress
+      try
+        prox!(s, ψ, mν∇fk, ν)
+      catch e
+        @warn "LM: prox fallback failed" err=string(e)
+      end
+      # Adjust σk to try a different regularization direction and cap its growth
+      σk = max(σk / γ, σmin)
+      σ_cap = 1e40
+      if σk > σ_cap
+        σk = σ_cap
+      end
+      # keep stall_counter (we may still accept the prox step next iteration)
+    else
+      # Accept subsolver solution
+      s .= solver.substats.solution
+      stall_counter = 0
+    end
 
     # Diagnostic: if the subsolver used a very large number of iterations, log state
     if solver.substats.iter > 1000
@@ -546,7 +577,14 @@ function SolverCore.solve!(
     ξ = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
 
     if isnan(ξ)
-      @error "LM: NaN encountered in ξ computation" fk=fk hk=hk mks=mks s=s QuadraticModel_gradient=solver.subpb.model.data.c Hessian_op=solver.subpb.model.data.H
+      @info "QuadraticModel gradient" solver.subpb.model.data.c
+      @info "QuadraticModel Hessian operator" solver.subpb.model.data.H
+      @info "QuadraticModel full" solver.subpb.model
+      @info "JacobianGram J" solver.reg_hess_wrapper.B.J
+      @info "JacobianGram tmp" solver.reg_hess_wrapper.B.tmp
+      @info "Residual Fk" Fk
+      @info "Residual Fkn" Fkn
+      @info "JtF" solver.JtF
       error("LM: failed to compute a step: ξ = NaN")
     elseif ξ ≤ 0
       error("LM: failed to compute a step: ξ = $ξ")
