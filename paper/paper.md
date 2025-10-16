@@ -109,7 +109,7 @@ The package includes a comprehensive suite of unit tests that cover all function
 Extensive documentation is provided, including a user guide, API reference, and examples to help users get started quickly.
 Documentation is built using Documenter.jl.
 
-# Examples
+# Example
 
 We illustrate the capabilities of [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) on a Support Vector Machine (SVM) model with a $\ell_{1/2}^{1/2}$ penalty for image classification [@aravkin-baraldi-orban-2024].  
 This problem is nonsmmooth and nonconvex.
