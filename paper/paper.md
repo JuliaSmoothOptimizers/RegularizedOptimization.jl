@@ -152,6 +152,12 @@ However, it requires more proximal evaluations, but these are inexpensive.
 **LMTR** and **LM** require the fewest function evaluations, but incur many Jacobian–vector products, and are the slowest.
 Note that here, **LMTR** achieves the lowest objective value.
 
+# Conclusion
+
+The experiments show the applicability of the solvers implemented in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl).
+
+Ongoing research aims to reduce the number of proximal evaluations.
+
 # Acknowledgements
 
 The authors would like to thank Alberto De Marchi for his implementation of the Augmented Lagrangian solver.
