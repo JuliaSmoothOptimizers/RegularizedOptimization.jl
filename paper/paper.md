@@ -52,8 +52,7 @@ If second derivatives are not available or too costly to compute, quasi-Newton a
 In addition, the proximal mapping of the nonsmooth part $h$, or adequate models thereof, must be evaluated.
 At each iteration, a step is computed by solving a subproblem of the form \eqref{eq:nlp} inexactly, in which $f$, $h$, and $c$ are replaced with appropriate models about the current iterate.
 The solvers R2, R2DH and TRDH are particularly well suited to solve the subproblems, though they are general enough to solve \eqref{eq:nlp}.
-All solvers have a non-monotone mode that enhances performance in practice on certain problems [@leconte-orban-2023;@diouane-habiboullah-orban-2024].
-All are implemented in an in-place fashion, so that re-solves incur no allocations.
+All solvers are implemented in an in-place fashion, so that re-solves incur no allocations.
 To illustrate our claim of extensibility, a first version of the AL solver was implemented and submitted by an external contributor.
 
 <!-- ## Requirements of the ShiftedProximalOperators.jl -->
