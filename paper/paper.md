@@ -111,9 +111,8 @@ Documentation is built using Documenter.jl.
 
 # Examples
 
-We illustrate the capabilities of [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) on a nonsmooth and nonconvex problem:
-
-- **Support Vector Machine (SVM) with $\ell_{1/2}^{1/2}$ penalty** for image classification [@aravkin-baraldi-orban-2024].  
+We illustrate the capabilities of [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) on a Support Vector Machine (SVM) model with a $\ell_{1/2}^{1/2}$ penalty for image classification [@aravkin-baraldi-orban-2024].  
+This problem is nonsmmooth and nonconvex.
 
 Below is a condensed example showing how to define and solve SVM problem, and perform a solve followed by a re-solve:
 
@@ -139,7 +138,6 @@ solve!(solver, reg_nlp, stats; atol=1e-5, rtol=1e-5, verbose=1, sub_kwargs=(max_
 We compare **TR**, **R2N**, **LM** and **LMTR** from our library.
 
 We report the following solver statistics in the table: the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time in seconds and the final objective value.
-On the SVM and NNMF problems, we use limited-memory SR1 and BFGS Hessian approximations, respectively.
 The subproblem solver is **R2**.
 
 \input{examples/Benchmark.tex}
