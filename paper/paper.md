@@ -48,12 +48,13 @@ Currently, the following solvers are implemented:
 - **Augmented Lagrangian solver AL** [@demarchi-jia-kanzow-mehlitz-2023].
 
 All solvers rely on first derivatives of $f$ and $c$, and optionally on their second derivatives in the form of Hessian-vector products.
-If second derivatives are not available or too costly to compute, quasi-Newton approximations can be used.
-In addition, the proximal mapping of the nonsmooth part $h$, or adequate models thereof, must be evaluated.
+If second derivatives are not available, quasi-Newton approximations can be used.
+The proximal mapping of the nonsmooth part $h$, or adequate models thereof, must be evaluated.
 At each iteration, a step is computed by solving a subproblem of the form \eqref{eq:nlp} inexactly, in which $f$, $h$, and $c$ are replaced with appropriate models about the current iterate.
-The solvers R2, R2DH and TRDH are particularly well suited to solve the subproblems, though they are general enough to solve \eqref{eq:nlp}.
+The solvers R2, R2DH and TRDH are particularly well suited to solve the subproblems, though they are general enough to solve~\eqref{eq:nlp}.
 All solvers are implemented in place, so re-solves incur no allocations.
-To illustrate our claim of extensibility, a first version of the AL solver was implemented and submitted by an external contributor.
+To illustrate our claim of extensibility, a first version of the AL solver was implemented by an external contributor.
+Furthermore, a nonsmooth penalty approach, described in [@diouane-gollier-orban-2024] is currently being developed, relying on the library’s solvers to efficiently solve its subproblems.
 
 <!-- ## Requirements of the ShiftedProximalOperators.jl -->
 <!---->
@@ -67,32 +68,32 @@ To illustrate our claim of extensibility, a first version of the AL solver was i
 ## Model-based framework for nonsmooth methods
 
 In Julia, \eqref{eq:nlp} can be solved using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements splitting schemes and  line-search–based methods [@stella-themelis-sopasakis-patrinos-2017;@themelis-stella-patrinos-2017].
-Among others, the **PANOC** [@stella-themelis-sopasakis-patrinos-2017] solver takes a step along a direction $d$, which depends on the gradient of $f$ modified by a L-BFGS Quasi-Newton approximation, followed by proximal steps on the nonsmooth part $h$.
+Among others, the **PANOC** [@stella-themelis-sopasakis-patrinos-2017] solver takes a step along a direction $d$, which depends on the gradient of $f$ modified by a L-BFGS Quasi-Newton approximation, followed by proximal steps on $h$.
 
 By contrast, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) focuses on model-based trust-region and quadratic regularization methods, which typically require fewer evaluations of $f$ and its gradient than first-order line search methods, at the expense of more evaluations of proximal operators [@aravkin-baraldi-orban-2022].
-However, each proximal computation is inexpensive for numerous commonly used choices of $h$, such as separable penalties and bound constraints (see examples below), so that the overall approach is efficient for large-scale problems.
+However, each proximal computation is inexpensive for numerous commonly used choices of $h$, such as separable penalties and bound constraints, so that the overall approach is efficient for large-scale problems.
 
-RegularizedOptimization.jl provides a consistent API to formulate optimization problems and apply different solvers.
-It integrates seamlessly with the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers)  [@jso] ecosystem, an academic organization for nonlinear optimization software development, testing, and benchmarking.
+RegularizedOptimization.jl provides an API to formulate optimization problems and apply different solvers.
+It integrates seamlessly with the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers)  [@jso] ecosystem.
 
 The smooth objective $f$ can be defined via [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) [@orban-siqueira-nlpmodels-2020], which provides a standardized Julia API for representing nonlinear programming (NLP) problems.
 
 The nonsmooth term $h$ can be modeled using [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl), which provides a broad collection of regularizers and indicators of simple sets.
 
-With $f$ and $h$ modeled as discussed above, the companion package [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl) provides a straightforward way to pair them into a *Regularized Nonlinear Programming Model*
+With $f$ and $h$ modeled, the companion package [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl) provides a way to pair them into a *Regularized Nonlinear Programming Model*
 
 ```julia
 reg_nlp = RegularizedNLPModel(f, h)
 ```
 
-They can also be paired into a *Regularized Nonlinear Least Squares Model* if $f(x) = \tfrac{1}{2} \|F(x)\|^2$ for some residual $F: \mathbb{R}^n \to \mathbb{R}^m$, as would be the case with the **LM** and **LMTR** solvers.
+They can also be paired into a *Regularized Nonlinear Least Squares Model* if $f(x) = \tfrac{1}{2} \|F(x)\|^2$ for some residual $F: \mathbb{R}^n \to \mathbb{R}^m$, in the case of the **LM** and **LMTR** solvers.
 
 ```julia
 reg_nls = RegularizedNLSModel(f, h)
 ```
 
-RegularizedProblems.jl also provides a set of instances commonly used in data science and in the nonsmooth optimization literature, where several choices of $f$ can be paired with various nonsmooth terms $h$.
-This design makes for a convenient source of reproducible problem instances for testing and benchmarking the solvers in [RegularizedOptimization.jl](https://www.github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl).
+RegularizedProblems.jl also provides a set of instances commonly used in data science and in the nonsmooth optimization, where several choices of $f$ can be paired with various nonsmooth terms $h$.
+This design makes for a convenient source of reproducible problem instances for benchmarking the solvers in [RegularizedOptimization.jl](https://www.github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl).
 
 ## Support for both exact and approximate Hessian
 
@@ -104,7 +105,6 @@ This design allows solvers to exploit second-order information without explicitl
 # Example
 
 We illustrate the capabilities of [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) on a Support Vector Machine (SVM) model with a $\ell_{1/2}^{1/2}$ penalty for image classification [@aravkin-baraldi-orban-2024].  
-This problem is nonsmooth and nonconvex.
 
 Below is a condensed example showing how to define and solve an SVM problem, and perform a solve followed by a re-solve:
 
