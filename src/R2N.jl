@@ -226,7 +226,7 @@ function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
 end
 
 # Helper function to update QuadraticModel in-place to avoid allocations
-function update_quadratic_model!(qm::QuadraticModel, c::AbstractVector, H=nothing)
+function update_quadratic_model!(qm::QuadraticModel, c::AbstractVector)
   # Update gradient only; Hessian wrapper should be mutated by the caller
   copyto!(qm.data.c, c)
   # Attempt to reset evaluation counters if the QuadraticModel exposes them.
