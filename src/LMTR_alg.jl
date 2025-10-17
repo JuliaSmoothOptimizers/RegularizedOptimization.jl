@@ -294,9 +294,9 @@ function SolverCore.solve!(
   JtF = Jk' * Fk
   JtJ = Jk' * Jk  
   # In-place update of QuadraticModel fields to avoid allocation
-  solver.subpb.model.g = JtF
-  solver.subpb.model.H = JtJ
-  solver.subpb.model.c0 = zero(T)
+  solver.subpb.model.data.c = JtF
+  solver.subpb.model.data.H = JtJ
+  solver.subpb.model.data.c0 = zero(T)
   solver.subpb.model.x0 .= 0
   solver.subpb.model.name = "LMTR-subproblem"
   ν = α * Δk / (1 + σmax^2 * (α * Δk + 1))
