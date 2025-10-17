@@ -51,7 +51,7 @@ All solvers rely on first derivatives of $f$ and $c$, and optionally on their se
 If second derivatives are not available, quasi-Newton approximations can be used.
 The proximal mapping of the nonsmooth part $h$, or adequate models thereof, must be evaluated.
 At each iteration, a step is computed by solving a subproblem of the form \eqref{eq:nlp} inexactly, in which $f$, $h$, and $c$ are replaced with appropriate models about the current iterate.
-The solvers R2, R2DH and TRDH are particularly well suited to solve the subproblems, though they are general enough to solve~\eqref{eq:nlp}.
+The solvers R2, R2DH and TRDH are particularly well suited to solve the subproblems, though they are general enough to solve \eqref{eq:nlp}.
 All solvers are implemented in place, so re-solves incur no allocations.
 To illustrate our claim of extensibility, a first version of the AL solver was implemented by an external contributor.
 Furthermore, a nonsmooth penalty approach, described in [@diouane-gollier-orban-2024] is currently being developed, relying on the library’s solvers to efficiently solve its subproblems.
@@ -68,7 +68,7 @@ Furthermore, a nonsmooth penalty approach, described in [@diouane-gollier-orban-
 ## Model-based framework for nonsmooth methods
 
 In Julia, \eqref{eq:nlp} can be solved using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements splitting schemes and  line-search–based methods [@stella-themelis-sopasakis-patrinos-2017;@themelis-stella-patrinos-2017].
-Among others, the **PANOC** [@stella-themelis-sopasakis-patrinos-2017] solver takes a step along a direction $d$, which depends on the gradient of $f$ modified by a L-BFGS Quasi-Newton approximation, followed by proximal steps on $h$.
+Among others, the **PANOC** [@stella-themelis-sopasakis-patrinos-2017] solver takes a step along a direction $d$, which depends on the L-BFGS Quasi-Newton approximation of $f$, followed by proximal steps on $h$.
 
 By contrast, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) focuses on model-based trust-region and quadratic regularization methods, which typically require fewer evaluations of $f$ and its gradient than first-order line search methods, at the expense of more evaluations of proximal operators [@aravkin-baraldi-orban-2022].
 However, each proximal computation is inexpensive for numerous commonly used choices of $h$, such as separable penalties and bound constraints, so that the overall approach is efficient for large-scale problems.
