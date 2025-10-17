@@ -149,7 +149,7 @@ lower semi-continuous, proper and prox-bounded.
 
 At each iteration, a step s is computed as an approximate solution of
 
-    min  ½ ‖J(x) s + F(x)‖² + ½ σ ‖s‖² + ψ(s; x)
+    min  ½ ‖J(x) s + F(x)‖² + ½ σ ‖s‖² + ψ(s; xₖ) 
 
 where F(x) and J(x) are the residual and its Jacobian at x, respectively, ψ(s; xₖ) is either h(xₖ + s) or an approximation of h(xₖ + s),
 ‖⋅‖ is the ℓ₂ norm and σₖ > 0 is the regularization parameter.
@@ -196,6 +196,8 @@ function LM(nls::AbstractNLSModel, h::H, options::ROSolverOptions; kwargs...) wh
   kwargs_dict = Dict(kwargs...)
   selected = pop!(kwargs_dict, :selected, 1:(nls.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nls.meta.x0)
+  # allow callers to request skipping σ in the quadratic regularizer
+  skip_sigma = pop!(kwargs_dict, :skip_sigma, false)
   reg_nls = RegularizedNLPModel(nls, h, selected)
   return LM(
     reg_nls;
@@ -211,6 +213,7 @@ function LM(nls::AbstractNLSModel, h::H, options::ROSolverOptions; kwargs...) wh
     η1 = options.η1,
     η2 = options.η2,
     γ = options.γ,
+    skip_sigma = skip_sigma,
     kwargs_dict...,
   )
 end
@@ -219,9 +222,11 @@ function LM(reg_nls::AbstractRegularizedNLPModel; kwargs...)
   kwargs_dict = Dict(kwargs...)
   subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
   m_monotone = pop!(kwargs_dict, :m_monotone, 1)
+  # propagate skip_sigma to the solver
+  skip_sigma = pop!(kwargs_dict, :skip_sigma, false)
   solver = LMSolver(reg_nls, subsolver = subsolver, m_monotone = m_monotone)
   stats = RegularizedExecutionStats(reg_nls)
-  solve!(solver, reg_nls, stats; kwargs_dict...)
+  solve!(solver, reg_nls, stats; kwargs_dict..., skip_sigma = skip_sigma)
   return stats
 end
 
@@ -245,6 +250,7 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   γ::T = T(3),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
+  skip_sigma::Bool = false,   # <-- new kwarg (default: false)
 ) where {T, V, G}
   reset!(stats)
 
@@ -313,6 +319,8 @@ function SolverCore.solve!(
   local ξ1::T
   local ρk::T = zero(T)
   local prox_evals::Int = 0
+  local inner_stall_count::Int = 0
+  INNER_STALL_THRESHOLD = 500
   # Track subsolver stalls and keep a backup step
   stall_counter = 0
   s_backup = similar(s)
@@ -339,7 +347,12 @@ function SolverCore.solve!(
     solver.tmp_res = zeros(T, size(Jk, 1))
   end
   σmax = power_method_singular!(Jk, solver.v0, solver.subpb.model.data.v, solver.tmp_res, 5)
-  ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+  # if the caller requested skipping σ, compute ν without adding σk into the denominator
+  if skip_sigma
+    ν = θ / (σmax^2)
+  else
+    ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+  end
   sqrt_ξ1_νInv = one(T)
 
   @. mν∇fk = -ν * ∇fk
@@ -404,54 +417,80 @@ function SolverCore.solve!(
   else
     solver.reg_hess_wrapper.B.tmp .= 0
   end
-  solver.reg_hess_wrapper.sigma = σk
+  # respect skip_sigma: when true the shifted Hessian should not include the outer σk
+  solver.reg_hess_wrapper.sigma = skip_sigma ? zero(T) : σk
   # Update QuadraticModel's gradient/counters in-place
   c0_val = dot(Fk, Fk) / 2  # Constant term = 1/2||F||²
   update_quadratic_model!(solver.subpb.model, solver.JtF)
-    isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
-    # Backup current candidate step before calling subsolver
-    copyto!(s_backup, s)
-    if isa(solver.subsolver, R2Solver) #FIXME
-      solve!(solver.subsolver, solver.subpb, solver.substats, x = s, atol = sub_atol, ν = ν)
-    else
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats,
-        x = s,
-        atol = sub_atol,
-        σk = σk, #FIXME
-      )
-    end
+  # If the subsolver requires any special scaling (e.g. R2DHSolver), set it
+  isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
+  # Backup current candidate step before calling subsolver
+  copyto!(s_backup, s)
+  if isa(solver.subsolver, R2Solver) #FIXME
+    solve!(solver.subsolver, solver.subpb, solver.substats, x = s, atol = sub_atol, ν = ν, max_iter = 1000)
+  else
+    solve!(
+      solver.subsolver,
+      solver.subpb,
+      solver.substats,
+      x = s,
+      atol = sub_atol,
+      σk = σk, #FIXME
+      max_iter = 1000,
+    )
+  end
 
-    prox_evals += solver.substats.iter
-    # If the subsolver spent too many iterations (stalled), restore previous step
-    # and use a cheap proximal-gradient fallback to make progress instead of
-    # spinning on the inner solver. Also adjust σk to try a different
-    # regularization direction and cap its growth.
-    if solver.substats.iter > 1000
-      stall_counter += 1
-      @warn "LM: subsolver iter count high - restoring previous step" iter=solver.substats.iter stall=stall_counter
-      # restore previous candidate step
-      copyto!(s, s_backup)
-      # Fallback: take a single prox-gradient step (cheap) to make outer loop progress
-      try
-        prox!(s, ψ, mν∇fk, ν)
-      catch e
-        @warn "LM: prox fallback failed" err=string(e)
-      end
-      # Adjust σk to try a different regularization direction and cap its growth
-      σk = max(σk / γ, σmin)
-      σ_cap = 1e40
-      if σk > σ_cap
-        σk = σ_cap
-      end
-      # keep stall_counter (we may still accept the prox step next iteration)
-    else
-      # Accept subsolver solution
-      s .= solver.substats.solution
-      stall_counter = 0
+  prox_evals += solver.substats.iter
+
+  # If the subsolver spent too many iterations (stalled), restore previous step
+  # and use a cheap proximal-gradient fallback to make progress instead of
+  # spinning on the inner solver. Also adjust σk to try a different
+  # regularization direction and cap its growth.
+  if solver.substats.iter > INNER_STALL_THRESHOLD
+    stall_counter += 1
+    @warn "LM: subsolver iter count high - restoring previous step" iter=solver.substats.iter stall=stall_counter
+    # restore previous candidate step
+    copyto!(s, s_backup)
+    # Fallback: take a single prox-gradient step (cheap) to make outer loop progress
+    try
+      prox!(s, ψ, mν∇fk, ν)
+    catch e
+      @warn "LM: prox fallback failed" err=string(e)
     end
+    # reset substats.solution to the fallback for downstream logic
+    solver.substats.solution .= s
+    # Adjust σk to try a different regularization direction and cap its growth
+    σk = max(σk / γ, σmin)
+    σ_cap = 1e40
+    if σk > σ_cap
+      σk = σ_cap
+    end
+  else
+    # Accept subsolver solution
+    s .= solver.substats.solution
+    stall_counter = 0
+  end
+
+  # If we've observed repeated stalls, accept the (prox) fallback step and
+  # advance the outer iteration to avoid spinning on the inner solver.
+  if stall_counter >= 3
+    @warn "LM: repeated inner stalls — accepting prox fallback and continuing" stall=stall_counter
+    # apply step
+    xk .= xk .+ s
+    # update residuals and gradient for the new xk
+    residual!(nls, xk, Fk)
+    fk = dot(Fk, Fk) / 2
+    hk = @views h(xk[selected])
+    shift!(ψ, xk)
+    jtprod_residual!(nls, xk, Fk, ∇fk)
+    # reset counters so we don't immediately re-enter this branch
+    stall_counter = 0
+    prox_evals += 1
+    # proceed to next outer iteration
+    set_iter!(stats, stats.iter + 1)
+    set_time!(stats, time() - start_time)
+    continue
+  end
 
     # Diagnostic: if the subsolver used a very large number of iterations, log state
     if solver.substats.iter > 1000
