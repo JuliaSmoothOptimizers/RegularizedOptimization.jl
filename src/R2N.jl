@@ -402,7 +402,7 @@ function SolverCore.solve!(
       # the underlying Hessian operator `data.H`.
       tmp = solver.subpb.model.data.v
       mul!(tmp, solver.subpb.model.data.H, d)
-      (0.5 * dot(d, tmp) + dot(solver.subpb.model.g, d)) + ψ(d)::T
+      (0.5 * dot(d, tmp) + dot(solver.subpb.model.data.c, d)) + ψ(d)::T
     end
   end
 
