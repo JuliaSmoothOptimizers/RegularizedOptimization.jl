@@ -77,10 +77,9 @@ RegularizedOptimization.jl provides an API to formulate optimization problems an
 It integrates seamlessly with the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers)  [@jso] ecosystem.
 
 The smooth objective $f$ can be defined via [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) [@orban-siqueira-nlpmodels-2020], which provides a standardized Julia API for representing nonlinear programming (NLP) problems.
+The nonsmooth term $h$ can be modeled using [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl).
 
-The nonsmooth term $h$ can be modeled using [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl), which provides a broad collection of regularizers and indicators of simple sets.
-
-With $f$ and $h$ modeled, the companion package [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl) provides a way to pair them into a *Regularized Nonlinear Programming Model*
+Given $f$ and $h$, the companion package [RegularizedProblems.jl](https://github.com/JuliaSmoothOptimizers/RegularizedProblems.jl) provides a way to pair them into a *Regularized Nonlinear Programming Model*
 
 ```julia
 reg_nlp = RegularizedNLPModel(f, h)
@@ -92,7 +91,7 @@ They can also be paired into a *Regularized Nonlinear Least Squares Model* if $f
 reg_nls = RegularizedNLSModel(f, h)
 ```
 
-RegularizedProblems.jl also provides a set of instances commonly used in data science and in the nonsmooth optimization, where several choices of $f$ can be paired with various nonsmooth terms $h$.
+RegularizedProblems.jl also provides a set of instances commonly used in data science and in nonsmooth optimization, where several choices of $f$ can be paired with various regularizers.
 This design makes for a convenient source of reproducible problem instances for benchmarking the solvers in [RegularizedOptimization.jl](https://www.github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl).
 
 ## Support for both exact and approximate Hessian
@@ -130,12 +129,12 @@ solve!(solver, reg_nlp, stats; atol=1e-5, rtol=1e-5, verbose=1, sub_kwargs=(max_
 We compare **TR**, **R2N**, **LM** and **LMTR** from our library on the SVM problem.
 
 The table reports the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time and the final objective value.
-On the SVM and NNMF problems, we use limited-memory SR1 and BFGS Hessian approximations, respectively.
+We use limited-memory SR1 Hessian approximations.
 The subproblem solver is **R2**.
 
 \input{examples/Benchmark.tex}
 
-Note that for the **LM** and **LMTR** solvers, gradient evaluations count $\#\nabla f$ equals the number of Jacobian–vector and adjoint-Jacobian–vector products.
+For the **LM** and **LMTR** solvers, $\#\nabla f$ counts the number of Jacobian–vector and adjoint-Jacobian–vector products.
 
 All methods successfully reduced the optimality measure below the specified tolerance of $10^{-4}$, and thus converged to an approximate first-order stationary point.
 Note that the final objective values differ due to the nonconvexity of the problem.
