@@ -632,6 +632,10 @@ function SolverCore.solve!(
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
       error("LM: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
 
+    # Recompute stationarity measure and solved flag using current ξ and ν
+    sqrt_ξ1_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
+    solved = (ξ < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ1_νInv ≤ atol)
+
     set_status!(
       stats,
       get_status(
