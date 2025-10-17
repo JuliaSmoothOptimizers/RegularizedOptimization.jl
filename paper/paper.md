@@ -44,7 +44,7 @@ Currently, the following solvers are implemented:
 
 - **Trust-region solvers TR and TRDH** [@aravkin-baraldi-orban-2022;@leconte-orban-2023]
 - **Quadratic regularization solvers R2, R2DH and R2N** [@diouane-habiboullah-orban-2024;@aravkin-baraldi-orban-2022]
-- **Levenberg-Marquardt solvers LM and LMTR** [@aravkin-baraldi-orban-2024] used when $f$ is a least-squares residual
+- **Levenberg-Marquardt solvers LM and LMTR** [@aravkin-baraldi-orban-2024].
 - **Augmented Lagrangian solver AL** [@demarchi-jia-kanzow-mehlitz-2023].
 
 All solvers rely on first derivatives of $f$ and $c$, and optionally on their second derivatives in the form of Hessian-vector products.
@@ -134,15 +134,15 @@ solve!(solver, reg_nlp, stats; atol=1e-5, rtol=1e-5, verbose=1, sub_kwargs=(max_
 
 ## Numerical results
 
-We compare **TR**, **R2N**, **LM** and **LMTR** from our library.
+We compare **TR**, **R2N**, **LM** and **LMTR** from our library on the SVM problem.
 
-The table reports the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time in seconds and the final objective value.
+The table reports the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time and the final objective value.
 On the SVM and NNMF problems, we use limited-memory SR1 and BFGS Hessian approximations, respectively.
 The subproblem solver is **R2**.
 
 \input{examples/Benchmark.tex}
 
-- Note that for the **LM** and **LMTR** solvers, gradient evaluations count $\#\nabla f$ equals the number of Jacobian–vector and adjoint-Jacobian–vector products.
+Note that for the **LM** and **LMTR** solvers, gradient evaluations count $\#\nabla f$ equals the number of Jacobian–vector and adjoint-Jacobian–vector products.
 
 All methods successfully reduced the optimality measure below the specified tolerance of $10^{-4}$, and thus converged to an approximate first-order stationary point.
 Note that the final objective values differ due to the nonconvexity of the problem.
@@ -155,8 +155,8 @@ Ongoing research aims to reduce the number of proximal evaluations.
 
 # Acknowledgements
 
-The authors would like to thank Alberto De Marchi for his implementation of the Augmented Lagrangian solver.
-Mohamed Laghdaf Habiboullah is supported by an excellence FRQNT grant.
-Youssef Diouane, Maxence Gollier and Dominique Orban are partially supported by an NSERC Discovery Grant.
+The authors would like to thank A. De Marchi for the Augmented Lagrangian solver.
+M. L. Habiboullah is supported by an excellence FRQNT grant.
+Y. Diouane, M. Gollier and D. Orban are partially supported by an NSERC Discovery Grant.
 
 # References
