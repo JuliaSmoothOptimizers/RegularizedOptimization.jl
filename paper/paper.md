@@ -76,7 +76,6 @@ RegularizedOptimization.jl provides a consistent API to formulate optimization p
 It integrates seamlessly with the [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers)  [@jso] ecosystem, an academic organization for nonlinear optimization software development, testing, and benchmarking.
 
 The smooth objective $f$ can be defined via [NLPModels.jl](https://github.com/JuliaSmoothOptimizers/NLPModels.jl) [@orban-siqueira-nlpmodels-2020], which provides a standardized Julia API for representing nonlinear programming (NLP) problems.
-Large collections of such problems are available in [CUTEst.jl](https://github.com/JuliaSmoothOptimizers/CUTEst.jl) [@orban-siqueira-cutest-2020] and [OptimizationProblems.jl](https://github.com/JuliaSmoothOptimizers/OptimizationProblems.jl) [@migot-orban-siqueira-optimizationproblems-2023], but a user can easily interface or model their own smooth objective.
 
 The nonsmooth term $h$ can be modeled using [ProximalOperators.jl](https://github.com/JuliaSmoothOptimizers/ProximalOperators.jl), which provides a broad collection of regularizers and indicators of simple sets.
 
@@ -101,12 +100,6 @@ In contrast with [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/Prox
 Hessian–vector products $v \mapsto Hv$ can be obtained via automatic differentiation through [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) or implemented manually.
 Limited-memory and diagonal quasi-Newton approximations can be selected from [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
 This design allows solvers to exploit second-order information without explicitly forming dense or sparse Hessians, which is often expensive in time and memory, particularly at large scale.
-
-## Testing and documentation
-
-The package includes a comprehensive suite of unit tests that cover all functionalities, ensuring reliability and correctness.
-Extensive documentation is provided, including a user guide, API reference, and examples to help users get started quickly.
-Documentation is built using Documenter.jl.
 
 # Example
 
