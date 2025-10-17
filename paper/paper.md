@@ -49,7 +49,7 @@ Currently, the following solvers are implemented:
 
 All solvers rely on first derivatives of $f$ and $c$, and optionally on their second derivatives in the form of Hessian-vector products.
 If second derivatives are not available, quasi-Newton approximations can be used.
-The proximal mapping of the nonsmooth part $h$, or adequate models thereof, must be evaluated.
+In addition, the proximal mapping of the nonsmooth part $h$, or adequate models thereof, must be evaluated.
 At each iteration, a step is computed by solving a subproblem of the form \eqref{eq:nlp} inexactly, in which $f$, $h$, and $c$ are replaced with appropriate models about the current iterate.
 The solvers R2, R2DH and TRDH are particularly well suited to solve the subproblems, though they are general enough to solve \eqref{eq:nlp}.
 All solvers are implemented in place, so re-solves incur no allocations.
