@@ -422,6 +422,7 @@ function SolverCore.solve!(
   solver.reg_hess_wrapper.sigma = skip_sigma ? zero(T) : σk
   # Update QuadraticModel's gradient/counters in-place
   c0_val = dot(Fk, Fk) / 2  # Constant term = 1/2||F||²
+  solver.subpb.model.data.c0 = c0_val  # Ensure the constant term is stored
   update_quadratic_model!(solver.subpb.model, solver.JtF)
   # If the subsolver requires any special scaling (e.g. R2DHSolver), set it
   isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
