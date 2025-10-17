@@ -69,8 +69,8 @@ function LMTRSolver(
 
   Jk = jac_op_residual(reg_nls.model, xk)
   m = size(Jk, 1)
-  Fk = solver.Fk = zeros(T, m)
-  Fkn = solver.Fkn = similar(Fk)
+  Fk = zeros(T, m)
+  Fkn = similar(Fk)
   residual!(reg_nls.model, xk, Fk)
 
   # Matrix-free Gram operator for J'J
