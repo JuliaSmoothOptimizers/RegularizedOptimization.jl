@@ -25,9 +25,13 @@ jobs:
         run: |
           COUNT=$(pandoc paper/paper.md -t plain | wc -w)
           echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "📝 JOSS Word Count: $COUNT words"
+          if [ "$COUNT" -gt 1000 ]; then
+            echo "::warning title=JOSS Word Count::Paper exceeds 1000 words ($COUNT)."
+          fi
 
       - name: Comment on PR with word count
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: joss-wordcount
