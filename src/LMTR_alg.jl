@@ -68,18 +68,24 @@ function LMTRSolver(
     ) : shifted(reg_nls.h, xk, one(T), χ)
 
   Jk = jac_op_residual(reg_nls.model, xk)
-  # Compute initial residual
+  m = size(Jk, 1)
+  Fk = solver.Fk = zeros(T, m)
+  Fkn = solver.Fkn = similar(Fk)
   residual!(reg_nls.model, xk, Fk)
-  # Create LM-TR subproblem: min 1/2 ||J(x)s + F(x)||^2 (no regularization σ=0)
-  # = min 1/2 (J*s + F)^T(J*s + F)
-  # = min s^T J^T F + 1/2 s^T J^T J s + const
-  # So c = J^T F, H = J^T J
+
+  # Matrix-free Gram operator for J'J
+  gram_op = JacobianGram{T}(Jk, zeros(T, m))
+  # Or, if JacobianGram is not available, use LinearOperator:
+  # gram_op = LinearOperator{T}(size(Jk,2), size(Jk,2), false, false,
+  #   (y, x) -> mul!(y, Jk', Jk * x),
+  #   (y, x) -> mul!(y, Jk, Jk' * x),
+  #   (y, x) -> mul!(y, Jk, Jk' * x),
+  # )
+
   JtF = similar(xk)
   mul!(JtF, Jk', Fk)
-  JtJ = Jk' * Jk
   # Don't include the constant term to avoid numerical overflow in obj evaluation
-  # The constant doesn't affect the optimization anyway
-  sub_nlp = QuadraticModel(JtF, JtJ, c0 = zero(T), x0 = zeros(T, length(xk)), name = "LMTR-subproblem")
+  sub_nlp = QuadraticModel(JtF, gram_op, c0 = zero(T), x0 = zeros(T, length(xk)), name = "LMTR-subproblem")
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)

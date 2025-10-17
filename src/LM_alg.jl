@@ -630,8 +630,8 @@ function SolverCore.solve!(
     elseif ξ ≤ 0
       error("LM: failed to compute a step: ξ = $ξ")
     end
-    (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
-      error("LM: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    (ξ < 0 && sqrt_ξ1_νInv > neg_tol) &&
+      error("LM: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
     # Recompute stationarity measure and solved flag using current ξ and ν
     sqrt_ξ1_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)

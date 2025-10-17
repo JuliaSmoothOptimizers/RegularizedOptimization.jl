@@ -34,10 +34,9 @@ mutable struct R2NSolver{
   subpb::PB
   substats::GenericExecutionStats{T, V, V, T}
   # Pre-allocated components for QuadraticModel recreation
-  x0_quad::V         # Zero vector for QuadraticModel x0
-  reg_hess::LinearOperator  # regularized Hessian operator
-  reg_hess_wrapper::ShiftedHessian{T}  # mutable wrapper (B, sigma)
-  reg_hess_op::LinearOperator  # LinearOperator that captures the wrapper
+  x0_quad::V
+  reg_hess_wrapper::ShiftedHessian{T}
+  reg_hess_op::LinearOperator
 end
 
 function R2NSolver(
@@ -83,13 +82,8 @@ function R2NSolver(
   # So we need c = ∇fk, H = Bk + σI, c0 = 0
   σ = T(1)
   n = length(∇fk)
-  x0_quad = zeros(T, n)  # Pre-allocate x0 for QuadraticModel
-  # Create a mutable wrapper around the Hessian so we can update sigma/B without
-  # allocating a new operator every iteration.
+  x0_quad = zeros(T, n)
   reg_hess_wrapper = ShiftedHessian{T}(Bk, T(1))
-  # Create a LinearOperator that calls mul! on the wrapper. This operator is
-  # allocated once and keeps a reference to the mutable wrapper, so future
-  # updates can mutate the wrapper without reallocating the operator.
   reg_hess_op = LinearOperator{T}(n, n, false, false,
     (y, x) -> mul!(y, reg_hess_wrapper, x),
     (y, x) -> mul!(y, adjoint(reg_hess_wrapper), x),
@@ -121,8 +115,8 @@ function R2NSolver(
     subpb,
     substats,
     x0_quad,
-    reg_hess_op,
     reg_hess_wrapper,
+    reg_hess_op,
   )
 end
 
@@ -226,9 +220,11 @@ function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
 end
 
 # Helper function to update QuadraticModel in-place to avoid allocations
-function update_quadratic_model!(qm::QuadraticModel, c::AbstractVector)
-  # Update gradient only; Hessian wrapper should be mutated by the caller
+function update_quadratic_model!(qm::QuadraticModel, c::AbstractVector, H=nothing)
   copyto!(qm.data.c, c)
+  if H !== nothing
+    qm.data.H = H
+  end
   # Attempt to reset evaluation counters if the QuadraticModel exposes them.
   # Different versions / wrappers might store counters as a field, a Dict, or
   # expose reset_counters! — handle the common cases gracefully without
