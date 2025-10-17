@@ -134,9 +134,10 @@ solve!(solver, reg_nlp, stats; atol=1e-5, rtol=1e-5, verbose=1, sub_kwargs=(max_
 
 ## Numerical results
 
-We compare **TR**, **R2N**, **LM** and **LMTR** from this library.
+We compare **TR**, **R2N**, **LM** and **LMTR** from our library.
 
 The table reports the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time in seconds and the final objective value.
+On the SVM and NNMF problems, we use limited-memory SR1 and BFGS Hessian approximations, respectively.
 The subproblem solver is **R2**.
 
 \input{examples/Benchmark.tex}
@@ -144,14 +145,11 @@ The subproblem solver is **R2**.
 - Note that for the **LM** and **LMTR** solvers, gradient evaluations count $\#\nabla f$ equals the number of Jacobian–vector and adjoint-Jacobian–vector products.
 
 All methods successfully reduced the optimality measure below the specified tolerance of $10^{-4}$, and thus converged to an approximate first-order stationary point.
-Note that the final objective values differ due to the nonconvexity of the problems.
+Note that the final objective values differ due to the nonconvexity of the problem.
 
-- **SVM with $\ell^{1/2}$ penalty:** **R2N** is the fastest, requiring the fewest gradient evaluations.
+**R2N** is the fastest, requiring the fewest gradient evaluations.
 However, it requires more proximal evaluations, but these are inexpensive.
 **LMTR** and **LM** require the fewest function evaluations, but incur many Jacobian–vector products, and are the slowest.
-Note that here, **LMTR** achieves the lowest objective value.
-
-
 
 Ongoing research aims to reduce the number of proximal evaluations.
 
