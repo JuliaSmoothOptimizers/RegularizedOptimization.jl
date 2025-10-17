@@ -1,0 +1,34 @@
+name: Word Count
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  count-words:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      - name: Count words in paper.md
+        id: wordcount
+        run: |
+          COUNT=$(pandoc paper.md -t plain | wc -w)
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR with word count
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: joss-wordcount
+          message: |
+            📝 **JOSS Word Count**
+
+            The current word count for `paper.md` is **${{ steps.wordcount.outputs.count }}** words.
+
+            _(JOSS recommends 250-1000 words for the main text.)_
