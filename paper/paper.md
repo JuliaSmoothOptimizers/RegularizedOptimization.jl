@@ -52,7 +52,7 @@ If second derivatives are not available or too costly to compute, quasi-Newton a
 In addition, the proximal mapping of the nonsmooth part $h$, or adequate models thereof, must be evaluated.
 At each iteration, a step is computed by solving a subproblem of the form \eqref{eq:nlp} inexactly, in which $f$, $h$, and $c$ are replaced with appropriate models about the current iterate.
 The solvers R2, R2DH and TRDH are particularly well suited to solve the subproblems, though they are general enough to solve \eqref{eq:nlp}.
-All solvers are implemented in an in-place fashion, so that re-solves incur no allocations.
+All solvers are implemented in place, so re-solves incur no allocations.
 To illustrate our claim of extensibility, a first version of the AL solver was implemented and submitted by an external contributor.
 
 <!-- ## Requirements of the ShiftedProximalOperators.jl -->
@@ -136,7 +136,7 @@ solve!(solver, reg_nlp, stats; atol=1e-5, rtol=1e-5, verbose=1, sub_kwargs=(max_
 
 We compare **TR**, **R2N**, **LM** and **LMTR** from this library.
 
-We report the following solver statistics in the table: the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time in seconds and the final objective value.
+The table reports the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time in seconds and the final objective value.
 The subproblem solver is **R2**.
 
 \input{examples/Benchmark.tex}
@@ -151,9 +151,7 @@ However, it requires more proximal evaluations, but these are inexpensive.
 **LMTR** and **LM** require the fewest function evaluations, but incur many Jacobian–vector products, and are the slowest.
 Note that here, **LMTR** achieves the lowest objective value.
 
-# Conclusion
 
-The experiments show the applicability of the solvers implemented in [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl).
 
 Ongoing research aims to reduce the number of proximal evaluations.
 
