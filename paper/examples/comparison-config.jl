@@ -17,6 +17,5 @@ end
 
 # One global, constant *binding* to a mutable object = type stable & editable
 const CFG = Config(QN_FOR_R2N=:LSR1)
-const CFG2 = Config(QN_FOR_TR = :LBFGS)
 
 end # module
