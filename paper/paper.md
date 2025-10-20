@@ -44,7 +44,7 @@ Currently, the following solvers are implemented:
 
 - **Trust-region solvers TR and TRDH** [@aravkin-baraldi-orban-2022;@leconte-orban-2023]
 - **Quadratic regularization solvers R2, R2DH and R2N** [@diouane-habiboullah-orban-2024;@aravkin-baraldi-orban-2022]
-- **Levenberg-Marquardt solvers LM and LMTR** [@aravkin-baraldi-orban-2024].
+- **Levenberg-Marquardt solvers LM and LMTR** [@aravkin-baraldi-orban-2024] used when $f$ is a least-squares residual.
 - **Augmented Lagrangian solver AL** [@demarchi-jia-kanzow-mehlitz-2023].
 
 All solvers rely on first derivatives of $f$ and $c$, and optionally on their second derivatives in the form of Hessian-vector products.
