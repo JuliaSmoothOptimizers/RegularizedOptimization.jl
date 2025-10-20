@@ -88,7 +88,7 @@ reg_nlp = RegularizedNLPModel(f, h)
 They can also be paired into a *Regularized Nonlinear Least Squares Model* if $f(x) = \tfrac{1}{2} \|F(x)\|^2$ for some residual $F: \mathbb{R}^n \to \mathbb{R}^m$, in the case of the **LM** and **LMTR** solvers.
 
 ```julia
-reg_nls = RegularizedNLSModel(f, h)
+reg_nls = RegularizedNLSModel(F, h)
 ```
 
 RegularizedProblems.jl also provides a set of instances commonly used in data science and in nonsmooth optimization, where several choices of $f$ can be paired with various regularizers.
@@ -116,7 +116,7 @@ Random.seed!(1234)
 model, nls_model, _ = RegularizedProblems.svm_train_model()  # Build SVM model
 f = LSR1Model(model)                                         # L-SR1 Hessian approximation
 λ = 1.0                                                      # Regularization parameter
-h = RootNormLhalf(λ)                                       # Nonsmooth term
+h = RootNormLhalf(λ)                                         # Nonsmooth term
 reg_nlp = RegularizedNLPModel(f, h)                          # Regularized problem
 solver = R2NSolver(reg_nlp)                                  # Choose solver
 stats  = RegularizedExecutionStats(reg_nlp)
@@ -129,7 +129,7 @@ solve!(solver, reg_nlp, stats; atol=1e-5, rtol=1e-5, verbose=1, sub_kwargs=(max_
 We compare **TR**, **R2N**, **LM** and **LMTR** from our library on the SVM problem.
 
 The table reports the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time and the final objective value.
-We use limited-memory SR1 Hessian approximations.
+For TR and R2N, we use limited-memory SR1 Hessian approximations.
 The subproblem solver is **R2**.
 
 \input{examples/Benchmark.tex}
