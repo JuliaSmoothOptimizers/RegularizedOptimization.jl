@@ -158,17 +158,13 @@ function bench_svm!(cfg = CFG)
     println("\n=== SVM: solver comparison ===")
     for m in results
         println("\n→ ", m.name)
-        println("  status         = ", m.status)
-        println("  time (s)       = ", round(m.time, digits = 4))
-        m.iters !== missing && println("  outer iters    = ", m.iters)
-        println("  # f eval       = ", m.fevals)
-        println("  # ∇f eval      = ", m.gevals)
-        m.proxcalls !== missing && println("  # prox calls   = ", Int(m.proxcalls))
-        println("  final objective= ", round(obj(model, m.solution), digits = 4))
-        println("  accuracy (%)   = ", round(acc(residual(nls_train, m.solution)), digits = 1))
+        println("  status          = ", m.status)
+        println("  time (s)        = ", round(m.time, digits = 4))
+        println("  # f eval        = ", m.fevals)
+        println("  # ∇f eval       = ", m.gevals)
+        m.proxcalls !== missing && println("  # prox calls    = ", Int(m.proxcalls))
+        println("  final objective = ", round(obj(model, m.solution), digits = 4))
     end
-
-    println("\nSVM Config:"); print_config(cfg)
 
     data_svm = [
         (; name=m.name,
@@ -188,7 +184,7 @@ end
 # # ========= Main ========== #
 # #############################
 
-function main(latex_out = false)
+function main(;latex_out = false)
     data_svm  = bench_svm!(CFG)
 
     println("\n=== Full Benchmark Table ===")
@@ -199,12 +195,13 @@ function main(latex_out = false)
 
     # save as latex format
     if latex_out
-
-        table_str = pretty_table(String, data_svm;
-                header = ["Method", "Status", L"$t$($s$)", L"$\#f$", L"$\#\nabla f$", L"$\#prox$", "Objective"],
-                backend = Val(:latex),
-                alignment = [:l, :c, :r, :r, :r, :r, :r],
-            )
+        table_str = pretty_table(String,
+            data_svm;
+            backend       = :latex,
+            column_labels = ["Method", "Status", L"$t$($s$)", L"$\#f$", L"$\#\nabla f$", L"$\#prox$", "Objective"],
+            style         = LatexTableStyle(column_label = String[]),
+            table_format  = latex_table_format__booktabs
+        )
 
         open("Benchmark.tex", "w") do io
             write(io, table_str)
