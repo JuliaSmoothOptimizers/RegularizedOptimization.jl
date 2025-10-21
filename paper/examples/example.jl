@@ -1,5 +1,5 @@
-using LinearAlgebra, Random, ProximalOperators
-using NLPModels, RegularizedProblems, RegularizedOptimization
+using LinearAlgebra, Random, ShiftedProximalOperators
+using NLPModels, NLPModelsModifiers, RegularizedProblems, RegularizedOptimization
 using MLDatasets
 
 Random.seed!(1234)
