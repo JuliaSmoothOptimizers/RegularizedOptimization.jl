@@ -37,7 +37,7 @@ header-includes: |
     \underset{x \in \mathbb{R}^n}{\text{minimize}} \quad f(x) + h(x) \quad \text{subject to} \quad c(x) = 0,
 \end{equation}
 where $f: \mathbb{R}^n \to \mathbb{R}$ and $c: \mathbb{R}^n \to \mathbb{R}^m$ are continuously differentiable, and $h: \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ is lower semi-continuous.
-The nonsmooth objective $h$ can be a *regularizer* such as a sparsity-inducing penalty, model simple constraints such as $x$ belonging to a simple convex set, or be a combination of both.
+The nonsmooth objective $h$ can be a *regularizer*, such as a sparsity-inducing penalty, model simple constraints, such as $x$ belonging to a simple convex set, or be a combination of both.
 All $f$, $h$ and $c$ can be nonconvex.
 RegularizedOptimization.jl provides a modular and extensible framework for solving \eqref{eq:nlp}, and developing novel solvers.
 Currently, the following solvers are implemented:
@@ -54,7 +54,7 @@ At each iteration, a step is computed by solving a subproblem of the form \eqref
 The solvers R2, R2DH and TRDH are particularly well suited to solve the subproblems, though they are general enough to solve \eqref{eq:nlp}.
 All solvers are implemented in place, so re-solves incur no allocations.
 To illustrate our claim of extensibility, a first version of the AL solver was implemented by an external contributor.
-Furthermore, a nonsmooth penalty approach, described in [@diouane-gollier-orban-2024] is currently being developed, relying on the library’s solvers to efficiently solve its subproblems.
+Furthermore, a nonsmooth penalty approach, described in [@diouane-gollier-orban-2024] is currently being developed, that relies on the library to efficiently solve the subproblems.
 
 <!-- ## Requirements of the ShiftedProximalOperators.jl -->
 <!---->
@@ -68,7 +68,7 @@ Furthermore, a nonsmooth penalty approach, described in [@diouane-gollier-orban-
 ## Model-based framework for nonsmooth methods
 
 In Julia, \eqref{eq:nlp} can be solved using [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), which implements splitting schemes and  line-search–based methods [@stella-themelis-sopasakis-patrinos-2017;@themelis-stella-patrinos-2017].
-Among others, the **PANOC** [@stella-themelis-sopasakis-patrinos-2017] solver takes a step along a direction $d$, which depends on the L-BFGS Quasi-Newton approximation of $f$, followed by proximal steps on $h$.
+Among others, the **PANOC** [@stella-themelis-sopasakis-patrinos-2017] solver takes a step along a direction $d$, which depends on the L-BFGS quasi-Newton approximation of $f$, followed by proximal steps on $h$.
 
 By contrast, [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) focuses on model-based trust-region and quadratic regularization methods, which typically require fewer evaluations of $f$ and its gradient than first-order line search methods, at the expense of more evaluations of proximal operators [@aravkin-baraldi-orban-2022].
 However, each proximal computation is inexpensive for numerous commonly used choices of $h$, such as separable penalties and bound constraints, so that the overall approach is efficient for large-scale problems.
@@ -85,14 +85,14 @@ Given $f$ and $h$, the companion package [RegularizedProblems.jl](https://github
 reg_nlp = RegularizedNLPModel(f, h)
 ```
 
-They can also be paired into a *Regularized Nonlinear Least Squares Model* if $f(x) = \tfrac{1}{2} \|F(x)\|^2$ for some residual $F: \mathbb{R}^n \to \mathbb{R}^m$, in the case of the **LM** and **LMTR** solvers.
+They can also be paired into a *Regularized Nonlinear Least-Squares Model* if $f(x) = \tfrac{1}{2} \|F(x)\|^2$ for some residual $F: \mathbb{R}^n \to \mathbb{R}^m$, in the case of the **LM** and **LMTR** solvers.
 
 ```julia
 reg_nls = RegularizedNLSModel(F, h)
 ```
 
 RegularizedProblems.jl also provides a set of instances commonly used in data science and in nonsmooth optimization, where several choices of $f$ can be paired with various regularizers.
-This design makes for a convenient source of reproducible problem instances for benchmarking the solvers in [RegularizedOptimization.jl](https://www.github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl).
+This design makes for a convenient source of problem instances for benchmarking the solvers in [RegularizedOptimization.jl](https://www.github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl).
 
 ## Support for both exact and approximate Hessian
 
@@ -105,7 +105,7 @@ This design allows solvers to exploit second-order information without explicitl
 
 We illustrate the capabilities of [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) on a Support Vector Machine (SVM) model with a $\ell_{1/2}^{1/2}$ penalty for image classification [@aravkin-baraldi-orban-2024].  
 
-Below is a condensed example showing how to define and solve an SVM problem, and perform a solve followed by a re-solve:
+Below is a condensed example showing how to define and solve the problem, and perform a solve followed by a re-solve:
 
 ```julia
 using LinearAlgebra, Random, ProximalOperators
@@ -139,9 +139,9 @@ For the **LM** and **LMTR** solvers, $\#\nabla f$ counts the number of Jacobian�
 All methods successfully reduced the optimality measure below the specified tolerance of $10^{-4}$, and thus converged to an approximate first-order stationary point.
 Note that the final objective values differ due to the nonconvexity of the problem.
 
-**R2N** is the fastest, requiring the fewest gradient evaluations.
+**R2N** is the fastest in terms of time and number of gradient evaluations.
 However, it requires more proximal evaluations, but these are inexpensive.
-**LMTR** and **LM** require the fewest function evaluations, but incur many Jacobian–vector products, and are the slowest.
+**LMTR** and **LM** require the fewest function evaluations, but incur many Jacobian–vector products, and are the slowest in terms of time.
 
 Ongoing research aims to reduce the number of proximal evaluations.
 
