@@ -441,12 +441,21 @@ function SolverCore.solve!(
 
   mks = mk(s)
 
+  # Record inner-level prox call counters (exclude feasibility prox above)
+  if ψ isa InexactShiftedProximableFunction
+    ctx = ψ.h.context
+    ctx.prox_calls_inner += 1
+    ctx.prox_iters_inner += ctx.last_prox_iters
+  end
+
   ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
   sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
   atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
 
-  solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol * √κξ)
+  solved =
+    (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol && stats.iter > 10) ||
+    (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol && stats.iter > 10)# * √κξ)
   (ξ < 0 && sqrt_ξ_νInv > neg_tol) && error(
     "iR2: first prox-gradient step should produce a decrease but ξ = $(ξ) and sqrt_ξ_νInv = $(sqrt_ξ_νInv) > $(neg_tol)",
   )
@@ -533,10 +542,19 @@ function SolverCore.solve!(
     prox!(s, ψ, mν∇fk, ν)
     mks = mk(s)
 
+    # Record inner-level prox call counters per iteration
+    if ψ isa InexactShiftedProximableFunction
+      ctx = ψ.h.context
+      ctx.prox_calls_inner += 1
+      ctx.prox_iters_inner += ctx.last_prox_iters
+    end
+
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
-    solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol * √κξ)
+    solved =
+      (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol && stats.iter > 10) ||
+      (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol && stats.iter > 10)# * √κξ)
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) && error(
       "iR2: prox-gradient step should produce a decrease but ξ = $(ξ) and sqrt_ξ_νInv = $(sqrt_ξ_νInv) > $(neg_tol)",
     )
@@ -581,6 +599,15 @@ function SolverCore.solve!(
 
   if ψ isa InexactShiftedProximableFunction
     set_solver_specific!(stats, :ItersProx, ψ.h.context.prox_stats[3])
+    # Detailed inner prox stats (per-call means)
+    let ctx = ψ.h.context
+      total_calls_inner = ctx.prox_calls_inner
+      total_iters_inner = ctx.prox_iters_inner
+      mean_inner = total_calls_inner > 0 ? total_iters_inner / total_calls_inner : zero(eltype(xk))
+      set_solver_specific!(stats, :total_iters_prox_inner, total_iters_inner)
+      set_solver_specific!(stats, :prox_calls_inner, total_calls_inner)
+      set_solver_specific!(stats, :mean_iters_prox_inner, mean_inner)
+    end
   end
   set_solution!(stats, xk)
   return stats

@@ -347,9 +347,18 @@ function SolverCore.solve!(
   prox!(s1, ψ, mν∇fk, ν₁)
   mks = mk1(s1)
 
+  # Record outer-level prox call counters (exclude feasibility prox above)
+  if ψ isa InexactShiftedProximableFunction
+    ctx = ψ.h.context
+    ctx.prox_calls_outer += 1
+    ctx.prox_iters_outer += ctx.last_prox_iters
+  end
+
   ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
   sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν₁) : sqrt(-ξ1 / ν₁)
-  solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol * √κξ)
+  solved =
+    (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol && stats.iter > 10) ||
+    (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol && stats.iter > 10)# * √κξ)
   (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
     error("iR2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
@@ -378,6 +387,12 @@ function SolverCore.solve!(
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1 / ν₁)
     ν_sub = isa(solver.subsolver, R2DHSolver) ? 1 / σk : ν₁
+    # Snapshot inner context counters to aggregate deltas only
+    inner_ctx = solver.subpb.h.h.context
+    prev_calls_inner = inner_ctx.prox_calls_inner
+    prev_iters_inner = inner_ctx.prox_iters_inner
+    prev_proxstats3_inner = inner_ctx.prox_stats[3]
+
     solve!(
       solver.subsolver,
       solver.subpb,
@@ -392,8 +407,17 @@ function SolverCore.solve!(
     s .= solver.substats.solution
 
     if ψ isa InexactShiftedProximableFunction
-      ψ.h.context.prox_stats[2] += solver.substats.iter
-      ψ.h.context.prox_stats[3] += solver.substats.solver_specific[:ItersProx]
+      # Aggregate inner-level prox counters by delta since last call
+      calls_delta = inner_ctx.prox_calls_inner - prev_calls_inner
+      iters_delta = inner_ctx.prox_iters_inner - prev_iters_inner
+      iters_prox_delta = inner_ctx.prox_stats[3] - prev_proxstats3_inner
+      let outer_ctx = ψ.h.context
+        outer_ctx.prox_calls_inner += calls_delta
+        outer_ctx.prox_iters_inner += iters_delta
+        outer_ctx.prox_stats[3] += iters_prox_delta
+        # Keep subsolver iteration total for legacy metric
+        outer_ctx.prox_stats[2] += solver.substats.iter
+      end
     end
 
     if norm(s) > β * norm(s1)
@@ -415,13 +439,10 @@ function SolverCore.solve!(
       error("iR2N: failed to compute a step: ξ = $ξ and sqrt_ξ_νInv = $sqrt_ξ_νInv")
     end
 
-    aux_assert = (1 - 1 / (1 + θ)) * ξ1
+    aux_assert = (1 - θ) * ξ1
     if ξ < aux_assert && sqrt_ξ_νInv > neg_tol
-      @warn(
-        "iR2N: ξ should be ≥ (1 - 1/(1+θ)) * ξ1 but ξ = $ξ and (1 - 1/(1+θ)) * ξ1 = $aux_assert.",
-      )
+      @warn("iR2N: ξ should be ≥ (1 - θ) * ξ1 but ξ = $ξ and (1 - θ) * ξ1 = $aux_assert.",)
     end
-
     ρk = Δobj / Δmod
 
     verbose > 0 &&
@@ -492,10 +513,19 @@ function SolverCore.solve!(
     prox!(s1, ψ, mν∇fk, ν₁)
     mks = mk1(s1)
 
+    # Record outer-level prox call counters per iteration
+    if ψ isa InexactShiftedProximableFunction
+      ctx = ψ.h.context
+      ctx.prox_calls_outer += 1
+      ctx.prox_iters_outer += ctx.last_prox_iters
+    end
+
     ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
 
     sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν₁) : sqrt(-ξ1 / ν₁)
-    solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol * √κξ)
+    solved =
+      (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol && stats.iter > 10) ||
+      (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol && stats.iter > 10)# * √κξ)
 
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) && error(
       "iR2N: prox-gradient step should produce a decrease but ξ1 = $(ξ1) with sqrt_ξ1_νInv = $sqrt_ξ1_νInv > $neg_tol",
@@ -548,6 +578,33 @@ function SolverCore.solve!(
     )
     set_solver_specific!(stats, :total_iters_prox, solver.ψ.h.context.prox_stats[3])
     set_solver_specific!(stats, :mean_iters_prox, solver.ψ.h.context.prox_stats[3] / stats.iter) #TODO: work on this line to specify iR2 prox calls and iR2N prox calls
+
+    # Detailed outer/inner/all prox stats (per-call means)
+    let ctx = solver.ψ.h.context
+      total_calls_outer = ctx.prox_calls_outer
+      total_iters_outer = ctx.prox_iters_outer
+      mean_outer = total_calls_outer > 0 ? total_iters_outer / total_calls_outer : zero(eltype(xk))
+
+      total_calls_inner = ctx.prox_calls_inner
+      total_iters_inner = ctx.prox_iters_inner
+      mean_inner = total_calls_inner > 0 ? total_iters_inner / total_calls_inner : zero(eltype(xk))
+
+      total_calls_all = total_calls_outer + total_calls_inner
+      total_iters_all = total_iters_outer + total_iters_inner
+      mean_all = total_calls_all > 0 ? total_iters_all / total_calls_all : zero(eltype(xk))
+
+      set_solver_specific!(stats, :prox_calls_outer, total_calls_outer)
+      set_solver_specific!(stats, :total_iters_prox_outer, total_iters_outer)
+      set_solver_specific!(stats, :mean_iters_prox_outer, mean_outer)
+
+      set_solver_specific!(stats, :prox_calls_inner, total_calls_inner)
+      set_solver_specific!(stats, :total_iters_prox_inner, total_iters_inner)
+      set_solver_specific!(stats, :mean_iters_prox_inner, mean_inner)
+
+      set_solver_specific!(stats, :prox_calls_all, total_calls_all)
+      set_solver_specific!(stats, :total_iters_prox_all, total_iters_all)
+      set_solver_specific!(stats, :mean_iters_prox_all, mean_all)
+    end
   end
   set_solution!(stats, xk)
   set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
