@@ -1,7 +1,11 @@
 name = "RegularizedOptimization"
 uuid = "196f2941-2d58-45ba-9f13-43a2532b2fa8"
-author = ["Robert Baraldi <rbaraldi@uw.edu> and Dominique Orban <dominique.orban@gmail.com>"]
-version = "0.2.0"
+author = ["Robert Baraldi <rbaraldi@uw.edu>", 
+          "Youssef Diouane <youssef.diouane@polymtl.ca>"
+          "Maxence Gollier <maxence.gollier@polymtl.ca>",
+          "Mohamed Laghdaf Habiboullah <mohamed.habiboullah@polymtl.ca>",
+          "Dominique Orban <dominique.orban@gmail.com>"]
+version = "0.1.0"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
