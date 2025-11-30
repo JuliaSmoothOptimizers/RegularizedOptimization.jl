@@ -4,6 +4,7 @@ author = ["Robert Baraldi <rbaraldi@uw.edu>",
           "Youssef Diouane <youssef.diouane@polymtl.ca>",
           "Maxence Gollier <maxence.gollier@polymtl.ca>",
           "Mohamed Laghdaf Habiboullah <mohamed.habiboullah@polymtl.ca>",
+          "Geoffroy Leconte <geoffroy.leconte@polymtl.ca>",
           "Dominique Orban <dominique.orban@gmail.com>"]
 version = "0.1.0"
 
