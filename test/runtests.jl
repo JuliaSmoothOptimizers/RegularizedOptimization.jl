@@ -8,7 +8,8 @@ using ADNLPModels,
   NLPModelsModifiers,
   RegularizedProblems,
   RegularizedOptimization,
-  SolverCore
+  SolverCore,
+  ProxTV
 
 Random.seed!(0)
 const global compound = 1
