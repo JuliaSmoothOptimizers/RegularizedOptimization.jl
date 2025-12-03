@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>A regularized optimization problem · RegularizedOptimization.jl</title><meta name="title" content="A regularized optimization problem · RegularizedOptimization.jl"/><meta property="og:title" content="A regularized optimization problem · RegularizedOptimization.jl"/><meta property="twitter:title" content="A regularized optimization problem · RegularizedOptimization.jl"/><meta name="description" content="Documentation for RegularizedOptimization.jl."/><meta property="og:description" content="Documentation for RegularizedOptimization.jl."/><meta property="twitter:description" content="Documentation for RegularizedOptimization.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/style.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="RegularizedOptimization.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">RegularizedOptimization.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../algorithms/">Algorithms</a></li><li><span class="tocitem">Examples</span><ul><li class="is-active"><a class="tocitem" href>A regularized optimization problem</a><ul class="internal"><li><a class="tocitem" href="#Modelling-the-problem"><span>Modelling the problem</span></a></li><li><a class="tocitem" href="#Solving-the-problem"><span>Solving the problem</span></a></li></ul></li><li><a class="tocitem" href="../ls/">A regularized nonlinear least-square problem</a></li></ul></li><li><a class="tocitem" href="../../reference/">Reference</a></li><li><a class="tocitem" href="../../bibliography/">Bibliography</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>A regularized optimization problem</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>A regularized optimization problem</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl/blob/master/docs/src/examples/basic.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="A-regularized-optimization-problem"><a class="docs-heading-anchor" href="#A-regularized-optimization-problem">A regularized optimization problem</a><a id="A-regularized-optimization-problem-1"></a><a class="docs-heading-anchor-permalink" href="#A-regularized-optimization-problem" title="Permalink"></a></h1><p>In this tutorial, we will show how to model and solve the nonconvex nonsmooth optimization problem</p><p class="math-container">\[  \min_{x \in \mathbb{R}^2} (1 - x_1)^2 + 100(x_2 - x_1^2)^2 + |x_1| + |x_2|,\]</p><p>which can be seen as a <span>$\ell_1$</span> regularization of the Rosenbrock function.  It can be shown that the solution to the problem is </p><p class="math-container">\[  x^* = \begin{pmatrix}
+  0.25\\
+  0.0575
+  \end{pmatrix}\]</p><h2 id="Modelling-the-problem"><a class="docs-heading-anchor" href="#Modelling-the-problem">Modelling the problem</a><a id="Modelling-the-problem-1"></a><a class="docs-heading-anchor-permalink" href="#Modelling-the-problem" title="Permalink"></a></h2><p>We first formulate the objective function as the sum of a smooth function <span>$f$</span> and a nonsmooth regularizer <span>$h$</span>:</p><p class="math-container">\[  (1 - x_1)^2 + 100(x_2 - x_1^2)^2 + |x_1| + |x_2| = f(x_1, x_2) + h(x_1, x_2),\]</p><p>where </p><p class="math-container">\[\begin{align*}
+f(x_1, x_2) &amp;:= (1 - x_1)^2 + 100(x_2 - x_1^2)^2,\\
+h(x_1, x_2) &amp;:= \|x\|_1.
+\end{align*}\]</p><p>To model <span>$f$</span>, we are going to use <a href="https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl">ADNLPModels.jl</a>. For the nonsmooth regularizer, we use <a href="https://github.com/JuliaFirstOrder/ProximalOperators.jl">ProximalOperators.jl</a>.  We then wrap the smooth function and the regularizer in a <code>RegularizedNLPModel</code></p><pre><code class="language-julia hljs">using ADNLPModels
+using ProximalOperators
+using RegularizedProblems
+
+# Model the function
+f_fun = x -&gt; (1 - x[1])^2 + 100*(x[2] - x[1]^2)^2
+
+# Choose a starting point for the optimization process, for the sake of this example, we choose
+x0 = [-1.0, 2.0]
+
+# Get an NLPModel corresponding to the smooth function f
+f_model = ADNLPModel(f_fun, x0, name = &quot;AD model of f&quot;)
+
+# Get the regularizer from ProximalOperators
+h = NormL1(1.0)
+
+# Wrap into a RegularizedNLPModel
+regularized_pb = RegularizedNLPModel(f_model, h)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Smooth model: ADNLPModel - Model with automatic differentiation backend ADModelBackend{
+  ForwardDiffADGradient,
+  ForwardDiffADHvprod,
+  EmptyADbackend,
+  EmptyADbackend,
+  EmptyADbackend,
+  SparseADHessian,
+  EmptyADbackend,
+}
+  Problem name: AD model of f
+   All variables: ████████████████████ 2      All constraints: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+            free: ████████████████████ 2                 free: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+           lower: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                lower: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+           upper: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                upper: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+         low/upp: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0              low/upp: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+           fixed: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                fixed: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+          infeas: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0               infeas: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+            nnzh: (  0.00% sparsity)   3               linear: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+                                                    nonlinear: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+                                                         nnzj: (------% sparsity)         
+
+  Counters:
+             obj: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 grad: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 cons: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+        cons_lin: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0             cons_nln: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 jcon: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+           jgrad: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                  jac: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0              jac_lin: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+         jac_nln: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                jprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0            jprod_lin: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+       jprod_nln: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0               jtprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0           jtprod_lin: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+      jtprod_nln: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 hess: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                hprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+           jhess: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0               jhprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+
+Regularizer: ProximalOperators.NormL1{Float64}(1.0)
+
+Selected variables: 1:2</code></pre><h2 id="Solving-the-problem"><a class="docs-heading-anchor" href="#Solving-the-problem">Solving the problem</a><a id="Solving-the-problem-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-the-problem" title="Permalink"></a></h2><p>We can now choose one of the solvers presented <a href="../../algorithms/#algorithms">here</a> to solve the problem we defined above. Please refer to other sections of this documentation to make the wisest choice for your particular problem. Depending on the problem structure and on requirements from the user, some solvers are more appropriate than others. The following tries to give a quick overview of what choices one can make.</p><p>Suppose for example that we don&#39;t want to use a quasi-Newton approach and that we don&#39;t have access to the Hessian of f, or that we don&#39;t want to incur the cost of computing it.  In this case, the most appropriate solver would be R2. For this example, we also choose a tolerance by specifying the keyword arguments <code>atol</code> and <code>rtol</code> across all solvers.</p><pre><code class="language-julia hljs">using RegularizedOptimization
+
+out = R2(regularized_pb, verbose = 100, atol = 1e-6, rtol = 1e-6)
+println(&quot;R2 converged after $(out.iter) iterations to the solution x = $(out.solution)&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">[ Info: </span></span>  iter     f(x)     h(x)   √(ξ/ν)        ρ        σ      ‖x‖      ‖s‖ R2
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0  1.0e+02  3.0e+00  4.4e+02  6.6e-01  1.4e+03  2.2e+00  3.3e-01 =
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>   100  4.2e+00  2.2e+00  4.1e+00 -5.0e-01  1.5e+02  1.5e+00  2.7e-02 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>   200  2.6e+00  9.7e-01  3.5e+00  9.9e-01  5.0e+01  7.1e-01  6.9e-02 ↘
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>   300  5.8e-01  2.9e-01  3.4e-02  9.3e-01  1.5e+02  2.5e-01  2.2e-04 ↘
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>   400  5.7e-01  3.1e-01  2.7e-03  5.2e-02  5.0e+01  2.6e-01  5.3e-05 =
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>   465  5.7e-01  3.1e-01  4.3e-04  7.9e-01  1.5e+02  2.6e-01  2.8e-06
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>R2: terminating with √(ξ/ν) = 0.0004256907271339337
+R2 converged after 465 iterations to the solution x = [0.24988875496474894, 0.05744417515023585]</code></pre><p>Now, we can actually use second information on f.  To do so, we are going to use TR, a trust-region solver that can exploit second order information.</p><pre><code class="language-julia hljs">out = TR(regularized_pb, verbose = 100, atol = 1e-6, rtol = 1e-6)
+println(&quot;TR converged after $(out.iter) iterations to the solution x = $(out.solution)&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">[ Info: </span></span> outer  inner     f(x)     h(x)  √(ξ1/ν)        ρ        Δ      ‖x‖      ‖s‖      ‖B‖ TR
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0     11  1.0e+02  3.0e+00  4.4e+02 -2.7e-02  1.0e+00  2.0e+00  1.0e+00  7.1e+02 ↘
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>   100      0  5.7e-01  3.1e-01  3.1e-03  1.0e+00  2.0e-01  2.5e-01  1.1e-05  2.5e+02 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>   200      0  5.7e-01  3.1e-01  8.6e-04  1.0e+00  2.0e-01  2.5e-01  3.1e-06  2.5e+02 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>   252      0  5.7e-01  3.1e-01  4.4e-04  1.0e+00  2.0e-01  2.5e-01  1.6e-06  2.5e+02
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>TR: terminating with √(ξ1/ν) = 0.0004409035495581565
+TR converged after 252 iterations to the solution x = [0.24987677860484372, 0.0574374062666352]</code></pre><p>Suppose for some reason we can not compute the Hessian.  In this case, we can try to switch to a quasi-Newton approximation, this can be done with NLPModelsModifiers.jl We could choose to use TR again but for the sake of this tutorial we run it with R2N</p><pre><code class="language-julia hljs">using NLPModelsModifiers
+
+# Switch the model of the smooth function to a quasi-Newton approximation
+f_model_lsr1 = LSR1Model(f_model)
+regularized_pb_lsr1 = RegularizedNLPModel(f_model_lsr1, h)
+
+# Solve with R2N
+out = R2N(regularized_pb_lsr1, verbose = 100, atol = 1e-6, rtol = 1e-6)
+println(&quot;R2N converged after $(out.iter) iterations to the solution x = $(out.solution)&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">[ Info: </span></span> outer  inner     f(x)     h(x)  √(ξ1/ν)        ρ        σ      ‖x‖      ‖s‖      ‖B‖ R2N
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0      1  1.0e+02  3.0e+00  4.4e+02 -2.5e+07  7.4e-04  2.2e+00  4.4e+02  1.0e+00 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>    56      0  5.6e-01  3.1e-01  2.0e-05  1.0e+00  7.4e-04  2.6e-01  2.2e-04  2.5e+02
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>R2N: terminating with √(ξ1/ν) = 2.003466426949438e-5
+R2N converged after 56 iterations to the solution x = [0.25000181323925946, 0.057501005835202366]</code></pre><p>Finally, TRDH and R2DH are specialized for diagonal quasi-Newton approximations, and should be used instead of TR and R2N, respectively.</p><pre><code class="language-julia hljs">f_model_sg = SpectralGradientModel(f_model)
+regularized_pb_sg = RegularizedNLPModel(f_model_sg, h)
+
+# Solve with R2DH
+out = R2DH(regularized_pb_sg, verbose = 100, atol = 1e-6, rtol = 1e-6)
+println(&quot;R2DH converged after $(out.iter) iterations to the solution x = $(out.solution)&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">[ Info: </span></span>  iter     f(x)     h(x)   √(ξ/ν)        ρ        σ      ‖x‖      ‖s‖ R2DH
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0  1.0e+02  3.0e+00  3.1e+02 -2.5e+07  7.4e-04  2.2e+00  4.4e+02 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>   100  2.9e+00  1.1e+00  6.4e+00 -8.8e+00  1.5e+01  8.3e-01  5.0e-01 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>   175  5.7e-01  3.1e-01  2.3e-04  1.2e+00  4.4e+01  2.6e-01  1.2e-06
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>R2DH: terminating with √(ξ/ν) = 0.0002310767182191461
+R2DH converged after 175 iterations to the solution x = [0.24994242234051245, 0.05747188777393554]</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../algorithms/">« Algorithms</a><a class="docs-footer-nextpage" href="../ls/">A regularized nonlinear least-square problem »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Wednesday 3 December 2025 17:56">Wednesday 3 December 2025</span>. Using Julia version 1.12.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
