@@ -1,5 +1,5 @@
 name = "RegularizedOptimization"
-uuid = "196f2941-2d58-45ba-9f13-43a2532b2fa8"
+uuid = "20620ad1-4fe4-4467-ae46-fb087718fe7b"
 author = ["Robert Baraldi <rbaraldi@uw.edu>", 
           "Youssef Diouane <youssef.diouane@polymtl.ca>",
           "Maxence Gollier <maxence-2.gollier@polymtl.ca>",
