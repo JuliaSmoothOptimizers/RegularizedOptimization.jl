@@ -402,6 +402,7 @@ function SolverCore.solve!(
   mk(d)::T = φk(d) + ψ(d)::T
 
   prox!(s, ψ, mν∇fk, ν)
+  set_solver_specific!(stats, :scp_norm, norm(s))
   mks = mk(s)
 
   ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
@@ -489,6 +490,7 @@ function SolverCore.solve!(
     set_time!(stats, time() - start_time)
 
     prox!(s, ψ, mν∇fk, ν)
+    set_solver_specific!(stats, :scp_norm, norm(s))
     mks = mk(s)
 
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()

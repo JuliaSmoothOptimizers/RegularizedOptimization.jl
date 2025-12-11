@@ -285,6 +285,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :sigma_cauchy, 1/ν)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
   φ1 = let Fk = Fk, ∇fk = ∇fk
@@ -302,6 +303,7 @@ function SolverCore.solve!(
   # Take first proximal gradient step s1 and see if current xk is nearly stationary.
   # s1 minimizes φ1(d) + ‖d‖² / 2 / ν + ψ(d) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0))
   prox!(s, ψ, mν∇fk, ν)
+  set_solver_specific!(stats, :scp_norm, norm(s))
   ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
   sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
   solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
@@ -448,9 +450,11 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
     ν = α * Δk / (1 + σmax^2 * (α * Δk + 1))
+    set_solver_specific!(stats, :sigma_cauchy, 1/ν)
     @. mν∇fk = -∇fk * ν
 
     prox!(s, ψ, mν∇fk, ν)
+    set_solver_specific!(stats, :scp_norm, norm(s))
     mks = mk1(s)
 
     ξ1 = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
