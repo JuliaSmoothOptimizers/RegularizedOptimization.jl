@@ -13,7 +13,8 @@ using LinearOperators,
   NLPModelsModifiers,
   RegularizedProblems,
   ShiftedProximalOperators,
-  SolverCore
+  SolverCore,
+  ProxTV
 using Percival: AugLagModel, update_y!, update_μ!
 
 import SolverCore.reset!
@@ -46,7 +47,9 @@ include("LM_alg.jl")
 include("LMTR_alg.jl")
 include("R2DH.jl")
 include("R2NModel.jl")
+include("iR2_alg.jl")
 include("R2N.jl")
 include("AL_alg.jl")
+include("iR2N.jl")
 
 end  # module RegularizedOptimization
