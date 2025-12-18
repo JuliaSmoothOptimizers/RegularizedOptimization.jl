@@ -33,25 +33,20 @@ end
 
 # Construct the rosenbrock problem.
 
-function rosenbrock_f(x::Vector{T}) where{T <: Real}
-  100*(x[2]-x[1]^2)^2 + (1-x[1])^2
+function rosenbrock_f(x::Vector{T}) where {T <: Real}
+  100 * (x[2] - x[1]^2)^2 + (1 - x[1])^2
 end
 
-function rosenbrock_grad!(gx::Vector{T}, x::Vector{T}) where{T <: Real}
-  gx[1] = -400*x[1]*(x[2]-x[1]^2)-2*(1-x[1])
-  gx[2] = 200*(x[2]-x[1]^2)
+function rosenbrock_grad!(gx::Vector{T}, x::Vector{T}) where {T <: Real}
+  gx[1] = -400 * x[1] * (x[2] - x[1]^2) - 2 * (1 - x[1])
+  gx[2] = 200 * (x[2] - x[1]^2)
 end
 
-function rosenbrock_hv!(hv::Vector{T}, x::Vector{T}, v::Vector{T}; obj_weight = 1.0) where{T}
-  hv[1] = (1200*x[1]^2-400*x[2]+2)*v[1] -400*x[1]*v[2]
-  hv[2] = -400*x[1]*v[1] + 200*v[2]
+function rosenbrock_hv!(hv::Vector{T}, x::Vector{T}, v::Vector{T}; obj_weight = 1.0) where {T}
+  hv[1] = (1200 * x[1]^2 - 400 * x[2] + 2) * v[1] - 400 * x[1] * v[2]
+  hv[2] = -400 * x[1] * v[1] + 200 * v[2]
 end
 
 function construct_rosenbrock_nlp()
-  return NLPModel(
-    zeros(2),
-    rosenbrock_f,
-    grad = rosenbrock_grad!,
-    hprod = rosenbrock_hv!
-  )
+  return NLPModel(zeros(2), rosenbrock_f, grad = rosenbrock_grad!, hprod = rosenbrock_hv!)
 end
