@@ -22,6 +22,7 @@ const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 include("utils.jl")
 include("test-solver.jl")
 
+include("test-R2N.jl")
 include("test_AL.jl")
 
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
