@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>A regularized nonlinear least-square problem · RegularizedOptimization.jl</title><meta name="title" content="A regularized nonlinear least-square problem · RegularizedOptimization.jl"/><meta property="og:title" content="A regularized nonlinear least-square problem · RegularizedOptimization.jl"/><meta property="twitter:title" content="A regularized nonlinear least-square problem · RegularizedOptimization.jl"/><meta name="description" content="Documentation for RegularizedOptimization.jl."/><meta property="og:description" content="Documentation for RegularizedOptimization.jl."/><meta property="twitter:description" content="Documentation for RegularizedOptimization.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/style.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="RegularizedOptimization.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">RegularizedOptimization.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../algorithms/">Algorithms</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../basic/">A regularized optimization problem</a></li><li class="is-active"><a class="tocitem" href>A regularized nonlinear least-square problem</a><ul class="internal"><li><a class="tocitem" href="#Modelling-the-problem"><span>Modelling the problem</span></a></li><li><a class="tocitem" href="#Solving-the-problem"><span>Solving the problem</span></a></li></ul></li></ul></li><li><a class="tocitem" href="../../reference/">Reference</a></li><li><a class="tocitem" href="../../bibliography/">Bibliography</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>A regularized nonlinear least-square problem</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>A regularized nonlinear least-square problem</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl/blob/master/docs/src/examples/ls.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="A-regularized-nonlinear-least-square-problem"><a class="docs-heading-anchor" href="#A-regularized-nonlinear-least-square-problem">A regularized nonlinear least-square problem</a><a id="A-regularized-nonlinear-least-square-problem-1"></a><a class="docs-heading-anchor-permalink" href="#A-regularized-nonlinear-least-square-problem" title="Permalink"></a></h1><p>In this tutorial, we will show how to model and solve the nonconvex nonsmooth least-square problem</p><p class="math-container">\[  \min_{x \in \mathbb{R}^2} \tfrac{1}{2} \sum_{i=1}^m \big(y_i - x_1 e^{x_2 t_i}\big)^2 + \lambda \|x\|_0.\]</p><p>This problem models the fitting of an exponential curve, given noisy data.</p><h2 id="Modelling-the-problem"><a class="docs-heading-anchor" href="#Modelling-the-problem">Modelling the problem</a><a id="Modelling-the-problem-1"></a><a class="docs-heading-anchor-permalink" href="#Modelling-the-problem" title="Permalink"></a></h2><p>We first formulate the objective function as the sum of a smooth function <span>$f$</span> and a nonsmooth regularizer <span>$h$</span>:</p><p class="math-container">\[  \tfrac{1}{2} \sum_{i=1}^m \big(y_i - x_1 e^{x_2 t_i}\big)^2 + \lambda \|x\|_0 = f(x) + h(x),\]</p><p>where </p><p class="math-container">\[\begin{align*}
+f(x) &amp;:= \tfrac{1}{2} \sum_{i=1}^m \big(y_i - x_1 e^{x_2 t_i}\big)^2,\\
+h(x) &amp;:= \lambda\|x\|_0.
+\end{align*}\]</p><p>To model <span>$f$</span>, we are going to use <a href="https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl">ADNLPModels.jl</a>. For the nonsmooth regularizer, we use <a href="https://github.com/JuliaFirstOrder/ProximalOperators.jl">ProximalOperators.jl</a>.  We then wrap the smooth function and the regularizer in a <code>RegularizedNLPModel</code>.</p><pre><code class="language-julia hljs">using ADNLPModels
+using ProximalOperators
+using Random
+using RegularizedProblems
+
+Random.seed!(0)
+
+# Generate synthetic nonlinear least-squares data
+m = 100
+t = range(0, 1, length=m)
+a_true, b_true = 2.0, -1.0
+y = [a_true * exp(b_true * ti) + 0.1*randn() for ti in t]
+
+# Starting point
+x0 = [1.0, 0.0]   # [a, b]
+
+# Define nonlinear residuals
+function F(x)
+  a, b = x
+  return [yi - a*exp(b*ti) for (ti, yi) in zip(t, y)]
+end
+
+# Build ADNLSModel
+f_model = ADNLSModel(F, x0, m, name = &quot;nonlinear LS model of f&quot;)
+
+# Get the regularizer from ProximalOperators
+λ  = 0.01
+h = NormL0(λ)
+
+# Wrap into a RegularizedNLPModel
+regularized_pb = RegularizedNLPModel(f_model, h)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Smooth model: ADNLSModel - Nonlinear least-squares model with automatic differentiation backend ADModelBackend{
+  ForwardDiffADGradient,
+  ForwardDiffADHvprod,
+  EmptyADbackend,
+  EmptyADbackend,
+  EmptyADbackend,
+  SparseADHessian,
+  EmptyADbackend,
+  ForwardDiffADHvprod,
+  ForwardDiffADJprod,
+  ForwardDiffADJtprod,
+  SparseADJacobian,
+  SparseADHessian,
+}
+  Problem name: nonlinear LS model of f
+   All variables: ████████████████████ 2      All constraints: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0        All residuals: ████████████████████ 100   
+            free: ████████████████████ 2                 free: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0               linear: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+           lower: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                lower: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0            nonlinear: ████████████████████ 100   
+           upper: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                upper: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 nnzj: (  0.00% sparsity)   200   
+         low/upp: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0              low/upp: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 nnzh: ( 33.33% sparsity)   2     
+           fixed: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                fixed: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+          infeas: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0               infeas: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+            nnzh: (  0.00% sparsity)   3               linear: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+                                                    nonlinear: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+                                                         nnzj: (------% sparsity)         
+                                                     lin_nnzj: (------% sparsity)         
+                                                     nln_nnzj: (------% sparsity)         
+
+  Counters:
+             obj: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 grad: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 cons: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+        cons_lin: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0             cons_nln: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 jcon: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+           jgrad: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                  jac: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0              jac_lin: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+         jac_nln: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                jprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0            jprod_lin: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+       jprod_nln: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0               jtprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0           jtprod_lin: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+      jtprod_nln: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                 hess: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0                hprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+           jhess: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0               jhprod: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0             residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+    jac_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0       jprod_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0      jtprod_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+   hess_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0       jhess_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0       hprod_residual: ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ 0     
+
+Regularizer: ProximalOperators.NormL0{Float64}(0.01)
+
+Selected variables: 1:2</code></pre><h2 id="Solving-the-problem"><a class="docs-heading-anchor" href="#Solving-the-problem">Solving the problem</a><a id="Solving-the-problem-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-the-problem" title="Permalink"></a></h2><p>We can now choose one of the solvers presented <a href="../../algorithms/#algorithms">here</a> to solve the problem we defined above. In the case of least-squares, it is usually more appropriate to choose LM or LMTR.</p><pre><code class="language-julia hljs">using RegularizedOptimization
+
+# LM is a quadratic regularization method.
+out = LM(regularized_pb, verbose = 1, atol = 1e-4)
+println(&quot;LM converged after $(out.iter) iterations.&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">[ Info: </span></span> outer  inner     f(x)     h(x)  √(ξ1/ν)        ρ        σ      ‖x‖      ‖s‖     ‖J‖² LM
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0     25  1.0e+01  1.0e-02  2.6e+01  8.4e-01  7.4e-04  1.0e+00  1.5e+00  1.3e+02 =
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     1     14  2.0e+00  2.0e-02  1.3e+01  9.9e-01  7.4e-04  2.2e+00  3.0e-01  5.2e+01 ↘
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     2     15  3.8e-01  2.0e-02  1.5e+00  1.0e+00  2.5e-04  2.2e+00  3.9e-02  7.1e+01 ↘
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     3     17  3.6e-01  2.0e-02  1.7e-02  1.0e+00  8.2e-05  2.2e+00  7.9e-04  6.8e+01 ↘
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     4      0  3.6e-01  2.0e-02  2.5e-05  1.0e+00  2.7e-05  2.2e+00  3.7e-07  6.8e+01
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>LM: terminating with √(ξ1/ν) = 2.5352037067312497e-5
+LM converged after 4 iterations.</code></pre><p>We can visualize the solution with plots,</p><pre><code class="language-julia hljs">using Plots
+
+# Extract estimated parameters
+a_est, b_est = out.solution
+
+# True curve
+y_true = [a_true * exp(b_true * ti) for ti in t]
+
+# Estimated curve
+y_est = [a_est * exp(b_est * ti) for ti in t]
+
+# Plot
+scatter(t, y, label=&quot;Noisy data&quot;, legend=:bottomleft)
+plot!(t, y_true, label=&quot;True model&quot;, lw=2)
+plot!(t, y_est, label=&quot;Fitted model&quot;, lw=2, ls=:dash)</code></pre><img src="e93f157b.svg" alt="Example block output"/><pre><code class="language-julia hljs">#We can choose LMTR instead which is a trust-region method
+out = LMTR(regularized_pb, verbose = 1, atol = 1e-4)
+println(&quot;LMTR converged after $(out.iter) iterations.&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">[ Info: </span></span> outer  inner     f(x)     h(x)  √(ξ1/ν)        ρ        Δ      ‖x‖      ‖s‖        ν LMTR
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0     16  1.0e+01  1.0e-02  2.6e+01  9.1e-01  1.0e+00  1.0e+00  1.0e+00  7.9e-03 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     1      6  1.5e+00  2.0e-02  1.2e+01  1.0e+00  3.0e+00  1.8e+00  2.2e-01  1.6e-02 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     2     18  3.6e-01  2.0e-02  1.7e-01  1.0e+00  3.0e+00  2.0e+00  1.3e-02  1.5e-02 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     3      4  3.6e-01  2.0e-02  3.9e-04  1.0e+00  3.0e+00  2.0e+00  2.9e-05  1.5e-02 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     4      0  3.6e-01  2.0e-02  8.6e-05  1.0e+00  3.0e+00  2.0e+00  9.8e-07  1.5e-02
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>LMTR: terminating with √(ξ1/ν) = 8.638767447185872e-5
+LMTR converged after 4 iterations.</code></pre><pre><code class="language-julia hljs"># Extract estimated parameters
+a_est, b_est = out.solution
+
+# Estimated curve
+y_est = [a_est * exp(b_est * ti) for ti in t]
+
+# Plot
+scatter(t, y, label=&quot;Noisy data&quot;, legend=:bottomleft)
+plot!(t, y_true, label=&quot;True model&quot;, lw=2)
+plot!(t, y_est, label=&quot;Fitted model&quot;, lw=2, ls=:dash)</code></pre><img src="352cacba.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../basic/">« A regularized optimization problem</a><a class="docs-footer-nextpage" href="../../reference/">Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Tuesday 30 December 2025 16:59">Tuesday 30 December 2025</span>. Using Julia version 1.12.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
