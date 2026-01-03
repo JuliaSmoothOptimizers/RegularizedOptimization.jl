@@ -72,7 +72,7 @@
       solve!(solver, reg_nlp, stats, σk = 1.0, β = 1e16, atol = 1e-6, rtol = 1e-6)
     ) == 0
 
-    #test_solver(reg_nlp,  # FIXME
+    #test_solver(reg_nlp,  # FIXME: divide by 0 error in the LBFGS approximation
     #            "R2N", 
     #            expected_status = :first_order,
     #            solver_kwargs=bpdn_kwargs,
