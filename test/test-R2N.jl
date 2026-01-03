@@ -41,6 +41,24 @@
       expected_status = :max_eval,
       solver_kwargs = max_eval_kwargs,
     )
+
+    callback = (nlp, solver, stats) -> begin
+      # Check that everything is well computed
+      @test all(solver.mν∇fk + solver.∇fk/stats.solver_specific[:sigma_cauchy] .≤ eps(eltype(solver.mν∇fk)))
+      # TODO: add a few tests here.
+
+      # Check user status
+      if stats.iter == 4
+        stats.status = :user
+      end
+    end
+    callback_kwargs = (x0 = [π, -π], atol = 1e-16, rtol = 1e-16, callback = callback)
+    test_solver(
+      rosenbrock_reg_nlp,
+      "R2N",
+      expected_status = :user,
+      solver_kwargs = callback_kwargs,
+    )
   end
 
   # BPDN TESTS
