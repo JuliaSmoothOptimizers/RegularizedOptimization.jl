@@ -81,7 +81,7 @@
     # Test bpdn with L-SR1 and 0-norm
     reg_nlp = RegularizedNLPModel(LSR1Model(bpdn), NormL0(λ))
     test_solver(reg_nlp, "R2N", expected_status = :first_order, solver_kwargs = bpdn_kwargs)
-    # FIXME: allocations fail with LSR1
+    # FIXME: allocations fail with LSR1 -> a PR is awaiting on LinearOperators.jl
     # solver, stats = R2NSolver(reg_nlp), RegularizedExecutionStats(reg_nlp)
     # @test @wrappedallocs(
     #   solve!(solver, reg_nlp, stats, σk = 1.0, β = 1e16, atol = 1e-6, rtol = 1e-6)
@@ -94,7 +94,7 @@
       solver_kwargs = bpdn_kwargs,
       solver_constructor_kwargs = (subsolver = R2DHSolver,),
     )
-    # FIXME: allocations fail with LSR1
+    # FIXME: allocations fail with LSR1 -> a PR is awaiting on LinearOperators.jl
     # solver, stats = R2NSolver(reg_nlp, subsolver = R2DHSolver), RegularizedExecutionStats(reg_nlp)
     # @test @wrappedallocs(
     #   solve!(solver, reg_nlp, stats, σk = 1.0, β = 1e16, atol = 1e-6, rtol = 1e-6)
