@@ -41,6 +41,7 @@ function test_solver(
   @test stats_optimized.status == expected_status
   @test obj(reg_nlp, stats_optimized.solution) == stats_optimized.objective
   @test stats_optimized.objective <= obj(reg_nlp, x0)
+  @test all(solver.mν∇fk + solver.∇fk/stats_optimized.solver_specific[:sigma_cauchy] .≤ eps(eltype(solver.mν∇fk)))
 
   # TODO: test that the optimized entries in stats_optimized and stats_basic are the same.
 

@@ -43,10 +43,8 @@
     )
 
     callback = (nlp, solver, stats) -> begin
-      # Check that everything is well computed
-      @test all(solver.mν∇fk + solver.∇fk/stats.solver_specific[:sigma_cauchy] .≤ eps(eltype(solver.mν∇fk)))
-      # TODO: add a few tests here.
-
+      # We could add some tests here as well.
+      
       # Check user status
       if stats.iter == 4
         stats.status = :user
