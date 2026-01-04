@@ -1,7 +1,12 @@
 [deps]
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 MLDatasets = "eb30cadb-4394-5ae3-aed4-317e484a6458"
 NLPModels = "a4795742-8479-5a88-8948-cc11e1c8c1a6"
 NLPModelsModifiers = "e01155f1-5c6f-4375-a9d8-616dd036575f"
 PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
+RegularizedOptimization = "196f2941-2d58-45ba-9f13-43a2532b2fa8"
 RegularizedProblems = "ea076b23-609f-44d2-bb12-a4ae45328278"
 ShiftedProximalOperators = "d4fd37fa-580c-4e43-9b30-361c21aae263"
+
+[sources]
+RegularizedOptimization = {path = "../.."}
