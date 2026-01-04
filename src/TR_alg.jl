@@ -314,6 +314,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
@@ -330,6 +331,7 @@ function SolverCore.solve!(
   end
 
   prox!(s, ψ, mν∇fk, ν₁)
+  set_solver_specific!(stats, :scp_norm, norm(s))
   ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
   ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
@@ -489,9 +491,11 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
     ν₁ = α * Δk / (1 + λmax * (α * Δk + 1))
+    set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
     @. mν∇fk = -ν₁ * ∇fk
 
     prox!(s, ψ, mν∇fk, ν₁)
+    set_solver_specific!(stats, :scp_norm, norm(s))
     ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
 
