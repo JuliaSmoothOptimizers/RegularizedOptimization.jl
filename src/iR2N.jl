@@ -113,16 +113,16 @@ A second-order quadratic regularization method for the problem
 where f: ℝⁿ → ℝ is C¹, and h: ℝⁿ → ℝ is
 lower semi-continuous, proper and prox-bounded.
 
-About each iterate xₖ, a step sₖ is computed as a solution of
+About each iterate xₖ, a step sₖ is computed as an approximate solution of
 
     min  φ(s; xₖ) + ½ σₖ ‖s‖² + ψ(s; xₖ)
 
 where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀBₖs is a quadratic approximation of f about xₖ,
 ψ(s; xₖ) is either h(xₖ + s) or an approximation of h(xₖ + s), ‖⋅‖ is the ℓ₂ norm and σₖ > 0 is the regularization parameter.
 
-For advanced usage, first define a solver "R2NSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
+For advanced usage, first define a solver "iR2NSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-    solver = R2NSolver(reg_nlp; m_monotone = 1)
+    solver = iR2NSolver(reg_nlp; subsolver = iR2Solver, m_monotone = 1)
     solve!(solver, reg_nlp)
 
     stats = RegularizedExecutionStats(reg_nlp)
@@ -154,21 +154,7 @@ The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀)
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
 
 # Callback
-The callback is called at each iteration.
-The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
-Changing any of the input arguments will affect the subsequent iterations.
-In particular, setting `stats.status = :user` will stop the algorithm.
-All relevant information should be available in `nlp` and `solver`.
-Notably, you can access, and modify, the following:
-- `solver.xk`: current iterate;
-- `solver.∇fk`: current gradient;
-- `stats`: structure holding the output of the algorithm (`GenericExecutionStats`), which contains, among other things:
-  - `stats.iter`: current iteration counter;
-  - `stats.objective`: current objective function value;
-  - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function
-  - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function
-  - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention.
-  - `stats.elapsed_time`: elapsed time in seconds.
+$(callback_docstring)
 """
 function iR2N(
   nlp::AbstractNLPModel{T, V},
