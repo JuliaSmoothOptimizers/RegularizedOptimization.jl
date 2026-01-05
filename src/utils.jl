@@ -12,53 +12,52 @@ function power_method!(B::M, v₀::S, v₁::S, max_iter::Int = 1) where {M, S}
     normalize!(v₁)
   end
   mul!(v₁, B, v₀)
-  return abs(dot(v₀, v₁))
+  approx = abs(dot(v₀, v₁))
+  return approx, !isnan(approx)
 end
 
 # Compute upper bounds for μ‖B‖₂, where μ ∈ (0, 1].
 
 # For matrices, we compute the Frobenius norm.
-function opnorm_upper_bound(B::AbstractMatrix) 
-  return norm(B, 2)
+function opnorm_upper_bound(B::AbstractMatrix)
+  bound = norm(B, 2)
+  return bound, !isnan(bound)
 end
 
 # For LBFGS, using the formula Bₖ = B\_{k-1} - aₖaₖᵀ + bₖbₖᵀ, we compute
-# ‖Bₖ‖₂ ≤ ‖B₀‖₂ + ∑ᵢ ‖bᵢ‖₂²  
+# ‖Bₖ‖₂ ≤ ‖B₀‖₂ + ∑ᵢ ‖bᵢ‖₂².
 function opnorm_upper_bound(B::LBFGSOperator{T}) where{T} 
   data = B.data
-  approx = data.scaling ? 1/data.scaling_factor : T(1)
-  approx += norm(data.b, 2)^2
-  return approx
+  bound = data.scaling ? 1/data.scaling_factor : T(1)
+  @inbounds for i = 1:data.mem
+    bound += norm(data.b[i], 2)^2
+  end
+  return bound, !isnan(bound)
 end
 
 # For LSR1, we use the formula Bₖ = B\_{k-1} + σₖaₖaₖᵀ, we compute
-# ‖Bₖ‖₂ ≤ ‖B₀‖₂ + ∑ᵢ |σᵢ|‖aᵢ‖₂² 
+# ‖Bₖ‖₂ ≤ ‖B₀‖₂ + ∑ᵢ |σᵢ|‖aᵢ‖₂².
 function opnorm_upper_bound(B::LSR1Operator{T}) where{T}
   data = B.data
-  approx = data.scaling ? 1/data.scaling_factor : T(1)
+  bound = data.scaling ? 1/data.scaling_factor : T(1)
   @inbounds for i = 1:data.mem
     if data.as[i] != 0
-      approx += norm(data.a[i])^2/abs(data.as[i])
+      bound += norm(data.a[i])^2/abs(data.as[i])
     end
   end
-  return approx
+  return bound, !isnan(bound)
 end
 
-# For diagonal operators, we compute the exact operator norm
+# For diagonal operators, we compute the exact operator norm.
 function opnorm_upper_bound(B::AbstractDiagonalQuasiNewtonOperator)
-  return norm(B.d, Inf)
+  bound = norm(B.d, Inf)
+  return bound, !isnan(bound)
 end
 
-# In the general case, we either use the power_method or Arpack, 
-# Note: Arpack allocates and the power method might be unreliable.
-function opnorm_upper_bound(B::AbstractLinearOperator; v₀ = nothing, v₁ = nothing, max_iter = -1)
-  # Fallback to either the power_method or arpack
-  if max_iter ≥ 1 
-    @assert !(isnothing(v₀) && isnothing(v₁))
-    return power_method!(B, v₀, v₁, max_iter = max_iter)
-  else
-    return opnorm(B)
-  end
+# In the general case, we use Arpack.
+# Note: Arpack allocates.
+function opnorm_upper_bound(B::AbstractLinearOperator)
+  return opnorm(B)
 end
 
 # use Arpack to obtain largest eigenvalue in magnitude with a minimum of robustness
