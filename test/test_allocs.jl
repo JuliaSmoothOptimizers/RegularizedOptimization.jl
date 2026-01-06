@@ -60,6 +60,15 @@ end
         @test stats.status == :first_order
       end
     end
+    @testset "iR2" begin
+      reg_nlp = RegularizedNLPModel(bpdn, h)
+      solver = iR2Solver(reg_nlp)
+      stats = RegularizedExecutionStats(reg_nlp)
+      @test @wrappedallocs(
+        solve!(solver, reg_nlp, stats, ν = 1.0, atol = 1e-6, rtol = 1e-6, verbose = 0)
+      ) == 0
+      @test stats.status == :first_order
+    end
     @testset "Augmented Lagrangian" begin
       continue # FIXME : fails due to type instabilities in ADNLPModels...
       reg_nlp = RegularizedNLPModel(hs8(backend = :generic), h)

@@ -8,7 +8,8 @@ using ADNLPModels,
   NLPModelsModifiers,
   RegularizedProblems,
   RegularizedOptimization,
-  SolverCore
+  SolverCore,
+  ProxTV
 
 Random.seed!(0)
 const global compound = 1
@@ -17,6 +18,7 @@ const global options = ROSolverOptions(ν = 1.0, β = 1e16, ϵa = 1e-6, ϵr = 1e
 const global bpdn, bpdn_nls, sol = bpdn_model(compound)
 const global bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
+const global p_val = 1.2 # for TVp regularization in iR2/iR2N
 
 include("test_AL.jl")
 
@@ -132,6 +134,26 @@ for (mod, mod_name) ∈ (
       end
     end
   end
+end
+
+# iR2/iR2N
+context = ProxTVContext(bpdn.meta.nvar, :lp, p_val, κs = 0.9, λ = 0.1)
+hp = NormLp(0.1, p_val, context)
+@testset "bpdn-iR2N-Lp" begin
+  x0 = zeros(bpdn.meta.nvar)
+  out = iR2N(LBFGSModel(bpdn), hp, options, x0 = x0)
+  @test typeof(out.solution) == typeof(bpdn.meta.x0)
+  @test length(out.solution) == bpdn.meta.nvar
+  @test typeof(out.dual_feas) == eltype(out.solution)
+  @test out.status == :first_order
+end
+@testset "bpdn-iR2-Lp" begin
+  x0 = zeros(bpdn.meta.nvar)
+  out = iR2(bpdn, hp, options, x0 = x0)
+  @test typeof(out.solution) == typeof(bpdn.meta.x0)
+  @test length(out.solution) == bpdn.meta.nvar
+  @test typeof(out.dual_feas) == eltype(out.solution)
+  @test out.status == :first_order
 end
 
 include("test_bounds.jl")
