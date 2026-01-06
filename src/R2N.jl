@@ -139,7 +139,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
-- `opnorm_maxiter::Int = 5`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
+- `opnorm_maxiter::Int = 5`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, an upper bound of the operator norm is computed: see `opnorm_upper_bound`.
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
@@ -295,9 +295,9 @@ function SolverCore.solve!(
   solver.subpb.model.B = hess_op(nlp, xk)
 
   if opnorm_maxiter ≤ 0
-    λmax, found_λ = opnorm(solver.subpb.model.B)
+    λmax, found_λ = opnorm_upper_bound(solver.subpb.model.B)
   else
-    λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+    λmax, found_λ = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
   end
   found_λ || error("operator norm computation failed")
 
@@ -448,9 +448,9 @@ function SolverCore.solve!(
       solver.subpb.model.B = hess_op(nlp, xk)
 
       if opnorm_maxiter ≤ 0
-        λmax, found_λ = opnorm(solver.subpb.model.B)
+        λmax, found_λ = opnorm_upper_bound(solver.subpb.model.B)
       else
-        λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+        λmax, found_λ = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
       end
       found_λ || error("operator norm computation failed")
     end
