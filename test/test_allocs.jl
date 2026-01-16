@@ -33,6 +33,7 @@ macro wrappedallocs(expr)
   kwargs_dict = Dict{Symbol, Any}(a.args[1] => a.args[2] for a in kwargs if a.head == :kw)
   quote
     function g($(argnames...); kwargs_dict...)
+      $(Expr(expr.head, argnames..., kwargs...)) # Call the function twice to make the allocated macro more stable
       @allocated $(Expr(expr.head, argnames..., kwargs...))
     end
     $(Expr(:call, :g, [esc(a) for a in args]...))
