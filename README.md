@@ -26,7 +26,7 @@ Both f and h can be nonconvex.
 
 To install the package, hit `]` from the Julia command line to enter the package manager and type
 ```julia
-pkg> add https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl
+pkg> add RegularizedOptimization
 ```
 
 ## What is Implemented?
