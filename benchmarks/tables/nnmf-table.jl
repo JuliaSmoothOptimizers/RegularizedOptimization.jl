@@ -1,4 +1,5 @@
 include("regulopt-tables.jl")
+include("regulopt-plots.jl")
 
 random_seed = 1234
 Random.seed!(random_seed)
@@ -137,4 +138,18 @@ benchmark_table(
   "NNMF with m = $m, n = $n, k = $k, ν = $ν, λ = $λ",
   random_seed,
   tex = false,
+);
+
+p = benchmark_plot(
+  f,
+  selected,
+  h,
+  solvers[subset],
+  subsolvers[subset],
+  solver_options[subset],
+  subsolver_options[subset],
+  random_seed;
+  measured = :grad,
+  xmode = "linear",
+  ymode = "log", 
 );
