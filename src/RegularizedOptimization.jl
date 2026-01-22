@@ -16,6 +16,8 @@ using LinearOperators,
   SolverCore
 using Percival: AugLagModel, update_y!, update_μ!
 
+import SolverCore.reset!
+
 const callback_docstring = "
 The callback is called at each iteration.
 The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.

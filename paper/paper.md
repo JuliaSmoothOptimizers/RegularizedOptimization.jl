@@ -127,6 +127,7 @@ solve!(solver, reg_nlp, stats; atol=1e-5, rtol=1e-5, verbose=1, sub_kwargs=(max_
 ## Numerical results
 
 We compare **TR**, **R2N**, **LM** and **LMTR** from our library on the SVM problem.
+Experiments were performed on macOS (arm64) on an Apple M2 (8-core) machine, using Julia 1.11.7.
 
 The table reports the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time and the final objective value.
 For TR and R2N, we use limited-memory SR1 Hessian approximations.
