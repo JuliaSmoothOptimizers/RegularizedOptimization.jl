@@ -67,7 +67,7 @@ function R2NSolver(
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk)
 
-  Bk = hess_op(reg_nlp.model, x0)
+  Bk = hess_op(reg_nlp.model, xk)
   sub_nlp = R2NModel(Bk, ∇fk, T(1), x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
@@ -292,7 +292,6 @@ function SolverCore.solve!(
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
   λmax::T = T(1)
   found_λ = true
-  solver.subpb.model.B = hess_op(nlp, xk)
 
   if opnorm_maxiter ≤ 0
     λmax, found_λ = opnorm(solver.subpb.model.B)
@@ -445,7 +444,6 @@ function SolverCore.solve!(
         push!(nlp, s, solver.y)
         qn_copy!(nlp, solver, stats)
       end
-      solver.subpb.model.B = hess_op(nlp, xk)
 
       if opnorm_maxiter ≤ 0
         λmax, found_λ = opnorm(solver.subpb.model.B)
