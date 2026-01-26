@@ -34,6 +34,7 @@ function R2NSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
   subsolver = R2Solver,
   m_monotone::Int = 1,
+  yk::V = zeros(T, reg_nlp.model.meta.ncon)
 ) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
@@ -67,7 +68,7 @@ function R2NSolver(
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk)
 
-  Bk = hess_op(reg_nlp.model, xk)
+  Bk = hess_op(reg_nlp.model, xk, yk)
   sub_nlp = R2NModel(Bk, ∇fk, T(1), x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
@@ -115,7 +116,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀBₖs is a quadratic appr
 
 For advanced usage, first define a solver "R2NSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-    solver = R2NSolver(reg_nlp; m_monotone = 1)
+    solver = R2NSolver(reg_nlp; m_monotone = 1, yk = zeros(T, reg_nlp.model.meta.ncon))
     solve!(solver, reg_nlp)
 
     stats = RegularizedExecutionStats(reg_nlp)
@@ -141,6 +142,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
 - `opnorm_maxiter::Int = 5`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
+- `yk::V = zeros(T, reg_nlp.model.meta.ncon)`: estimate of the Lagrange multipliers; useful in the case where reg_nlp represents a constrained problem. If nonzero, the matrix Bₖ is computed as `Bₖ = ∇²L(xk, yk)`;
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.

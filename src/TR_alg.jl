@@ -35,6 +35,7 @@ function TRSolver(
   χ::X = NormLinf(one(T)),
   subsolver = R2Solver,
   m_monotone::Int = 1,
+  yk::V = zeros(T, reg_nlp.model.meta.ncon)
 ) where {T, V, X}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
@@ -67,7 +68,7 @@ function TRSolver(
     shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk, T(1), χ)
 
-  Bk = hess_op(reg_nlp.model, xk)
+  Bk = hess_op(reg_nlp.model, xk, yk)
   sub_nlp = R2NModel(Bk, ∇fk, zero(T), x0) #FIXME 
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
@@ -115,7 +116,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀ Bₖ s  is a quadratic a
 
 For advanced usage, first define a solver "TRSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-    solver = TRSolver(reg_nlp; χ =  NormLinf(1), subsolver = R2Solver, m_monotone = 1)
+    solver = TRSolver(reg_nlp; χ =  NormLinf(1), subsolver = R2Solver, m_monotone = 1, yk = zeros(T, reg_nlp.model.meta.ncon))
     solve!(solver, reg_nlp)
 
     stats = RegularizedExecutionStats(reg_nlp)
@@ -138,6 +139,7 @@ For advanced usage, first define a solver "TRSolver" to preallocate the memory u
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: trust-region radius parameter multiplier. Must satisfy `γ > 1`. The trust-region radius is updated as Δ := Δ*γ when the iteration is very successful and Δ := Δ/γ when the iteration is unsuccessful;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, TR is monotone but the non-monotone variant will be used if `m_monotone > 1`;
+- `yk::V = zeros(T, reg_nlp.model.meta.ncon)`: estimate of the Lagrange multipliers; useful in the case where reg_nlp represents a constrained problem. If nonzero, the matrix Bₖ is computed as `Bₖ = ∇²L(xk, yk)`;
 - `opnorm_maxiter::Int = 5`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
 - `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
 - `subsolver::S = R2Solver`: subsolver used to solve the subproblem that appears at each iteration.
