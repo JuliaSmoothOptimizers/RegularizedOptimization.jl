@@ -68,4 +68,33 @@ end
     B = DiagonalAndrei(randn(Float32, n))
     test_opnorm_upper_bound(B, m, n)
   end
+
+  @testset "Matrix" begin
+    is_upper_bound = true
+    for _ = 1:m
+      B = randn(n, n)
+      upper_bound, found =  RegularizedOptimization.opnorm_upper_bound(B)
+      if opnorm(Matrix(B)) > upper_bound || !found
+        is_upper_bound = false
+        break
+      end
+    end
+
+    @test is_upper_bound == true
+  end
+
+  @testset "Arpack" begin
+    is_upper_bound = true
+    for _ = 1:m
+      B = randn(n, n)
+      B = LinearOperator((B + B')/2, symmetric = true)
+      upper_bound, found =  RegularizedOptimization.opnorm_upper_bound(B)
+      
+      if opnorm(Matrix(B)) > upper_bound || !found
+        is_upper_bound = false
+        break
+      end
+    end
+    @test is_upper_bound == true
+  end
 end
