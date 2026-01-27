@@ -90,7 +90,7 @@ end
       B = LinearOperator((B + B')/2, symmetric = true)
       upper_bound, found =  RegularizedOptimization.opnorm_upper_bound(B)
       
-      if opnorm(Matrix(B)) > upper_bound || !found
+      if opnorm(Matrix(B)) > upper_bound + 1e-12 || !found
         is_upper_bound = false
         break
       end
