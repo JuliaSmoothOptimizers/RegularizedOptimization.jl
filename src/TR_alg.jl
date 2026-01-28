@@ -145,7 +145,7 @@ For advanced usage, first define a solver "TRSolver" to preallocate the memory u
 - `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
-The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
+The algorithm stops when `‖sᶜᵖ‖/ν < atol + rtol*‖s₀ᶜᵖ‖/ν ` where sᶜᵖ ∈ argminₛ f(xₖ) + ∇f(xₖ)ᵀs + ψ(s; xₖ) ½ ν⁻¹ ‖s‖².
 
 #  Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
@@ -268,12 +268,12 @@ function SolverCore.solve!(
 
   if verbose > 0
     @info log_header(
-      [:outer, :inner, :fx, :hx, :xi, :ρ, :Δ, :normx, :norms, :normB, :arrow],
+      [:outer, :inner, :fx, :hx, :norm_s_cauchydν, :ρ, :Δ, :normx, :norms, :normB, :arrow],
       [Int, Int, T, T, T, T, T, T, T, T, Char],
       hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
         :fx => "f(x)",
         :hx => "h(x)",
-        :xi => "√(ξ1/ν)",
+        :norm_s_cauchydν => "‖sᶜᵖ‖/ν",
         :normx => "‖x‖",
         :norms => "‖s‖",
         :normB => "‖B‖",
@@ -283,7 +283,6 @@ function SolverCore.solve!(
     )
   end
 
-  local ξ1::T
   local ρk = zero(T)
   local prox_evals::Int = 0
 
@@ -306,7 +305,6 @@ function SolverCore.solve!(
   found_λ || error("operator norm computation failed")
 
   ν₁ = α * Δk / (1 + λmax * (α * Δk + 1))
-  sqrt_ξ1_νInv = one(T)
 
   @. mν∇fk = -ν₁ * ∇fk
 
@@ -320,27 +318,18 @@ function SolverCore.solve!(
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
   # models
-  φ1 = let ∇fk = ∇fk
-    d -> dot(∇fk, d)
-  end
-  mk1 = let ψ = ψ, φ1 = φ1
-    d -> φ1(d) + ψ(d)
-  end
-
   mk = let ψ = ψ, solver = solver
     d -> obj(solver.subpb.model, d) + ψ(d)::T
   end
 
   prox!(s, ψ, mν∇fk, ν₁)
-  ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
-  ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-  sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
+  norm_s_cauchy = norm(s)
+  norm_s_cauchydν = norm_s_cauchy / ν₁
+  
+  atol += rtol * norm_s_cauchydν # make stopping test absolute and relative
+  sub_atol += rtol * norm_s_cauchydν
 
-  solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
-  (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
-    error("TR: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-  atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
-  sub_atol += rtol * sqrt_ξ1_νInv
+  solved = norm_s_cauchydν ≤ atol
 
   set_status!(
     stats,
@@ -359,8 +348,9 @@ function SolverCore.solve!(
   callback(nlp, solver, stats)
 
   done = stats.status != :unknown
+
   while !done
-    sub_atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv))
+    sub_atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, norm_s_cauchydν))
     ∆_effective = min(β * χ(s), Δk)
 
     if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
@@ -379,7 +369,7 @@ function SolverCore.solve!(
           solver.subpb,
           solver.substats;
           x = s,
-          atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
+          atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, norm_s_cauchydν)),
           Δk = ∆_effective / 10,
           sub_kwargs...,
         )
@@ -389,7 +379,7 @@ function SolverCore.solve!(
           solver.subpb,
           solver.substats;
           x = s,
-          atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
+          atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, norm_s_cauchydν)),
           ν = ν₁,
           sub_kwargs...,
         )
@@ -422,7 +412,7 @@ function SolverCore.solve!(
           solver.substats.iter,
           fk,
           hk,
-          sqrt_ξ1_νInv,
+          norm_s_cauchydν,
           ρk,
           Δk,
           χ(xk),
@@ -494,12 +484,10 @@ function SolverCore.solve!(
     @. mν∇fk = -ν₁ * ∇fk
 
     prox!(s, ψ, mν∇fk, ν₁)
-    ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
-    sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
-
-    solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
-    (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
-      error("TR: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    norm_s_cauchy = norm(s)
+    norm_s_cauchydν = norm_s_cauchy / ν₁
+    
+    solved = norm_s_cauchydν ≤ atol
 
     set_status!(
       stats,
@@ -521,12 +509,12 @@ function SolverCore.solve!(
   end
   if verbose > 0 && stats.status == :first_order
     @info log_row(
-      Any[stats.iter, solver.substats.iter, fk, hk, sqrt_ξ1_νInv, ρk, Δk, χ(xk), χ(s), λmax, ""],
+      Any[stats.iter, solver.substats.iter, fk, hk, norm_s_cauchydν, ρk, Δk, χ(xk), χ(s), λmax, ""],
       colsep = 1,
     )
-    @info "TR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
+    @info "TR: terminating with ‖sᶜᵖ‖/ν = $(norm_s_cauchydν)"
   end
 
   set_solution!(stats, xk)
-  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ1_νInv)
+  set_residuals!(stats, zero(eltype(xk)), norm_s_cauchydν)
 end
