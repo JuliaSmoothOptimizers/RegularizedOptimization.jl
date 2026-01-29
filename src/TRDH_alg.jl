@@ -408,7 +408,7 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(nlp, solver, stats)
+  callback(reg_nlp, solver, stats)
 
   done = stats.status != :unknown
 
@@ -514,7 +514,7 @@ function SolverCore.solve!(
       ),
     )
 
-    callback(nlp, solver, stats)
+    callback(reg_nlp, solver, stats)
 
     done = stats.status != :unknown
   end
