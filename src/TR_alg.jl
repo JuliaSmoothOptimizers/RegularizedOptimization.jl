@@ -67,7 +67,7 @@ function TRSolver(
     shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk, T(1), χ)
 
-  Bk = hess_op(reg_nlp.model, xk)
+  Bk = hess_op(reg_nlp, xk)
   sub_nlp = R2NModel(Bk, ∇fk, zero(T), x0) #FIXME 
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
