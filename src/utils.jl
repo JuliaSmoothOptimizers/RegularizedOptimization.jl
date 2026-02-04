@@ -27,25 +27,15 @@ end
 # For LBFGS, using the formula Bₖ = B\_{k-1} - aₖaₖᵀ + bₖbₖᵀ, we compute
 # ‖Bₖ‖₂ ≤ ‖B₀‖₂ + ∑ᵢ ‖bᵢ‖₂².
 function opnorm_upper_bound(B::LBFGSOperator{T}) where{T} 
-  data = B.data
-  bound = data.scaling && !iszero(data.scaling_factor) ? 1/abs(data.scaling_factor) : T(1)
-  @inbounds for i = 1:data.mem
-    bound += norm(data.b[i], 2)^2
-  end
-  return bound, !isnan(bound)
+  upper_bound = B.data.opnorm_upper_bound
+  return upper_bound, !isnan(upper_bound)
 end
 
 # For LSR1, we use the formula Bₖ = B\_{k-1} + σₖaₖaₖᵀ, we compute
 # ‖Bₖ‖₂ ≤ ‖B₀‖₂ + ∑ᵢ |σᵢ|‖aᵢ‖₂².
 function opnorm_upper_bound(B::LSR1Operator{T}) where{T}
-  data = B.data
-  bound = data.scaling && !iszero(data.scaling_factor) ? 1/abs(data.scaling_factor) : T(1)
-  @inbounds for i = 1:data.mem
-    if data.as[i] != 0
-      bound += norm(data.a[i])^2/abs(data.as[i])
-    end
-  end
-  return bound, !isnan(bound)
+  upper_bound = B.data.opnorm_upper_bound
+  return upper_bound, !isnan(upper_bound)
 end
 
 # For diagonal operators, we compute the exact operator norm.
