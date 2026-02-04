@@ -156,7 +156,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 - `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
 - `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 
-The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
+The algorithm stops when `‖sᶜᵖ‖/ν < atol + rtol*‖s₀ᶜᵖ‖/ν ` where sᶜᵖ ∈ argminₛ f(xₖ) + ∇f(xₖ)ᵀs + ψ(s; xₖ) ½ ν⁻¹ ‖s‖².
 
 # Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
@@ -367,13 +367,13 @@ function SolverCore.solve!(
 
   if verbose > 0
     @info log_header(
-      [:iter, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :arrow],
+      [:iter, :fx, :hx, :norm_s_cauchydν, :ρ, :σ, :normx, :norms, :arrow],
       [Int, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Char],
       hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
         :iter => "iter",
         :fx => "f(x)",
         :hx => "h(x)",
-        :xi => "√(ξ/ν)",
+        :norm_s_cauchydν => "‖sᶜᵖ‖/ν",
         :ρ => "ρ",
         :σ => "σ",
         :normx => "‖x‖",
@@ -407,15 +407,14 @@ function SolverCore.solve!(
 
   prox!(s, ψ, mν∇fk, ν)
   mks = mk(s)
+  norm_s_cauchy = norm(s)
+  norm_s_cauchydν = norm_s_cauchy / ν
 
   ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
 
-  sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
-  atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
+  atol += rtol * norm_s_cauchydν # make stopping test absolute and relative
 
-  solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
-  (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
-    error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
+  solved = norm_s_cauchydν ≤ atol
 
   set_status!(
     stats,
@@ -453,11 +452,11 @@ function SolverCore.solve!(
           stats.iter,
           fk,
           hk,
-          sqrt_ξ_νInv,
+          norm_s_cauchydν,
           ρk,
           σk,
           norm(xk),
-          norm(s),
+          norm_s_cauchy,
           (η2 ≤ ρk < Inf) ? '↘' : (ρk < η1 ? '↗' : '='),
         ],
         colsep = 1,
@@ -494,12 +493,11 @@ function SolverCore.solve!(
 
     prox!(s, ψ, mν∇fk, ν)
     mks = mk(s)
+    norm_s_cauchy = norm(s)
+    norm_s_cauchydν = norm_s_cauchy / ν
 
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
-    sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
-    solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
-    (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
-      error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
+    solved = norm_s_cauchydν ≤ atol
 
     set_status!(
       stats,
@@ -521,11 +519,11 @@ function SolverCore.solve!(
   end
 
   if verbose > 0 && stats.status == :first_order
-    @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), ""], colsep = 1)
-    @info "R2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
+    @info log_row(Any[stats.iter, fk, hk, norm_s_cauchydν, ρk, σk, norm(xk), norm_s_cauchy, ""], colsep = 1)
+    @info "R2: terminating with ‖sᶜᵖ‖/ν = $(norm_s_cauchydν)"
   end
 
   set_solution!(stats, xk)
-  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
+  set_residuals!(stats, zero(eltype(xk)), norm_s_cauchy)
   return stats
 end

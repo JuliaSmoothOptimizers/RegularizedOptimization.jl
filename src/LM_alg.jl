@@ -142,7 +142,7 @@ For advanced usage, first define a solver "LMSolver" to preallocate the memory u
 - `subsolver = R2Solver`: the solver used to solve the subproblems.
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
-The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
+The algorithm stops when `‖sᶜᵖ‖/ν < atol + rtol*‖s₀ᶜᵖ‖/ν ` where sᶜᵖ ∈ argminₛ f(xₖ) + ∇f(xₖ)ᵀs + ψ(s; xₖ) ½ ν⁻¹ ‖s‖².
 
 # Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
@@ -254,12 +254,12 @@ function SolverCore.solve!(
 
   if verbose > 0
     @info log_header(
-      [:outer, :inner, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :normJ, :arrow],
+      [:outer, :inner, :fx, :hx, :norm_s_cauchydν, :ρ, :σ, :normx, :norms, :normJ, :arrow],
       [Int, Int, T, T, T, T, T, T, T, T, Char],
       hdr_override = Dict{Symbol, String}(
         :fx => "f(x)",
         :hx => "h(x)",
-        :xi => "√(ξ1/ν)",
+        :norm_s_cauchydν => "‖sᶜᵖ‖/ν",
         :normx => "‖x‖",
         :norms => "‖s‖",
         :normJ => "‖J‖²",
@@ -293,26 +293,17 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
-  φ1 = let Fk = Fk, ∇fk = ∇fk
-    d -> dot(Fk, Fk) / 2 + dot(∇fk, d) # ∇fk = Jk^T Fk
-  end
-
-  mk1 = let φ1 = φ1, ψ = ψ
-    d -> φ1(d) + ψ(d)
-  end
-
   mk = let ψ = ψ, solver = solver
     d -> obj(solver.subpb.model, d, skip_sigma = true) + ψ(d)
   end
 
   prox!(s, ψ, mν∇fk, ν)
-  ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
-  sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
-  solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
-  (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
-    error("LM: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-  atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
+  norm_s_cauchy = norm(s)
+  norm_s_cauchydν = norm_s_cauchy / ν
+  
+  atol += rtol * norm_s_cauchydν # make stopping test absolute and relative
 
+  solved = norm_s_cauchydν ≤ atol
   set_status!(
     stats,
     get_status(
@@ -332,7 +323,7 @@ function SolverCore.solve!(
   done = stats.status != :unknown
 
   while !done
-    sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
+    sub_atol = stats.iter == 0 ? 1.0e-3 : min(norm_s_cauchydν ^ (1.5), norm_s_cauchydν * 1e-3)
     solver.subpb.model.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
     if isa(solver.subsolver, R2Solver) #FIXME
@@ -439,15 +430,10 @@ function SolverCore.solve!(
 
     @. mν∇fk = - ν * ∇fk
     prox!(s, ψ, mν∇fk, ν)
-    mks = mk1(s)
-
-    ξ1 = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
-
-    sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
-    solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
-
-    (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
-      error("LM: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+    norm_s_cauchy = norm(s)
+    norm_s_cauchydν = norm_s_cauchy / ν
+    
+    solved = norm_s_cauchydν ≤ atol
 
     set_status!(
       stats,
@@ -470,13 +456,13 @@ function SolverCore.solve!(
 
   if verbose > 0 && stats.status == :first_order
     @info log_row(
-      Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, ρk, σk, norm(xk), norm(s), 1 / ν, ""],
+      Any[stats.iter, 0, fk, hk, norm_s_cauchydν, ρk, σk, norm(xk), norm(s), 1 / ν, ""],
       colsep = 1,
     )
-    @info "LM: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
+    @info "LM: terminating with ‖sᶜᵖ‖/ν = $(norm_s_cauchydν)"
   end
 
   set_solution!(stats, xk)
-  set_residuals!(stats, zero(T), sqrt_ξ1_νInv)
+  set_residuals!(stats, zero(T), norm_s_cauchydν)
   return stats
 end
