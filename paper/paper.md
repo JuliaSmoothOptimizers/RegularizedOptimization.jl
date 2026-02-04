@@ -96,7 +96,7 @@ This design makes for a convenient source of problem instances for benchmarking 
 
 ## Support for both exact and approximate Hessian
 
-In contrast to [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl), methods such as **R2N** and **TR** support exact Hessians as well as several Hessian approximations of $f$.
+In contrast to [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) methods such as **R2N** and **TR** support exact Hessians as well as several Hessian approximations of $f$.
 Hessian–vector products $v \mapsto Hv$ can be obtained via automatic differentiation through [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) or implemented manually.
 Limited-memory and diagonal quasi-Newton approximations can be selected from [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
 This design allows solvers to exploit second-order information without explicitly forming dense or sparse Hessians, which is often expensive in time and memory, particularly at large scale.
