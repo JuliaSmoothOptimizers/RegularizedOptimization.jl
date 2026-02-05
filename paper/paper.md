@@ -50,11 +50,11 @@ Currently, the following solvers are implemented:
 All solvers rely on first derivatives of $f$ and $c$, and optionally on their second derivatives in the form of Hessian-vector products.
 If second derivatives are not available, quasi-Newton approximations can be used.
 In addition, the proximal mapping of the nonsmooth part $h$, or adequate models thereof, must be evaluated.
-At each iteration, a step is computed by solving a subproblem of the form \eqref{eq:nlp} inexactly, in which $f$, $h$, and $c$ are replaced with appropriate models about the current iterate.
+At each iteration, a step is computed by solving a subproblem of the form \eqref{eq:nlp} inexactly, in which $f$, $h$, and $c$ are replaced with appropriate models around the current iterate.
 The solvers R2, R2DH and TRDH are particularly well suited to solve the subproblems, though they are general enough to solve \eqref{eq:nlp}.
-All solvers are implemented in place, so re-solves incur no allocations.
+All solvers are allocation-free, so re-solves incur no additional allocations.
 To illustrate our claim of extensibility, a first version of the AL solver was implemented by an external contributor.
-Furthermore, a nonsmooth penalty approach, described in [@diouane-gollier-orban-2024] is currently being developed, that relies on the library to efficiently solve the subproblems.
+Furthermore, a nonsmooth penalty approach, described in [@diouane-gollier-orban-2024], is currently being developed, that relies on the library to efficiently solve the subproblems.
 
 <!-- ## Requirements of the ShiftedProximalOperators.jl -->
 <!---->
@@ -85,7 +85,7 @@ Given $f$ and $h$, the companion package [RegularizedProblems.jl](https://github
 reg_nlp = RegularizedNLPModel(f, h)
 ```
 
-They can also be paired into a *Regularized Nonlinear Least-Squares Model* if $f(x) = \tfrac{1}{2} \|F(x)\|^2$ for some residual $F: \mathbb{R}^n \to \mathbb{R}^m$, in the case of the **LM** and **LMTR** solvers.
+They can also be paired into a *Regularized Nonlinear Least-Squares Model*, used by the **LM** and **LMTR** solvers, if $f(x) = \tfrac{1}{2} \|F(x)\|^2$ for some residual $F: \mathbb{R}^n \to \mathbb{R}^m$.
 
 ```julia
 reg_nls = RegularizedNLSModel(F, h)
@@ -96,7 +96,7 @@ This design makes for a convenient source of problem instances for benchmarking 
 
 ## Support for both exact and approximate Hessian
 
-In contrast with [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl), methods such as **R2N** and **TR** methods support exact Hessians as well as several Hessian approximations of $f$.
+In contrast to [ProximalAlgorithms.jl](https://github.com/JuliaFirstOrder/ProximalAlgorithms.jl), [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) methods such as **R2N** and **TR** support exact Hessians as well as several Hessian approximations of $f$.
 Hessian–vector products $v \mapsto Hv$ can be obtained via automatic differentiation through [ADNLPModels.jl](https://github.com/JuliaSmoothOptimizers/ADNLPModels.jl) or implemented manually.
 Limited-memory and diagonal quasi-Newton approximations can be selected from [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
 This design allows solvers to exploit second-order information without explicitly forming dense or sparse Hessians, which is often expensive in time and memory, particularly at large scale.
@@ -105,7 +105,7 @@ This design allows solvers to exploit second-order information without explicitl
 
 We illustrate the capabilities of [RegularizedOptimization.jl](https://github.com/JuliaSmoothOptimizers/RegularizedOptimization.jl) on a Support Vector Machine (SVM) model with a $\ell_{1/2}^{1/2}$ penalty for image classification [@aravkin-baraldi-orban-2024].  
 
-Below is a condensed example showing how to define and solve the problem, and perform a solve followed by a re-solve:
+Below is a condensed example showing how to define the problem and perform a solve followed by a re-solve:
 
 ```julia
 using LinearAlgebra, Random, ProximalOperators
@@ -129,7 +129,7 @@ solve!(solver, reg_nlp, stats; atol=1e-5, rtol=1e-5, verbose=1, sub_kwargs=(max_
 We compare **TR**, **R2N**, **LM** and **LMTR** from our library on the SVM problem.
 Experiments were performed on macOS (arm64) on an Apple M2 (8-core) machine, using Julia 1.11.7.
 
-The table reports the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time and the final objective value.
+The table reports the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time, and the final objective value.
 For TR and R2N, we use limited-memory SR1 Hessian approximations.
 The subproblem solver is **R2**.
 
@@ -144,7 +144,7 @@ Note that the final objective values differ due to the nonconvexity of the probl
 However, it requires more proximal evaluations, but these are inexpensive.
 **LMTR** and **LM** require the fewest function evaluations, but incur many Jacobian–vector products, and are the slowest in terms of time.
 
-Ongoing research aims to reduce the number of proximal evaluations.
+Ongoing research aims to reduce the number of proximal evaluations, for instance by allowing inexact proximal computations [@allaire-le-digabel-orban-2025].
 
 # Acknowledgements
 
