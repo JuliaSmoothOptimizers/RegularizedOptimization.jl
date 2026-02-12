@@ -7,21 +7,36 @@ tags:
   - regularization methods
   - trust-region methods
 authors:
-  - name: Youssef Diouane
-    orcid: 0000-0002-6609-7330
-    affiliation: 1
   - name: Maxence Gollier^[corresponding author]
     orcid: 0009-0008-3158-7912
     affiliation: 1
   - name: Mohamed Laghdaf Habiboullah^[corresponding author]
     orcid: 0009-0005-3631-2799
     affiliation: 1
+  - name: Geoffroy Leconte
+    orcid: 0000-0002-1825-1639
+    affiliation: 2
+  - name: Robert Baraldi
+    orcid: 0000-0003-3699-6770
+    affiliation: 3
+  - name: Alberto De Marchi
+    orcid: 0000-0002-3545-6898
+    affiliation: 4
   - name: Dominique Orban
     orcid: 0000-0002-8017-7687
+    affiliation: 1
+  - name: Youssef Diouane
+    orcid: 0000-0002-6609-7330
     affiliation: 1
 affiliations:
  - name: GERAD and Department of Mathematics and Industrial Engineering, Polytechnique Montréal, QC, Canada
    index: 1
+ - name: Hexaly
+   index: 2
+ - name: Sandia National Laboratories
+   index: 3
+ - name: Universität der Bundeswehr München
+   index: 4
 date: 1 September 2025
 bibliography: paper.bib
 header-includes: |
@@ -148,7 +163,6 @@ Ongoing research aims to reduce the number of proximal evaluations, for instance
 
 # Acknowledgements
 
-The authors would like to thank A. De Marchi for the Augmented Lagrangian solver.
 M. L. Habiboullah is supported by an excellence FRQNT grant.
 Y. Diouane, M. Gollier and D. Orban are partially supported by an NSERC Discovery Grant.
 
