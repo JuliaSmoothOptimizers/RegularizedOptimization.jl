@@ -96,6 +96,13 @@ function R2NSolver(
   )
 end
 
+function SolverCore.reset!(solver::R2NSolver)
+  _reset_power_method!(solver.v0)
+  LinearOperators.reset!(solver.subpb.model.B)
+end
+
+SolverCore.reset!(solver::R2NSolver, model) = SolverCore.reset!(solver)
+
 """
     R2N(reg_nlp; kwargs…)
 
@@ -225,8 +232,6 @@ function SolverCore.solve!(
   sub_kwargs::NamedTuple = NamedTuple(),
 ) where {T, V, G}
   reset!(stats)
-  _reset_power_method!(solver.v0)
-  LinearOperators.reset!(reg_nlp.model)
 
   # Retrieve workspace
   selected = reg_nlp.selected

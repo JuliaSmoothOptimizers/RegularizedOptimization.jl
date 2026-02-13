@@ -90,6 +90,12 @@ function TRDHSolver(
   )
 end
 
+function SolverCore.reset!(solver::TRDHSolver)
+  LinearOperators.reset!(solver.D)
+end
+
+SolverCore.reset!(solver::TRDHSolver, model) = SolverCore.reset!(solver)
+
 """
     TRDH(reg_nlp; kwargs…)
     TRDH(nlp, h, χ, options; kwargs...)
@@ -247,7 +253,6 @@ function SolverCore.solve!(
   compute_grad::Bool = true,
 ) where {T, G, V}
   reset!(stats)
-  LinearOperators.reset!(reg_nlp.model)
 
   # Retrieve workspace
   selected = reg_nlp.selected

@@ -81,6 +81,12 @@ function R2DHSolver(
   )
 end
 
+function SolverCore.reset!(solver::R2DHSolver)
+  LinearOperators.reset!(solver.D)
+end
+
+SolverCore.reset!(solver::R2DHSolver, model) = SolverCore.reset!(solver)
+
 """
     R2DH(reg_nlp; kwargs…)
 
@@ -234,7 +240,6 @@ function SolverCore.solve!(
   compute_grad::Bool = true,
 ) where {T, V}
   reset!(stats)
-  LinearOperators.reset!(reg_nlp.model)
 
   # Retrieve workspace
   selected = reg_nlp.selected

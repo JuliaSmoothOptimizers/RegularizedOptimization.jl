@@ -95,6 +95,14 @@ function TRSolver(
   )
 end
 
+function SolverCore.reset!(solver::TRSolver)
+  _reset_power_method!(solver.v0)
+  LinearOperators.reset!(solver.subpb.model.B)
+end
+
+SolverCore.reset!(solver::TRSolver, model) = SolverCore.reset!(solver)
+
+
 """
     TR(reg_nlp; kwargs…)
     TR(nlp, h, χ, options; kwargs...)
@@ -219,8 +227,6 @@ function SolverCore.solve!(
   compute_grad::Bool = true,
 ) where {T, G, V}
   reset!(stats)
-  _reset_power_method!(solver.v0)
-  LinearOperators.reset!(reg_nlp.model)
 
   # Retrieve workspace
   selected = reg_nlp.selected
