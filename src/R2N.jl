@@ -35,6 +35,7 @@ function R2NSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
   subsolver = R2Solver,
   m_monotone::Int = 1,
+  sparse = false
 ) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
@@ -69,7 +70,7 @@ function R2NSolver(
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk)
 
-  Bk = hess_op(reg_nlp, xk)
+  Bk = sparse ? hess(reg_nlp, xk) : hess_op(reg_nlp, xk)
   sub_nlp = QuadraticModel(∇fk, Bk, σ = T(1), x0 = x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
