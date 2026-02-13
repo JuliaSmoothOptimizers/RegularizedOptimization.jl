@@ -220,6 +220,7 @@ function SolverCore.solve!(
 ) where {T, G, V}
   reset!(stats)
   _reset_power_method!(solver.v0)
+  LinearOperators.reset!(reg_nlp.model)
 
   # Retrieve workspace
   selected = reg_nlp.selected

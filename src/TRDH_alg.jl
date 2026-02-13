@@ -247,6 +247,7 @@ function SolverCore.solve!(
   compute_grad::Bool = true,
 ) where {T, G, V}
   reset!(stats)
+  LinearOperators.reset!(reg_nlp.model)
 
   # Retrieve workspace
   selected = reg_nlp.selected
