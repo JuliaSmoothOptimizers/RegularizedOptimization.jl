@@ -31,11 +31,11 @@ authors:
 affiliations:
  - name: GERAD and Department of Mathematics and Industrial Engineering, Polytechnique Montréal, QC, Canada
    index: 1
- - name: Hexaly
+ - name: Hexaly, France
    index: 2
- - name: Sandia National Laboratories
+ - name: Sandia National Laboratories, USA
    index: 3
- - name: Universität der Bundeswehr München
+ - name: University of the Bundeswehr Munich, Germany
    index: 4
 date: 1 September 2025
 bibliography: paper.bib
