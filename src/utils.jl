@@ -2,6 +2,11 @@ export RegularizedExecutionStats
 
 import SolverCore.GenericExecutionStats
 
+# Reset the initial vector for the power method to [-1/sqrt(n), 1/sqrt(n), -1/sqrt(n), ...].
+function _reset_power_method!(v0::AbstractVector)
+  v0 .= (isodd.(eachindex(v0)) .* -2 .+ 1) ./ sqrt(length(v0))
+end
+
 function power_method!(B::M, v₀::S, v₁::S, max_iter::Int = 1) where {M, S}
   @assert max_iter >= 1 "max_iter must be at least 1."
   mul!(v₁, B, v₀)

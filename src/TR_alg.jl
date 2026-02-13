@@ -219,6 +219,7 @@ function SolverCore.solve!(
   compute_grad::Bool = true,
 ) where {T, G, V}
   reset!(stats)
+  _reset_power_method!(solver.v0)
 
   # Retrieve workspace
   selected = reg_nlp.selected
