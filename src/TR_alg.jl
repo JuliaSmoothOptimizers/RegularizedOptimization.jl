@@ -97,7 +97,8 @@ end
 
 function SolverCore.reset!(solver::TRSolver)
   _reset_power_method!(solver.v0)
-  LinearOperators.reset!(solver.subpb.model.B)
+  reset_data!(solver.subpb.model)
+  LinearOperators.reset!(solver.subpb.model)
 end
 
 SolverCore.reset!(solver::TRSolver, model) = SolverCore.reset!(solver)
