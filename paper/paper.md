@@ -52,8 +52,8 @@ header-includes: |
     \underset{x \in \mathbb{R}^n}{\text{minimize}} \quad f(x) + h(x) \quad \text{subject to} \quad c(x) = 0,
 \end{equation}
 where $f: \mathbb{R}^n \to \mathbb{R}$ and $c: \mathbb{R}^n \to \mathbb{R}^m$ are continuously differentiable, and $h: \mathbb{R}^n \to \mathbb{R} \cup \{+\infty\}$ is lower semi-continuous.
-The nonsmooth objective $h$ can be a *regularizer*, such as a sparsity-inducing penalty, model simple constraints, such as $x$ belonging to a simple convex set, or be a combination of both.
-All $f$, $h$ and $c$ can be nonconvex.
+The nonsmooth objective $h$ can be a *regularizer*, such as a sparsity-inducing penalty, model simple constraints, such as $x$ belonging to a simple convex set, or can be a combination of both.
+All $f$, $h$, and $c$ can be nonconvex.
 RegularizedOptimization.jl provides a modular and extensible framework for solving \eqref{eq:nlp}, and developing novel solvers.
 Currently, the following solvers are implemented:
 
@@ -66,10 +66,10 @@ All solvers rely on first derivatives of $f$ and $c$, and optionally on their se
 If second derivatives are not available, quasi-Newton approximations can be used.
 In addition, the proximal mapping of the nonsmooth part $h$, or adequate models thereof, must be evaluated.
 At each iteration, a step is computed by solving a subproblem of the form \eqref{eq:nlp} inexactly, in which $f$, $h$, and $c$ are replaced with appropriate models around the current iterate.
-The solvers R2, R2DH and TRDH are particularly well suited to solve the subproblems, though they are general enough to solve \eqref{eq:nlp}.
+The solvers R2, R2DH, and TRDH are particularly well suited to solve the subproblems, though they are general enough to solve \eqref{eq:nlp}.
 All solvers are allocation-free, so re-solves incur no additional allocations.
 To illustrate our claim of extensibility, a first version of the AL solver was implemented by an external contributor.
-Furthermore, a nonsmooth penalty approach, described in [@diouane-gollier-orban-2024], is currently being developed, that relies on the library to efficiently solve the subproblems.
+Furthermore, a nonsmooth penalty approach, described in @diouane-gollier-orban-2024, is currently being developed, that relies on the library to efficiently solve the subproblems.
 
 <!-- ## Requirements of the ShiftedProximalOperators.jl -->
 <!---->
@@ -141,7 +141,7 @@ solve!(solver, reg_nlp, stats; atol=1e-5, rtol=1e-5, verbose=1, sub_kwargs=(max_
 
 ## Numerical results
 
-We compare **TR**, **R2N**, **LM** and **LMTR** from our library on the SVM problem.
+We compare **TR**, **R2N**, **LM**, and **LMTR** from our library on the SVM problem.
 Experiments were performed on macOS (arm64) on an Apple M2 (8-core) machine, using Julia 1.11.7.
 
 The table reports the convergence status of each solver, the number of evaluations of $f$, the number of evaluations of $\nabla f$, the number of proximal operator evaluations, the elapsed time, and the final objective value.
