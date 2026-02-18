@@ -135,8 +135,10 @@ For advanced usage, first define a solver "TRDHSolver" to preallocate the memory
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: trust-region radius parameter multiplier. Must satisfy `γ > 1`. The trust-region radius is updated as Δ := Δ*γ when the iteration is very successful and Δ := Δ/γ when the iteration is unsuccessful;
 - `reduce_TR::Bool = true`: see explanation on the stopping criterion below;
-- `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
-- `D::L = nothing`: diagonal quasi-Newton approximation used for the model φ. If nothing is provided and `reg_nlp.model` is not a diagonal quasi-Newton approximation, a spectral gradient approximation is used.`
+- `χ::F =  NormLinf(1)`: norm used to define the trust-region;
+- `D::L = nothing`: diagonal quasi-Newton approximation used for the model φ. If nothing is provided and `reg_nlp.model` is not a diagonal quasi-Newton approximation, a spectral gradient approximation is used;
+- `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
+- `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 Alternatively, if `reduce_TR = true`, then ξₖ₁ := f(xₖ) + h(xₖ) - φ(sₖ₁; xₖ) - ψ(sₖ₁; xₖ) is used instead of ξₖ, where sₖ₁ is the Cauchy point.
@@ -241,6 +243,8 @@ function SolverCore.solve!(
   η1::T = √√eps(T),
   η2::T = T(0.9),
   γ::T = T(3),
+  compute_obj::Bool = true,
+  compute_grad::Bool = true,
 ) where {T, G, V}
   reset!(stats)
 
@@ -315,8 +319,8 @@ function SolverCore.solve!(
   α = 1 / eps(T)
   β = 1 / eps(T)
 
-  fk = obj(nlp, xk)
-  grad!(nlp, xk, ∇fk)
+  fk = compute_obj ? obj(nlp, xk) : stats.solver_specific[:smooth_obj]
+  compute_grad && grad!(nlp, xk, ∇fk)
   ∇fk⁻ .= ∇fk
 
   dk .= D.d
@@ -404,7 +408,7 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(nlp, solver, stats)
+  callback(reg_nlp, solver, stats)
 
   done = stats.status != :unknown
 
@@ -510,7 +514,7 @@ function SolverCore.solve!(
       ),
     )
 
-    callback(nlp, solver, stats)
+    callback(reg_nlp, solver, stats)
 
     done = stats.status != :unknown
   end

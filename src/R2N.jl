@@ -67,7 +67,7 @@ function R2NSolver(
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk)
 
-  Bk = hess_op(reg_nlp.model, xk)
+  Bk = hess_op(reg_nlp, xk)
   sub_nlp = R2NModel(Bk, ∇fk, T(1), x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
@@ -141,6 +141,8 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
 - `opnorm_maxiter::Int = 5`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
 - `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
+- `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
+- `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
@@ -218,6 +220,8 @@ function SolverCore.solve!(
   β::T = 1 / eps(T),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
   opnorm_maxiter::Int = 5,
+  compute_obj::Bool = true,
+  compute_grad::Bool = true,
   sub_kwargs::NamedTuple = NamedTuple(),
 ) where {T, V, G}
   reset!(stats)
@@ -285,8 +289,8 @@ function SolverCore.solve!(
   local ρk::T = zero(T)
   local prox_evals::Int = 0
 
-  fk = obj(nlp, xk)
-  grad!(nlp, xk, ∇fk)
+  fk = compute_obj ? obj(nlp, xk) : stats.solver_specific[:smooth_obj]
+  compute_grad && grad!(nlp, xk, ∇fk)
   qn_copy!(nlp, solver, stats)
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
@@ -353,7 +357,7 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(nlp, solver, stats)
+  callback(reg_nlp, solver, stats)
 
   done = stats.status != :unknown
 
@@ -498,7 +502,7 @@ function SolverCore.solve!(
       ),
     )
 
-    callback(nlp, solver, stats)
+    callback(reg_nlp, solver, stats)
 
     done = stats.status != :unknown
   end

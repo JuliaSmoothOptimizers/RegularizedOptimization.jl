@@ -20,10 +20,10 @@ import SolverCore.reset!
 
 const callback_docstring = "
 The callback is called at each iteration.
-The expected signature of the callback is `callback(nlp, solver, stats)`, and its output is ignored.
+The expected signature of the callback is `callback(reg_nlp, solver, stats)`, and its output is ignored.
 Changing any of the input arguments will affect the subsequent iterations.
 In particular, setting `stats.status = :user` will stop the algorithm.
-All relevant information should be available in `nlp` and `solver`.
+All relevant information should be available in `reg_nlp` and `solver`.
 Notably, you can access, and modify, the following:
 - `solver.xk`: current iterate;
 - `solver.∇fk`: current gradient;

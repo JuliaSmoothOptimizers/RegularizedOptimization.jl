@@ -324,7 +324,7 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(nls, solver, stats)
+  callback(reg_nls, solver, stats)
 
   done = stats.status != :unknown
 
@@ -473,7 +473,7 @@ function SolverCore.solve!(
       ),
     )
 
-    callback(nls, solver, stats)
+    callback(reg_nls, solver, stats)
 
     done = stats.status != :unknown
   end
