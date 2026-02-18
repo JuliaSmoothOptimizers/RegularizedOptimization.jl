@@ -26,12 +26,7 @@ function test_solver(
   solver_object = solver_constructor(reg_nlp; solver_constructor_kwargs...)
   stats_optimized = RegularizedExecutionStats(reg_nlp)
 
-  # Remove the x0 entry from solver_kwargs
-  optimized_solver_kwargs = Base.structdiff(solver_kwargs, NamedTuple{(:x0,)})
-  solve!(solver_object, reg_nlp, stats_optimized; x = x0, optimized_solver_kwargs...) # It would be interesting to check for allocations here as well but depending on 
-  # the structure of solver_kwargs, some variables might get boxed, resulting in 
-  # false positives, for example if tol = 1e-3; solver_kwargs = (atol = tol),
-  # then wrappedallocs would give a > 0 answer...
+  solve!(solver_object, reg_nlp, stats_optimized; solver_kwargs...)
   @test typeof(stats_optimized.solution) == typeof(x0)
   @test length(stats_optimized.solution) == reg_nlp.model.meta.nvar
   @test typeof(stats_optimized.dual_feas) == eltype(stats_optimized.solution)
