@@ -13,7 +13,6 @@
       expected_status = :first_order,
       solver_kwargs = first_order_kwargs,
     )
-    solver, stats = R2NSolver(rosenbrock_reg_nlp), RegularizedExecutionStats(rosenbrock_reg_nlp)
 
     # Test max time status
     max_time_kwargs = (x = [π, -π], atol = 1e-16, rtol = 1e-16, max_time = 1e-12)
