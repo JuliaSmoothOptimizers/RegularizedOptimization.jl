@@ -491,6 +491,6 @@ function SolverCore.solve!(
   end
 
   set_solution!(stats, xk)
-  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
+  set_residuals!(stats, zero(eltype(xk)), min(sqrt_ξ_νInv, norm_sdν))
   return stats
 end
