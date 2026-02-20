@@ -103,7 +103,6 @@ end
 
 SolverCore.reset!(solver::TRSolver, model) = SolverCore.reset!(solver)
 
-
 """
     TR(reg_nlp; kwargs…)
     TR(nlp, h, χ, options; kwargs...)
