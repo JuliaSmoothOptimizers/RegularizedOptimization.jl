@@ -55,6 +55,19 @@ for (mod, mod_name) ∈ ((SpectralGradientModel, "spg"),)
       @test length(out.solution) == bpdn.meta.nvar
       @test typeof(out.dual_feas) == eltype(out.solution)
       @test out.status == :first_order
+
+      # Test with the different stopping criteria
+      out = TRDH(mod(bpdn), h, χ, options, x0 = x0, atol_decr = 1e-6, rtol_decr = 1e-6, atol_step = 0.0, rtol_step = 0.0)
+      @test typeof(out.solution) == typeof(bpdn.meta.x0)
+      @test length(out.solution) == bpdn.meta.nvar
+      @test typeof(out.dual_feas) == eltype(out.solution)
+      @test out.status == :first_order
+
+      out = TRDH(mod(bpdn), h, χ, options, x0 = x0, atol_decr = 0.0, rtol_decr = 0.0, atol_step = 1e-6, rtol_step = 1e-6)
+      @test typeof(out.solution) == typeof(bpdn.meta.x0)
+      @test length(out.solution) == bpdn.meta.nvar
+      @test typeof(out.dual_feas) == eltype(out.solution)
+      @test out.status == :first_order
     end
   end
 end
@@ -67,6 +80,19 @@ for (mod, mod_name) ∈ ((LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
       p = randperm(bpdn.meta.nvar)[1:nz]
       x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
       TR_out = TR(mod(bpdn), h, NormL2(1.0), options, x0 = x0)
+      @test typeof(TR_out.solution) == typeof(bpdn.meta.x0)
+      @test length(TR_out.solution) == bpdn.meta.nvar
+      @test typeof(TR_out.dual_feas) == eltype(TR_out.solution)
+      @test TR_out.status == :first_order
+
+      # Test with the different stopping criteria
+      TR_out = TR(mod(bpdn), h, NormL2(1.0), options, x0 = x0, atol_decr = 1e-6, rtol_decr = 1e-6, atol_step = 0.0, rtol_step = 0.0)
+      @test typeof(TR_out.solution) == typeof(bpdn.meta.x0)
+      @test length(TR_out.solution) == bpdn.meta.nvar
+      @test typeof(TR_out.dual_feas) == eltype(TR_out.solution)
+      @test TR_out.status == :first_order
+
+      TR_out = TR(mod(bpdn), h, NormL2(1.0), options, x0 = x0, atol_decr = 0.0, rtol_decr = 0.0, atol_step = 1e-6, rtol_step = 1e-6)
       @test typeof(TR_out.solution) == typeof(bpdn.meta.x0)
       @test length(TR_out.solution) == bpdn.meta.nvar
       @test typeof(TR_out.dual_feas) == eltype(TR_out.solution)
@@ -131,13 +157,13 @@ for (mod, mod_name) ∈ (
         @test out.status == :first_order
 
         # Test with the different stopping criteria
-        out = solver(mod(bpdn), h, options; x0 = x0, atol_decr = 1e-6, rtol_decr = 1e-6, atol_step = 0.0, rtol_step = 0.0)
+        out = solver(mod(bpdn), h, options, x0 = x0, atol_decr = 1e-6, rtol_decr = 1e-6, atol_step = 0.0, rtol_step = 0.0)
         @test typeof(out.solution) == typeof(bpdn.meta.x0)
         @test length(out.solution) == bpdn.meta.nvar
         @test typeof(out.dual_feas) == eltype(out.solution)
         @test out.status == :first_order
 
-        out = solver(mod(bpdn), h, options; x0 = x0, atol_decr = 0.0, rtol_decr = 0.0, atol_step = 1e-6, rtol_step = 1e-6)
+        out = solver(mod(bpdn), h, options, x0 = x0, atol_decr = 0.0, rtol_decr = 0.0, atol_step = 1e-6, rtol_step = 1e-6)
         @test typeof(out.solution) == typeof(bpdn.meta.x0)
         @test length(out.solution) == bpdn.meta.nvar
         @test typeof(out.dual_feas) == eltype(out.solution)
