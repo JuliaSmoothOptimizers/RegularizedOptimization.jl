@@ -96,6 +96,14 @@ function R2NSolver(
   )
 end
 
+function SolverCore.reset!(solver::R2NSolver)
+  _reset_power_method!(solver.v0)
+  B = solver.subpb.model.B
+  isa(B, AbstractLinearOperator) && LinearOperators.reset!(B)
+end
+
+SolverCore.reset!(solver::R2NSolver, model) = SolverCore.reset!(solver)
+
 """
     R2N(reg_nlp; kwargs…)
 

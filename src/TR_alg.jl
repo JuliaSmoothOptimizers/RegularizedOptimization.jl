@@ -95,6 +95,15 @@ function TRSolver(
   )
 end
 
+function SolverCore.reset!(solver::TRSolver)
+  _reset_power_method!(solver.v0)
+  reset_data!(solver.subpb.model)
+  LinearOperators.reset!(solver.subpb.model)
+end
+
+SolverCore.reset!(solver::TRSolver, model) = SolverCore.reset!(solver)
+
+
 """
     TR(reg_nlp; kwargs…)
     TR(nlp, h, χ, options; kwargs...)

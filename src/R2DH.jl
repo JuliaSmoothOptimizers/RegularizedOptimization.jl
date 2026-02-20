@@ -81,6 +81,12 @@ function R2DHSolver(
   )
 end
 
+function SolverCore.reset!(solver::R2DHSolver)
+  LinearOperators.reset!(solver.D)
+end
+
+SolverCore.reset!(solver::R2DHSolver, model) = SolverCore.reset!(solver)
+
 """
     R2DH(reg_nlp; kwargs…)
 
