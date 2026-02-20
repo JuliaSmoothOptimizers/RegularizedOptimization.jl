@@ -143,6 +143,10 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 - `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = √eps(T)`: absolute tolerance;
 - `rtol::T = √eps(T)`: relative tolerance;
+- `atol_decr::T = atol`: (advanced) absolute tolerance for the optimality measure `√(ξₖ/νₖ)` (see below);
+- `rtol_decr::T = rtol`: (advanced) relative tolerance for the optimality measure `√(ξₖ/νₖ)` (see below);
+- `atol_step::T = atol`: (advanced) absolute tolerance for the optimality measure `‖sₖ‖/ν₁` (see below);
+- `rtol_step::T = rtol`: (advanced) relative tolerance for the optimality measure `‖sₖ‖/ν₁` (see below);
 - `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance
 - `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
@@ -156,7 +160,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 - `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
 - `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 
-The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
+The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure or when `‖sₖ‖/νₖ < atol_step + rtol_step*‖s₀‖/ν₀` where `sₖ` is the current step.
 
 # Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
@@ -315,6 +319,10 @@ function SolverCore.solve!(
   x::V = reg_nlp.model.meta.x0,
   atol::T = √eps(T),
   rtol::T = √eps(T),
+  atol_decr::T = atol,
+  rtol_decr::T = rtol,
+  atol_step::T = atol,
+  rtol_step::T = rtol,
   neg_tol::T = eps(T)^(1 / 4),
   verbose::Int = 0,
   max_iter::Int = 10000,
@@ -367,13 +375,14 @@ function SolverCore.solve!(
 
   if verbose > 0
     @info log_header(
-      [:iter, :fx, :hx, :xi, :ρ, :σ, :normx, :norms, :arrow],
-      [Int, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Char],
+      [:iter, :fx, :hx, :xi, :normsdnu, :ρ, :σ, :normx, :norms, :arrow],
+      [Int, T, T, T, T, T, T, T, T, Char],
       hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
         :iter => "iter",
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ/ν)",
+        :normsdnu => "‖s‖/ν",
         :ρ => "ρ",
         :σ => "σ",
         :normx => "‖x‖",
@@ -408,15 +417,19 @@ function SolverCore.solve!(
   prox!(s, ψ, mν∇fk, ν)
   mks = mk(s)
 
+  # Estimate optimality and check stopping criteria
   ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
-
   sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
-  atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
-
-  solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
   (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
     error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
+  atol_decr += rtol_decr * sqrt_ξ_νInv # make stopping test absolute and relative
 
+  norm_s = norm(s)
+  norm_sdν = norm_s / ν
+  atol_step += rtol_step * norm_sdν # make stopping test absolute and relative
+
+  solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol_decr) || (norm_sdν ≤ atol_step)
+  
   set_status!(
     stats,
     get_status(
@@ -454,10 +467,11 @@ function SolverCore.solve!(
           fk,
           hk,
           sqrt_ξ_νInv,
+          norm_sdν,
           ρk,
           σk,
           norm(xk),
-          norm(s),
+          norm_s,
           (η2 ≤ ρk < Inf) ? '↘' : (ρk < η1 ? '↗' : '='),
         ],
         colsep = 1,
@@ -499,10 +513,14 @@ function SolverCore.solve!(
 
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
-    solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol)
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
       error("R2: prox-gradient step should produce a decrease but ξ = $(ξ)")
 
+    norm_s = norm(s)
+    norm_sdν = norm_s / ν
+
+    solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol_decr) || (norm_sdν ≤ atol_step)
+    
     set_status!(
       stats,
       get_status(
@@ -523,8 +541,8 @@ function SolverCore.solve!(
   end
 
   if verbose > 0 && stats.status == :first_order
-    @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), ""], colsep = 1)
-    @info "R2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
+    @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, norm_sdν, ρk, σk, norm(xk), norm_s, ""], colsep = 1)
+    @info "R2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv) and ‖s‖/ν = $(norm_sdν)"
   end
 
   set_solution!(stats, xk)
