@@ -127,6 +127,10 @@ For advanced usage, first define a solver "LMSolver" to preallocate the memory u
 - `atol::T = √eps(T)`: absolute tolerance;
 - `sub_atol::T = atol`: subsolver absolute tolerance;
 - `rtol::T = √eps(T)`: relative tolerance;
+- `atol_decr::T = atol`: (advanced) absolute tolerance for the optimality measure `√(ξₖ/νₖ)` (see below);
+- `rtol_decr::T = rtol`: (advanced) relative tolerance for the optimality measure `√(ξₖ/νₖ)` (see below);
+- `atol_step::T = atol`: (advanced) absolute tolerance for the optimality measure `‖sₖ₁‖/ν₁` (see below);
+- `rtol_step::T = rtol`: (advanced) relative tolerance for the optimality measure `‖sₖ₁‖/ν₁` (see below);
 - `neg_tol::T = zero(T): negative tolerance;
 - `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
@@ -142,7 +146,7 @@ For advanced usage, first define a solver "LMSolver" to preallocate the memory u
 - `subsolver::S = R2Solver`: subsolver used to solve the subproblem that appears at each iteration.
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
-The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
+The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure or when `‖sₖ₁‖/νₖ < atol_step + rtol_step*‖s₀‖/ν₀` where `sₖ₁` is the Cauchy step.
 
 # Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
@@ -193,6 +197,10 @@ function SolverCore.solve!(
   atol::T = √eps(T),
   sub_atol::T = atol,
   rtol::T = √eps(T),
+  atol_decr::T = atol,
+  rtol_decr::T = rtol,
+  atol_step::T = atol,
+  rtol_step::T = rtol,
   neg_tol::T = zero(T),
   verbose::Int = 0,
   max_iter::Int = 10000,
@@ -251,12 +259,13 @@ function SolverCore.solve!(
 
   if verbose > 0
     @info log_header(
-      [:outer, :inner, :fx, :hx, :xi, :ρ, :Δ, :normx, :norms, :ν, :arrow],
-      [Int, Int, T, T, T, T, T, T, T, T, Char],
+      [:outer, :inner, :fx, :hx, :xi, :norms1dnu, :ρ, :Δ, :normx, :norms, :ν, :arrow],
+      [Int, Int, T, T, T, T, T, T, T, T, T, Char],
       hdr_override = Dict{Symbol, String}(
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ1/ν)",
+        :norms1dnu => "‖s₁‖/ν",
         :normx => "‖x‖",
         :norms => "‖s‖",
         :arrow => "LMTR",
@@ -302,14 +311,21 @@ function SolverCore.solve!(
   # Take first proximal gradient step s1 and see if current xk is nearly stationary.
   # s1 minimizes φ1(d) + ‖d‖² / 2 / ν + ψ(d) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0))
   prox!(s, ψ, mν∇fk, ν)
+
+  # Estimate optimality and check stopping criteria
   ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
   sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
-  solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
   (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
     error("LMTR: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
-  atol += rtol * sqrt_ξ1_νInv # make stopping test absolute and relative
+  atol_decr += rtol_decr * sqrt_ξ1_νInv # make stopping test absolute and relative
   sub_atol += rtol * sqrt_ξ1_νInv
 
+  norm_s_cauchy = norm(s)
+  norm_s_cauchydν = norm_s_cauchy / ν
+  atol_step += rtol_step * norm_s_cauchydν # make stopping test absolute and relative
+
+  solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol_decr) || (norm_s_cauchydν ≤ atol_step)
+  
   set_status!(
     stats,
     get_status(
@@ -390,6 +406,7 @@ function SolverCore.solve!(
           fk,
           hk,
           sqrt_ξ1_νInv,
+          norm_s_cauchydν,
           ρk,
           ∆_effective,
           χ(xk),
@@ -455,11 +472,16 @@ function SolverCore.solve!(
     prox!(s, ψ, mν∇fk, ν)
     mks = mk1(s)
 
+    # Estimate optimality and check stopping criteria
     ξ1 = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
-    solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
     (ξ1 < 0 && sqrt_ξ1_νInv > neg_tol) &&
       error("LM: prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
+
+    norm_s_cauchy = norm(s)
+    norm_s_cauchydν = norm_s_cauchy / ν
+    
+    solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol_decr) || (norm_s_cauchydν ≤ atol_step)
 
     set_status!(
       stats,
@@ -481,8 +503,8 @@ function SolverCore.solve!(
   end
 
   if verbose > 0 && stats.status == :first_order
-    @info log_row(Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, ρk, Δk, χ(xk), χ(s), ν, ""], colsep = 1)
-    @info "LMTR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"
+    @info log_row(Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, norm_s_cauchydν, ρk, Δk, χ(xk), χ(s), ν, ""], colsep = 1)
+    @info "LMTR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv) and ‖s₁‖/ν = $(norm_s_cauchydν)"
   end
 
   set_solution!(stats, xk)
