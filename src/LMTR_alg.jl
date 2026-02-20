@@ -275,7 +275,7 @@ function SolverCore.solve!(
 
   σmax, found_σ = opnorm(solver.subpb.model.J)
   found_σ || error("operator norm computation failed")
-  ν = α * Δk / (1 + σmax^2 * (α * Δk + 1))
+  ν = 1 / (σmax^2 + 1 / (α * Δk))
   @. mν∇fk = -∇fk * ν
   sqrt_ξ1_νInv = one(T)
 
@@ -447,7 +447,7 @@ function SolverCore.solve!(
     set_time!(stats, time() - start_time)
     set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
-    ν = α * Δk / (1 + σmax^2 * (α * Δk + 1))
+    ν = 1 / (σmax^2 + 1 / (α * Δk))
     @. mν∇fk = -∇fk * ν
 
     prox!(s, ψ, mν∇fk, ν)

@@ -332,7 +332,7 @@ function SolverCore.solve!(
   dk .= D.d
   DNorm = norm(D.d, Inf)
 
-  ν = (α * Δk)/(DNorm + one(T))
+  ν = 1 / (DNorm + 1 / (α * Δk))
   sqrt_ξ_νInv = one(T)
 
   @. mν∇fk = -ν * ∇fk
@@ -482,7 +482,7 @@ function SolverCore.solve!(
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
 
-    ν = reduce_TR ? (α * Δk)/(DNorm + one(T)) : α / (DNorm + one(T))
+    ν = reduce_TR ? 1 / (DNorm + 1 / (α * Δk)) : 1 / (DNorm + 1 / α)
     mν∇fk .= -ν .* ∇fk
 
     if reduce_TR
