@@ -129,6 +129,19 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * com
       @test length(out.solution) == bpdn.meta.nvar
       @test typeof(out.dual_feas) == eltype(out.solution)
       @test out.status == :first_order
+
+      # Test with the different stopping criteria
+      out = solver(bpdn_nls, h, args..., options, x0 = x0, atol_decr = 1e-6, rtol_decr = 1e-6, atol_step = 0.0, rtol_step = 0.0)
+      @test typeof(out.solution) == typeof(bpdn.meta.x0)
+      @test length(out.solution) == bpdn.meta.nvar
+      @test typeof(out.dual_feas) == eltype(out.solution)
+      @test out.status == :first_order
+
+      out = solver(bpdn_nls, h, args..., options, x0 = x0, atol_decr = 0.0, rtol_decr = 0.0, atol_step = 1e-6, rtol_step = 1e-6)
+      @test typeof(out.solution) == typeof(bpdn.meta.x0)
+      @test length(out.solution) == bpdn.meta.nvar
+      @test typeof(out.dual_feas) == eltype(out.solution)
+      @test out.status == :first_order
     end
   end
 end
