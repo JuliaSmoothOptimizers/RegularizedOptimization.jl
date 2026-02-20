@@ -292,7 +292,7 @@ function SolverCore.solve!(
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ1/ν)",
-        :norms1dnu => "‖sₖ₁‖/ν",
+        :norms1dnu => "‖s₁‖/ν",
         :normx => "‖x‖",
         :norms => "‖s‖",
         :normB => "‖B‖",
@@ -542,7 +542,7 @@ function SolverCore.solve!(
       Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, norm_s_cauchydν, ρk, σk, norm(xk), norm(s), λmax, ""],
       colsep = 1,
     )
-    @info "R2N: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv) and ‖sₖ₁‖/ν = $(norm_s_cauchydν)"
+    @info "R2N: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv) and ‖s₁‖/ν = $(norm_s_cauchydν)"
   end
 
   set_solution!(stats, xk)

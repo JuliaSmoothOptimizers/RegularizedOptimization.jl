@@ -554,7 +554,7 @@ function SolverCore.solve!(
       Any[stats.iter, solver.substats.iter, fk, hk, sqrt_ξ1_νInv, norm_s_cauchydν, ρk, Δk, χ(xk), χ(s), λmax, ""],
       colsep = 1,
     )
-    @info "TR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv) and ‖sₖ₁‖/ν = $(norm_s_cauchydν)"
+    @info "TR: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv) and ‖s₁‖/ν = $(norm_s_cauchydν)"
   end
 
   set_solution!(stats, xk)

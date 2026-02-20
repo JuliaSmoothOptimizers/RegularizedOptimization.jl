@@ -300,7 +300,7 @@ function SolverCore.solve!(
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ/ν)",
-        :normsdnu => "‖sₖ‖/ν",
+        :normsdnu => "‖s‖/ν",
         :normx => "‖x‖",
         :norms => "‖s‖",
         :arrow => "R2DH",
@@ -487,7 +487,7 @@ function SolverCore.solve!(
 
   if verbose > 0 && stats.status == :first_order
     @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, norm_sdν, ρk, σk, norm(xk), norm_s, ""], colsep = 1)
-    @info "R2DH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv) and ‖sₖ‖/ν = $(norm_sdν)"
+    @info "R2DH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv) and ‖s‖/ν = $(norm_sdν)"
   end
 
   set_solution!(stats, xk)

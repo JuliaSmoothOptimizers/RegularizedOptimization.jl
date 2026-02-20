@@ -312,12 +312,13 @@ function SolverCore.solve!(
 
   if verbose > 0
     @info log_header(
-      [:iter, :fx, :hx, :xi, :ρ, :Δ, :normx, :norms, :normD, :arrow],
-      [Int, T, T, T, T, T, T, T, T, Char],
+      [:iter, :fx, :hx, :xi, :normsdnu, :ρ, :Δ, :normx, :norms, :normD, :arrow],
+      [Int, T, T, T, T, T, T, T, T, T, Char],
       hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ/ν)",
+        :normsdnu => "‖s‖/ν",
         :normx => "‖x‖",
         :norms => "‖s‖",
         :normD => "‖D‖",
@@ -547,7 +548,7 @@ function SolverCore.solve!(
       Any[stats.iter, fk, hk, sqrt_ξ_νInv, norm_sdν, ρk, Δk, χ(xk), sNorm, norm(D.d), ""],
       colsep = 1,
     )
-    @info "TRDH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv) and ‖sₖ‖/ν = $(norm_sdν)"
+    @info "TRDH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv) and ‖s‖/ν = $(norm_sdν)"
   end
 
   set_solution!(stats, xk)
