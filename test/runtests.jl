@@ -45,12 +45,14 @@ for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "l
         @test length(out.solution) == bpdn.meta.nvar
         @test typeof(out.dual_feas) == eltype(out.solution)
         @test out.status == :first_order
+        @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
 
         out = solver(mod(bpdn), h, args..., options, x0 = x0, atol_decr = 0.0, rtol_decr = 0.0, atol_step = 1e-6, rtol_step = 1e-6)
         @test typeof(out.solution) == typeof(bpdn.meta.x0)
         @test length(out.solution) == bpdn.meta.nvar
         @test typeof(out.dual_feas) == eltype(out.solution)
         @test out.status == :first_order
+        @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
       end
     end
   end
@@ -77,12 +79,14 @@ for (mod, mod_name) ∈ ((SpectralGradientModel, "spg"),)
       @test length(out.solution) == bpdn.meta.nvar
       @test typeof(out.dual_feas) == eltype(out.solution)
       @test out.status == :first_order
+      @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
 
       out = TRDH(mod(bpdn), h, χ, options, x0 = x0, atol_decr = 0.0, rtol_decr = 0.0, atol_step = 1e-6, rtol_step = 1e-6)
       @test typeof(out.solution) == typeof(bpdn.meta.x0)
       @test length(out.solution) == bpdn.meta.nvar
       @test typeof(out.dual_feas) == eltype(out.solution)
       @test out.status == :first_order
+      @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
     end
   end
 end
@@ -107,12 +111,14 @@ for (mod, mod_name) ∈ ((LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
       @test length(TR_out.solution) == bpdn.meta.nvar
       @test typeof(TR_out.dual_feas) == eltype(TR_out.solution)
       @test TR_out.status == :first_order
+      @test TR_out.step_status == (TR_out.iter > 0 ? :accepted : :unknown)
 
       TR_out = TR(mod(bpdn), h, NormL2(1.0), options, x0 = x0, atol_decr = 0.0, rtol_decr = 0.0, atol_step = 1e-6, rtol_step = 1e-6)
       @test typeof(TR_out.solution) == typeof(bpdn.meta.x0)
       @test length(TR_out.solution) == bpdn.meta.nvar
       @test typeof(TR_out.dual_feas) == eltype(TR_out.solution)
       @test TR_out.status == :first_order
+      @test TR_out.step_status == (TR_out.iter > 0 ? :accepted : :unknown)
     end
   end
 end
@@ -140,12 +146,14 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * com
       @test length(out.solution) == bpdn.meta.nvar
       @test typeof(out.dual_feas) == eltype(out.solution)
       @test out.status == :first_order
+      @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
 
       out = solver(bpdn_nls, h, args..., options, x0 = x0, atol_decr = 0.0, rtol_decr = 0.0, atol_step = 1e-6, rtol_step = 1e-6)
       @test typeof(out.solution) == typeof(bpdn.meta.x0)
       @test length(out.solution) == bpdn.meta.nvar
       @test typeof(out.dual_feas) == eltype(out.solution)
       @test out.status == :first_order
+      @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
     end
   end
 end
@@ -194,13 +202,14 @@ for (mod, mod_name) ∈ (
         @test length(out.solution) == bpdn.meta.nvar
         @test typeof(out.dual_feas) == eltype(out.solution)
         @test out.status == :first_order
+        @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
 
         out = solver(mod(bpdn), h, options, x0 = x0, atol_decr = 0.0, rtol_decr = 0.0, atol_step = 1e-6, rtol_step = 1e-6)
         @test typeof(out.solution) == typeof(bpdn.meta.x0)
         @test length(out.solution) == bpdn.meta.nvar
         @test typeof(out.dual_feas) == eltype(out.solution)
         @test out.status == :first_order
-
+        @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
       end
     end
   end
