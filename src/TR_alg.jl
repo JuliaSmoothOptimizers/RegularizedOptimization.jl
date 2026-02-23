@@ -467,6 +467,7 @@ function SolverCore.solve!(
       found_λ || error("operator norm computation failed")
 
       ∇fk⁻ .= ∇fk
+      set_step_status!(stats, :accepted)
     end
 
     if ρk < η1 || ρk == Inf
@@ -479,6 +480,7 @@ function SolverCore.solve!(
         set_radius!(ψ, Δk)
         set_radius!(solver.subsolver.ψ, Δk)
       end
+      set_step_status!(stats, :rejected)
     end
 
     m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)

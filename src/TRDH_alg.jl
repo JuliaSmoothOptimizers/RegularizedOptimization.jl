@@ -453,6 +453,7 @@ function SolverCore.solve!(
       dk .= D.d
       DNorm = norm(D.d, Inf)
       ∇fk⁻ .= ∇fk
+      set_step_status!(stats, :accepted)
     end
 
     if η2 ≤ ρk < Inf
@@ -468,6 +469,7 @@ function SolverCore.solve!(
       else
         set_radius!(ψ, Δk)
       end
+      set_step_status!(stats, :rejected)
     end
 
     set_objective!(stats, fk + hk)
