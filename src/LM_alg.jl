@@ -146,7 +146,7 @@ For advanced usage, first define a solver "LMSolver" to preallocate the memory u
 - `subsolver = R2Solver`: the solver used to solve the subproblems.
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
-The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure or when `‖sₖ₁‖/νₖ < atol_step + rtol_step*‖s₀₁‖/ν₀` where `sₖ₁` is the Cauchy step.
+The algorithm stops either when `√(ξₖ/νₖ) < atol_decr + rtol_decr*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure or when `‖sₖ₁‖/νₖ < atol_step + rtol_step*‖s₀₁‖/ν₀` where `sₖ₁` is the Cauchy step.
 
 # Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.

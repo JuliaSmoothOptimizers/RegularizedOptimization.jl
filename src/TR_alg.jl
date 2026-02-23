@@ -363,7 +363,7 @@ function SolverCore.solve!(
   atol_step += rtol_step * norm_s_cauchydν # make stopping test absolute and relative
 
   solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol_decr) || (norm_s_cauchydν ≤ atol_step)
-  
+
   set_status!(
     stats,
     get_status(

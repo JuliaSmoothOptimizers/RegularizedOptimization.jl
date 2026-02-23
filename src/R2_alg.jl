@@ -160,7 +160,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 - `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
 - `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 
-The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure or when `‖sₖ‖/νₖ < atol_step + rtol_step*‖s₀‖/ν₀` where `sₖ` is the current step.
+The algorithm stops either when `√(ξₖ/νₖ) < atol_decr + rtol_decr*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure or when `‖sₖ‖/νₖ < atol_step + rtol_step*‖s₀‖/ν₀` where `sₖ` is the current step.
 
 # Output
 The value returned is a `GenericExecutionStats`, see `SolverCore.jl`.
@@ -429,7 +429,7 @@ function SolverCore.solve!(
   atol_step += rtol_step * norm_sdν # make stopping test absolute and relative
 
   solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol_decr) || (norm_sdν ≤ atol_step)
-  
+
   set_status!(
     stats,
     get_status(
@@ -520,7 +520,7 @@ function SolverCore.solve!(
     norm_sdν = norm_s / ν
 
     solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol_decr) || (norm_sdν ≤ atol_step)
-    
+
     set_status!(
       stats,
       get_status(

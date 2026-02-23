@@ -411,7 +411,7 @@ function SolverCore.solve!(
   norm_sdν = norm_s / ν
   atol_step += rtol_step * norm_sdν # make stopping test absolute and relative
 
-  solved = (ξ1 < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ_νInv ≤ atol_decr) | (norm_sdν ≤ atol_step)
+  solved = (ξ1 < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ_νInv ≤ atol_decr) || (norm_sdν ≤ atol_step)
   set_status!(
     stats,
     get_status(

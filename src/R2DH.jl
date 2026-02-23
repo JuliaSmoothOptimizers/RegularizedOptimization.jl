@@ -360,7 +360,7 @@ function SolverCore.solve!(
   norm_s = norm(s)
   norm_sdν = norm_s / ν₁
   atol_step += rtol_step * norm_sdν # make stopping test absolute and relative
-  
+
   solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol_decr) || (norm_sdν ≤ atol_step)
 
   set_status!(
@@ -460,7 +460,7 @@ function SolverCore.solve!(
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν₁) : sqrt(-ξ / ν₁)
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
       error("R2DH: prox-gradient step should produce a decrease but ξ = $(ξ)")
-    
+
     norm_s = norm(s)
     norm_sdν = norm_s / ν₁
 
