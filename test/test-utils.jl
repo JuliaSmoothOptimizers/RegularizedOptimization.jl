@@ -21,7 +21,7 @@ end
 @testset "Test opnorm upper bound functions" begin
   n = 10
   m = 40
-  @testset "LBFGS" begin   
+  @testset "LBFGS" begin
     B = LBFGSOperator(Float64, n, scaling = false)
     test_opnorm_upper_bound(B, m, n)
 

@@ -16,7 +16,7 @@ function power_method!(B::M, v₀::S, v₁::S, max_iter::Int = 1) where {M, S}
   return approx, !isnan(approx)
 end
 
-# Compute upper bounds for μ‖B‖₂, where μ ∈ (0, 1].
+# Compute upper bounds for ‖B‖₂.
 
 # For matrices, we compute the Frobenius norm.
 function opnorm_upper_bound(B::AbstractMatrix)
@@ -26,14 +26,14 @@ end
 
 # For LBFGS, using the formula Bₖ = B\_{k-1} - aₖaₖᵀ + bₖbₖᵀ, we compute
 # ‖Bₖ‖₂ ≤ ‖B₀‖₂ + ∑ᵢ ‖bᵢ‖₂².
-function opnorm_upper_bound(B::LBFGSOperator{T}) where{T} 
+function opnorm_upper_bound(B::LBFGSOperator{T}) where {T}
   upper_bound = B.data.opnorm_upper_bound
   return upper_bound, !isnan(upper_bound)
 end
 
 # For LSR1, we use the formula Bₖ = B\_{k-1} + σₖaₖaₖᵀ, we compute
 # ‖Bₖ‖₂ ≤ ‖B₀‖₂ + ∑ᵢ |σᵢ|‖aᵢ‖₂².
-function opnorm_upper_bound(B::LSR1Operator{T}) where{T}
+function opnorm_upper_bound(B::LSR1Operator{T}) where {T}
   upper_bound = B.data.opnorm_upper_bound
   return upper_bound, !isnan(upper_bound)
 end
