@@ -408,6 +408,7 @@ function SolverCore.solve!(
       @. ∇fk⁻ = ∇fk - ∇fk⁻
       push!(D, s, ∇fk⁻) # update QN operator
       ∇fk⁻ .= ∇fk
+      set_step_status!(stats, :accepted)
     end
 
     if η2 ≤ ρk < Inf
@@ -416,6 +417,7 @@ function SolverCore.solve!(
 
     if ρk < η1 || ρk == Inf
       σk = σk * γ
+      set_step_status!(stats, :rejected)
     end
 
     set_objective!(stats, fk + hk)

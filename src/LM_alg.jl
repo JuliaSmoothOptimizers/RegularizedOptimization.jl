@@ -416,6 +416,7 @@ function SolverCore.solve!(
         σmax, found_σ = opnorm(solver.subpb.model.J)
         found_σ || error("operator norm computation failed")
       end
+      set_step_status!(stats, :accepted)
     end
 
     if η2 ≤ ρk < Inf
@@ -424,6 +425,7 @@ function SolverCore.solve!(
 
     if ρk < η1 || ρk == Inf
       σk = σk * γ
+      set_step_status!(stats, :rejected)
     end
 
     m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)

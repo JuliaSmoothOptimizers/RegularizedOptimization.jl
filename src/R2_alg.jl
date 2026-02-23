@@ -473,6 +473,7 @@ function SolverCore.solve!(
       hk = hkn
       grad!(nlp, xk, ∇fk)
       shift!(ψ, xk)
+      set_step_status!(stats, :accepted)
     end
 
     if η2 ≤ ρk < Inf
@@ -480,6 +481,7 @@ function SolverCore.solve!(
     end
     if ρk < η1 || ρk == Inf
       σk = σk * γ
+      set_step_status!(stats, :rejected)
     end
 
     ν = 1 / σk

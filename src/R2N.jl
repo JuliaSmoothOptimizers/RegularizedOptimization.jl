@@ -463,6 +463,7 @@ function SolverCore.solve!(
         λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
       end
       found_λ || error("operator norm computation failed")
+      set_step_status!(stats, :accepted)
     end
 
     if η2 ≤ ρk < Inf
@@ -471,6 +472,7 @@ function SolverCore.solve!(
 
     if ρk < η1 || ρk == Inf
       σk = σk * γ
+      set_step_status!(stats, :rejected)
     end
 
     ν₁ = θ / (λmax + σk)
