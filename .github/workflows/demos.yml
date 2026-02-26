@@ -53,6 +53,7 @@ jobs:
       - name: Instantiate project
         run: |
           using Pkg
+          Pkg.develop(".")
           Pkg.instantiate()
         shell: julia --project="examples" --color=yes {0}
       - name: Run BPDN demo
