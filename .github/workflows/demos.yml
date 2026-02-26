@@ -50,7 +50,7 @@ jobs:
             epstopdf-pkg
       # - name: Setup tmate session
       #   uses: mxschmitt/action-tmate@v3
-      - name: Develop package
+      - name: Instantiate project
         run: |
           using Pkg
           Pkg.activate(".")
