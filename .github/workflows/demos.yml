@@ -58,8 +58,9 @@ jobs:
         shell: julia --project="examples" --color=yes {0}
       - name: Run BPDN demo
         run: |
-          include("examples/demo-bpdn.jl")
-        shell: julia --project="examples" --color=yes {0}
+          julia --project=examples -e '
+            include("examples/demo-bpdn.jl")
+          '
       - name: Run contrained BPDN demo
         run: |
           include("examples/demo-bpdn-constr.jl")
