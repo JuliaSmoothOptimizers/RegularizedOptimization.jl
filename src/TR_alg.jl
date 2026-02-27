@@ -95,6 +95,14 @@ function TRSolver(
   )
 end
 
+function SolverCore.reset!(solver::TRSolver)
+  _reset_power_method!(solver.v0)
+  reset_data!(solver.subpb.model)
+  LinearOperators.reset!(solver.subpb.model)
+end
+
+SolverCore.reset!(solver::TRSolver, model) = SolverCore.reset!(solver)
+
 """
     TR(reg_nlp; kwargs…)
     TR(nlp, h, χ, options; kwargs...)
@@ -467,6 +475,7 @@ function SolverCore.solve!(
       found_λ || error("operator norm computation failed")
 
       ∇fk⁻ .= ∇fk
+      set_step_status!(stats, :accepted)
     end
 
     if ρk < η1 || ρk == Inf
@@ -479,6 +488,7 @@ function SolverCore.solve!(
         set_radius!(ψ, Δk)
         set_radius!(solver.subsolver.ψ, Δk)
       end
+      set_step_status!(stats, :rejected)
     end
 
     m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
