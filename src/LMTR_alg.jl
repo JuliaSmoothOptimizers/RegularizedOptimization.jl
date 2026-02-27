@@ -324,7 +324,7 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(nls, solver, stats)
+  callback(reg_nls, solver, stats)
 
   done = stats.status != :unknown
 
@@ -418,6 +418,7 @@ function SolverCore.solve!(
 
       σmax, found_σ = opnorm(solver.subpb.model.J)
       found_σ || error("operator norm computation failed")
+      set_step_status!(stats, :accepted)
     end
 
     if η2 ≤ ρk < Inf
@@ -438,6 +439,7 @@ function SolverCore.solve!(
         set_radius!(solver.subsolver.ψ, Δk)
         set_radius!(ψ, Δk)
       end
+      set_step_status!(stats, :rejected)
     end
 
     set_objective!(stats, fk + hk)
@@ -473,7 +475,7 @@ function SolverCore.solve!(
       ),
     )
 
-    callback(nls, solver, stats)
+    callback(reg_nls, solver, stats)
 
     done = stats.status != :unknown
   end

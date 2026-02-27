@@ -153,6 +153,8 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 - `η2::T = T(0.9)`: successful iteration threshold;
 - `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
+- `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
+- `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
@@ -323,6 +325,8 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
+  compute_obj::Bool = true,
+  compute_grad::Bool = true,
 ) where {T, V}
   reset!(stats)
 
@@ -386,8 +390,8 @@ function SolverCore.solve!(
   ν = 1 / σk
   sqrt_ξ_νInv = one(T)
 
-  fk = obj(nlp, xk)
-  grad!(nlp, xk, ∇fk)
+  fk = compute_obj ? obj(nlp, xk) : stats.solver_specific[:smooth_obj]
+  compute_grad && grad!(nlp, xk, ∇fk)
   @. mν∇fk = -ν * ∇fk
 
   set_iter!(stats, 0)
@@ -427,7 +431,7 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(nlp, solver, stats)
+  callback(reg_nlp, solver, stats)
 
   done = stats.status != :unknown
 
@@ -469,6 +473,7 @@ function SolverCore.solve!(
       hk = hkn
       grad!(nlp, xk, ∇fk)
       shift!(ψ, xk)
+      set_step_status!(stats, :accepted)
     end
 
     if η2 ≤ ρk < Inf
@@ -476,6 +481,7 @@ function SolverCore.solve!(
     end
     if ρk < η1 || ρk == Inf
       σk = σk * γ
+      set_step_status!(stats, :rejected)
     end
 
     ν = 1 / σk
@@ -511,7 +517,7 @@ function SolverCore.solve!(
       ),
     )
 
-    callback(nlp, solver, stats)
+    callback(reg_nlp, solver, stats)
 
     done = stats.status != :unknown
   end

@@ -81,6 +81,12 @@ function R2DHSolver(
   )
 end
 
+function SolverCore.reset!(solver::R2DHSolver)
+  LinearOperators.reset!(solver.D)
+end
+
+SolverCore.reset!(solver::R2DHSolver, model) = SolverCore.reset!(solver)
+
 """
     R2DH(reg_nlp; kwargs…)
 
@@ -127,6 +133,8 @@ or
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
 - `m_monotone::Int = 6`: monotoneness parameter. By default, R2DH is non-monotone but the monotone variant can be used with `m_monotone = 1`
+- `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
+- `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
@@ -228,6 +236,8 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   γ::T = T(3),
   θ::T = 1/(1 + eps(T)^(1 / 5)),
+  compute_obj::Bool = true,
+  compute_grad::Bool = true,
 ) where {T, V}
   reset!(stats)
 
@@ -293,8 +303,8 @@ function SolverCore.solve!(
   local ξ::T
   local ρk::T = zero(T)
 
-  fk = obj(nlp, xk)
-  grad!(nlp, xk, ∇fk)
+  fk = compute_obj ? obj(nlp, xk) : stats.solver_specific[:smooth_obj]
+  compute_grad && grad!(nlp, xk, ∇fk)
   ∇fk⁻ .= ∇fk
   spectral_test = isa(D, SpectralGradient)
 
@@ -352,7 +362,7 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(nlp, solver, stats)
+  callback(reg_nlp, solver, stats)
 
   done = stats.status != :unknown
 
@@ -398,6 +408,7 @@ function SolverCore.solve!(
       @. ∇fk⁻ = ∇fk - ∇fk⁻
       push!(D, s, ∇fk⁻) # update QN operator
       ∇fk⁻ .= ∇fk
+      set_step_status!(stats, :accepted)
     end
 
     if η2 ≤ ρk < Inf
@@ -406,6 +417,7 @@ function SolverCore.solve!(
 
     if ρk < η1 || ρk == Inf
       σk = σk * γ
+      set_step_status!(stats, :rejected)
     end
 
     set_objective!(stats, fk + hk)
@@ -447,7 +459,7 @@ function SolverCore.solve!(
       ),
     )
 
-    callback(nlp, solver, stats)
+    callback(reg_nlp, solver, stats)
 
     done = stats.status != :unknown
   end

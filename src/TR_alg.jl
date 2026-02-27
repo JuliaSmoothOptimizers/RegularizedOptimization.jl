@@ -67,9 +67,7 @@ function TRSolver(
     shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk, T(1), χ)
 
-  Bk =
-    isa(reg_nlp.model, QuasiNewtonModel) ? hess_op(reg_nlp.model, xk) :
-    hess_op!(reg_nlp.model, xk, similar(xk))
+  Bk = hess_op(reg_nlp, xk)
   sub_nlp = R2NModel(Bk, ∇fk, zero(T), x0) #FIXME 
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
@@ -96,6 +94,14 @@ function TRSolver(
     substats,
   )
 end
+
+function SolverCore.reset!(solver::TRSolver)
+  _reset_power_method!(solver.v0)
+  reset_data!(solver.subpb.model)
+  LinearOperators.reset!(solver.subpb.model)
+end
+
+SolverCore.reset!(solver::TRSolver, model) = SolverCore.reset!(solver)
 
 """
     TR(reg_nlp; kwargs…)
@@ -143,6 +149,8 @@ For advanced usage, first define a solver "TRSolver" to preallocate the memory u
 - `opnorm_maxiter::Int = 5`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
 - `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
 - `subsolver::S = R2Solver`: subsolver used to solve the subproblem that appears at each iteration.
+- `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
+- `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
@@ -215,6 +223,8 @@ function SolverCore.solve!(
   γ::T = T(3),
   sub_kwargs::NamedTuple = NamedTuple(),
   opnorm_maxiter::Int = 5,
+  compute_obj::Bool = true,
+  compute_grad::Bool = true,
 ) where {T, G, V}
   reset!(stats)
 
@@ -288,8 +298,8 @@ function SolverCore.solve!(
   α = 1 / eps(T)
   β = 1 / eps(T)
 
-  fk = obj(nlp, xk)
-  grad!(nlp, xk, ∇fk)
+  fk = compute_obj ? obj(nlp, xk) : stats.solver_specific[:smooth_obj]
+  compute_grad && grad!(nlp, xk, ∇fk)
   ∇fk⁻ .= ∇fk
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
@@ -354,7 +364,7 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(nlp, solver, stats)
+  callback(reg_nlp, solver, stats)
 
   done = stats.status != :unknown
   while !done
@@ -465,6 +475,7 @@ function SolverCore.solve!(
       found_λ || error("operator norm computation failed")
 
       ∇fk⁻ .= ∇fk
+      set_step_status!(stats, :accepted)
     end
 
     if ρk < η1 || ρk == Inf
@@ -477,6 +488,7 @@ function SolverCore.solve!(
         set_radius!(ψ, Δk)
         set_radius!(solver.subsolver.ψ, Δk)
       end
+      set_step_status!(stats, :rejected)
     end
 
     m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
@@ -513,7 +525,7 @@ function SolverCore.solve!(
       ),
     )
 
-    callback(nlp, solver, stats)
+    callback(reg_nlp, solver, stats)
 
     done = stats.status != :unknown
   end
