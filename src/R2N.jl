@@ -96,6 +96,14 @@ function R2NSolver(
   )
 end
 
+function SolverCore.reset!(solver::R2NSolver)
+  _reset_power_method!(solver.v0)
+  B = solver.subpb.model.B
+  isa(B, AbstractLinearOperator) && LinearOperators.reset!(B)
+end
+
+SolverCore.reset!(solver::R2NSolver, model) = SolverCore.reset!(solver)
+
 """
     R2N(reg_nlp; kwargs…)
 
@@ -455,6 +463,7 @@ function SolverCore.solve!(
         λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
       end
       found_λ || error("operator norm computation failed")
+      set_step_status!(stats, :accepted)
     end
 
     if η2 ≤ ρk < Inf
@@ -463,6 +472,7 @@ function SolverCore.solve!(
 
     if ρk < η1 || ρk == Inf
       σk = σk * γ
+      set_step_status!(stats, :rejected)
     end
 
     ν₁ = θ / (λmax + σk)

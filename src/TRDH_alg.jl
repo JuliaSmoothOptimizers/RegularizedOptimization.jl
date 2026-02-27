@@ -90,6 +90,12 @@ function TRDHSolver(
   )
 end
 
+function SolverCore.reset!(solver::TRDHSolver)
+  LinearOperators.reset!(solver.D)
+end
+
+SolverCore.reset!(solver::TRDHSolver, model) = SolverCore.reset!(solver)
+
 """
     TRDH(reg_nlp; kwargs…)
     TRDH(nlp, h, χ, options; kwargs...)
@@ -453,6 +459,7 @@ function SolverCore.solve!(
       dk .= D.d
       DNorm = norm(D.d, Inf)
       ∇fk⁻ .= ∇fk
+      set_step_status!(stats, :accepted)
     end
 
     if η2 ≤ ρk < Inf
@@ -468,6 +475,7 @@ function SolverCore.solve!(
       else
         set_radius!(ψ, Δk)
       end
+      set_step_status!(stats, :rejected)
     end
 
     set_objective!(stats, fk + hk)

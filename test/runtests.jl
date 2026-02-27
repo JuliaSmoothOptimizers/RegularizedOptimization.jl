@@ -42,6 +42,7 @@ for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "l
         @test length(out.solution) == bpdn.meta.nvar
         @test typeof(out.dual_feas) == eltype(out.solution)
         @test out.status == :first_order
+        @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
       end
     end
   end
@@ -60,6 +61,7 @@ for (mod, mod_name) ∈ ((SpectralGradientModel, "spg"),)
       @test length(out.solution) == bpdn.meta.nvar
       @test typeof(out.dual_feas) == eltype(out.solution)
       @test out.status == :first_order
+      @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
     end
   end
 end
@@ -76,6 +78,7 @@ for (mod, mod_name) ∈ ((LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
       @test length(TR_out.solution) == bpdn.meta.nvar
       @test typeof(TR_out.dual_feas) == eltype(TR_out.solution)
       @test TR_out.status == :first_order
+      @test TR_out.step_status == (TR_out.iter > 0 ? :accepted : :unknown)
     end
   end
 end
@@ -95,6 +98,7 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * com
       @test length(out.solution) == bpdn.meta.nvar
       @test typeof(out.dual_feas) == eltype(out.solution)
       @test out.status == :first_order
+      @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
     end
   end
 end
@@ -110,6 +114,7 @@ for (h, h_name) ∈ ((NormL1(λ), "l1"),)
     @test length(LMTR_out.solution) == bpdn.meta.nvar
     @test typeof(LMTR_out.dual_feas) == eltype(LMTR_out.solution)
     @test LMTR_out.status == :first_order
+    @test LMTR_out.step_status == (LMTR_out.iter > 0 ? :accepted : :unknown)
   end
 end
 
@@ -134,6 +139,7 @@ for (mod, mod_name) ∈ (
         @test length(out.solution) == bpdn.meta.nvar
         @test typeof(out.dual_feas) == eltype(out.solution)
         @test out.status == :first_order
+        @test out.step_status == (out.iter > 0 ? :accepted : :unknown)
       end
     end
   end
