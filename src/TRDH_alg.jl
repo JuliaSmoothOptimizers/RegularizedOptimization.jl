@@ -131,6 +131,10 @@ For advanced usage, first define a solver "TRDHSolver" to preallocate the memory
 - `x::V = nlp.meta.x0`: the initial guess;
 - `atol::T = √eps(T)`: absolute tolerance;
 - `rtol::T = √eps(T)`: relative tolerance;
+- `atol_decr::T = atol`: (advanced) absolute tolerance for the optimality measure `√(ξₖ/νₖ)` (see below);
+- `rtol_decr::T = rtol`: (advanced) relative tolerance for the optimality measure `√(ξₖ/νₖ)` (see below);
+- `atol_step::T = atol`: (advanced) absolute tolerance for the optimality measure `‖sₖ‖/ν₁` (see below);
+- `rtol_step::T = rtol`: (advanced) relative tolerance for the optimality measure `‖sₖ‖/ν₁` (see below);
 - `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance;
 - `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
@@ -146,7 +150,7 @@ For advanced usage, first define a solver "TRDHSolver" to preallocate the memory
 - `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
 - `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 
-The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
+The algorithm stops either when `√(ξₖ/νₖ) < atol_decr + rtol_decr*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure or when `‖sₖ‖/νₖ < atol_step + rtol_step*‖s₀‖/ν₀` where `sₖ` is the current step.
 Alternatively, if `reduce_TR = true`, then ξₖ₁ := f(xₖ) + h(xₖ) - φ(sₖ₁; xₖ) - ψ(sₖ₁; xₖ) is used instead of ξₖ, where sₖ₁ is the Cauchy point.
 
 #  Output
@@ -239,6 +243,10 @@ function SolverCore.solve!(
   x::V = reg_nlp.model.meta.x0,
   atol::T = √eps(T),
   rtol::T = √eps(T),
+  atol_decr::T = atol,
+  rtol_decr::T = rtol,
+  atol_step::T = atol,
+  rtol_step::T = rtol,
   neg_tol::T = eps(T)^(1 / 4),
   verbose::Int = 0,
   max_iter::Int = 10000,
@@ -304,12 +312,13 @@ function SolverCore.solve!(
 
   if verbose > 0
     @info log_header(
-      [:iter, :fx, :hx, :xi, :ρ, :Δ, :normx, :norms, :normD, :arrow],
-      [Int, T, T, T, T, T, T, T, T, Char],
+      [:iter, :fx, :hx, :xi, :normsdnu, :ρ, :Δ, :normx, :norms, :normD, :arrow],
+      [Int, T, T, T, T, T, T, T, T, T, Char],
       hdr_override = Dict{Symbol, String}(   # TODO: Add this as constant dict elsewhere
         :fx => "f(x)",
         :hx => "h(x)",
         :xi => "√(ξ/ν)",
+        :normsdnu => "‖s‖/ν",
         :normx => "‖x‖",
         :norms => "‖s‖",
         :normD => "‖D‖",
@@ -372,10 +381,9 @@ function SolverCore.solve!(
 
     ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
-    solved = (ξ1 < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ_νInv ≤ atol)
     (ξ1 < 0 && sqrt_ξ_νInv > neg_tol) &&
       error("TR: prox-gradient step should produce a decrease but ξ = $(ξ)")
-    atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative
+    atol_decr += rtol_decr * sqrt_ξ_νInv # make stopping test absolute and relative
   end
 
   Δ_effective = reduce_TR ? min(β * χ(s), Δk) : Δk
@@ -394,12 +402,17 @@ function SolverCore.solve!(
 
   if !reduce_TR
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
-    solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < atol)
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
       error("TRDH: prox-gradient step should produce a decrease but ξ = $(ξ)")
-    atol += rtol * sqrt_ξ_νInv # make stopping test absolute and relative #TODO : this is redundant code with the other case of the test.
+    atol_decr += rtol_decr * sqrt_ξ_νInv # make stopping test absolute and relative #TODO : this is redundant code with the other case of the test.
   end
 
+  norm_s = norm(s)
+  norm_sdν = norm_s / ν
+  atol_step += rtol_step * norm_sdν # make stopping test absolute and relative
+
+  solved = reduce_TR ? (ξ1 < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ_νInv ≤ atol_decr) || (norm_sdν ≤ atol_step) :
+    (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol_decr) || (norm_sdν ≤ atol_step)
   set_status!(
     stats,
     get_status(
@@ -434,6 +447,7 @@ function SolverCore.solve!(
           fk,
           hk,
           sqrt_ξ_νInv,
+          norm_sdν,
           ρk,
           Δk,
           χ(xk),
@@ -491,7 +505,6 @@ function SolverCore.solve!(
       prox!(s, ψ, mν∇fk, ν)
       ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
       sqrt_ξ_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
-      solved = (ξ1 < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ_νInv < atol)
       (ξ1 < 0 && sqrt_ξ_νInv > neg_tol) &&
         error("TRDH: prox-gradient step should produce a decrease but ξ = $(ξ)")
     end
@@ -503,10 +516,14 @@ function SolverCore.solve!(
     if !reduce_TR
       ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
       sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
-      solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < atol)
       (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
         error("TRDH: prox-gradient step should produce a decrease but ξ = $(ξ)")
     end
+
+    norm_s = norm(s)
+    norm_sdν = norm_s / ν
+
+    solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv ≤ atol_decr) || (norm_sdν ≤ atol_step)
 
     set_status!(
       stats,
@@ -529,13 +546,13 @@ function SolverCore.solve!(
 
   if verbose > 0 && stats.status == :first_order
     @info log_row(
-      Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, Δk, χ(xk), sNorm, norm(D.d), ""],
+      Any[stats.iter, fk, hk, sqrt_ξ_νInv, norm_sdν, ρk, Δk, χ(xk), sNorm, norm(D.d), ""],
       colsep = 1,
     )
-    @info "TRDH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
+    @info "TRDH: terminating with √(ξ/ν) = $(sqrt_ξ_νInv) and ‖s‖/ν = $(norm_sdν)"
   end
 
   set_solution!(stats, xk)
-  set_residuals!(stats, zero(eltype(xk)), sqrt_ξ_νInv)
+  set_residuals!(stats, zero(eltype(xk)), min(sqrt_ξ_νInv, norm_sdν))
   return stats
 end
