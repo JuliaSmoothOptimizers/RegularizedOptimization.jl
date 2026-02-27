@@ -26,7 +26,7 @@ SolverCore = "ff4d7338-4cf1-434d-91df-b86cb86fb843"
 [compat]
 ADNLPModels = "0.8.13"
 Arpack = "0.5"
-LinearOperators = "2.10.0"
+LinearOperators = "2.13.0"
 ManualNLPModels = "0.2.0"
 NLPModels = "0.19, 0.20, 0.21"
 NLPModelsModifiers = "0.7"

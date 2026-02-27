@@ -307,9 +307,9 @@ function SolverCore.solve!(
   found_λ = true
 
   if opnorm_maxiter ≤ 0
-    λmax, found_λ = opnorm(solver.subpb.model.B)
+    λmax, found_λ = opnorm_upper_bound(solver.subpb.model.B)
   else
-    λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+    λmax, found_λ = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
   end
   found_λ || error("operator norm computation failed")
 
@@ -468,9 +468,9 @@ function SolverCore.solve!(
       end
 
       if opnorm_maxiter ≤ 0
-        λmax, found_λ = opnorm(solver.subpb.model.B)
+        λmax, found_λ = opnorm_upper_bound(solver.subpb.model.B)
       else
-        λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+        λmax, found_λ = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
       end
       found_λ || error("operator norm computation failed")
 
