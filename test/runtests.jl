@@ -4,6 +4,7 @@ using ProximalOperators
 using ADNLPModels,
   OptimizationProblems,
   OptimizationProblems.ADNLPProblems,
+  ManualNLPModels,
   NLPModels,
   NLPModelsModifiers,
   RegularizedProblems,
@@ -18,6 +19,10 @@ const global bpdn, bpdn_nls, sol = bpdn_model(compound)
 const global bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 
+include("utils.jl")
+include("test-solver.jl")
+
+include("test-R2N.jl")
 include("test_AL.jl")
 
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
