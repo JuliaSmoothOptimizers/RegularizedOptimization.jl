@@ -71,7 +71,7 @@ function TRSolver(
   sub_nlp = R2NModel(Bk, ∇fk, zero(T), x0) #FIXME 
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
-  subsolver = subsolver(subpb)
+  subsolver = subsolver == TRDHSolver ? subsolver(subpb, is_subsolver = true) : subsolver(subpb)
 
   return TRSolver(
     xk,
