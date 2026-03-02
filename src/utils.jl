@@ -203,3 +203,14 @@ for solver in [
     $solver(reg_nlp; kwargs...)
   end
 end
+
+for solver in [
+  :LM,
+  :LMTR
+]
+  @eval $solver(nlp::AbstractNLSModel{T, V}; kwargs...) where{T, V} = begin
+    h = NullRegularizer(T)
+    reg_nls = RegularizedNLSModel(nlp, h)
+    $solver(reg_nls; kwargs...)
+  end
+end
