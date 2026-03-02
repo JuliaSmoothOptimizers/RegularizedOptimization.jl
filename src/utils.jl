@@ -189,3 +189,17 @@ function update_bounds!(
     @. u_bound_m_x = min(Δ, u_bound - xk)
   end
 end
+
+for solver in [
+  :R2,
+  :R2N,
+  :R2DH,
+  :TR,
+  :TRDH,
+]
+  @eval $solver(nlp::AbstractNLPModel{T, V}; kwargs...) where{T, V} = begin
+    h = NullRegularizer(T)
+    reg_nlp = RegularizedNLPModel(nlp, h)
+    $solver(reg_nlp; kwargs...)
+  end
+end

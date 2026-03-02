@@ -36,6 +36,7 @@ ProximalOperators = "0.15"
 RegularizedProblems = "0.1.3"
 ShiftedProximalOperators = "0.2"
 SolverCore = "0.3.10"
+SolverTest = "0.3.18"
 julia = "^1.6.0"
 
 [extras]
@@ -43,8 +44,9 @@ ADNLPModels = "54578032-b7ea-4c30-94aa-7cbd1cce6c9a"
 OptimizationProblems = "5049e819-d29b-5fba-b941-0eee7e64c1c6"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RegularizedProblems = "ea076b23-609f-44d2-bb12-a4ae45328278"
+SolverTest = "4343dc35-3317-4c6e-8877-f0cc8502c90e"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestSetExtensions = "98d24dd4-01ad-11ea-1b02-c9a08f80db04"
 
 [targets]
-test = ["ADNLPModels", "OptimizationProblems", "Random", "RegularizedProblems", "Test", "TestSetExtensions"]
+test = ["ADNLPModels", "OptimizationProblems", "Random", "RegularizedProblems", "SolverTest", "Test", "TestSetExtensions"]
