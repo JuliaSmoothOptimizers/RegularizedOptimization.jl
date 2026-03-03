@@ -198,8 +198,9 @@ for solver in [
   :TRDH,
 ]
   @eval $solver(nlp::AbstractNLPModel{T, V}; kwargs...) where{T, V} = begin
+    selected = pop!(kwargs, :selected, 1:get_nvar(nlp))
     h = NullRegularizer(T)
-    reg_nlp = RegularizedNLPModel(nlp, h)
+    reg_nlp = RegularizedNLPModel(nlp, h, selected)
     $solver(reg_nlp; kwargs...)
   end
 end
@@ -208,9 +209,10 @@ for solver in [
   :LM,
   :LMTR
 ]
-  @eval $solver(nlp::AbstractNLSModel{T, V}; kwargs...) where{T, V} = begin
+  @eval $solver(nls::AbstractNLSModel{T, V}; kwargs...) where{T, V} = begin
+    selected = pop!(kwargs, :selected, 1:get_nvar(nls))
     h = NullRegularizer(T)
-    reg_nls = RegularizedNLSModel(nlp, h)
+    reg_nls = RegularizedNLSModel(nls, h, selected)
     $solver(reg_nls; kwargs...)
   end
 end
