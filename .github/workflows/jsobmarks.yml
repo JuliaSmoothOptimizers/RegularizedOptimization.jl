@@ -7,7 +7,7 @@ on:
 jobs:
   bmark:
     name: Julia ${{ matrix.version }} - macOS - ${{ matrix.arch }} - ${{ github.event_name }}
-    if: github.event_name == 'workflow_call' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'benchmarks'))
+    if: github.event_name == 'workflow_call' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run benchmarks'))
     # FIXME: should run on hosted runner
     runs-on: macOS-latest
     strategy:
