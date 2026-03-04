@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch_depth: 0
+          fetch-depth: 0
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
