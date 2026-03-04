@@ -64,13 +64,13 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           message: ${{ steps.build-comment.outputs.result }}
-      - name: Upload benchmark plots
-        uses: edunad/actions-image@v2.0.0
-        with:
-          path: "./*.png"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          title: "Benchmarks at a Glance"
-          annotationLevel: "notice"
+      # - name: Upload benchmark plots
+      #   uses: edunad/actions-image@v2.0.0
+      #   with:
+      #     path: "./*.png"
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     title: "Benchmarks at a Glance"
+      #     annotationLevel: "notice"
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
