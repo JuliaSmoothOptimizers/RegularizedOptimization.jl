@@ -1,0 +1,81 @@
+name: JSOBenchmarks
+on:
+  pull_request:
+    types: [labeled, opened, synchronize, reopened]
+  workflow_call:
+
+jobs:
+  bmark:
+    name: Julia ${{ matrix.version }} - macOS - ${{ matrix.arch }} - ${{ github.event_name }}
+    if: github.event_name == 'workflow_call' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run benchmarks'))
+    # FIXME: should run on hosted runner
+    runs-on: macOS-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - 1
+        arch:
+          - aarch64
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/julia-buildpkg@v1
+        # FIXME: register JSOBenchmarks
+      - name: Installing non-registered dependencies
+        run: |
+          using Pkg
+          pkg1 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/JSOBenchmarks.jl.git", rev = "main")
+          pkg_list = [pkg1]
+          Pkg.add(pkg_list)
+        shell: julia --project=benchmark --color=yes {0}
+      - name: Install benchmark dependencies
+        run: julia --project=benchmark -e 'using Pkg; Pkg.instantiate()'
+      - name: Sanitize project name
+        id: sanitize
+        run: echo "REPONAME=${{ github.event.repository.name }}" | sed -e 's/\.jl$//' >> $GITHUB_OUTPUT
+      - name: Run benchmarks
+        run: julia --project=benchmark -e 'using JSOBenchmarks; run_benchmarks("${{ steps.sanitize.outputs.REPONAME }}", "benchmark", reference_branch = "main")'
+        env:
+          GITHUB_AUTH: ${{ secrets.GIST_TOKEN }}
+      # - name: Post benchmark results in PR
+      #   uses: thollander/actions-comment-pull-request@v2
+      #   with:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     message: "Full benchmark results stored as artifacts. Summary: ${{ secrets.BMARK_GIST_URL }}"
+      - name: Build comment
+        id: build-comment
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ github.token }}
+          result-encoding: string
+          script: |
+            const fs = require('fs');
+            return fs.readFileSync("${{ github.workspace }}/bmark_${{ github.sha }}.md", "utf8").toString();
+      - name: Comment in PR
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          message: ${{ steps.build-comment.outputs.result }}
+      # - name: Upload benchmark plots
+      #   uses: edunad/actions-image@v2.0.0
+      #   with:
+      #     path: "./*.png"
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     title: "Benchmarks at a Glance"
+      #     annotationLevel: "notice"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: jso-benchmarks
+          path: |
+            profiles_this_commit_vs_reference_*.svg
+            *_vs_reference_*.jld2
+            bmark_*.md
+            reference.md
+            judgement_*.md
