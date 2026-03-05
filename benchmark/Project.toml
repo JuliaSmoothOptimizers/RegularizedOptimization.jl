@@ -4,11 +4,11 @@ JSOBenchmarks = "9410e2bb-e8e7-4fa0-9768-685b196f59b5"
 PkgBenchmark = "32113eaa-f34f-5b0d-bd6c-c81e245fc73d"
 RegularizedOptimization = "20620ad1-4fe4-4467-ae46-fb087718fe7b"
 RegularizedProblems = "ea076b23-609f-44d2-bb12-a4ae45328278"
+SolverBenchmark = "581a75fa-a23a-52d0-a590-d6201de2218a"
 
 [compat]
-julia = "1"
 BenchmarkTools = "1"
 PkgBenchmark = "0.2"
-# JSOBenchmarks = "0.1"
 RegularizedOptimization = "0.2"
 RegularizedProblems = "0.1"
+julia = "1"
