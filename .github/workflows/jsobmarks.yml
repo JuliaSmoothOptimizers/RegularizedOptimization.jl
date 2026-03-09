@@ -42,14 +42,25 @@ jobs:
         id: sanitize
         run: echo "REPONAME=${{ github.event.repository.name }}" | sed -e 's/\.jl$//' >> $GITHUB_OUTPUT
       - name: Run benchmarks
-        run: julia --project=benchmark -e 'using JSOBenchmarks; run_solver_benchmarks("${{ steps.sanitize.outputs.REPONAME }}", "benchmark", reference_branch = "${{ github.event.pull_request.base.ref }}")'
+        run: julia --project=benchmark -e '
+            using JSOBenchmarks
+
+            gist_url = run_benchmarks(
+              "${{ steps.sanitize.outputs.REPONAME }}",
+              "benchmark",
+              reference_branch = "${{ github.event.pull_request.base.ref }}"
+            )
+
+            run_solver_benchmarks(
+              "${{ steps.sanitize.outputs.REPONAME }}",
+              "benchmark",
+              reference_branch = "${{ github.event.pull_request.base.ref }}",
+              gist_url = gist_url,
+              script = "solver_benchmarks.jl",
+            )
+          '
         env:
           GITHUB_AUTH: ${{ secrets.GIST_TOKEN }}
-      # - name: Post benchmark results in PR
-      #   uses: thollander/actions-comment-pull-request@v2
-      #   with:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     message: "Full benchmark results stored as artifacts. Summary: ${{ secrets.BMARK_GIST_URL }}"
       - name: Build comment
         id: build-comment
         uses: actions/github-script@v6
@@ -64,13 +75,6 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           message: ${{ steps.build-comment.outputs.result }}
-      # - name: Upload benchmark plots
-      #   uses: edunad/actions-image@v2.0.0
-      #   with:
-      #     path: "./*.png"
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     title: "Benchmarks at a Glance"
-      #     annotationLevel: "notice"
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
