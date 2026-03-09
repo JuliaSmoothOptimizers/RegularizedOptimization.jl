@@ -48,7 +48,7 @@ jobs:
             gist_url = run_benchmarks(
               "${{ steps.sanitize.outputs.REPONAME }}",
               "benchmark",
-              reference_branch = "${{ github.event.pull_request.base.ref }}"
+              reference_branch = "main",
             )
 
             run_solver_benchmarks(
