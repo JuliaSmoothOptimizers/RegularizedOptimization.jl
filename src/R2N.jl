@@ -340,11 +340,14 @@ function SolverCore.solve!(
     d -> φ1(d) + ψ(d)::T
   end
 
-  mk = let ψ = ψ, solver = solver
-    temp_σ = solver.subpb.model.data.σ
-    solver.subpb.model.data.σ = zero(T)
-    d -> obj(solver.subpb.model, d) + ψ(d)::T
-    solver.subpb.model.data.σ = temp_σ
+  mk = let ψ = ψ, solver = solver 
+    d -> begin
+      temp_σ = solver.subpb.model.data.σ
+      solver.subpb.model.data.σ = zero(T)
+      smooth_obj = obj(solver.subpb.model, d)
+      solver.subpb.model.data.σ = temp_σ
+      return smooth_obj + ψ(d)
+    end
   end
 
   prox!(s1, ψ, mν∇fk, ν₁)
