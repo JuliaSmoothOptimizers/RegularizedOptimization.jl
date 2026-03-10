@@ -70,7 +70,7 @@ function TRSolver(
     shifted(reg_nlp.h, xk, T(1), χ)
 
   Bk = hess_op(reg_nlp, xk)
-  sub_nlp = QuadraticModel(∇fk, Bk, σ = T(1), x0 = x0)
+  sub_nlp = QuadraticModel(∇fk, Bk, x0 = x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
