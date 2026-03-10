@@ -44,7 +44,8 @@ jobs:
       - name: Run benchmarks
         run: julia --project=benchmark -e '
             using JSOBenchmarks, Random
-            Random.seed!(1)
+
+            Random.seed!(0)
 
             gist_url = run_benchmarks(
               "${{ steps.sanitize.outputs.REPONAME }}",
