@@ -19,6 +19,7 @@ mutable struct TRSolver{
   xkn::V
   s::V
   v0::V
+  v1::V
   has_bnds::Bool
   l_bound::V
   u_bound::V
@@ -61,6 +62,7 @@ function TRSolver(
 
   v0 = [(-1.0)^i for i = 0:(reg_nlp.model.meta.nvar - 1)]
   v0 ./= sqrt(reg_nlp.model.meta.nvar)
+  v1 = similar(v0)
 
   ψ =
     has_bnds || subsolver == TRDHSolver ?
@@ -68,7 +70,7 @@ function TRSolver(
     shifted(reg_nlp.h, xk, T(1), χ)
 
   Bk = hess_op(reg_nlp, xk)
-  sub_nlp = R2NModel(Bk, ∇fk, zero(T), x0) #FIXME 
+  sub_nlp = QuadraticModel(∇fk, Bk, σ = T(1), x0 = x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
@@ -83,6 +85,7 @@ function TRSolver(
     xkn,
     s,
     v0,
+    v1,
     has_bnds,
     l_bound,
     u_bound,
@@ -307,9 +310,9 @@ function SolverCore.solve!(
   found_λ = true
 
   if opnorm_maxiter ≤ 0
-    λmax, found_λ = opnorm(solver.subpb.model.B)
+    λmax, found_λ = opnorm(solver.subpb.model.data.H)
   else
-    λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+    λmax = power_method!(solver.subpb.model.data.H, solver.v0, solver.v1, opnorm_maxiter)
   end
   found_λ || error("operator norm computation failed")
 
@@ -468,9 +471,9 @@ function SolverCore.solve!(
       end
 
       if opnorm_maxiter ≤ 0
-        λmax, found_λ = opnorm(solver.subpb.model.B)
+        λmax, found_λ = opnorm(solver.subpb.model.data.H)
       else
-        λmax = power_method!(solver.subpb.model.B, solver.v0, solver.subpb.model.v, opnorm_maxiter)
+        λmax = power_method!(solver.subpb.model.data.H, solver.v0, solver.v1, opnorm_maxiter)
       end
       found_λ || error("operator norm computation failed")
 
