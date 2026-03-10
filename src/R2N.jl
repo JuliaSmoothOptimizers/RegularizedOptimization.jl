@@ -341,7 +341,10 @@ function SolverCore.solve!(
   end
 
   mk = let ψ = ψ, solver = solver
-    d -> obj(solver.subpb.model, d, skip_sigma = true) + ψ(d)::T
+    temp_σ = solver.subpb.model.data.σ
+    solver.subpb.model.data.σ = zero(T)
+    d -> obj(solver.subpb.model, d) + ψ(d)::T
+    solver.subpb.model.data.σ = temp_σ
   end
 
   prox!(s1, ψ, mν∇fk, ν₁)
@@ -375,7 +378,7 @@ function SolverCore.solve!(
   while !done
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
 
-    solver.subpb.model.σ = σk
+    solver.subpb.model.data.σ = σk
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     if isa(solver.subsolver, R2Solver) #FIXME
       solve!(
