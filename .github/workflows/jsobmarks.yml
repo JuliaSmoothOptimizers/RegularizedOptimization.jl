@@ -52,6 +52,7 @@ jobs:
             )
 
             include("solver_benchmarks_options.jl")
+            
             run_solver_benchmarks(
               "${{ steps.sanitize.outputs.REPONAME }}",
               "benchmark",
