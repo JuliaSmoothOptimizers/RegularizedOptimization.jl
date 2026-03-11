@@ -36,6 +36,7 @@ function TRSolver(
   χ::X = NormLinf(one(T)),
   subsolver = R2Solver,
   m_monotone::Int = 1,
+  sparse::Bool = false,
 ) where {T, V, X}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
@@ -69,7 +70,8 @@ function TRSolver(
     shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk, T(1), χ)
 
-  Bk = hess_op(reg_nlp, xk)
+  sparse = isa(reg_nlp.model, QuasiNewtonModel) ? false : sparse
+  Bk = sparse ? hess(reg_nlp, xk) : hess_op(reg_nlp, xk)
   sub_nlp = QuadraticModel(∇fk, Bk, x0 = x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
@@ -468,6 +470,8 @@ function SolverCore.solve!(
       if quasiNewtTest
         @. ∇fk⁻ = ∇fk - ∇fk⁻
         push!(nlp, s, ∇fk⁻) # update QN operator
+      elseif isa(solver.subpb.model.data.H, AbstractMatrix)
+        hess_coord!(reg_nlp, xk, solver.subpb.model.data.H.nzval)
       end
 
       if opnorm_maxiter ≤ 0
