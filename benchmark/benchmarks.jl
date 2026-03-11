@@ -1,5 +1,7 @@
-using BenchmarkTools
+using BenchmarkTools, Random
 using RegularizedProblems, RegularizedOptimization
+
+Random.seed!(0)
 
 const SUITE = BenchmarkGroup()
 

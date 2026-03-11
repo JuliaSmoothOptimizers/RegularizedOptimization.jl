@@ -43,9 +43,7 @@ jobs:
         run: echo "REPONAME=${{ github.event.repository.name }}" | sed -e 's/\.jl$//' >> $GITHUB_OUTPUT
       - name: Run benchmarks
         run: julia --project=benchmark -e '
-            using JSOBenchmarks, Random
-
-            Random.seed!(0)
+            using JSOBenchmarks
 
             gist_url = run_benchmarks(
               "${{ steps.sanitize.outputs.REPONAME }}",
