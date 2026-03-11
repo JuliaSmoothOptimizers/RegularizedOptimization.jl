@@ -70,6 +70,7 @@ function R2NSolver(
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
     shifted(reg_nlp.h, xk)
 
+  sparse = isa(reg_nlp.model, QuasiNewtonModel) ? false : sparse
   Bk = sparse ? hess(reg_nlp, xk) : hess_op(reg_nlp, xk)
   sub_nlp = QuadraticModel(∇fk, Bk, σ = T(1), x0 = x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
@@ -465,6 +466,8 @@ function SolverCore.solve!(
         qn_update_y!(nlp, solver, stats)
         push!(nlp, s, solver.y)
         qn_copy!(nlp, solver, stats)
+      elseif isa(solver.subpb.model.data.H, AbstractMatrix)
+        hess_coord!(reg_nlp, xk, solver.subpb.model.data.H.nzval)
       end
 
       if opnorm_maxiter ≤ 0
