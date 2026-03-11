@@ -11,6 +11,7 @@ using LinearOperators,
   ManualNLPModels,
   NLPModels,
   NLPModelsModifiers,
+  QuadraticModels,
   RegularizedProblems,
   ShiftedProximalOperators,
   SolverCore
@@ -45,7 +46,6 @@ include("LMModel.jl")
 include("LM_alg.jl")
 include("LMTR_alg.jl")
 include("R2DH.jl")
-include("R2NModel.jl")
 include("R2N.jl")
 include("AL_alg.jl")
 
