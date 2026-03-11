@@ -346,7 +346,7 @@ function SolverCore.solve!(
       model.data.σ = zero(T)
       _obj = obj(model, d) + ψ(d)
       model.data.σ = temp_σ
-      return _obj 
+      return _obj
     end
   end
 
