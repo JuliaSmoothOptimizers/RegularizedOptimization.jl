@@ -1,4 +1,7 @@
+using Random
 using RegularizedProblems, RegularizedOptimization, SolverBenchmark
+
+Random.seed!(0)
 
 bpdn_l0, _ = setup_bpdn_l0()
 bpdn_l1, _ = setup_bpdn_l1()
