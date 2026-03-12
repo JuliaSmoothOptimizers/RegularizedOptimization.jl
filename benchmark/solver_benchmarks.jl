@@ -17,14 +17,14 @@ solvers = Dict(
   :R2_precise => 
     reg_nlp -> R2(
       reg_nlp,
-      verbose = 0,
+      verbose = 1,
       atol = 1e-6,
       rtol = 1e-6,
     ),
   :R2_imprecise => 
     reg_nlp -> R2(
       reg_nlp,
-      verbose = 0,
+      verbose = 1,
       atol = 1e-3,
       rtol = 1e-3,
     )
