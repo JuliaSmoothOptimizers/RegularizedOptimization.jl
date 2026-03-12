@@ -89,3 +89,5 @@ jobs:
             bmark_*.md
             reference.md
             judgement_*.md
+            *_solver_benchmarks_*.jld2
+            *_solver_benchmarks_*.txt
