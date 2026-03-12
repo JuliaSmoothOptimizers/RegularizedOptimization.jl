@@ -78,12 +78,12 @@ Selected variables: 1:2</code></pre><h2 id="Solving-the-problem"><a class="docs-
 # LM is a quadratic regularization method.
 out = LM(regularized_pb, verbose = 1, atol = 1e-4)
 println(&quot;LM converged after $(out.iter) iterations.&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">[ Info: </span></span> outer  inner     f(x)     h(x)  √(ξ1/ν)        ρ        σ      ‖x‖      ‖s‖     ‖J‖² LM
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0     25  1.0e+01  1.0e-02  2.6e+01  8.4e-01  7.4e-04  1.0e+00  1.5e+00  1.3e+02 =
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     1     14  2.0e+00  2.0e-02  1.3e+01  9.9e-01  7.4e-04  2.2e+00  3.0e-01  5.2e+01 ↘
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     2     16  3.8e-01  2.0e-02  1.5e+00  1.0e+00  2.5e-04  2.2e+00  3.9e-02  7.1e+01 ↘
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0    108  1.0e+01  1.0e-02  2.6e+01  8.4e-01  7.4e-04  1.0e+00  1.5e+00  1.3e+02 =
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     1     13  2.0e+00  2.0e-02  1.3e+01  9.9e-01  7.4e-04  2.2e+00  3.0e-01  5.2e+01 ↘
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     2     15  3.8e-01  2.0e-02  1.5e+00  1.0e+00  2.5e-04  2.2e+00  3.8e-02  7.1e+01 ↘
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>     3     17  3.6e-01  2.0e-02  1.7e-02  1.0e+00  8.2e-05  2.2e+00  7.7e-04  6.8e+01 ↘
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     4      0  3.6e-01  2.0e-02  2.5e-05  1.0e+00  2.7e-05  2.2e+00  3.6e-07  6.8e+01
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>LM: terminating with √(ξ1/ν) = 2.4798873648586396e-5
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     4      0  3.6e-01  2.0e-02  2.5e-05  1.0e+00  2.7e-05  2.2e+00  3.7e-07  6.8e+01
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>LM: terminating with √(ξ1/ν) = 2.491378437362734e-5
 LM converged after 4 iterations.</code></pre><p>We can visualize the solution with plots,</p><pre><code class="language-julia hljs">using Plots
 
 # Extract estimated parameters
@@ -98,15 +98,15 @@ y_est = [a_est * exp(b_est * ti) for ti in t]
 # Plot
 scatter(t, y, label=&quot;Noisy data&quot;, legend=:bottomleft)
 plot!(t, y_true, label=&quot;True model&quot;, lw=2)
-plot!(t, y_est, label=&quot;Fitted model&quot;, lw=2, ls=:dash)</code></pre><img src="e34ea52b.svg" alt="Example block output"/><pre><code class="language-julia hljs">#We can choose LMTR instead which is a trust-region method
+plot!(t, y_est, label=&quot;Fitted model&quot;, lw=2, ls=:dash)</code></pre><img src="aaa9ea40.svg" alt="Example block output"/><pre><code class="language-julia hljs">#We can choose LMTR instead which is a trust-region method
 out = LMTR(regularized_pb, verbose = 1, atol = 1e-4)
 println(&quot;LMTR converged after $(out.iter) iterations.&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">[ Info: </span></span> outer  inner     f(x)     h(x)  √(ξ1/ν)        ρ        Δ      ‖x‖      ‖s‖        ν LMTR
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0     16  1.0e+01  1.0e-02  2.6e+01  9.1e-01  1.0e+00  1.0e+00  1.0e+00  7.9e-03 ↗
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>     0     55  1.0e+01  1.0e-02  2.6e+01  9.1e-01  1.0e+00  1.0e+00  1.0e+00  7.9e-03 ↗
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>     1      6  1.5e+00  2.0e-02  1.2e+01  1.0e+00  3.0e+00  1.8e+00  2.2e-01  1.6e-02 ↗
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>     2     18  3.6e-01  2.0e-02  1.7e-01  1.0e+00  3.0e+00  2.0e+00  1.3e-02  1.5e-02 ↗
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>     3      4  3.6e-01  2.0e-02  3.9e-04  1.0e+00  3.0e+00  2.0e+00  2.9e-05  1.5e-02 ↗
 <span class="sgr36"><span class="sgr1">[ Info: </span></span>     4      0  3.6e-01  2.0e-02  8.6e-05  1.0e+00  3.0e+00  2.0e+00  9.8e-07  1.5e-02
-<span class="sgr36"><span class="sgr1">[ Info: </span></span>LMTR: terminating with √(ξ1/ν) = 8.638774011218363e-5
+<span class="sgr36"><span class="sgr1">[ Info: </span></span>LMTR: terminating with √(ξ1/ν) = 8.638765259168056e-5
 LMTR converged after 4 iterations.</code></pre><pre><code class="language-julia hljs"># Extract estimated parameters
 a_est, b_est = out.solution
 
@@ -116,4 +116,4 @@ y_est = [a_est * exp(b_est * ti) for ti in t]
 # Plot
 scatter(t, y, label=&quot;Noisy data&quot;, legend=:bottomleft)
 plot!(t, y_true, label=&quot;True model&quot;, lw=2)
-plot!(t, y_est, label=&quot;Fitted model&quot;, lw=2, ls=:dash)</code></pre><img src="047405ae.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../basic/">« A regularized optimization problem</a><a class="docs-footer-nextpage" href="../../reference/">Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Thursday 12 March 2026 15:01">Thursday 12 March 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+plot!(t, y_est, label=&quot;Fitted model&quot;, lw=2, ls=:dash)</code></pre><img src="e3834699.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../basic/">« A regularized optimization problem</a><a class="docs-footer-nextpage" href="../../reference/">Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Thursday 12 March 2026 15:26">Thursday 12 March 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
