@@ -85,6 +85,7 @@ jobs:
           name: jso-benchmarks
           path: |
             profiles_this_commit_vs_reference_*.svg
+            profiles_this_commit_vs_reference_*.pdf
             *_vs_reference_*.jld2
             bmark_*.md
             reference.md
