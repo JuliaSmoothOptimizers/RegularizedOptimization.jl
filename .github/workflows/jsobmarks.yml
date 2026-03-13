@@ -50,8 +50,6 @@ jobs:
               "benchmark",
               reference_branch = "origin/${{ github.event.pull_request.base.ref }}",
             )
-
-            include("benchmark/solver_benchmarks_options.jl")
             
             run_solver_benchmarks(
               "${{ steps.sanitize.outputs.REPONAME }}",
