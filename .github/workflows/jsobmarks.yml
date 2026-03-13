@@ -57,8 +57,6 @@ jobs:
               reference_branch = "origin/${{ github.event.pull_request.base.ref }}",
               gist_url = gist_url,
               script = "solver_benchmarks.jl",
-              profile_values = solver_benchmark_profile_values(),
-              table_values = solver_benchmark_table_values()
             )
           '
         env:
