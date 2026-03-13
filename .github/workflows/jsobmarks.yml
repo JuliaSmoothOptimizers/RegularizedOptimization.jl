@@ -91,4 +91,5 @@ jobs:
             reference.md
             judgement_*.md
             *_solver_benchmarks_*.jld2
-            *_solver_benchmarks_*.txt
+            reference_*.tex
+            this_commit_*.tex
