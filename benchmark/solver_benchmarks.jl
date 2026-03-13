@@ -3,11 +3,11 @@ using RegularizedProblems, RegularizedOptimization, SolverBenchmark
 
 # Options for the run_solver_benchmarks function.
 # These functions specify the values to be used in the performance profiles and tables.
-function Main.solver_benchmark_profile_values()
+function JSOBenchmarks.solver_benchmark_profile_values()
   [(:elapsed_time, "CPU Time"), (:neval_obj, "# Objective Evals"), (:neval_grad, "# Gradient Evals"), (:iter, "# Iterations")]
 end
 
-function Main.solver_benchmark_table_values()
+function JSOBenchmarks.solver_benchmark_table_values()
   return [(:name, "Name"), (:objective, "f(x)"), (:elapsed_time, "Time"), (:neval_obj, "Obj Evals"), (:neval_grad, "Grad Evals"), (:iter, "Iterations")]
 end
 
