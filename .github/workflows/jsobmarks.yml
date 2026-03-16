@@ -40,7 +40,7 @@ jobs:
         id: sanitize
         run: echo "REPONAME=${{ github.event.repository.name }}" | sed -e 's/\.jl$//' >> $GITHUB_OUTPUT
       - name: Run benchmarks
-        run: julia --project=benchmark -e 'using JSOBenchmarks; run_benchmarks("${{ steps.sanitize.outputs.REPONAME }}", "benchmark", reference_branch = "main")'
+        run: julia --project=benchmark -e 'using JSOBenchmarks; run_benchmarks("${{ steps.sanitize.outputs.REPONAME }}", "benchmark", reference_branch = "jsobmarks")'
         env:
           GITHUB_AUTH: ${{ secrets.GIST_TOKEN }}
       # - name: Post benchmark results in PR
