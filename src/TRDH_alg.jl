@@ -332,7 +332,7 @@ function SolverCore.solve!(
   dk .= D.d
   DNorm = norm(D.d, Inf)
 
-  ν = (α * Δk)/(DNorm + one(T))
+  ν = 1 / (DNorm + 1 / (α * Δk))
   sqrt_ξ_νInv = one(T)
 
   @. mν∇fk = -ν * ∇fk
@@ -345,13 +345,6 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :nonsmooth_obj, hk)
 
   # models
-  φ1 = let ∇fk = ∇fk
-    d -> dot(∇fk, d)
-  end
-  mk1 = let ψ = ψ
-    d -> φ1(d) + ψ(d)::T
-  end
-
   φ = let ∇fk = ∇fk, dk = dk
     d -> begin
       result = zero(T)
@@ -368,7 +361,7 @@ function SolverCore.solve!(
 
   if reduce_TR
     prox!(s, ψ, mν∇fk, ν)
-    mks = mk1(s)
+    mks = mk(s)
 
     ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
@@ -484,12 +477,12 @@ function SolverCore.solve!(
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
 
-    ν = reduce_TR ? (α * Δk)/(DNorm + one(T)) : α / (DNorm + one(T))
+    ν = reduce_TR ? 1 / (DNorm + 1 / (α * Δk)) : 1 / (DNorm + 1 / α)
     mν∇fk .= -ν .* ∇fk
 
     if reduce_TR
       prox!(s, ψ, mν∇fk, ν)
-      ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
+      ξ1 = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
       sqrt_ξ_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
       solved = (ξ1 < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ_νInv < atol)
       (ξ1 < 0 && sqrt_ξ_νInv > neg_tol) &&
@@ -497,11 +490,10 @@ function SolverCore.solve!(
     end
 
     iprox!(s, ψ, ∇fk, dk)
-
+    ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
     sNorm = χ(s)
 
-    if !reduce_TR
-      ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
+    if !reduce_TR      
       sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
       solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < atol)
       (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
