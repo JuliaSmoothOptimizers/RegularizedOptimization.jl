@@ -30,7 +30,7 @@ jobs:
       - name: Installing non-registered dependencies
         run: |
           using Pkg
-          pkg1 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/JSOBenchmarks.jl.git", rev = "main")
+          pkg1 = PackageSpec(url = "https://github.com/JuliaSmoothOptimizers/JSOBenchmarks.jl.git", rev = "barplots")
           pkg_list = [pkg1]
           Pkg.add(pkg_list)
         shell: julia --project=benchmark --color=yes {0}
