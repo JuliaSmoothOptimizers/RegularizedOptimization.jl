@@ -41,40 +41,40 @@ Please refer to the documentation.
 ## References
 
 1. A. Y. Aravkin, R. Baraldi and D. Orban, *A Proximal Quasi-Newton Trust-Region Method for Nonsmooth Regularized Optimization*, SIAM Journal on Optimization, 32(2), pp.900&ndash;929, 2022. Technical report: https://arxiv.org/abs/2103.15993
-2. A. Y. Aravkin, R. Baraldi and D. Orban, *A Levenberg-Marquardt Method for Nonsmooth Regularized Least Squares*, SIAM Journal on Scientific Computing, 46(4), pp.2557&ndash;2581, 2024. Technical report: https://arxiv.org/abs/2301.02347
+2. A. Y. Aravkin, R. Baraldi and D. Orban, *A Levenberg-Marquardt Method for Nonsmooth Regularized Least Squares*, SIAM Journal on Scientific Computing, 46(4), pp.A2557&ndash;A2581, 2024. Technical report: https://arxiv.org/abs/2301.02347
 3. G. Leconte and D. Orban, *The Indefinite Proximal Gradient Method*, Computational Optimization and Applications, 91(2), pp.861&ndash;903, 2025. Technical report: https://arxiv.org/abs/2309.08433
 
 ```bibtex
-@Article{   aravkin-baraldi-orban-2022,
-  Author  = {Aravkin, Aleksandr Y. and Baraldi, Robert and Orban, Dominique},
-  Title   = {A Proximal Quasi-{N}ewton Trust-Region Method for Nonsmooth Regularized Optimization},
-  Journal = {SIAM J. Optim.},
-  Year    = 2022,
-  Volume  = 32,
-  Number  = 2,
-  Pages   = {900--929},
+@article{   aravkin-baraldi-orban-2022,
+  author  = {Aravkin, Aleksandr Y. and Baraldi, Robert and Orban, Dominique},
+  title   = {A Proximal Quasi-{N}ewton Trust-Region Method for Nonsmooth Regularized Optimization},
+  journal = {SIAM J. Optim.},
+  year    = 2022,
+  volume  = 32,
+  number  = 2,
+  pages   = {900--929},
   doi     = {10.1137/21M1409536},
 }
 
-@Article{   aravkin-baraldi-orban-2024,
-  Author  = {A. Y. Aravkin and R. Baraldi and D. Orban},
-  Title   = {A {L}evenberg–{M}arquardt Method for Nonsmooth Regularized Least Squares},
-  Journal = {SIAM J. Sci. Comput.},
-  Year    = 2024,
-  Volume  = 46,
-  Number  = 4,
-  Pages   = {A2557--A2581},
+@article{   aravkin-baraldi-orban-2024,
+  author  = {A. Y. Aravkin and R. Baraldi and D. Orban},
+  title   = {A {L}evenberg–{M}arquardt Method for Nonsmooth Regularized Least Squares},
+  journal = {SIAM J. Sci. Comput.},
+  year    = 2024,
+  volume  = 46,
+  number  = 4,
+  pages   = {A2557--A2581},
   doi     = {10.1137/22M1538971},
 }
 
-@Article{   leconte-orban-2025,
-  Author  = {G. Leconte and D. Orban},
-  Title   = {The Indefinite Proximal Gradient Method},
-  Journal = {Comput. Optim. Appl.},
-  Year    = 2025,
-  Volume  = 91,
-  Number  = 2,
-  Pages   = {861--903},
+@article{   leconte-orban-2025,
+  author  = {G. Leconte and D. Orban},
+  title   = {The Indefinite Proximal Gradient Method},
+  journal = {Comput. Optim. Appl.},
+  year    = 2025,
+  volume  = 91,
+  number  = 2,
+  pages   = {861--903},
   doi     = {10.1007/s10589-024-00604-5},
 }
 ```
