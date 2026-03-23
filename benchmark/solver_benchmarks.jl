@@ -1,5 +1,5 @@
 using Random
-using RegularizedProblems, RegularizedOptimization, SolverBenchmark
+using NLPModelsModifiers, RegularizedProblems, RegularizedOptimization, SolverBenchmark
 
 # Options for the run_solver_benchmarks function.
 # These functions specify the values to be used in the performance profiles and tables.

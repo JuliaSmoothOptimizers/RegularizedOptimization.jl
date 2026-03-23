@@ -1,6 +1,7 @@
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 JSOBenchmarks = "9410e2bb-e8e7-4fa0-9768-685b196f59b5"
+NLPModelsModifiers = "e01155f1-5c6f-4375-a9d8-616dd036575f"
 PkgBenchmark = "32113eaa-f34f-5b0d-bd6c-c81e245fc73d"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RegularizedOptimization = "20620ad1-4fe4-4467-ae46-fb087718fe7b"
