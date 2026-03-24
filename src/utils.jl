@@ -189,3 +189,19 @@ function update_bounds!(
     @. u_bound_m_x = min(Δ, u_bound - xk)
   end
 end
+
+# Given min_x f(x) + h(x), return min_s φ(s; x) + ψ(s; x), where φ(s; x) = f(x) + ∇f(x)ᵀs + ½ sᵀBs
+function quadratic_subproblem(
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  x::V,
+) where{T, V}
+  #TODO
+end
+
+# Given min_x f(x) + h(x), return min_s φ(s; x) + ψ(s; x), where φ(s; x) = f(x) + ∇f(x)ᵀs
+function linear_subproblem(
+  reg_nlp::AbstractRegularizedNLPModel{T, V},
+  x::V,
+) where{T, V}
+  #TODO
+end
