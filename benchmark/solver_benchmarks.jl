@@ -13,25 +13,37 @@ end
 
 Random.seed!(0)
 
-bpdn_l0, _ = setup_bpdn_l0()
-bpdn_l1, _ = setup_bpdn_l1()
-bpdn_B0, _ = setup_bpdn_B0()
+problem_list = []
 
-problem_list = [
-  bpdn_l0,
-  bpdn_l1,
-  bpdn_B0,
-]
+n_bpdn = 10
+for _ in 1:n_bpdn
+  bpdn_l0, _ = setup_bpdn_l0()
+  bpdn_l1, _ = setup_bpdn_l1()
+  bpdn_B0, _ = setup_bpdn_B0()
+  push!(problem_list, bpdn_l0, bpdn_l1, bpdn_B0)
+end
+
+n_lasso = 10
+for _ in 1:n_lasso
+  lasso_l12, _ = setup_group_lasso_l12()
+  push!(problem_list, lasso_l12)
+end
+
+n_nnmf = 5
+for _ in 1:n_nnmf
+  nnmf_l0, _ = setup_nnmf_l0()
+  nnmf_l1, _ = setup_nnmf_l1()
+  push!(problem_list, nnmf_l0, nnmf_l1)
+end
+
+n_qp = 10
+for _ in 1:n_qp
+  qp_l1, _ = setup_qp_rand_l1()
+  push!(problem_list, qp_l1)
+end
 
 solvers = Dict(
   # R2
-  :R2_precise => 
-    reg_nlp -> R2(
-      reg_nlp,
-      verbose = 1,
-      atol = 1e-6,
-      rtol = 1e-6,
-    ),
   :R2_imprecise => 
     reg_nlp -> R2(
       reg_nlp,
@@ -46,13 +58,6 @@ solvers = Dict(
     ),
   
   # R2N with BFGS
-  :R2N_bfgs_precise => 
-    reg_nlp -> R2N(
-      RegularizedNLPModel(LBFGSModel(reg_nlp.model), reg_nlp.h, reg_nlp.selected),
-      verbose = 1,
-      atol = 1e-6,
-      rtol = 1e-6,
-    ),
   :R2N_bfgs_imprecise =>
     reg_nlp -> R2N(
       RegularizedNLPModel(LBFGSModel(reg_nlp.model), reg_nlp.h, reg_nlp.selected),
@@ -67,13 +72,6 @@ solvers = Dict(
     ),
   
   # R2N with SR1
-  :R2N_sr1_precise => 
-    reg_nlp -> R2N(
-      RegularizedNLPModel(LSR1Model(reg_nlp.model), reg_nlp.h, reg_nlp.selected),
-      verbose = 1,
-      atol = 1e-6,
-      rtol = 1e-6,
-    ),
   :R2N_sr1_imprecise =>
     reg_nlp -> R2N(
       RegularizedNLPModel(LSR1Model(reg_nlp.model), reg_nlp.h, reg_nlp.selected),
@@ -88,13 +86,6 @@ solvers = Dict(
     ),
 
   # TR with BFGS
-  :TR_bfgs_precise => 
-    reg_nlp -> TR(
-      RegularizedNLPModel(LBFGSModel(reg_nlp.model), reg_nlp.h, reg_nlp.selected),
-      verbose = 1,
-      atol = 1e-6,
-      rtol = 1e-6,
-    ),
   :TR_bfgs_imprecise =>
     reg_nlp -> TR(
       RegularizedNLPModel(LBFGSModel(reg_nlp.model), reg_nlp.h, reg_nlp.selected),
@@ -109,13 +100,6 @@ solvers = Dict(
     ),
   
   # TR with SR1
-  :TR_sr1_precise => 
-    reg_nlp -> TR(
-      RegularizedNLPModel(LSR1Model(reg_nlp.model), reg_nlp.h, reg_nlp.selected),
-      verbose = 1,
-      atol = 1e-6,
-      rtol = 1e-6,
-    ),
   :TR_sr1_imprecise =>
     reg_nlp -> TR(
       RegularizedNLPModel(LSR1Model(reg_nlp.model), reg_nlp.h, reg_nlp.selected),
@@ -130,13 +114,6 @@ solvers = Dict(
     ),
 
   # R2DH
-  :R2DH_precise => 
-    reg_nlp -> R2DH(
-      reg_nlp,
-      verbose = 1,
-      atol = 1e-6,
-      rtol = 1e-6,
-    ),
   :R2DH_imprecise =>
     reg_nlp -> R2DH(
       reg_nlp,
@@ -151,13 +128,6 @@ solvers = Dict(
     ),
   
   # TRDH
-  :TRDH_precise => 
-    reg_nlp -> TRDH(
-      reg_nlp,
-      verbose = 1,
-      atol = 1e-6,
-      rtol = 1e-6,
-    ),
   :TRDH_imprecise =>
     reg_nlp -> TRDH(
       reg_nlp,
