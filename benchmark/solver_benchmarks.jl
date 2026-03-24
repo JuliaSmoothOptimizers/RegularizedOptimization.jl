@@ -38,7 +38,7 @@ end
 
 n_qp = 10
 for _ in 1:n_qp
-  qp_l1, _ = setup_qp_rand_l1()
+  qp_l1 = setup_qp_rand_l1()
   push!(problem_list, qp_l1)
 end
 
