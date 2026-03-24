@@ -33,7 +33,8 @@ jobs:
           using Pkg
           pkg1 = PackageSpec(url = "https://github.com/MaxenceGollier/JSOBenchmarks.jl.git", rev = "solver_benchmarks")
           pkg2 = PackageSpec(url = "https://github.com/MaxenceGollier/SolverBenchmark.jl.git", rev = "switch-getters")
-          pkg_list = [pkg1, pkg2]
+          pkg3 = PackageSpec(url = "https://github.com/MaxenceGollier/RegularizedProblems.jl.git", rev = "fix-group-lasso")
+          pkg_list = [pkg1, pkg2, pkg3]
           Pkg.add(pkg_list)
         shell: julia --project=benchmark --color=yes {0}
       - name: Install benchmark dependencies
