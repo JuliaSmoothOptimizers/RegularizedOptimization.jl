@@ -33,6 +33,7 @@ end
 
 function R2NSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
+  subproblem = quadratic_subproblem,
   subsolver = R2Solver,
   m_monotone::Int = 1,
 ) where {T, V}
@@ -65,17 +66,13 @@ function R2NSolver(
   end
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
-  ψ =
-    has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
-    shifted(reg_nlp.h, xk)
+  subproblem = subproblem(reg_nlp, xk)
+  subsolver = subsolver(subproblem)
+  substats = RegularizedExecutionStats(subproblem)
 
-  Bk = hess_op(reg_nlp, xk)
-  sub_nlp = QuadraticModel(∇fk, Bk, σ = T(1), x0 = x0)
-  subpb = RegularizedNLPModel(sub_nlp, ψ)
-  substats = RegularizedExecutionStats(subpb)
-  subsolver = subsolver(subpb)
+  ψ = subproblem.h
 
-  return R2NSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
+  return R2NSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subproblem)}(
     xk,
     ∇fk,
     ∇fk⁻,
@@ -94,7 +91,7 @@ function R2NSolver(
     u_bound_m_x,
     m_fh_hist,
     subsolver,
-    subpb,
+    subproblem,
     substats,
   )
 end
