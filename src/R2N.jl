@@ -46,12 +46,9 @@ function R2NSolver(
   v0 ./= sqrt(reg_nlp.model.meta.nvar)
   v1 = similar(v0)
 
-  l_bound_m_x = has_bounds(reg_nlp.model) ? similar(x0) : nothing
-  u_bound_m_x = has_bounds(reg_nlp.model) ? similar(x0) : nothing
-
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
-  subpb= ShiftedProximableQuadraticNLPModel(reg_nlp, xk, l_bound_m_x = l_bound_m_x, u_bound_m_x = u_bound_m_x, ∇f = ∇fk)
+  subpb= ShiftedProximableQuadraticNLPModel(reg_nlp, xk, ∇f = ∇fk)
   subsolver = subsolver(subpb)
   substats = RegularizedExecutionStats(subpb)
 
@@ -301,26 +298,10 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
-  φ1 = let ∇fk = ∇fk
-    d -> dot(∇fk, d)
-  end
-
-  mk1 = let ψ = ψ
-    d -> φ1(d) + ψ(d)::T
-  end
-
-  mk = let ψ = ψ, model = solver.subpb.model
-    d -> begin
-      temp_σ = model.data.σ
-      model.data.σ = zero(T)
-      _obj = obj(model, d) + ψ(d)
-      model.data.σ = temp_σ
-      return _obj
-    end
-  end
+  mk = solver.subpb
 
   prox!(s1, ψ, mν∇fk, ν₁)
-  mks = mk1(s1)
+  mks = obj(mk, s1, cauchy = true, skip_sigma = true)
 
   ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
   sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν₁) : sqrt(-ξ1 / ν₁)
@@ -350,7 +331,7 @@ function SolverCore.solve!(
   while !done
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
 
-    solver.subpb.model.data.σ = σk
+    update_sigma!(solver.subpb, σk)
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     if isa(solver.subsolver, R2Solver) #FIXME
       solve!(
@@ -384,7 +365,7 @@ function SolverCore.solve!(
     xkn .= xk .+ s
     fkn = obj(nlp, xkn)
     hkn = @views h(xkn[selected])
-    mks = mk(s)
+    mks = obj(mk, s, skip_sigma = true) 
 
     fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
@@ -418,6 +399,7 @@ function SolverCore.solve!(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
+
       shift!(solver.subpb, xk)
 
       #update functions
@@ -462,7 +444,7 @@ function SolverCore.solve!(
 
     @. mν∇fk = - ν₁ * ∇fk
     prox!(s1, ψ, mν∇fk, ν₁)
-    mks = mk1(s1)
+    mks = obj(mk, s1, cauchy = true,skip_sigma = true)
 
     ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
 

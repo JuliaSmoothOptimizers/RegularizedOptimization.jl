@@ -17,7 +17,6 @@ using LinearOperators,
   SolverCore
 using Percival: AugLagModel, update_y!, update_μ!
 
-import ShiftedProximalOperators.shift!
 import SolverCore.reset!
 
 const callback_docstring = "
@@ -40,7 +39,6 @@ Notably, you can access, and modify, the following:
 
 include("utils.jl")
 include("input_struct.jl")
-include("subproblem.jl")
 include("TR_alg.jl")
 include("TRDH_alg.jl")
 include("R2_alg.jl")
