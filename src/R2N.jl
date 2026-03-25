@@ -51,13 +51,13 @@ function R2NSolver(
 
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
-  subproblem = ShiftedProximableQuadraticNLPModel(reg_nlp, xk, l_bound_m_x = l_bound_m_x, u_bound_m_x = u_bound_m_x, ∇f = ∇fk)
-  subsolver = subsolver(subproblem)
-  substats = RegularizedExecutionStats(subproblem)
+  subpb= ShiftedProximableQuadraticNLPModel(reg_nlp, xk, l_bound_m_x = l_bound_m_x, u_bound_m_x = u_bound_m_x, ∇f = ∇fk)
+  subsolver = subsolver(subpb)
+  substats = RegularizedExecutionStats(subpb)
 
-  ψ = subproblem.h
+  ψ = subpb.h
 
-  return R2NSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subproblem)}(
+  return R2NSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
     xk,
     ∇fk,
     ∇fk⁻,
@@ -71,7 +71,7 @@ function R2NSolver(
     v1,
     m_fh_hist,
     subsolver,
-    subproblem,
+    subpb,
     substats,
   )
 end

@@ -20,8 +20,6 @@ using Percival: AugLagModel, update_y!, update_μ!
 import ShiftedProximalOperators.shift!
 import SolverCore.reset!
 
-abstract type AbstractRegularizedOptimizationSolver <: AbstractOptimizationSolver end
-
 const callback_docstring = "
 The callback is called at each iteration.
 The expected signature of the callback is `callback(reg_nlp, solver, stats)`, and its output is ignored.
