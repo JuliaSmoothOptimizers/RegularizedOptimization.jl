@@ -20,11 +20,6 @@ mutable struct R2NSolver{
   s1::V
   v0::V
   v1::V
-  has_bnds::Bool
-  l_bound::V
-  u_bound::V
-  l_bound_m_x::V
-  u_bound_m_x::V
   m_fh_hist::V
   subsolver::ST
   subpb::PB
@@ -33,13 +28,10 @@ end
 
 function R2NSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
-  subproblem = quadratic_subproblem,
   subsolver = R2Solver,
   m_monotone::Int = 1,
 ) where {T, V}
   x0 = reg_nlp.model.meta.x0
-  l_bound = reg_nlp.model.meta.lvar
-  u_bound = reg_nlp.model.meta.uvar
 
   xk = similar(x0)
   ∇fk = similar(x0)
@@ -54,19 +46,12 @@ function R2NSolver(
   v0 ./= sqrt(reg_nlp.model.meta.nvar)
   v1 = similar(v0)
 
-  has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
-  if has_bnds
-    l_bound_m_x = similar(xk)
-    u_bound_m_x = similar(xk)
-    @. l_bound_m_x = l_bound - x0
-    @. u_bound_m_x = u_bound - x0
-  else
-    l_bound_m_x = similar(xk, 0)
-    u_bound_m_x = similar(xk, 0)
-  end
+  l_bound_m_x = has_bounds(reg_nlp.model) ? similar(x0) : nothing
+  u_bound_m_x = has_bounds(reg_nlp.model) ? similar(x0) : nothing
+
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
-  subproblem = subproblem(reg_nlp, xk)
+  subproblem = ShiftedProximableQuadraticNLPModel(reg_nlp, xk, l_bound_m_x = l_bound_m_x, u_bound_m_x = u_bound_m_x, ∇f = ∇fk)
   subsolver = subsolver(subproblem)
   substats = RegularizedExecutionStats(subproblem)
 
@@ -84,11 +69,6 @@ function R2NSolver(
     s1,
     v0,
     v1,
-    has_bnds,
-    l_bound,
-    u_bound,
-    l_bound_m_x,
-    u_bound_m_x,
     m_fh_hist,
     subsolver,
     subproblem,
@@ -242,7 +222,7 @@ function SolverCore.solve!(
   xk = solver.xk .= x
 
   # Make sure ψ has the correct shift 
-  shift!(solver.ψ, xk)
+  shift!(solver.subpb, xk, compute_grad = compute_grad)
 
   ∇fk = solver.∇fk
   ∇fk⁻ = solver.∇fk⁻
@@ -252,14 +232,7 @@ function SolverCore.solve!(
   s = solver.s
   s1 = solver.s1
   m_fh_hist = solver.m_fh_hist .= T(-Inf)
-  has_bnds = solver.has_bnds
 
-  if has_bnds
-    l_bound, u_bound = solver.l_bound, solver.u_bound
-    l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
-    update_bounds!(l_bound_m_x, u_bound_m_x, l_bound, u_bound, xk)
-    set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-  end
   m_monotone = length(m_fh_hist) + 1
 
   # initialize parameters
@@ -298,7 +271,6 @@ function SolverCore.solve!(
   local prox_evals::Int = 0
 
   fk = compute_obj ? obj(nlp, xk) : stats.solver_specific[:smooth_obj]
-  compute_grad && grad!(nlp, xk, ∇fk)
   qn_copy!(nlp, solver, stats)
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
@@ -446,16 +418,11 @@ function SolverCore.solve!(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-      if has_bnds
-        update_bounds!(l_bound_m_x, u_bound_m_x, l_bound, u_bound, xk)
-        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-      end
+      shift!(solver.subpb, xk)
+
       #update functions
       fk = fkn
       hk = hkn
-
-      shift!(ψ, xk)
-      grad!(nlp, xk, ∇fk)
 
       if quasiNewtTest
         qn_update_y!(nlp, solver, stats)
