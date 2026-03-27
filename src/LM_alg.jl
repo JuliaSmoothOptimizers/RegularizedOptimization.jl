@@ -272,6 +272,7 @@ function SolverCore.solve!(
   local ξ1::T
   local ρk::T = zero(T)
   local prox_evals::Int = 0
+  local norm_s::T = zero(T)
 
   residual!(nls, xk, Fk)
   jtprod_residual!(nls, xk, Fk, ∇fk)
@@ -290,6 +291,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :sigma_cauchy, 1/ν)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
@@ -306,6 +308,8 @@ function SolverCore.solve!(
   end
 
   prox!(s, ψ, mν∇fk, ν)
+  norm_s = norm(s)
+  set_solver_specific!(stats, :scp_norm, norm_s)
   ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
   sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
   solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
@@ -438,9 +442,12 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
     ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+    set_solver_specific!(stats, :sigma_cauchy, 1/ν)
 
     @. mν∇fk = - ν * ∇fk
     prox!(s, ψ, mν∇fk, ν)
+    norm_s = norm(s)
+    set_solver_specific!(stats, :scp_norm, norm_s)
     mks = mk1(s)
 
     ξ1 = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
@@ -472,7 +479,7 @@ function SolverCore.solve!(
 
   if verbose > 0 && stats.status == :first_order
     @info log_row(
-      Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, ρk, σk, norm(xk), norm(s), 1 / ν, ""],
+      Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, ρk, σk, norm(xk), norm_s, 1 / ν, ""],
       colsep = 1,
     )
     @info "LM: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"

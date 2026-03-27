@@ -351,6 +351,7 @@ function SolverCore.solve!(
   end
 
   prox!(s1, ψ, mν∇fk, ν₁)
+  set_solver_specific!(stats, :scp_norm, norm(s1))
   mks = mk1(s1)
 
   ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
@@ -498,6 +499,7 @@ function SolverCore.solve!(
 
     @. mν∇fk = - ν₁ * ∇fk
     prox!(s1, ψ, mν∇fk, ν₁)
+    set_solver_specific!(stats, :scp_norm, norm(s1))
     mks = mk1(s1)
 
     ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
