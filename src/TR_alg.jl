@@ -4,7 +4,6 @@ import SolverCore.solve!
 
 mutable struct TRSolver{
   T <: Real,
-  G <: ShiftedProximableFunction,
   V <: AbstractVector{T},
   N,
   ST <: AbstractOptimizationSolver,
@@ -14,7 +13,6 @@ mutable struct TRSolver{
   ∇fk::V
   ∇fk⁻::V
   mν∇fk::V
-  ψ::G
   χ::N
   xkn::V
   s::V
@@ -71,7 +69,7 @@ function TRSolver(
 
   Bk = hess_op(reg_nlp, xk)
   sub_nlp = QuadraticModel(∇fk, Bk, x0 = x0)
-  subpb = RegularizedNLPModel(sub_nlp, ψ)
+  subpb = ShiftedProximableQuadraticNLPModel(reg_nlp, xk, ∇f = ∇fk, χ = χ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
 
@@ -80,7 +78,6 @@ function TRSolver(
     ∇fk,
     ∇fk⁻,
     mν∇fk,
-    ψ,
     χ,
     xkn,
     s,
@@ -206,7 +203,7 @@ function TR(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
 end
 
 function SolverCore.solve!(
-  solver::TRSolver{T, G, V},
+  solver::TRSolver{T, V},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
@@ -228,7 +225,7 @@ function SolverCore.solve!(
   opnorm_maxiter::Int = 5,
   compute_obj::Bool = true,
   compute_grad::Bool = true,
-) where {T, G, V}
+) where {T, V}
   reset!(stats)
 
   # Retrieve workspace
@@ -238,13 +235,14 @@ function SolverCore.solve!(
 
   xk = solver.xk .= x
 
-  # Make sure ψ has the correct shift 
-  shift!(solver.ψ, xk)
+  mk = solver.subpb
+  φ, ψ = mk.model, mk.h
+  
+  shift!(mk, xk, compute_grad = compute_grad)
 
   ∇fk = solver.∇fk
   ∇fk⁻ = solver.∇fk⁻
   mν∇fk = solver.mν∇fk
-  ψ = solver.ψ
   xkn = solver.xkn
   s = solver.s
   χ = solver.χ
@@ -253,14 +251,14 @@ function SolverCore.solve!(
 
   m_monotone = length(m_fh_hist) + 1
 
+  set_radius!(solver.subpb, Δk)
   if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
-    l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
-    l_bound, u_bound = solver.l_bound, solver.u_bound
-    update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
-    set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-    set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
+    #l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
+    #l_bound, u_bound = solver.l_bound, solver.u_bound
+    #update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
+    #set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+    set_bounds!(solver.subsolver.ψ, ψ.l, ψ.u)
   else
-    set_radius!(ψ, Δk)
     set_radius!(solver.subsolver.ψ, Δk)
   end
 
