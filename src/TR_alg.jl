@@ -45,7 +45,7 @@ function TRSolver(
   v0 ./= sqrt(reg_nlp.model.meta.nvar)
   v1 = similar(v0)
 
-  subpb = ShiftedProximableQuadraticNLPModel(reg_nlp, xk, ∇f = ∇fk, χ = χ)
+  subpb = ShiftedProximableQuadraticNLPModel(reg_nlp, xk, ∇f = ∇fk, χ = χ, has_bounds = (has_bounds(reg_nlp.model) || subsolver == TRDHSolver))
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
 
