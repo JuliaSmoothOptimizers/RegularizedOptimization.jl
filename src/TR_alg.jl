@@ -45,7 +45,8 @@ function TRSolver(
   v0 ./= sqrt(reg_nlp.model.meta.nvar)
   v1 = similar(v0)
 
-  subpb = ShiftedProximableQuadraticNLPModel(reg_nlp, xk, ∇f = ∇fk, χ = χ, has_bounds = (has_bounds(reg_nlp.model) || subsolver == TRDHSolver))
+  indicator_type = has_bounds(reg_nlp.model) || (subsolver == TRDHSolver) ? :box : :ball
+  subpb = ShiftedProximableQuadraticNLPModel(reg_nlp, xk, ∇f = ∇fk, indicator_type = indicator_type, tr_norm = χ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
 
@@ -407,7 +408,7 @@ function SolverCore.solve!(
     if η1 ≤ ρk < Inf
       xk .= xkn
       
-      shift!(solver.subpb, xk, compute_grad = compute_grad)
+      shift!(solver.subpb, xk)
 
       fk = fkn
       hk = hkn
