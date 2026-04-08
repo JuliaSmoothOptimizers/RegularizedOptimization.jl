@@ -15,32 +15,24 @@ Random.seed!(0)
 
 problem_list = []
 
-n_bpdn = 10
-for _ in 1:n_bpdn
-  bpdn_l0, _ = setup_bpdn_l0()
-  bpdn_l1, _ = setup_bpdn_l1()
-  bpdn_B0, _ = setup_bpdn_B0()
-  push!(problem_list, bpdn_l0, bpdn_l1, bpdn_B0)
-end
+# bpdn problems
+bpdn_l0, _ = setup_bpdn_l0()
+bpdn_l1, _ = setup_bpdn_l1()
+bpdn_B0, _ = setup_bpdn_B0()
+push!(problem_list, bpdn_l0, bpdn_l1, bpdn_B0)
 
-n_lasso = 10
-for _ in 1:n_lasso
-  lasso_l12, _ = setup_group_lasso_l12()
-  push!(problem_list, lasso_l12)
-end
+# lasso problems
+lasso_l12, _ = setup_group_lasso_l12()
+push!(problem_list, lasso_l12)
 
-n_nnmf = 5
-for _ in 1:n_nnmf
-  nnmf_l0, _ = setup_nnmf_l0()
-  nnmf_l1, _ = setup_nnmf_l1()
-  push!(problem_list, nnmf_l0, nnmf_l1)
-end
+# nnmf problems
+nnmf_l0, _ = setup_nnmf_l0()
+nnmf_l1, _ = setup_nnmf_l1()
+push!(problem_list, nnmf_l0, nnmf_l1)
 
-n_qp = 10
-for _ in 1:n_qp
-  qp_l1 = setup_qp_rand_l1()
-  push!(problem_list, qp_l1)
-end
+# qp problems
+qp_l1 = setup_qp_rand_l1()
+push!(problem_list, qp_l1)
 
 solvers = Dict(
   # R2
