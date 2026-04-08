@@ -321,7 +321,7 @@ function SolverCore.solve!(
   max_time::Float64 = 30.0,
   max_eval::Int = -1,
   σmin::T = eps(T),
-  η1::T = √√eps(T),
+  η1::T = T(0.8),
   η2::T = T(0.9),
   ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
