@@ -385,7 +385,7 @@ function SolverCore.solve!(
   end
 
   local ξ::T
-  local ρk::T
+  local ρk::T = zero(T)
   σk = max(1 / ν, σmin)
   ν = 1 / σk
   sqrt_ξ_νInv = one(T)
