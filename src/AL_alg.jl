@@ -148,7 +148,11 @@ mutable struct ALSolver{T, V, M, Pb, ST} <: AbstractOptimizationSolver
   sub_stats::GenericExecutionStats{T, V, V, T}
 end
 
-function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solver, kwargs...) where {T, V}
+function ALSolver(
+  reg_nlp::AbstractRegularizedNLPModel{T, V};
+  subsolver = R2Solver,
+  kwargs...,
+) where {T, V}
   nlp = reg_nlp.model
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
   x = V(undef, nvar)
