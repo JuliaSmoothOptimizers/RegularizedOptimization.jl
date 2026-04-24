@@ -4,7 +4,6 @@ import SolverCore.solve!
 
 mutable struct TRSolver{
   T <: Real,
-  G <: ShiftedProximableFunction,
   V <: AbstractVector{T},
   N,
   ST <: AbstractOptimizationSolver,
@@ -14,17 +13,11 @@ mutable struct TRSolver{
   ∇fk::V
   ∇fk⁻::V
   mν∇fk::V
-  ψ::G
   χ::N
   xkn::V
   s::V
   v0::V
   v1::V
-  has_bnds::Bool
-  l_bound::V
-  u_bound::V
-  l_bound_m_x::V
-  u_bound_m_x::V
   m_fh_hist::V
   subsolver::ST
   subpb::PB
@@ -38,8 +31,6 @@ function TRSolver(
   m_monotone::Int = 1,
 ) where {T, V, X}
   x0 = reg_nlp.model.meta.x0
-  l_bound = reg_nlp.model.meta.lvar
-  u_bound = reg_nlp.model.meta.uvar
 
   xk = similar(x0)
   ∇fk = similar(x0)
@@ -47,16 +38,6 @@ function TRSolver(
   mν∇fk = similar(x0)
   xkn = similar(x0)
   s = similar(x0)
-  has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
-  if has_bnds || subsolver == TRDHSolver
-    l_bound_m_x = similar(xk)
-    u_bound_m_x = similar(xk)
-    @. l_bound_m_x = l_bound - x0
-    @. u_bound_m_x = u_bound - x0
-  else
-    l_bound_m_x = similar(xk, 0)
-    u_bound_m_x = similar(xk, 0)
-  end
 
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
@@ -64,14 +45,8 @@ function TRSolver(
   v0 ./= sqrt(reg_nlp.model.meta.nvar)
   v1 = similar(v0)
 
-  ψ =
-    has_bnds || subsolver == TRDHSolver ?
-    shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
-    shifted(reg_nlp.h, xk, T(1), χ)
-
-  Bk = hess_op(reg_nlp, xk)
-  sub_nlp = QuadraticModel(∇fk, Bk, x0 = x0)
-  subpb = RegularizedNLPModel(sub_nlp, ψ)
+  indicator_type = has_bounds(reg_nlp.model) || (subsolver == TRDHSolver) ? :box : :ball
+  subpb = ShiftedProximableQuadraticNLPModel(reg_nlp, xk, ∇f = ∇fk, indicator_type = indicator_type, tr_norm = χ)
   substats = RegularizedExecutionStats(subpb)
   subsolver = subsolver(subpb)
 
@@ -80,17 +55,11 @@ function TRSolver(
     ∇fk,
     ∇fk⁻,
     mν∇fk,
-    ψ,
     χ,
     xkn,
     s,
     v0,
     v1,
-    has_bnds,
-    l_bound,
-    u_bound,
-    l_bound_m_x,
-    u_bound_m_x,
     m_fh_hist,
     subsolver,
     subpb,
@@ -206,7 +175,7 @@ function TR(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
 end
 
 function SolverCore.solve!(
-  solver::TRSolver{T, G, V},
+  solver::TRSolver{T, V},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
@@ -228,7 +197,7 @@ function SolverCore.solve!(
   opnorm_maxiter::Int = 5,
   compute_obj::Bool = true,
   compute_grad::Bool = true,
-) where {T, G, V}
+) where {T, V}
   reset!(stats)
 
   # Retrieve workspace
@@ -238,29 +207,26 @@ function SolverCore.solve!(
 
   xk = solver.xk .= x
 
-  # Make sure ψ has the correct shift 
-  shift!(solver.ψ, xk)
+  mk = solver.subpb
+  φ, ψ = mk.model, mk.h
+  
+  shift!(mk, xk, compute_grad = compute_grad)
 
   ∇fk = solver.∇fk
   ∇fk⁻ = solver.∇fk⁻
   mν∇fk = solver.mν∇fk
-  ψ = solver.ψ
   xkn = solver.xkn
   s = solver.s
   χ = solver.χ
   m_fh_hist = solver.m_fh_hist .= T(-Inf)
-  has_bnds = solver.has_bnds
+  has_bnds = has_bounds(nlp)
 
   m_monotone = length(m_fh_hist) + 1
 
+  set_radius!(solver.subpb, Δk)
   if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
-    l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
-    l_bound, u_bound = solver.l_bound, solver.u_bound
-    update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
-    set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-    set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
+    set_bounds!(solver.subsolver.ψ, ψ.l, ψ.u)
   else
-    set_radius!(ψ, Δk)
     set_radius!(solver.subsolver.ψ, Δk)
   end
 
@@ -330,20 +296,8 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
-  # models
-  φ1 = let ∇fk = ∇fk
-    d -> dot(∇fk, d)
-  end
-  mk1 = let ψ = ψ, φ1 = φ1
-    d -> φ1(d) + ψ(d)
-  end
-
-  mk = let ψ = ψ, solver = solver
-    d -> obj(solver.subpb.model, d) + ψ(d)::T
-  end
-
   prox!(s, ψ, mν∇fk, ν₁)
-  ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
+  ξ1 = hk - obj(mk, s, cauchy = true) + max(1, abs(hk)) * 10 * eps()
   ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
 
@@ -374,14 +328,13 @@ function SolverCore.solve!(
     sub_atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv))
     ∆_effective = min(β * χ(s), Δk)
 
-    if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
-      update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
-      set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-      set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
+    set_radius!(solver.subpb, ∆_effective)
+    if has_bnds || isa(solver.subsolver, TRDHSolver)
+      set_bounds!(solver.subsolver.ψ, ψ.l, ψ.u)
     else
       set_radius!(solver.subsolver.ψ, ∆_effective)
-      set_radius!(ψ, ∆_effective)
     end
+
     with_logger(subsolver_logger) do
       if isa(solver.subsolver, TRDHSolver) #FIXME
         solver.subsolver.D.d[1] = 1/ν₁
@@ -417,7 +370,7 @@ function SolverCore.solve!(
 
     fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
-    ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
+    ξ = hk - obj(mk, s) + max(1, abs(hk)) * 10 * eps()
 
     if (ξ ≤ 0 || isnan(ξ))
       error("TR: failed to compute a step: ξ = $ξ")
@@ -446,24 +399,19 @@ function SolverCore.solve!(
 
     if η2 ≤ ρk < Inf
       Δk = max(Δk, γ * sNorm)
+      set_radius!(solver.subpb, Δk)
       if !(has_bnds || isa(solver.subsolver, TRDHSolver))
-        set_radius!(ψ, Δk)
         set_radius!(solver.subsolver.ψ, Δk)
       end
     end
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-      if has_bnds || isa(solver.subsolver, TRDHSolver)
-        update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
-        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-        set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
-      end
+      
+      shift!(solver.subpb, xk)
+
       fk = fkn
       hk = hkn
-
-      shift!(ψ, xk)
-      grad!(nlp, xk, ∇fk)
 
       if quasiNewtTest
         @. ∇fk⁻ = ∇fk - ∇fk⁻
@@ -483,12 +431,10 @@ function SolverCore.solve!(
 
     if ρk < η1 || ρk == Inf
       Δk = Δk / 2
+      set_radius!(solver.subpb, Δk)
       if has_bnds || isa(solver.subsolver, TRDHSolver)
-        update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
-        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-        set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
+        set_bounds!(solver.subsolver.ψ, ψ.l, ψ.u)
       else
-        set_radius!(ψ, Δk)
         set_radius!(solver.subsolver.ψ, Δk)
       end
       set_step_status!(stats, :rejected)
@@ -507,7 +453,7 @@ function SolverCore.solve!(
     @. mν∇fk = -ν₁ * ∇fk
 
     prox!(s, ψ, mν∇fk, ν₁)
-    ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
+    ξ1 = hk - obj(mk, s, cauchy = true) + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
 
     solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
