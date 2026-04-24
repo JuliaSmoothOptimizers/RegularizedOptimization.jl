@@ -81,7 +81,7 @@ where y is an estimate of the Lagrange multiplier vector for the constraints lco
 
 For advanced usage, first define a solver "ALSolver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-    solver = ALSolver(reg_nlp)
+    solver = ALSolver(reg_nlp; subsolver = R2Solver)
     solve!(solver, reg_nlp)
 
     stats = GenericExecutionStats(reg_nlp.model)
@@ -108,7 +108,7 @@ If adopted, the Hessian is accessed as an abstract operator and need not be the 
 - `max_iter::Int = 10000`: maximum number of iterations;
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
 - `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
-- `subsolver::AbstractOptimizationSolver = has_bounds(nlp) ? TR : R2`: the procedure used to compute a step (e.g. `PG`, `R2`, `TR` or `TRDH`);
+- `subsolver::AbstractOptimizationSolver = R2Solver`: the procedure used to compute a step (e.g. `R2Solver`, `R2NSolver`, `R2DHSolver`, `TRSolver` or `TRDHSolver`);
 - `subsolver_logger::AbstractLogger`: a logger to pass to the subproblem solver;
 - `init_penalty::T = T(10)`: initial penalty parameter;
 - `factor_penalty_up::T = T(2)`: multiplicative factor to increase the penalty parameter;
@@ -148,7 +148,7 @@ mutable struct ALSolver{T, V, M, Pb, ST} <: AbstractOptimizationSolver
   sub_stats::GenericExecutionStats{T, V, V, T}
 end
 
-function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
+function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; subsolver = R2Solver, kwargs...) where {T, V}
   nlp = reg_nlp.model
   nvar, ncon = nlp.meta.nvar, nlp.meta.ncon
   x = V(undef, nvar)
@@ -157,7 +157,7 @@ function ALSolver(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {
   has_bnds = has_bounds(nlp)
   sub_model = AugLagModel(nlp, V(undef, ncon), T(0), x, T(0), cx)
   sub_problem = RegularizedNLPModel(sub_model, reg_nlp.h, reg_nlp.selected)
-  sub_solver = R2Solver(reg_nlp; kwargs...)
+  sub_solver = subsolver(sub_problem; kwargs...)
   sub_stats = RegularizedExecutionStats(sub_problem)
   M = typeof(nlp)
   ST = typeof(sub_solver)
@@ -182,8 +182,10 @@ end
       "AL(::Val{:equ}, ...) should only be called for equality-constrained problems with bounded variables. Use AL(...)",
     )
   end
-  solver = ALSolver(reg_nlp)
-  solve!(solver, reg_nlp; kwargs...)
+  kwargs_dict = Dict(kwargs...)
+  subsolver = pop!(kwargs_dict, :subsolver, R2Solver)
+  solver = ALSolver(reg_nlp, subsolver = subsolver)
+  solve!(solver, reg_nlp; kwargs_dict...)
 end
 
 function SolverCore.solve!(
