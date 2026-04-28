@@ -116,6 +116,7 @@ If adopted, the Hessian is accessed as an abstract operator and need not be the 
 - `init_subtol::T = T(0.1)`: initial subproblem tolerance;
 - `factor_decrease_subtol::T = T(1/4)`: multiplicative factor to decrease the subproblem tolerance;
 - `dual_safeguard = (nlp::AugLagModel) -> nothing`: in-place function to modify, as needed, the dual estimate.
+- `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is R2Solver, you can pass sub_kwargs = (max_iter = 100, σmin = 1e-6,)
 
 # Output
 
