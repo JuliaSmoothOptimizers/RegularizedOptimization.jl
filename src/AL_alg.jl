@@ -213,9 +213,6 @@ function SolverCore.solve!(
   max_iter::Int = 10000,
   max_time::Float64 = 30.0,
   max_eval::Int = -1,
-  subsolver_verbose::Int = 0,
-  subsolver_max_iter::Int = 100000,
-  subsolver_max_eval::Int = -1,
   init_penalty::T = T(10),
   factor_penalty_up::T = T(2),
   ctol::T = atol,
@@ -223,6 +220,7 @@ function SolverCore.solve!(
   factor_primal_linear_improvement::T = T(3 // 4),
   factor_decrease_subtol::T = T(1 // 4),
   dual_safeguard = project_y!,
+  sub_kwargs::NamedTuple = NamedTuple(),
 ) where {T, V}
   reset!(stats)
 
@@ -302,14 +300,12 @@ function SolverCore.solve!(
     solve!(
       solver.sub_solver,
       solver.sub_problem,
-      subout,
+      subout;
       x = solver.x,
       atol = subtol,
       rtol = zero(T),
       max_time = max_time - stats.elapsed_time,
-      max_eval = subsolver_max_eval < 0 ? rem_eval : min(subsolver_max_eval, rem_eval),
-      max_iter = subsolver_max_iter,
-      verbose = subsolver_verbose,
+      sub_kwargs...,
     )
     solver.x .= subout.solution
     solver.cx .= solver.sub_problem.model.cx
