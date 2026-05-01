@@ -209,7 +209,7 @@ function SolverCore.solve!(
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
   y::V = reg_nlp.model.meta.y0,
-  atol::T = √eps(T),
+  atol::T = eps(T)^(1 / 3),
   verbose::Int = 0,
   max_iter::Int = 10000,
   max_time::Float64 = 30.0,
