@@ -211,9 +211,9 @@ function SolverCore.solve!(
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
-  atol::T = √eps(T),
-  sub_atol::T = √eps(T),
-  rtol::T = √eps(T),
+  atol::T = eps(T)^(1 / 3),
+  sub_atol::T = eps(T)^(1 / 3),
+  rtol::T = eps(T)^(1 / 3),
   neg_tol::T = eps(T)^(1 / 4),
   verbose::Int = 0,
   subsolver_logger::Logging.AbstractLogger = Logging.SimpleLogger(),
