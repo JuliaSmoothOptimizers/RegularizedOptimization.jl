@@ -106,7 +106,7 @@ If adopted, the Hessian is accessed as an abstract operator and need not be the 
 - `diverging_iterates_tol::T = 1/eps(T)`: tolerance to detect divergence of the iterates (divergence occurs when the iterate norm exceeds the tolerance for `diverging_max_iter` consecutive iterations);
 - `diverging_obj_tol::T = -1/eps(T)`: tolerance to detect unboundedness of the objective (unboundedness occurs when the objective value is less than the tolerance for `diverging_max_iter` consecutive iterations);
 - `cviol_tol::T = 1/eps(T)`: tolerance to detect local infeasibility (local infeasibility occurs when ... [PLEASE COMPLETE] ...);
-- `diverging_max_iter::Int = 5`: maximum number of iteration at which `diverging_obj_tol` or `diverging_iterates_tol` is violated;
+- `diverging_max_iter::Int = 5`: number of consecutive iterations used to detect divergence or unboundedness (see `diverging_iterates_tol` and `diverging_obj_tol`);
 - `cviol_max_iter::Int = 5`: maximum number of iteration at which the regularisation parameter is increasing and the constraints are still violated;
 - `ctol::T = atol`: absolute feasibility tolerance;
 - `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
