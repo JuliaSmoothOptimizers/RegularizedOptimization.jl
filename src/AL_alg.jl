@@ -235,8 +235,8 @@ function SolverCore.solve!(
 ) where {T, V}
   reset!(stats)
 
-  local diverging_iter::Int = zero(Int)
-  local cviol_iter::Int = zero(Int)
+  diverging_iter::Int = 0
+  cviol_iter::Int = 0
 
   # Retrieve workspace
   nlp = reg_nlp.model
