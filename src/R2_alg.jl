@@ -141,9 +141,12 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 
 # Keyword arguments 
 - `x::V = nlp.meta.x0`: the initial guess;
-- `atol::T = √eps(T)`: absolute tolerance;
-- `rtol::T = √eps(T)`: relative tolerance;
-- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance
+- `atol::T = eps(T)^(1/3)`: absolute tolerance
+- `diverging_iterates_tol::T = eps(T)^(-1)`: diverging tolerance for the norm of the iterates (the norm should be lower than the tolerance);
+- `diverging_obj_tol::T = -eps(T)^(-1)`: diverging tolerance for the objective function (the objective function should be higher than the tolerance);
+- `diverging_max_iter::Int = 5`: maximum number of iteration at which `diverging_obj_tol` or `diverging_iterates_tol` is violated;
+- `rtol::T = eps(T)^(1/3)`: relative tolerance;
+- `neg_tol::T = eps(T)^(1 / 4)`: negative tolerance;
 - `max_eval::Int = -1`: maximum number of evaluation of the objective function (negative number means unlimited);
 - `max_time::Float64 = 30.0`: maximum time limit in seconds;
 - `max_iter::Int = 10000`: maximum number of iterations;
@@ -313,8 +316,11 @@ function SolverCore.solve!(
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
-  atol::T = √eps(T),
-  rtol::T = √eps(T),
+  atol::T = eps(T)^(1/3),
+  diverging_iterates_tol::T = eps(T)^(-1),
+  diverging_obj_tol::T = -eps(T)^(-1),
+  diverging_max_iter::Int = 5,
+  rtol::T = eps(T)^(1/3),
   neg_tol::T = eps(T)^(1 / 4),
   verbose::Int = 0,
   max_iter::Int = 10000,
@@ -386,6 +392,7 @@ function SolverCore.solve!(
 
   local ξ::T
   local ρk::T = zero(T)
+  local diverging_iter::Int = zero(Int)
   σk = max(1 / ν, σmin)
   ν = 1 / σk
   sqrt_ξ_νInv = one(T)
@@ -420,14 +427,16 @@ function SolverCore.solve!(
   set_status!(
     stats,
     get_status(
-      reg_nlp,
+      reg_nlp;
       elapsed_time = stats.elapsed_time,
       iter = stats.iter,
       optimal = solved,
       improper = improper,
+      diverging_iter = diverging_iter,
       max_eval = max_eval,
       max_time = max_time,
       max_iter = max_iter,
+      diverging_max_iter = diverging_max_iter,
     ),
   )
 
@@ -476,12 +485,18 @@ function SolverCore.solve!(
       set_step_status!(stats, :accepted)
     end
 
-    if η2 ≤ ρk < Inf
-      σk = max(σk / γ, σmin)
-    end
-    if ρk < η1 || ρk == Inf
+    if (fk + hk < diverging_obj_tol) || (norm(xk) > diverging_iterates_tol)
       σk = σk * γ
-      set_step_status!(stats, :rejected)
+      diverging_iter = diverging_iter + 1
+    else
+      diverging_iter = 0
+      if η2 ≤ ρk < Inf
+        σk = max(σk / γ, σmin)
+      end
+      if ρk < η1 || ρk == Inf
+        σk = σk * γ
+        set_step_status!(stats, :rejected)
+      end
     end
 
     ν = 1 / σk
@@ -506,14 +521,16 @@ function SolverCore.solve!(
     set_status!(
       stats,
       get_status(
-        reg_nlp,
+        reg_nlp;
         elapsed_time = stats.elapsed_time,
         iter = stats.iter,
         optimal = solved,
         improper = improper,
+        diverging_iter = diverging_iter,
         max_eval = max_eval,
         max_time = max_time,
         max_iter = max_iter,
+        diverging_max_iter = diverging_max_iter,
       ),
     )
 

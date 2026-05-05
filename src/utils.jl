@@ -142,9 +142,13 @@ function get_status(
   iter = 0,
   optimal = false,
   improper = false,
+  diverging_iter = 0,
+  cviol_iter = 0,
   max_eval = Inf,
   max_time = Inf,
   max_iter = Inf,
+  diverging_max_iter = Inf,
+  cviol_max_iter = Inf,
 ) where {M <: AbstractRegularizedNLPModel}
   if optimal
     :first_order
@@ -156,6 +160,10 @@ function get_status(
     :max_time
   elseif neval_obj(reg_nlp.model) >= max_eval && max_eval >= 0
     :max_eval
+  elseif diverging_max_iter < diverging_iter
+    :unbounded
+  elseif cviol_max_iter < cviol_iter
+    :infeasible
   else
     :unknown
   end

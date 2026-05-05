@@ -102,7 +102,12 @@ If adopted, the Hessian is accessed as an abstract operator and need not be the 
 
 - `x::AbstractVector`: a primal initial guess (default: `reg_nlp.model.meta.x0`)
 - `y::AbstractVector`: a dual initial guess (default: `reg_nlp.model.meta.y0`)
-- `atol::T = √eps(T)`: absolute optimality tolerance;
+- `atol::T = eps(T)^(1/3)`: absolute tolerance
+- `diverging_iterates_tol::T = 1/eps(T)`: tolerance to detect divergence of the iterates (divergence occurs when the iterate norm exceeds the tolerance for `diverging_max_iter` consecutive iterations);
+- `diverging_obj_tol::T = -1/eps(T)`: tolerance to detect unboundedness of the objective (unboundedness occurs when the objective value is less than the tolerance for `diverging_max_iter` consecutive iterations);
+- `cviol_tol::T = 1/eps(T)`: tolerance to detect local infeasibility (local infeasibility occurs when ... [PLEASE COMPLETE] ...);
+- `diverging_max_iter::Int = 5`: number of consecutive iterations used to detect divergence or unboundedness (see `diverging_iterates_tol` and `diverging_obj_tol`);
+- `cviol_max_iter::Int = 5`: maximum number of iteration at which the regularisation parameter is increasing and the constraints are still violated;
 - `ctol::T = atol`: absolute feasibility tolerance;
 - `verbose::Int = 0`: if > 0, display iteration details every `verbose` iteration;
 - `max_iter::Int = 10000`: maximum number of iterations;
@@ -209,7 +214,12 @@ function SolverCore.solve!(
   callback = (args...) -> nothing,
   x::V = reg_nlp.model.meta.x0,
   y::V = reg_nlp.model.meta.y0,
-  atol::T = √eps(T),
+  atol::T = eps(T)^(1/3),
+  diverging_iterates_tol::T = 1/eps(T),
+  diverging_obj_tol::T = -1/eps(T),
+  cviol_tol::T = 1/eps(T),
+  diverging_max_iter::Int = 5,
+  cviol_max_iter::Int = 5,
   verbose::Int = 0,
   max_iter::Int = 10000,
   max_time::Float64 = 30.0,
@@ -224,6 +234,9 @@ function SolverCore.solve!(
   sub_kwargs::NamedTuple = NamedTuple(),
 ) where {T, V}
   reset!(stats)
+
+  diverging_iter::Int = 0
+  cviol_iter::Int = 0
 
   # Retrieve workspace
   nlp = reg_nlp.model
@@ -315,6 +328,8 @@ function SolverCore.solve!(
     # objective
     fx = obj(nlp, solver.x)
     hx = @views h(solver.x[selected])
+    improper = (hx == -Inf)
+
     objx = fx + hx
     set_objective!(stats, objx)
     set_solver_specific!(stats, :smooth_obj, fx)
@@ -345,19 +360,19 @@ function SolverCore.solve!(
     set_time!(stats, time() - start_time)
     set_status!(
       stats,
-      SolverCore.get_status(
-        nlp,
+      get_status(
+        reg_nlp;
         elapsed_time = stats.elapsed_time,
         iter = stats.iter,
         optimal = optimal,
-        infeasible = false,
-        parameter_too_large = false,
-        unbounded = false,
-        stalled = false,
-        exception = false,
+        improper = improper,
+        diverging_iter = diverging_iter,
+        cviol_iter = cviol_iter,
         max_eval = max_eval,
         max_time = max_time,
         max_iter = max_iter,
+        diverging_max_iter = diverging_max_iter,
+        cviol_max_iter = cviol_max_iter,
       ),
     )
 
@@ -372,6 +387,13 @@ function SolverCore.solve!(
     if !done
       if cviol > max(ctol, factor_primal_linear_improvement * cviol_old)
         mu *= factor_penalty_up
+        if cviol > cviol_tol
+          cviol_iter += 1
+        end
+      end
+      if (fx + hx < diverging_obj_tol) || (norm(solver.x) > diverging_iterates_tol)
+        mu *= factor_penalty_up
+        diverging_iter = diverging_iter + 1
       end
       update_μ!(solver.sub_problem.model, mu)
       cviol_old = cviol
