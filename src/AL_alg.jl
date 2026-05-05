@@ -103,9 +103,9 @@ If adopted, the Hessian is accessed as an abstract operator and need not be the 
 - `x::AbstractVector`: a primal initial guess (default: `reg_nlp.model.meta.x0`)
 - `y::AbstractVector`: a dual initial guess (default: `reg_nlp.model.meta.y0`)
 - `atol::T = eps(T)^(1/3)`: absolute tolerance
-- `diverging_iterates_tol::T = eps(T)^(-1)`: diverging tolerance for the norm of the iterates (the norm should be lower than the tolerance);
-- `diverging_obj_tol::T = -eps(T)^(-1)`: diverging tolerance for the objective function (the objective function should be higher than the tolerance);
-- `cviol_tol::T = eps(T)^(-1)`: tolerance to determine whether the constraints are infeasible
+- `diverging_iterates_tol::T = 1/eps(T)`: tolerance to detect divergence of the iterates (divergence occurs when the iterate norm exceeds the tolerance for `diverging_max_iter` consecutive iterations);
+- `diverging_obj_tol::T = -1/eps(T)`: tolerance to detect unboundedness of the objective (unboundedness occurs when the objective value is less than the tolerance for `diverging_max_iter` consecutive iterations);
+- `cviol_tol::T = 1/eps(T)`: tolerance to detect local infeasibility (local infeasibility occurs when ... [PLEASE COMPLETE] ...);
 - `diverging_max_iter::Int = 5`: maximum number of iteration at which `diverging_obj_tol` or `diverging_iterates_tol` is violated;
 - `cviol_max_iter::Int = 5`: maximum number of iteration at which the regularisation parameter is increasing and the constraints are still violated;
 - `ctol::T = atol`: absolute feasibility tolerance;
