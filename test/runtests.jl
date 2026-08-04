@@ -20,9 +20,14 @@ const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 
 include("test_AL.jl")
 
+R2DHmo(nlp, h, options; kwargs...) = R2DH(nlp, h, options; m_monotone=1, kwargs...)
+R2DHav(nlp, h, options; kwargs...) = R2DH(nlp, h, options; m_monotone=0, kwargs...)
+NMPGnm(nlp, h, options; kwargs...) = NMPG(nlp, h, options; w_monotone=0.25, kwargs...)
+NMPGsp(nlp, h, options; kwargs...) = NMPGnm(nlp, h, options; spectral_stepsize=true, kwargs...)
+
 for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
   for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * compound), "B0"))
-    for solver_sym ∈ (:R2, :TR)
+    for solver_sym ∈ (:R2, :TR, :NMPG, :NMPGnm, :NMPGsp)
       solver_sym == :TR && mod_name == "exact" && continue
       solver_sym == :TR && h_name == "B0" && continue  # FIXME
       solver_name = string(solver_sym)
@@ -31,7 +36,7 @@ for (mod, mod_name) ∈ ((x -> x, "exact"), (LSR1Model, "lsr1"), (LBFGSModel, "l
         x0 = zeros(bpdn.meta.nvar)
         p = randperm(bpdn.meta.nvar)[1:nz]
         x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
-        args = solver_sym == :R2 ? () : (NormLinf(1.0),)
+        args = solver_sym == :TR ? (NormLinf(1.0),) : ()
         out = solver(mod(bpdn), h, args..., options, x0 = x0)
         @test typeof(out.solution) == typeof(bpdn.meta.x0)
         @test length(out.solution) == bpdn.meta.nvar
@@ -79,7 +84,7 @@ for (mod, mod_name) ∈ ((LSR1Model, "lsr1"), (LBFGSModel, "lbfgs"))
 end
 
 for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * compound), "B0"))
-  for solver_sym ∈ (:LM, :LMTR)
+  for solver_sym ∈ (:LM, :LMTR, :NMPG, :NMPGnm, :NMPGsp)
     solver_name = string(solver_sym)
     solver = eval(solver_sym)
     solver_sym == :LMTR && h_name == "B0" && continue  # FIXME
@@ -87,7 +92,7 @@ for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"), (IndBallL0(10 * com
       x0 = zeros(bpdn_nls.meta.nvar)
       p = randperm(bpdn_nls.meta.nvar)[1:nz]
       x0[p[1:nz]] = sign.(randn(nz))  # initial guess with nz nonzeros (necessary for h = B0)
-      args = solver_sym == :LM ? () : (NormLinf(1.0),)
+      args = solver_sym == :LMTR ? (NormLinf(1.0),) : ()
       out = solver(bpdn_nls, h, args..., options, x0 = x0)
       @test typeof(out.solution) == typeof(bpdn.meta.x0)
       @test length(out.solution) == bpdn.meta.nvar
@@ -121,9 +126,9 @@ for (mod, mod_name) ∈ (
   (LBFGSModel, "lbfgs"),
 )
   for (h, h_name) ∈ ((NormL0(λ), "l0"), (NormL1(λ), "l1"))
-    for solver_sym ∈ (:R2DH, :R2N, :R2N_R2DH)
+    for solver_sym ∈ (:R2DH, :R2DHmo, :R2DHav, :R2N, :R2N_R2DH, :NMPG, :NMPGnm, :NMPGsp)
       solver_sym ∈ (:R2N, :R2N_R2DH) && mod_name ∈ ("spg", "psb") && continue
-      solver_sym == :R2DH && mod_name != "spg" && continue
+      solver_sym ∈ (:R2DH, :R2DHmo, :R2DHav) && mod_name != "spg" && continue
       solver_sym == :R2N_R2DH && h_name == "l1" && continue # this test seems to fail because s seems to be equal to zeros within the subsolver
       solver_name = string(solver_sym)
       solver = eval(solver_sym)

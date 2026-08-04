@@ -51,7 +51,12 @@ function R2DHSolver(
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
-  m_fh_hist = fill(T(-Inf), m_monotone - 1)
+  if m_monotone > 0
+    m_fh_hist = fill(T(-Inf), m_monotone - 1)
+  else
+    w_monotone = T(0.25) # TODO make kwarg, 0 < w_monotone < 1
+    m_fh_hist = fill(w_monotone, 1)
+  end
 
   ψ =
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
@@ -132,7 +137,7 @@ or
 - `η2::T = T(0.9)`: successful iteration threshold;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
-- `m_monotone::Int = 6`: monotoneness parameter. By default, R2DH is non-monotone but the monotone variant can be used with `m_monotone = 1`
+- `m_monotone::Int = 6`: monotonicity history parameter. By default, R2DH is non-monotone but the monotone variant can be used with `m_monotone = 1`. Average-type nonmonotonicity is activated with `m_monotone = 0`.
 - `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
 - `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 
@@ -151,6 +156,7 @@ function R2DH(
   kwargs...,
 ) where {T, V}
   kwargs_dict = Dict(kwargs...)
+  m_monotone = pop!(kwargs_dict, :m_monotone, 6)
   selected = pop!(kwargs_dict, :selected, 1:(nlp.meta.nvar))
   x0 = pop!(kwargs_dict, :x0, nlp.meta.x0)
   reg_nlp = RegularizedNLPModel(nlp, h, selected)
@@ -169,6 +175,7 @@ function R2DH(
     η2 = options.η2,
     γ = options.γ,
     θ = options.θ,
+    m_monotone = m_monotone,
     kwargs_dict...,
   )
 end
@@ -259,7 +266,7 @@ function SolverCore.solve!(
   ψ = solver.ψ
   xkn = solver.xkn
   s = solver.s
-  m_fh_hist = solver.m_fh_hist .= T(-Inf)
+  m_fh_hist = solver.m_fh_hist
   has_bnds = solver.has_bnds
 
   if has_bnds
@@ -268,7 +275,22 @@ function SolverCore.solve!(
     update_bounds!(l_bound_m_x, u_bound_m_x, l_bound, u_bound, xk)
     set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
   end
-  m_monotone = length(m_fh_hist) + 1
+  # infer type of nonmonotonicity
+  if length(m_fh_hist) > 1
+    m_monotone = length(m_fh_hist) + 1
+  elseif length(m_fh_hist) < 1
+    m_monotone = 1
+  else
+    if 0 < m_fh_hist[1] < 1
+      m_monotone = 0
+      w_monotone = m_fh_hist[1]
+    else
+      m_monotone = length(m_fh_hist) + 1
+    end
+  end
+  if m_monotone > 1
+    m_fh_hist .= T(-Inf)
+  end
 
   # initialize parameters
   improper = false
@@ -325,6 +347,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :sigma, σk)
   set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
   m_monotone > 1 && (m_fh_hist[(stats.iter) % (m_monotone - 1) + 1] = fk + hk)
+  m_monotone < 1 && (m_fh_hist[1] = fk + hk)
 
   φ(d) = begin
     result = zero(T)
@@ -372,7 +395,13 @@ function SolverCore.solve!(
     fkn = obj(nlp, xkn)
     hkn = @views h(xkn[selected])
 
-    fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
+    fhmax = if m_monotone > 1
+      maximum(m_fh_hist)
+    elseif m_monotone < 1
+      m_fh_hist[1]
+    else
+      fk + hk
+    end
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fhmax)) * 10 * eps()
     Δmod = fhmax - (fk + mks) + max(1, abs(hk)) * 10 * eps()
 
@@ -435,6 +464,7 @@ function SolverCore.solve!(
 
     @. mν∇fk = -ν₁ * ∇fk
     m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
+    m_monotone < 1 && (m_fh_hist[1] = (1-w_monotone)*m_fh_hist[1] + w_monotone*(fk+hk))
 
     spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
     mks = mk(s)
