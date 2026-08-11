@@ -59,10 +59,7 @@ function R2Solver(
   )
 end
 
-function R2Solver(
-  reg_nlp::AbstractRegularizedNLPModel{T, V};
-  m_monotone::Int = 6,
-) where {T, V}
+function R2Solver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int = 6) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
