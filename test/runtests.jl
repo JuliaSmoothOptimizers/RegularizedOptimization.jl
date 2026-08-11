@@ -18,7 +18,7 @@ const global bpdn, bpdn_nls, sol = bpdn_model(compound)
 const global bpdn2, bpdn_nls2, sol2 = bpdn_model(compound, bounds = true)
 const global λ = norm(grad(bpdn, zeros(bpdn.meta.nvar)), Inf) / 10
 
-R2mono(nlp, h, options; kwargs...) = R2(nlp, h, options; m_monotone=1, kwargs...)
+R2mono(nlp, h, options; kwargs...) = R2(nlp, h, options; m_monotone = 1, kwargs...)
 
 include("test_AL.jl")
 
@@ -144,7 +144,7 @@ end
 
 for (mod, mod_name) ∈ ((SpectralGradientModel, "spg"),)
   for (h, h_name) ∈ ((NormL1(λ), "l1"),)
-    for solver_sym ∈ (:R2,:R2mono)
+    for solver_sym ∈ (:R2, :R2mono)
       solver_name = string(solver_sym)
       solver = eval(solver_sym)
       @testset "bpdn-$(mod_name)-$(solver_name)-$(h_name)-callback" begin
@@ -154,7 +154,7 @@ for (mod, mod_name) ∈ ((SpectralGradientModel, "spg"),)
             stats.status = :user
           end
         end
-        out = solver(mod(bpdn), h, options, x0 = x0, callback=cb)
+        out = solver(mod(bpdn), h, options, x0 = x0, callback = cb)
         @test typeof(out.solution) == typeof(bpdn.meta.x0)
         @test length(out.solution) == bpdn.meta.nvar
         @test typeof(out.dual_feas) == eltype(out.solution)
