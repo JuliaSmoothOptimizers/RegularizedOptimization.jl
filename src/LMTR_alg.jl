@@ -70,7 +70,7 @@ function LMTRSolver(
   sub_nlp = LMModel(Jk, Fk, T(0), xk)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
-  subsolver = subsolver(subpb)
+  subsolver = subsolver == TRDHSolver ? subsolver(subpb, is_subsolver = true) : subsolver(subpb)
 
   return LMTRSolver{T, typeof(ψ), V, typeof(χ), typeof(subsolver), typeof(subpb)}(
     xk,
