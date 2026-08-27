@@ -4,7 +4,6 @@ import SolverCore.solve!
 
 mutable struct R2NSolver{
   T <: Real,
-  G <: ShiftedProximableFunction,
   V <: AbstractVector{T},
   ST <: AbstractOptimizationSolver,
   PB <: AbstractRegularizedNLPModel,
@@ -14,17 +13,11 @@ mutable struct R2NSolver{
   ∇fk⁻::V
   y::V
   mν∇fk::V
-  ψ::G
   xkn::V
   s::V
   s1::V
   v0::V
   v1::V
-  has_bnds::Bool
-  l_bound::V
-  u_bound::V
-  l_bound_m_x::V
-  u_bound_m_x::V
   m_fh_hist::V
   subsolver::ST
   subpb::PB
@@ -37,8 +30,6 @@ function R2NSolver(
   m_monotone::Int = 1,
 ) where {T, V}
   x0 = reg_nlp.model.meta.x0
-  l_bound = reg_nlp.model.meta.lvar
-  u_bound = reg_nlp.model.meta.uvar
 
   xk = similar(x0)
   ∇fk = similar(x0)
@@ -53,45 +44,23 @@ function R2NSolver(
   v0 ./= sqrt(reg_nlp.model.meta.nvar)
   v1 = similar(v0)
 
-  has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
-  if has_bnds
-    l_bound_m_x = similar(xk)
-    u_bound_m_x = similar(xk)
-    @. l_bound_m_x = l_bound - x0
-    @. u_bound_m_x = u_bound - x0
-  else
-    l_bound_m_x = similar(xk, 0)
-    u_bound_m_x = similar(xk, 0)
-  end
   m_fh_hist = fill(T(-Inf), m_monotone - 1)
 
-  ψ =
-    has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
-    shifted(reg_nlp.h, xk)
-
-  Bk = hess_op(reg_nlp, xk)
-  sub_nlp = QuadraticModel(∇fk, Bk, σ = T(1), x0 = x0)
-  subpb = RegularizedNLPModel(sub_nlp, ψ)
-  substats = RegularizedExecutionStats(subpb)
+  subpb = ShiftedProximableQuadraticNLPModel(reg_nlp, xk, ∇f = ∇fk)
   subsolver = subsolver(subpb)
+  substats = RegularizedExecutionStats(subpb)
 
-  return R2NSolver{T, typeof(ψ), V, typeof(subsolver), typeof(subpb)}(
+  return R2NSolver{T, V, typeof(subsolver), typeof(subpb)}(
     xk,
     ∇fk,
     ∇fk⁻,
     y,
     mν∇fk,
-    ψ,
     xkn,
     s,
     s1,
     v0,
     v1,
-    has_bnds,
-    l_bound,
-    u_bound,
-    l_bound_m_x,
-    u_bound_m_x,
     m_fh_hist,
     subsolver,
     subpb,
@@ -209,7 +178,7 @@ function R2N(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
 end
 
 function SolverCore.solve!(
-  solver::R2NSolver{T, G, V},
+  solver::R2NSolver{T, V},
   reg_nlp::AbstractRegularizedNLPModel{T, V},
   stats::GenericExecutionStats{T, V};
   callback = (args...) -> nothing,
@@ -234,7 +203,7 @@ function SolverCore.solve!(
   compute_obj::Bool = true,
   compute_grad::Bool = true,
   sub_kwargs::NamedTuple = NamedTuple(),
-) where {T, V, G}
+) where {T, V}
   reset!(stats)
 
   # Retrieve workspace
@@ -244,25 +213,19 @@ function SolverCore.solve!(
 
   xk = solver.xk .= x
 
-  # Make sure ψ has the correct shift 
-  shift!(solver.ψ, xk)
+  mk = solver.subpb
+  φ, ψ = mk.model, mk.h
+  
+  shift!(mk, xk, compute_grad = compute_grad)
 
   ∇fk = solver.∇fk
   ∇fk⁻ = solver.∇fk⁻
   mν∇fk = solver.mν∇fk
-  ψ = solver.ψ
   xkn = solver.xkn
   s = solver.s
   s1 = solver.s1
   m_fh_hist = solver.m_fh_hist .= T(-Inf)
-  has_bnds = solver.has_bnds
 
-  if has_bnds
-    l_bound, u_bound = solver.l_bound, solver.u_bound
-    l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
-    update_bounds!(l_bound_m_x, u_bound_m_x, l_bound, u_bound, xk)
-    set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-  end
   m_monotone = length(m_fh_hist) + 1
 
   # initialize parameters
@@ -301,7 +264,6 @@ function SolverCore.solve!(
   local prox_evals::Int = 0
 
   fk = compute_obj ? obj(nlp, xk) : stats.solver_specific[:smooth_obj]
-  compute_grad && grad!(nlp, xk, ∇fk)
   qn_copy!(nlp, solver, stats)
 
   quasiNewtTest = isa(nlp, QuasiNewtonModel)
@@ -309,9 +271,9 @@ function SolverCore.solve!(
   found_λ = true
 
   if opnorm_maxiter ≤ 0
-    λmax, found_λ = opnorm(solver.subpb.model.data.H)
+    λmax, found_λ = opnorm(φ.data.H)
   else
-    λmax = power_method!(solver.subpb.model.data.H, solver.v0, solver.v1, opnorm_maxiter)
+    λmax = power_method!(φ.data.H, solver.v0, solver.v1, opnorm_maxiter)
   end
   found_λ || error("operator norm computation failed")
 
@@ -332,26 +294,8 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
-  φ1 = let ∇fk = ∇fk
-    d -> dot(∇fk, d)
-  end
-
-  mk1 = let ψ = ψ
-    d -> φ1(d) + ψ(d)::T
-  end
-
-  mk = let ψ = ψ, model = solver.subpb.model
-    d -> begin
-      temp_σ = model.data.σ
-      model.data.σ = zero(T)
-      _obj = obj(model, d) + ψ(d)
-      model.data.σ = temp_σ
-      return _obj
-    end
-  end
-
   prox!(s1, ψ, mν∇fk, ν₁)
-  mks = mk1(s1)
+  mks = obj(mk, s1, cauchy = true, skip_sigma = true)
 
   ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
   sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν₁) : sqrt(-ξ1 / ν₁)
@@ -381,7 +325,7 @@ function SolverCore.solve!(
   while !done
     sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
 
-    solver.subpb.model.data.σ = σk
+    set_sigma!(solver.subpb, σk)
     isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
     if isa(solver.subsolver, R2Solver) #FIXME
       solve!(
@@ -415,7 +359,7 @@ function SolverCore.solve!(
     xkn .= xk .+ s
     fkn = obj(nlp, xkn)
     hkn = @views h(xkn[selected])
-    mks = mk(s)
+    mks = obj(mk, s, skip_sigma = true) 
 
     fhmax = m_monotone > 1 ? maximum(m_fh_hist) : fk + hk
     Δobj = fhmax - (fkn + hkn) + max(1, abs(fk + hk)) * 10 * eps()
@@ -449,16 +393,12 @@ function SolverCore.solve!(
 
     if η1 ≤ ρk < Inf
       xk .= xkn
-      if has_bnds
-        update_bounds!(l_bound_m_x, u_bound_m_x, l_bound, u_bound, xk)
-        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-      end
+
+      shift!(solver.subpb, xk)
+
       #update functions
       fk = fkn
       hk = hkn
-
-      shift!(ψ, xk)
-      grad!(nlp, xk, ∇fk)
 
       if quasiNewtTest
         qn_update_y!(nlp, solver, stats)
@@ -467,9 +407,9 @@ function SolverCore.solve!(
       end
 
       if opnorm_maxiter ≤ 0
-        λmax, found_λ = opnorm(solver.subpb.model.data.H)
+        λmax, found_λ = opnorm(φ.data.H)
       else
-        λmax = power_method!(solver.subpb.model.data.H, solver.v0, solver.v1, opnorm_maxiter)
+        λmax = power_method!(φ.data.H, solver.v0, solver.v1, opnorm_maxiter)
       end
       found_λ || error("operator norm computation failed")
       set_step_status!(stats, :accepted)
@@ -498,7 +438,7 @@ function SolverCore.solve!(
 
     @. mν∇fk = - ν₁ * ∇fk
     prox!(s1, ψ, mν∇fk, ν₁)
-    mks = mk1(s1)
+    mks = obj(mk, s1, cauchy = true,skip_sigma = true)
 
     ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
 
@@ -541,16 +481,16 @@ end
 
 function _qn_grad_update_y!(
   nlp::AbstractNLPModel{T, V},
-  solver::R2NSolver{T, G, V},
+  solver::R2NSolver{T, V},
   stats::GenericExecutionStats,
-) where {T, V, G}
+) where {T, V}
   @. solver.y = solver.∇fk - solver.∇fk⁻
 end
 
 function _qn_grad_copy!(
   nlp::AbstractNLPModel{T, V},
-  solver::R2NSolver{T, G, V},
+  solver::R2NSolver{T, V},
   stats::GenericExecutionStats,
-) where {T, V, G}
+) where {T, V}
   solver.∇fk⁻ .= solver.∇fk
 end
