@@ -64,7 +64,7 @@ function LMTRSolver(
       max.(-one(T), l_bound_m_x),
       min.(one(T), u_bound_m_x),
       reg_nls.selected,
-    ) : shifted(reg_nls.h, xk, one(T), χ)
+    ) : shifted(reg_nls.h, xk, one(T), χ, reg_nls.selected)
 
   Jk = jac_op_residual(reg_nls.model, xk)
   sub_nlp = LMModel(Jk, Fk, T(0), xk)

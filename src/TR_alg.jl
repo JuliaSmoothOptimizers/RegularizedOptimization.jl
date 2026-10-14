@@ -67,7 +67,7 @@ function TRSolver(
   ψ =
     has_bnds || subsolver == TRDHSolver ?
     shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
-    shifted(reg_nlp.h, xk, T(1), χ)
+    shifted(reg_nlp.h, xk, T(1), χ, reg_nlp.selected)
 
   Bk = hess_op(reg_nlp, xk)
   sub_nlp = QuadraticModel(∇fk, Bk, x0 = x0)

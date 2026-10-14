@@ -166,4 +166,5 @@ for (mod, mod_name) ∈ ((SpectralGradientModel, "spg"),)
 end
 
 include("test_bounds.jl")
+include("test_selected.jl")
 include("test_allocs.jl")

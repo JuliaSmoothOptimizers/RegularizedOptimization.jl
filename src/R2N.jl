@@ -67,7 +67,7 @@ function R2NSolver(
 
   ψ =
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
-    shifted(reg_nlp.h, xk)
+    shifted(reg_nlp.h, xk, reg_nlp.selected)
 
   Bk = hess_op(reg_nlp, xk)
   sub_nlp = QuadraticModel(∇fk, Bk, σ = T(1), x0 = x0)

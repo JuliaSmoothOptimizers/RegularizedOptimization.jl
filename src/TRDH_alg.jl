@@ -62,7 +62,7 @@ function TRDHSolver(
       @. u_bound_k = min(one(T), u_bound - x0)
       ψ = shifted(reg_nlp.h, xk, l_bound_k, u_bound_k, reg_nlp.selected)
     else
-      ψ = shifted(reg_nlp.h, xk, one(T), χ)
+      ψ = shifted(reg_nlp.h, xk, one(T), χ, reg_nlp.selected)
     end
   end
   isnothing(D) && (
