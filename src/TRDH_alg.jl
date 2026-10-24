@@ -343,6 +343,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :sigma_cauchy, 1/ν)
 
   # models
   φ1 = let ∇fk = ∇fk
@@ -368,6 +369,7 @@ function SolverCore.solve!(
 
   if reduce_TR
     prox!(s, ψ, mν∇fk, ν)
+    set_solver_specific!(stats, :cauchy_step_norm, norm(s))
     mks = mk1(s)
 
     ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
@@ -391,8 +393,10 @@ function SolverCore.solve!(
   iprox!(s, ψ, ∇fk, dk)
   ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
   sNorm = χ(s)
+  set_solver_specific!(stats, :step_norm, norm(s))
 
   if !reduce_TR
+    set_solver_specific!(stats, :cauchy_step_norm, norm(s))
     sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
     solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < atol)
     (ξ < 0 && sqrt_ξ_νInv > neg_tol) &&
@@ -485,10 +489,12 @@ function SolverCore.solve!(
     set_time!(stats, time() - start_time)
 
     ν = reduce_TR ? (α * Δk)/(DNorm + one(T)) : α / (DNorm + one(T))
+    set_solver_specific!(stats, :sigma_cauchy, 1/ν)
     mν∇fk .= -ν .* ∇fk
 
     if reduce_TR
       prox!(s, ψ, mν∇fk, ν)
+      set_solver_specific!(stats, :cauchy_step_norm, norm(s))
       ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
       sqrt_ξ_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
       solved = (ξ1 < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ_νInv < atol)
@@ -499,8 +505,10 @@ function SolverCore.solve!(
     iprox!(s, ψ, ∇fk, dk)
 
     sNorm = χ(s)
+    set_solver_specific!(stats, :step_norm, norm(s))
 
     if !reduce_TR
+      set_solver_specific!(stats, :cauchy_step_norm, norm(s))
       ξ = hk - mk(s) + max(1, abs(hk)) * 10 * eps()
       sqrt_ξ_νInv = ξ ≥ 0 ? sqrt(ξ / ν) : sqrt(-ξ / ν)
       solved = (ξ < 0 && sqrt_ξ_νInv ≤ neg_tol) || (ξ ≥ 0 && sqrt_ξ_νInv < atol)

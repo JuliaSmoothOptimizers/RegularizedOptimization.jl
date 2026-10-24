@@ -58,6 +58,10 @@ end
         (solver_name == "TRDH") &&
           @test @wrappedallocs(solve!(solver, reg_nlp, stats, atol = 1e-6, rtol = 1e-6)) == 0
         @test stats.status == :first_order
+        @test isfinite(stats.solver_specific[:cauchy_step_norm])
+        @test isfinite(stats.solver_specific[:step_norm])
+        solver_name ∈ ("R2", "R2DH") &&
+          @test stats.solver_specific[:step_norm] == stats.solver_specific[:cauchy_step_norm]
       end
     end
     @testset "Augmented Lagrangian" begin

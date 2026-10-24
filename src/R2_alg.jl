@@ -361,6 +361,7 @@ function SolverCore.solve!(
 
   local ξ::T
   local ρk::T = zero(T)
+  local norm_s::T = zero(T)
   σk = max(1 / ν, σmin)
   ν = 1 / σk
   sqrt_ξ_νInv = one(T)
@@ -376,12 +377,16 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
   set_solver_specific!(stats, :sigma, σk)
+  set_solver_specific!(stats, :sigma_cauchy, σk)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
   φk(d) = dot(∇fk, d)
   mk(d)::T = φk(d) + ψ(d)::T
 
   prox!(s, ψ, mν∇fk, ν)
+  norm_s = norm(s)
+  set_solver_specific!(stats, :cauchy_step_norm, norm_s)
+  set_solver_specific!(stats, :step_norm, norm_s)
   mks = mk(s)
 
   ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
@@ -435,7 +440,7 @@ function SolverCore.solve!(
           ρk,
           σk,
           norm(xk),
-          norm(s),
+          norm_s,
           (η2 ≤ ρk < Inf) ? '↘' : (ρk < η1 ? '↗' : '='),
         ],
         colsep = 1,
@@ -470,10 +475,14 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :smooth_obj, fk)
     set_solver_specific!(stats, :nonsmooth_obj, hk)
     set_solver_specific!(stats, :sigma, σk)
+    set_solver_specific!(stats, :sigma_cauchy, σk)
     set_iter!(stats, stats.iter + 1)
     set_time!(stats, time() - start_time)
 
     prox!(s, ψ, mν∇fk, ν)
+    norm_s = norm(s)
+    set_solver_specific!(stats, :cauchy_step_norm, norm_s)
+    set_solver_specific!(stats, :step_norm, norm_s)
     mks = mk(s)
 
     ξ = hk - mks + max(1, abs(hk)) * 10 * eps()
@@ -502,7 +511,7 @@ function SolverCore.solve!(
   end
 
   if verbose > 0 && stats.status == :first_order
-    @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm(s), ""], colsep = 1)
+    @info log_row(Any[stats.iter, fk, hk, sqrt_ξ_νInv, ρk, σk, norm(xk), norm_s, ""], colsep = 1)
     @info "R2: terminating with √(ξ/ν) = $(sqrt_ξ_νInv)"
   end
 

@@ -33,6 +33,8 @@ Notably, you can access, and modify, the following:
   - `stats.objective`: current objective function value;
   - `stats.solver_specific[:smooth_obj]`: current value of the smooth part of the objective function;
   - `stats.solver_specific[:nonsmooth_obj]`: current value of the nonsmooth part of the objective function;
+  - `stats.solver_specific[:cauchy_step_norm]`: norm of the Cauchy step computed at the current iterate;
+  - `stats.solver_specific[:step_norm]`: norm of the step computed at the current iterate (equal to the norm of the Cauchy step for R2 and R2DH). The callback is called once this step has been computed. If a stopping criterion is met at the Cauchy step, the step is not computed and this entry keeps its previous value;
   - `stats.status`: current status of the algorithm. Should be `:unknown` unless the algorithm has attained a stopping criterion. Changing this to anything other than `:unknown` will stop the algorithm, but you should use `:user` to properly indicate the intention;
   - `stats.elapsed_time`: elapsed time in seconds.
 "

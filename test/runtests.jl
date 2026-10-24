@@ -165,5 +165,24 @@ for (mod, mod_name) ∈ ((SpectralGradientModel, "spg"),)
   end
 end
 
+@testset "callback sees the Cauchy step and the step at the same iterate" begin
+  for (solver, model) ∈ ((R2N, LBFGSModel(bpdn)), (TR, LBFGSModel(bpdn)), (LM, bpdn_nls), (LMTR, bpdn_nls))
+    @testset "$(solver)" begin
+      ncalls = Ref(0)
+      cb = (reg_nlp, solver, stats) -> begin
+        stats.status == :unknown || return
+        ncalls[] += 1
+        # s_k must already be computed at x_k, including at the first iteration
+        @test isfinite(stats.solver_specific[:cauchy_step_norm])
+        @test isfinite(stats.solver_specific[:step_norm])
+        @test stats.solver_specific[:step_norm] == norm(solver.s)
+      end
+      stats = solver(RegularizedNLPModel(model, NormL1(λ)), atol = 1e-6, rtol = 1e-6, callback = cb)
+      @test stats.status == :first_order
+      @test ncalls[] == stats.iter
+    end
+  end
+end
+
 include("test_bounds.jl")
 include("test_allocs.jl")

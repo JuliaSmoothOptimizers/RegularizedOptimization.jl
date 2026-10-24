@@ -121,7 +121,9 @@ LinearAlgebra.diag(op::SpectralGradient{T}) where {T} = zeros(T, op.nrow) .* op.
     GenericExecutionStats(reg_nlp :: AbstractRegularizedNLPModel{T, V})
 
 Construct a GenericExecutionStats object from an AbstractRegularizedNLPModel. 
-More specifically, construct a GenericExecutionStats on the NLPModel of reg_nlp and add three solver_specific entries namely :smooth_obj, :nonsmooth_obj and :xi.
+More specifically, construct a GenericExecutionStats on the NLPModel of reg_nlp and add solver_specific entries, namely :smooth_obj, :nonsmooth_obj, :sigma, :sigma_cauchy, :radius, :prox_evals,
+:cauchy_step_norm (norm of the Cauchy step s_{k,cp}) and :step_norm (norm of the step s_k; equal to
+:cauchy_step_norm for R2 and R2DH).
 This is useful for reducing the number of allocations when calling solve!(..., reg_nlp, stats) and should be used by default.
 Warning: This should *not* be used when adding other solver_specific entries that do not have the current scalar type. 
 """
@@ -133,6 +135,8 @@ function RegularizedExecutionStats(reg_nlp::AbstractRegularizedNLPModel{T, V}) w
   set_solver_specific!(stats, :sigma_cauchy, T(Inf))
   set_solver_specific!(stats, :radius, T(Inf))
   set_solver_specific!(stats, :prox_evals, T(Inf))
+  set_solver_specific!(stats, :cauchy_step_norm, T(Inf))
+  set_solver_specific!(stats, :step_norm, T(Inf))
   return stats
 end
 

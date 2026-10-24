@@ -327,6 +327,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
@@ -343,6 +344,7 @@ function SolverCore.solve!(
   end
 
   prox!(s, ψ, mν∇fk, ν₁)
+  set_solver_specific!(stats, :cauchy_step_norm, norm(s))
   ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
   ξ1 > 0 || error("TR: first prox-gradient step should produce a decrease but ξ1 = $(ξ1)")
   sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
@@ -367,48 +369,52 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(reg_nlp, solver, stats)
+  while true
+    # compute the step s_k unless a stopping criterion was met at the Cauchy point
+    if stats.status == :unknown
+      sub_atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv))
+      ∆_effective = min(β * χ(s), Δk)
 
-  done = stats.status != :unknown
-  while !done
-    sub_atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv))
-    ∆_effective = min(β * χ(s), Δk)
-
-    if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
-      update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
-      set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-      set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
-    else
-      set_radius!(solver.subsolver.ψ, ∆_effective)
-      set_radius!(ψ, ∆_effective)
-    end
-    with_logger(subsolver_logger) do
-      if isa(solver.subsolver, TRDHSolver) #FIXME
-        solver.subsolver.D.d[1] = 1/ν₁
-        solve!(
-          solver.subsolver,
-          solver.subpb,
-          solver.substats;
-          x = s,
-          atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
-          Δk = ∆_effective / 10,
-          sub_kwargs...,
-        )
+      if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
+        update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, Δk)
+        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+        set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
       else
-        solve!(
-          solver.subsolver,
-          solver.subpb,
-          solver.substats;
-          x = s,
-          atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
-          ν = ν₁,
-          sub_kwargs...,
-        )
+        set_radius!(solver.subsolver.ψ, ∆_effective)
+        set_radius!(ψ, ∆_effective)
       end
+      with_logger(subsolver_logger) do
+        if isa(solver.subsolver, TRDHSolver) #FIXME
+          solver.subsolver.D.d[1] = 1/ν₁
+          solve!(
+            solver.subsolver,
+            solver.subpb,
+            solver.substats;
+            x = s,
+            atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
+            Δk = ∆_effective / 10,
+            sub_kwargs...,
+          )
+        else
+          solve!(
+            solver.subsolver,
+            solver.subpb,
+            solver.substats;
+            x = s,
+            atol = stats.iter == 0 ? 1e-5 : max(sub_atol, min(1e-2, sqrt_ξ1_νInv)),
+            ν = ν₁,
+            sub_kwargs...,
+          )
+        end
+      end
+
+      prox_evals += solver.substats.iter
+      s .= solver.substats.solution
+      set_solver_specific!(stats, :step_norm, norm(s))
     end
 
-    prox_evals += solver.substats.iter
-    s .= solver.substats.solution
+    callback(reg_nlp, solver, stats)
+    stats.status != :unknown && break
 
     xkn .= xk .+ s
     fkn = obj(nlp, xkn)
@@ -504,9 +510,11 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
     ν₁ = α * Δk / (1 + λmax * (α * Δk + 1))
+    set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
     @. mν∇fk = -ν₁ * ∇fk
 
     prox!(s, ψ, mν∇fk, ν₁)
+    set_solver_specific!(stats, :cauchy_step_norm, norm(s))
     ξ1 = hk - mk1(s) + max(1, abs(hk)) * 10 * eps()
     sqrt_ξ1_νInv = sqrt(ξ1 / ν₁)
 
@@ -527,10 +535,6 @@ function SolverCore.solve!(
         max_iter = max_iter,
       ),
     )
-
-    callback(reg_nlp, solver, stats)
-
-    done = stats.status != :unknown
   end
   if verbose > 0 && stats.status == :first_order
     @info log_row(

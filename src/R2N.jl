@@ -351,6 +351,7 @@ function SolverCore.solve!(
   end
 
   prox!(s1, ψ, mν∇fk, ν₁)
+  set_solver_specific!(stats, :cauchy_step_norm, norm(s1))
   mks = mk1(s1)
 
   ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
@@ -374,43 +375,46 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(reg_nlp, solver, stats)
+  while true
+    # compute the step s_k unless a stopping criterion was met at the Cauchy point
+    if stats.status == :unknown
+      sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
 
-  done = stats.status != :unknown
+      solver.subpb.model.data.σ = σk
+      isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
+      if isa(solver.subsolver, R2Solver) #FIXME
+        solve!(
+          solver.subsolver,
+          solver.subpb,
+          solver.substats;
+          x = s1,
+          ν = ν₁,
+          atol = sub_atol,
+          sub_kwargs...,
+        )
+      else
+        solve!(
+          solver.subsolver,
+          solver.subpb,
+          solver.substats;
+          x = s1,
+          σk = σk,
+          atol = sub_atol,
+          sub_kwargs...,
+        )
+      end
 
-  while !done
-    sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
+      prox_evals += solver.substats.iter
+      s .= solver.substats.solution
 
-    solver.subpb.model.data.σ = σk
-    isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν₁)
-    if isa(solver.subsolver, R2Solver) #FIXME
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats;
-        x = s1,
-        ν = ν₁,
-        atol = sub_atol,
-        sub_kwargs...,
-      )
-    else
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats;
-        x = s1,
-        σk = σk,
-        atol = sub_atol,
-        sub_kwargs...,
-      )
+      if norm(s) > β * norm(s1)
+        s .= s1
+      end
+      set_solver_specific!(stats, :step_norm, norm(s))
     end
 
-    prox_evals += solver.substats.iter
-    s .= solver.substats.solution
-
-    if norm(s) > β * norm(s1)
-      s .= s1
-    end
+    callback(reg_nlp, solver, stats)
+    stats.status != :unknown && break
 
     xkn .= xk .+ s
     fkn = obj(nlp, xkn)
@@ -498,6 +502,7 @@ function SolverCore.solve!(
 
     @. mν∇fk = - ν₁ * ∇fk
     prox!(s1, ψ, mν∇fk, ν₁)
+    set_solver_specific!(stats, :cauchy_step_norm, norm(s1))
     mks = mk1(s1)
 
     ξ1 = hk - mks + max(1, abs(hk)) * 10 * eps()
@@ -520,10 +525,6 @@ function SolverCore.solve!(
         max_iter = max_iter,
       ),
     )
-
-    callback(reg_nlp, solver, stats)
-
-    done = stats.status != :unknown
   end
 
   if verbose > 0 && stats.status == :first_order

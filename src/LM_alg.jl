@@ -272,6 +272,7 @@ function SolverCore.solve!(
   local ξ1::T
   local ρk::T = zero(T)
   local prox_evals::Int = 0
+  local norm_s::T = zero(T)
 
   residual!(nls, xk, Fk)
   jtprod_residual!(nls, xk, Fk, ∇fk)
@@ -290,6 +291,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :sigma_cauchy, 1/ν)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
   m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
@@ -306,6 +308,8 @@ function SolverCore.solve!(
   end
 
   prox!(s, ψ, mν∇fk, ν)
+  norm_s = norm(s)
+  set_solver_specific!(stats, :cauchy_step_norm, norm_s)
   ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
   sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
   solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
@@ -327,38 +331,41 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(reg_nls, solver, stats)
+  while true
+    # compute the step s_k unless a stopping criterion was met at the Cauchy point
+    if stats.status == :unknown
+      sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
+      solver.subpb.model.σ = σk
+      isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
+      if isa(solver.subsolver, R2Solver) #FIXME
+        solve!(
+          solver.subsolver,
+          solver.subpb,
+          solver.substats;
+          x = s,
+          atol = sub_atol,
+          ν = ν,
+          sub_kwargs...,
+        )
+      else
+        solve!(
+          solver.subsolver,
+          solver.subpb,
+          solver.substats;
+          x = s,
+          atol = sub_atol,
+          σk = σk, #FIXME
+          sub_kwargs...,
+        )
+      end
 
-  done = stats.status != :unknown
-
-  while !done
-    sub_atol = stats.iter == 0 ? 1.0e-3 : min(sqrt_ξ1_νInv ^ (1.5), sqrt_ξ1_νInv * 1e-3)
-    solver.subpb.model.σ = σk
-    isa(solver.subsolver, R2DHSolver) && (solver.subsolver.D.d[1] = 1/ν)
-    if isa(solver.subsolver, R2Solver) #FIXME
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats;
-        x = s,
-        atol = sub_atol,
-        ν = ν,
-        sub_kwargs...,
-      )
-    else
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats;
-        x = s,
-        atol = sub_atol,
-        σk = σk, #FIXME
-        sub_kwargs...,
-      )
+      prox_evals += solver.substats.iter
+      s .= solver.substats.solution
+      set_solver_specific!(stats, :step_norm, norm(s))
     end
 
-    prox_evals += solver.substats.iter
-    s .= solver.substats.solution
+    callback(reg_nls, solver, stats)
+    stats.status != :unknown && break
 
     xkn .= xk .+ s
     residual!(nls, xkn, Fkn)
@@ -438,9 +445,12 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
     ν = θ / (σmax^2 + σk) # ‖J'J + σₖ I‖ = ‖J‖² + σₖ
+    set_solver_specific!(stats, :sigma_cauchy, 1/ν)
 
     @. mν∇fk = - ν * ∇fk
     prox!(s, ψ, mν∇fk, ν)
+    norm_s = norm(s)
+    set_solver_specific!(stats, :cauchy_step_norm, norm_s)
     mks = mk1(s)
 
     ξ1 = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
@@ -464,15 +474,11 @@ function SolverCore.solve!(
         max_iter = max_iter,
       ),
     )
-
-    callback(reg_nls, solver, stats)
-
-    done = stats.status != :unknown
   end
 
   if verbose > 0 && stats.status == :first_order
     @info log_row(
-      Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, ρk, σk, norm(xk), norm(s), 1 / ν, ""],
+      Any[stats.iter, 0, fk, hk, sqrt_ξ1_νInv, ρk, σk, norm(xk), norm_s, 1 / ν, ""],
       colsep = 1,
     )
     @info "LM: terminating with √(ξ1/ν) = $(sqrt_ξ1_νInv)"

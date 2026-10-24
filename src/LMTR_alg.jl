@@ -285,6 +285,7 @@ function SolverCore.solve!(
   set_objective!(stats, fk + hk)
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
+  set_solver_specific!(stats, :sigma_cauchy, 1/ν)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
   φ1 = let Fk = Fk, ∇fk = ∇fk
@@ -302,6 +303,7 @@ function SolverCore.solve!(
   # Take first proximal gradient step s1 and see if current xk is nearly stationary.
   # s1 minimizes φ1(d) + ‖d‖² / 2 / ν + ψ(d) ⟺ s1 ∈ prox{νψ}(-ν∇φ1(0))
   prox!(s, ψ, mν∇fk, ν)
+  set_solver_specific!(stats, :cauchy_step_norm, norm(s))
   ξ1 = fk + hk - mk1(s) + max(1, abs(fk + hk)) * 10 * eps()
   sqrt_ξ1_νInv = ξ1 ≥ 0 ? sqrt(ξ1 / ν) : sqrt(-ξ1 / ν)
   solved = (ξ1 < 0 && sqrt_ξ1_νInv ≤ neg_tol) || (ξ1 ≥ 0 && sqrt_ξ1_νInv ≤ atol)
@@ -324,47 +326,50 @@ function SolverCore.solve!(
     ),
   )
 
-  callback(reg_nls, solver, stats)
+  while true
+    # compute the step s_k unless a stopping criterion was met at the Cauchy point
+    if stats.status == :unknown
+      ∆_effective = min(β * χ(s), Δk)
 
-  done = stats.status != :unknown
+      if has_bnds
+        update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, ∆_effective)
+        set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
+        set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
+      else
+        set_radius!(solver.subsolver.ψ, ∆_effective)
+        set_radius!(ψ, ∆_effective)
+      end
 
-  while !done
-    ∆_effective = min(β * χ(s), Δk)
+      if isa(solver.subsolver, TRDHSolver)
+        solver.subsolver.D.d[1] = 1/ν
+        solve!(
+          solver.subsolver,
+          solver.subpb,
+          solver.substats;
+          x = s,
+          atol = stats.iter == 0 ? 1.0e-5 : max(sub_atol, min(1.0e-1, ξ1 / 10)),
+          Δk = ∆_effective / 10,
+          sub_kwargs...,
+        )
+      else
+        solve!(
+          solver.subsolver,
+          solver.subpb,
+          solver.substats;
+          x = s,
+          atol = stats.iter == 0 ? 1.0e-5 : max(sub_atol, min(1.0e-1, ξ1 / 10)),
+          ν = ν,
+          sub_kwargs...,
+        )
+      end
 
-    if has_bnds
-      update_bounds!(l_bound_m_x, u_bound_m_x, false, l_bound, u_bound, xk, ∆_effective)
-      set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
-      set_bounds!(solver.subsolver.ψ, l_bound_m_x, u_bound_m_x)
-    else
-      set_radius!(solver.subsolver.ψ, ∆_effective)
-      set_radius!(ψ, ∆_effective)
+      prox_evals += solver.substats.iter
+      s .= solver.substats.solution
+      set_solver_specific!(stats, :step_norm, norm(s))
     end
 
-    if isa(solver.subsolver, TRDHSolver)
-      solver.subsolver.D.d[1] = 1/ν
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats;
-        x = s,
-        atol = stats.iter == 0 ? 1.0e-5 : max(sub_atol, min(1.0e-1, ξ1 / 10)),
-        Δk = ∆_effective / 10,
-        sub_kwargs...,
-      )
-    else
-      solve!(
-        solver.subsolver,
-        solver.subpb,
-        solver.substats;
-        x = s,
-        atol = stats.iter == 0 ? 1.0e-5 : max(sub_atol, min(1.0e-1, ξ1 / 10)),
-        ν = ν,
-        sub_kwargs...,
-      )
-    end
-
-    prox_evals += solver.substats.iter
-    s .= solver.substats.solution
+    callback(reg_nls, solver, stats)
+    stats.status != :unknown && break
 
     sNorm = χ(s)
     xkn .= xk .+ s
@@ -450,9 +455,11 @@ function SolverCore.solve!(
     set_solver_specific!(stats, :prox_evals, prox_evals + 1)
 
     ν = α * Δk / (1 + σmax^2 * (α * Δk + 1))
+    set_solver_specific!(stats, :sigma_cauchy, 1/ν)
     @. mν∇fk = -∇fk * ν
 
     prox!(s, ψ, mν∇fk, ν)
+    set_solver_specific!(stats, :cauchy_step_norm, norm(s))
     mks = mk1(s)
 
     ξ1 = fk + hk - mks + max(1, abs(hk)) * 10 * eps()
@@ -474,10 +481,6 @@ function SolverCore.solve!(
         max_iter = max_iter,
       ),
     )
-
-    callback(reg_nls, solver, stats)
-
-    done = stats.status != :unknown
   end
 
   if verbose > 0 && stats.status == :first_order
