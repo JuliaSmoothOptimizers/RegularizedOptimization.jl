@@ -156,6 +156,8 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
+If the subsolver stops with status `:unbounded` (its model is unbounded below, which happens when Bₖ + σₖI is indefinite), the iteration is declared unsuccessful and σₖ is increased.
+
 The algorithm stops either when `√(ξₖ/νₖ) < atol + rtol*√(ξ₀/ν₀) ` or `ξₖ < 0` and `√(-ξₖ/νₖ) < neg_tol` where ξₖ := f(xₖ) + h(xₖ) - φ(sₖ; xₖ) - ψ(sₖ; xₖ), and √(ξₖ/νₖ) is a stationarity measure.
 
 # Output
@@ -406,6 +408,9 @@ function SolverCore.solve!(
     end
 
     prox_evals += solver.substats.iter
+    if solver.substats.status == :unbounded
+      ρk = -T(Inf)
+    else
     s .= solver.substats.solution
 
     if norm(s) > β * norm(s1)
@@ -427,6 +432,7 @@ function SolverCore.solve!(
     end
 
     ρk = Δobj / Δmod
+  end
 
     verbose > 0 &&
       stats.iter % verbose == 0 &&

@@ -143,6 +143,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 - `η2::T = T(0.9)`: successful iteration threshold;
 - `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
+- `fmin::T = -1 / eps(T)`: if the objective at an accepted iterate falls below `fmin`, the objective is considered unbounded below and R2 stops with status `:unbounded` (e.g., an indefinite quadratic model, as in the subproblems of R2N);
 - `m_monotone::Int = 6`: monotonicity parameter. By default, R2 is non-monotone but the monotone variant can be used with `m_monotone = 1`;
 - `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
 - `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
@@ -298,6 +299,7 @@ function SolverCore.solve!(
   η2::T = T(0.9),
   ν::T = eps(T)^(1 / 5),
   γ::T = T(3),
+  fmin::T = -1 / eps(T),
   compute_obj::Bool = true,
   compute_grad::Bool = true,
 ) where {T, V}
@@ -495,6 +497,8 @@ function SolverCore.solve!(
         max_iter = max_iter,
       ),
     )
+    # objective unbounded below along the iterates: flag it so that a calling solver can react
+    fk + hk < fmin && set_status!(stats, :unbounded)
 
     callback(reg_nlp, solver, stats)
 
