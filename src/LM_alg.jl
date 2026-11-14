@@ -59,7 +59,7 @@ function LMSolver(
     u_bound_m_x = similar(xk, 0)
   end
 
-  m_fh_hist = fill(T(-Inf), m_monotone - 1)
+  m_fh_hist = fill(T(-Inf), m_monotone)
 
   ψ =
     has_bnds ? shifted(reg_nls.h, xk, l_bound_m_x, u_bound_m_x, reg_nls.selected) :
@@ -138,7 +138,7 @@ For advanced usage, first define a solver "LMSolver" to preallocate the memory u
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
-- `m_monotone::Int = 1`: monotonicity parameter. By default, LM is monotone but the non-monotone variant will be used if `m_monotone > 1`;
+- `m_monotone::Int = 1`: monotonicity parameter. By default, LM is monotone but the non-monotone variant will be used if `m_monotone > 1`. Rejected steps leave the memory unchanged;
 - `subsolver = R2Solver`: the solver used to solve the subproblems.
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
 
@@ -229,7 +229,8 @@ function SolverCore.solve!(
   m_fh_hist = solver.m_fh_hist .= T(-Inf)
   has_bnds = solver.has_bnds
 
-  m_monotone = length(m_fh_hist) + 1
+  m_monotone = length(m_fh_hist)
+  gll_pos = 1
 
   if has_bnds
     l_bound, u_bound = solver.l_bound, solver.u_bound
@@ -291,7 +292,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
-  m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
+  m_monotone > 1 && (m_fh_hist[gll_pos] = fk + hk)
 
   φ1 = let Fk = Fk, ∇fk = ∇fk
     d -> dot(Fk, Fk) / 2 + dot(∇fk, d) # ∇fk = Jk^T Fk
@@ -416,6 +417,10 @@ function SolverCore.solve!(
         σmax, found_σ = opnorm(solver.subpb.model.J)
         found_σ || error("operator norm computation failed")
       end
+      if m_monotone > 1
+        gll_pos = mod1(gll_pos + 1, m_monotone)
+        m_fh_hist[gll_pos] = fk + hk
+      end
       set_step_status!(stats, :accepted)
     end
 
@@ -427,8 +432,6 @@ function SolverCore.solve!(
       σk = σk * γ
       set_step_status!(stats, :rejected)
     end
-
-    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
     set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)

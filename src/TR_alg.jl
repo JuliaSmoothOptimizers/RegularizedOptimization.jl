@@ -58,7 +58,7 @@ function TRSolver(
     u_bound_m_x = similar(xk, 0)
   end
 
-  m_fh_hist = fill(T(-Inf), m_monotone - 1)
+  m_fh_hist = fill(T(-Inf), m_monotone)
 
   v0 = [(-1.0)^i for i = 0:(reg_nlp.model.meta.nvar - 1)]
   v0 ./= sqrt(reg_nlp.model.meta.nvar)
@@ -148,7 +148,7 @@ For advanced usage, first define a solver "TRSolver" to preallocate the memory u
 - `η1::T = √√eps(T)`: successful iteration threshold;
 - `η2::T = T(0.9)`: very successful iteration threshold;
 - `γ::T = T(3)`: trust-region radius parameter multiplier. Must satisfy `γ > 1`. The trust-region radius is updated as Δ := Δ*γ when the iteration is very successful and Δ := Δ/γ when the iteration is unsuccessful;
-- `m_monotone::Int = 1`: monotonicity parameter. By default, TR is monotone but the non-monotone variant will be used if `m_monotone > 1`;
+- `m_monotone::Int = 1`: monotonicity parameter. By default, TR is monotone but the non-monotone variant will be used if `m_monotone > 1`. Rejected steps leave the memory unchanged;
 - `opnorm_maxiter::Int = 5`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
 - `χ::F =  NormLinf(1)`: norm used to define the trust-region;`
 - `subsolver::S = R2Solver`: subsolver used to solve the subproblem that appears at each iteration.
@@ -251,7 +251,8 @@ function SolverCore.solve!(
   m_fh_hist = solver.m_fh_hist .= T(-Inf)
   has_bnds = solver.has_bnds
 
-  m_monotone = length(m_fh_hist) + 1
+  m_monotone = length(m_fh_hist)
+  gll_pos = 1
 
   if has_bnds || isa(solver.subsolver, TRDHSolver) #TODO elsewhere ?
     l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
@@ -328,7 +329,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
-  m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
+  m_monotone > 1 && (m_fh_hist[gll_pos] = fk + hk)
 
   # models
   φ1 = let ∇fk = ∇fk
@@ -478,6 +479,10 @@ function SolverCore.solve!(
       found_λ || error("operator norm computation failed")
 
       ∇fk⁻ .= ∇fk
+      if m_monotone > 1
+        gll_pos = mod1(gll_pos + 1, m_monotone)
+        m_fh_hist[gll_pos] = fk + hk
+      end
       set_step_status!(stats, :accepted)
     end
 
@@ -493,8 +498,6 @@ function SolverCore.solve!(
       end
       set_step_status!(stats, :rejected)
     end
-
-    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
     set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)

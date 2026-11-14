@@ -63,7 +63,7 @@ function R2NSolver(
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
-  m_fh_hist = fill(T(-Inf), m_monotone - 1)
+  m_fh_hist = fill(T(-Inf), m_monotone)
 
   ψ =
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
@@ -151,7 +151,7 @@ For advanced usage, first define a solver "R2NSolver" to preallocate the memory 
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful;
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model;
 - `opnorm_maxiter::Int = 5`: how many iterations of the power method to use to compute the operator norm of Bₖ. If a negative number is provided, then Arpack is used instead;
-- `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`;
+- `m_monotone::Int = 1`: monotonicity parameter. By default, R2N is monotone but the non-monotone variant will be used if `m_monotone > 1`. Rejected steps leave the memory unchanged;
 - `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
 - `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 - `sub_kwargs::NamedTuple = NamedTuple()`: a named tuple containing the keyword arguments to be sent to the subsolver. The solver will fail if invalid keyword arguments are provided to the subsolver. For example, if the subsolver is `R2Solver`, you can pass `sub_kwargs = (max_iter = 100, σmin = 1e-6,)`.
@@ -263,7 +263,8 @@ function SolverCore.solve!(
     update_bounds!(l_bound_m_x, u_bound_m_x, l_bound, u_bound, xk)
     set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
   end
-  m_monotone = length(m_fh_hist) + 1
+  m_monotone = length(m_fh_hist)
+  gll_pos = 1
 
   # initialize parameters
   improper = false
@@ -330,7 +331,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :sigma, σk)
   set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
   set_solver_specific!(stats, :prox_evals, prox_evals + 1)
-  m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
+  m_monotone > 1 && (m_fh_hist[gll_pos] = fk + hk)
 
   φ1 = let ∇fk = ∇fk
     d -> dot(∇fk, d)
@@ -472,6 +473,10 @@ function SolverCore.solve!(
         λmax = power_method!(solver.subpb.model.data.H, solver.v0, solver.v1, opnorm_maxiter)
       end
       found_λ || error("operator norm computation failed")
+      if m_monotone > 1
+        gll_pos = mod1(gll_pos + 1, m_monotone)
+        m_fh_hist[gll_pos] = fk + hk
+      end
       set_step_status!(stats, :accepted)
     end
 
@@ -485,7 +490,6 @@ function SolverCore.solve!(
     end
 
     ν₁ = θ / (λmax + σk)
-    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
     set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)
