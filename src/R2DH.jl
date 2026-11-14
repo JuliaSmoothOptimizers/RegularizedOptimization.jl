@@ -27,7 +27,7 @@ end
 
 function R2DHSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
-  m_monotone::Int = 6,
+  m_monotone::Int = 5,
   D::Union{Nothing, AbstractDiagonalQuasiNewtonOperator} = nothing,
 ) where {T, V}
   x0 = reg_nlp.model.meta.x0
@@ -51,7 +51,7 @@ function R2DHSolver(
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
-  m_fh_hist = fill(T(-Inf), m_monotone - 1)
+  m_fh_hist = fill(T(-Inf), m_monotone)
 
   ψ =
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
@@ -105,7 +105,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs + ½ sᵀDₖs is a diagonal quadr
 
 For advanced usage, first define a solver `R2DHSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
 
-    solver = R2DHSolver(reg_nlp; m_monotone = 6)
+    solver = R2DHSolver(reg_nlp; m_monotone = 5)
     solve!(solver, reg_nlp)
 
 or
@@ -132,7 +132,7 @@ or
 - `η2::T = T(0.9)`: successful iteration threshold;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
 - `θ::T = 1/(1 + eps(T)^(1 / 5))`: is the model decrease fraction with respect to the decrease of the Cauchy model. 
-- `m_monotone::Int = 6`: monotoneness parameter. By default, R2DH is non-monotone but the monotone variant can be used with `m_monotone = 1`
+- `m_monotone::Int = 5`: monotonicity parameter. By default, R2DH is non-monotone but the monotone variant can be used with `m_monotone = 1`. Rejected steps leave the memory unchanged;
 - `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
 - `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 
@@ -209,7 +209,7 @@ end
 
 function R2DH(reg_nlp::AbstractRegularizedNLPModel{T, V}; kwargs...) where {T, V}
   kwargs_dict = Dict(kwargs...)
-  m_monotone = pop!(kwargs_dict, :m_monotone, 6)
+  m_monotone = pop!(kwargs_dict, :m_monotone, 5)
   D = pop!(kwargs_dict, :D, nothing)
   solver = R2DHSolver(reg_nlp, m_monotone = m_monotone, D = D)
   stats = RegularizedExecutionStats(reg_nlp)
@@ -268,7 +268,8 @@ function SolverCore.solve!(
     update_bounds!(l_bound_m_x, u_bound_m_x, l_bound, u_bound, xk)
     set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
   end
-  m_monotone = length(m_fh_hist) + 1
+  m_monotone = length(m_fh_hist)
+  gll_pos = 1
 
   # initialize parameters
   improper = false
@@ -324,7 +325,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :nonsmooth_obj, hk)
   set_solver_specific!(stats, :sigma, σk)
   set_solver_specific!(stats, :sigma_cauchy, 1/ν₁)
-  m_monotone > 1 && (m_fh_hist[(stats.iter) % (m_monotone - 1) + 1] = fk + hk)
+  m_monotone > 1 && (m_fh_hist[gll_pos] = fk + hk)
 
   φ(d) = begin
     result = zero(T)
@@ -408,6 +409,10 @@ function SolverCore.solve!(
       @. ∇fk⁻ = ∇fk - ∇fk⁻
       push!(D, s, ∇fk⁻) # update QN operator
       ∇fk⁻ .= ∇fk
+      if m_monotone > 1
+        gll_pos = mod1(gll_pos + 1, m_monotone)
+        m_fh_hist[gll_pos] = fk + hk
+      end
       set_step_status!(stats, :accepted)
     end
 
@@ -434,7 +439,6 @@ function SolverCore.solve!(
     ν₁ = θ / (DNorm + σk)
 
     @. mν∇fk = -ν₁ * ∇fk
-    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
     spectral_test ? prox!(s, ψ, mν∇fk, ν₁) : iprox!(s, ψ, ∇fk, dkσk)
     mks = mk(s)

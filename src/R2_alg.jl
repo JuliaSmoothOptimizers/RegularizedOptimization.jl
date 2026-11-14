@@ -27,7 +27,7 @@ function R2Solver(
   l_bound::S,
   u_bound::S;
   ψ = nothing,
-  m_monotone::Int = 6,
+  m_monotone::Int = 5,
 ) where {R <: Real, S <: AbstractVector{R}}
   xk = similar(x0)
   ∇fk = similar(x0)
@@ -42,7 +42,7 @@ function R2Solver(
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
-  m_fh_hist = fill(T(-Inf), m_monotone - 1)
+  m_fh_hist = fill(T(-Inf), m_monotone)
   return R2Solver(
     xk,
     ∇fk,
@@ -59,7 +59,7 @@ function R2Solver(
   )
 end
 
-function R2Solver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int = 6) where {T, V}
+function R2Solver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int = 5) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
   u_bound = reg_nlp.model.meta.uvar
@@ -79,7 +79,7 @@ function R2Solver(reg_nlp::AbstractRegularizedNLPModel{T, V}; m_monotone::Int = 
     l_bound_m_x = similar(xk, 0)
     u_bound_m_x = similar(xk, 0)
   end
-  m_fh_hist = fill(T(-Inf), m_monotone - 1)
+  m_fh_hist = fill(T(-Inf), m_monotone)
 
   ψ =
     has_bnds ? shifted(reg_nlp.h, xk, l_bound_m_x, u_bound_m_x, reg_nlp.selected) :
@@ -119,7 +119,7 @@ where φ(s ; xₖ) = f(xₖ) + ∇f(xₖ)ᵀs is the Taylor linear approximation
 
 For advanced usage, first define a solver "R2Solver" to preallocate the memory used in the algorithm, and then call `solve!`:
 
-    solver = R2Solver(reg_nlp; m_monotone = 6)
+    solver = R2Solver(reg_nlp; m_monotone = 5)
     solve!(solver, reg_nlp)
 
     stats = RegularizedExecutionStats(reg_nlp)
@@ -143,7 +143,7 @@ For advanced usage, first define a solver "R2Solver" to preallocate the memory u
 - `η2::T = T(0.9)`: successful iteration threshold;
 - `ν::T = eps(T)^(1 / 5)`: multiplicative inverse of the regularization parameter: ν = 1/σ;
 - `γ::T = T(3)`: regularization parameter multiplier, σ := σ/γ when the iteration is very successful and σ := σγ when the iteration is unsuccessful.
-- `m_monotone::Int = 6`: monotonicity parameter. By default, R2 is non-monotone but the monotone variant can be used with `m_monotone = 1`;
+- `m_monotone::Int = 5`: monotonicity parameter. By default, R2 is non-monotone but the monotone variant can be used with `m_monotone = 1`. Rejected steps leave the memory unchanged;
 - `compute_obj::Bool = true`: (advanced) whether `f(x₀)` should be computed or not. If set to false, then the value is retrieved from `stats.solver_specific[:smooth_obj]`;
 - `compute_grad::Bool = true`: (advanced) whether `∇f(x₀)` should be computed or not. If set to false, then the value is retrieved from `solver.∇fk`;
 
@@ -273,7 +273,7 @@ end
 
 function R2(reg_nlp::AbstractRegularizedNLPModel; kwargs...)
   kwargs_dict = Dict(kwargs...)
-  m_monotone = pop!(kwargs_dict, :m_monotone, 6)
+  m_monotone = pop!(kwargs_dict, :m_monotone, 5)
   solver = R2Solver(reg_nlp, m_monotone = m_monotone)
   stats = RegularizedExecutionStats(reg_nlp)
   solve!(solver, reg_nlp, stats; kwargs_dict...)
@@ -326,7 +326,8 @@ function SolverCore.solve!(
     update_bounds!(l_bound_m_x, u_bound_m_x, l_bound, u_bound, xk)
     set_bounds!(ψ, l_bound_m_x, u_bound_m_x)
   end
-  m_monotone = length(m_fh_hist) + 1
+  m_monotone = length(m_fh_hist)
+  gll_pos = 1
 
   # initialize parameters
   improper = false
@@ -376,7 +377,7 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :smooth_obj, fk)
   set_solver_specific!(stats, :nonsmooth_obj, hk)
   set_solver_specific!(stats, :sigma, σk)
-  m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
+  m_monotone > 1 && (m_fh_hist[gll_pos] = fk + hk)
 
   φk(d) = dot(∇fk, d)
   mk(d)::T = φk(d) + ψ(d)::T
@@ -451,6 +452,10 @@ function SolverCore.solve!(
       hk = hkn
       grad!(nlp, xk, ∇fk)
       shift!(ψ, xk)
+      if m_monotone > 1
+        gll_pos = mod1(gll_pos + 1, m_monotone)
+        m_fh_hist[gll_pos] = fk + hk
+      end
       set_step_status!(stats, :accepted)
     end
 
@@ -464,7 +469,6 @@ function SolverCore.solve!(
 
     ν = 1 / σk
     @. mν∇fk = -ν * ∇fk
-    m_monotone > 1 && (m_fh_hist[stats.iter % (m_monotone - 1) + 1] = fk + hk)
 
     set_objective!(stats, fk + hk)
     set_solver_specific!(stats, :smooth_obj, fk)
