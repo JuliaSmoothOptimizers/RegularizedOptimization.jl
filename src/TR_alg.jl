@@ -73,7 +73,7 @@ function TRSolver(
   sub_nlp = QuadraticModel(∇fk, Bk, x0 = x0)
   subpb = RegularizedNLPModel(sub_nlp, ψ)
   substats = RegularizedExecutionStats(subpb)
-  subsolver = subsolver(subpb)
+  subsolver = subsolver == TRDHSolver ? subsolver(subpb, is_subsolver = true) : subsolver(subpb)
 
   return TRSolver(
     xk,

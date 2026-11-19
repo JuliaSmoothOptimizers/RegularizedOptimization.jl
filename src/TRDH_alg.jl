@@ -24,12 +24,14 @@ mutable struct TRDHSolver{
   u_bound::V
   l_bound_m_x::V
   u_bound_m_x::V
+  is_subsolver::Bool
 end
 
 function TRDHSolver(
   reg_nlp::AbstractRegularizedNLPModel{T, V};
   D::Union{Nothing, AbstractDiagonalQuasiNewtonOperator} = nothing,
   χ = NormLinf(one(T)),
+  is_subsolver = false,
 ) where {T, V}
   x0 = reg_nlp.model.meta.x0
   l_bound = reg_nlp.model.meta.lvar
@@ -46,7 +48,6 @@ function TRDHSolver(
   dk = similar(x0)
   has_bnds = any(l_bound .!= T(-Inf)) || any(u_bound .!= T(Inf))
 
-  is_subsolver = reg_nlp.h isa ShiftedProximableFunction # case TRDH is used as a subsolver
   if is_subsolver
     ψ = shifted(reg_nlp.h, xk)
     @assert !has_bnds
@@ -87,6 +88,7 @@ function TRDHSolver(
     u_bound,
     l_bound_k,
     u_bound_k,
+    is_subsolver,
   )
 end
 
@@ -275,7 +277,7 @@ function SolverCore.solve!(
   χ = solver.χ
   has_bnds = solver.has_bnds
 
-  is_subsolver = h isa ShiftedProximableFunction # case TRDH is used as a subsolver
+  is_subsolver = solver.is_subsolver
 
   if has_bnds
     l_bound_m_x, u_bound_m_x = solver.l_bound_m_x, solver.u_bound_m_x
